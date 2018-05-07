@@ -19,8 +19,9 @@ stages:
 
 .build-template: &build
   script:
+    - cd /usr/local/src
     - mkdir datalog_disasm
-    - cp /u4/TARBALLS/datalog_disasm/standalone_compilation.tar.bz2 /datalog_disasm
+    - cp /u4/TARBALLS/datalog_disasm/standalone_compilation.tar.bz2 /usr/local/src/datalog_disasm
     - tar xjf standalone_compilation.tar.bz2
     - docker build -f .ci/Dockerfile.$OS-$COMPILER -t ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} .
     - docker run ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} TestPrettyPrinter
