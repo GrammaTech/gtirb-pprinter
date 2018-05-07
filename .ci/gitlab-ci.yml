@@ -11,11 +11,11 @@ stages:
   - build-test-ubuntu16-gcc
 # - build-test-ubuntu16-clang
 # - build-test-ubuntu14-gcc
-#  - build-test-arch-gcc
+# - build-test-arch-gcc
   - cleanup-ubuntu16-gcc
 # - cleanup-ubuntu16-clang
 # - cleanup-ubuntu14-gcc
-#  - cleanup-arch-gcc
+# - cleanup-arch-gcc
 
 .build-template: &build
   script:
@@ -91,9 +91,9 @@ cleanup-ubuntu16-gcc:
 #    - master
 
 pages:
-  stage: cleanup-arch-gcc
+  stage: cleanup-ubuntu16-gcc
   variables:
-    OS: 'arch'
+    OS: 'ubuntu16'
     COMPILER: 'gcc'
   script:
     - docker run ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} /bin/bash -c "mkdir -p doc/html; doxygen Doxyfile; cp -R doc/html /public";
