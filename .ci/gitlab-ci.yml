@@ -97,7 +97,7 @@ pages:
     COMPILER: 'gcc'
   script:
     - docker run ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} /bin/bash -c "mkdir -p doc/html; doxygen Doxyfile; cp -R doc/html /public";
-    - docker cp $(docker ps -alq):/public ./;
+#    - docker cp $(docker ps -alq):/public ./;
     - docker rmi -f ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER}
   artifacts:
     paths:
