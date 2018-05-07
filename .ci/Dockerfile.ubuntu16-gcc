@@ -1,0 +1,64 @@
+FROM ubuntu:16.04
+
+ARG BOOST_VERSION=1.67.0
+ARG BOOST_VERSION_=1_67_0
+ARG CMAKE_VERSION=3.10
+
+RUN apt-get -y update && \
+    apt-get -y install software-properties-common && \
+    add-apt-repository ppa:jonathonf/gcc-7.1 && \
+    apt-get -y update
+RUN apt-get -y install gcc-7 g++-7 make cmake git 
+RUN apt-get -y install build-essential binutils 
+RUN apt-get -y install doxygen graphviz wget curl unzip
+RUN update-alternatives --install /usr/bin/cc cc /usr/bin/gcc-7 60
+RUN update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-7 60
+
+# Install Boost
+ENV BOOST_VERSION=${BOOST_VERSION}
+ENV BOOST_VERSION_=${BOOST_VERSION_}
+ENV BOOST_ROOT=/usr/include/boost
+RUN cd /home && wget https://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION_}.tar.gz \
+  && tar xfz boost_${BOOST_VERSION_}.tar.gz \
+  && rm boost_${BOOST_VERSION_}.tar.gz \
+  && cd boost_${BOOST_VERSION_} \
+  && ./bootstrap.sh --prefix=/usr/local --with-libraries=program_options,filesystem,system,serialization \
+  && ./b2 install \
+  && cd /home \
+  && rm -rf boost_${BOOST_VERSION_}
+
+# Install CMake
+RUN curl -SL https://cmake.org/files/v$CMAKE_VERSION/cmake-$CMAKE_VERSION.0-Linux-x86_64.tar.gz \
+    |tar -xz --strip-components=1 -C /usr/local
+
+# Install souffle (For the datalog disassembler)
+RUN apt-get -y install bison flex libncurses5-dev libtool libsqlite3-dev mcpp python sqlite zlib1g-dev
+RUN apt-get -y install autoconf automake
+RUN cd /usr/local/src \
+    && git clone https://github.com/souffle-lang/souffle.git \
+    && cd souffle \
+    && pwd \
+    && ls -l \
+    && ./bootstrap \
+    && ./configure \
+    && make \
+    && make install
+
+# Install and build datalog disassembler.
+RUN cd /usr/local/src \
+   && git clone https://git.grammatech.com/afloresmontoya/datalog_disasm.git \
+   && cd datalog_disasm \
+   && pwd \
+   && ls -l \
+   && make all
+
+# Build PrettyPrinter
+COPY . /gt/PrettyPrinter/
+RUN rm -rf /gt/PrettyPrinter/build /gt/PrettyPrinter/CMakeCache.txt /gt/PrettyPrinter/CMakeFiles /gt/PrettyPrinter/CMakeScripts
+RUN mkdir -p /gt/PrettyPrinter/build
+WORKDIR /gt/PrettyPrinter/build
+RUN cmake ../ -DDEBLOAT_ISO_CPP_VERSION=C++14 -DDEBLOAT_FOUND_DATALOG_DECODER=/usr/local/src/datalog_disasm/bin/datalog_decoder -DDEBLOAT_FOUND_SOUFFLE_DISASM=/usr/local/src/datalog_disasm/bin/souffle_disasm 
+RUN make -j
+
+WORKDIR /gt/PrettyPrinter/
+ENV PATH=/gt/PrettyPrinter/bin:$PATH
