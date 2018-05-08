@@ -4,7 +4,6 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
 before_script:
-  - docker info
   - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
 
 stages:
