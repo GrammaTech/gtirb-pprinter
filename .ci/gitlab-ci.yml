@@ -19,7 +19,7 @@ stages:
 .build-template: &build
   script:
     - docker build -f .ci/Dockerfile.$OS-$COMPILER -t ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} .
-    - docker cp /u4/TARBALLS/datalog_disasm/standalone_compilation.tar.bz2 ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER}:/standalone_compilation.tar.bz2
+    - docker cp /u4/TARBALLS/datalog_disasm/standalone_compilation.tar.bz2 ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER}:/usr/local/src/datalog_disasm/standalone_compilation.tar.bz2
     - docker run /bin/sh -c 'cd /usr/local/src/datalog_disasm/; tar -xvzf standalone_compilation.tar.gz; make all'
     - docker run ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} TestPrettyPrinter
     - docker tag ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} $DOCKER_REGISTRY/$CI_PROJECT_PATH/${OS}-${COMPILER};
