@@ -2,6 +2,10 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/lexical_cast.hpp>
 #include <fstream>
+#include <gtirb/Module.hpp>
+#include <gtirb/NodeUtilities.hpp>
+#include <gtirb/Symbol.hpp>
+#include <gtirb/SymbolSet.hpp>
 #include <iostream>
 
 void DisasmData::parseDirectory(std::string x)
@@ -60,12 +64,34 @@ void DisasmData::parseSymbol(const std::string& x)
     Table fromFile{5};
     fromFile.parseFile(x);
 
+    int count = 0;
     for(const auto& ff : fromFile)
     {
-        this->symbol.push_back(Symbol(ff));
+        count++;
+
+        assert(ff.size() == 5);
+
+        gtirb::EA base{boost::lexical_cast<uint64_t>(ff[0])};
+        uint64_t size = boost::lexical_cast<uint64_t>(ff[1]);
+        // Not used, unclear how to represent it in gtirb
+        std::string type = ff[2];
+        std::string scope = ff[3];
+        std::string name = ff[4];
+
+        auto new_sym = getSymbolSet()->addSymbol(std::make_unique<gtirb::Symbol>(gtirb::EA{base}));
+        new_sym->setElementSize(size);
+        new_sym->setName(name);
+        if(type == "FUNC")
+        {
+            new_sym->setDeclarationKind(gtirb::Symbol::DeclarationKind::Func);
+        }
+
+        // NOTE: don't seem to care about LOCAL or WEAK, and not clear how to
+        // represent them in gtirb.
+        new_sym->setIsGlobal(scope == "GLOBAL");
     }
 
-    std::cerr << " # Number of symbol: " << this->symbol.size() << std::endl;
+    std::cerr << " # Number of symbol: " << count << std::endl;
 }
 
 void DisasmData::parseSection(const std::string& x)
@@ -290,7 +316,8 @@ void DisasmData::parsePLTCodeReference(const std::string& x)
         this->plt_code_reference.push_back(PLTReference(ff));
     }
 
-    std::cerr << " # Number of plt_code_reference: " << this->plt_code_reference.size() << std::endl;
+    std::cerr << " # Number of plt_code_reference: " << this->plt_code_reference.size()
+              << std::endl;
 }
 void DisasmData::parsePLTDataReference(const std::string& x)
 {
@@ -302,7 +329,8 @@ void DisasmData::parsePLTDataReference(const std::string& x)
         this->plt_data_reference.push_back(PLTReference(ff));
     }
 
-    std::cerr << " # Number of plt_data_reference: " << this->plt_data_reference.size() << std::endl;
+    std::cerr << " # Number of plt_data_reference: " << this->plt_data_reference.size()
+              << std::endl;
 }
 
 void DisasmData::parseSymbolicOperand(const std::string& x)
@@ -497,11 +525,6 @@ void DisasmData::parseInFunction(const std::string& x)
 {
     this->in_function.parseFile(x);
     std::cerr << " # Number of in_function: " << this->in_function.size() << std::endl;
-}
-
-std::vector<Symbol>* DisasmData::getSymbol()
-{
-    return &this->symbol;
 }
 
 std::vector<Section>* DisasmData::getSection()
@@ -804,30 +827,31 @@ std::string DisasmData::getFunctionName(uint64_t x) const
 
 std::string DisasmData::getGlobalSymbolReference(uint64_t ea) const
 {
-
-    //check the symbol table
-    for(const auto& s : this->symbol)
+    for(const auto sym : getSymbolSet()->getSymbols())
     {
-        /// \todo	This will need looked at again to cover the logic of get_global_symbol_ref.
-        if(s.Base <= ea && s.Base+s.Size>ea )// fall within the symbol
+        /// \todo This will need looked at again to cover the logic
+        if(sym->getEA().get() <= ea
+           && sym->getEA().get() + sym->getElementSize() > ea) // fall within the symbol
         {
-            uint64_t displacement=ea-s.Base;
+            uint64_t displacement = ea - sym->getEA().get();
 
-            //in a function with non-zero displacement we do not use the relative addressing
-            if(displacement>0 && s.Type==std::string{"FUNC"})
+            // in a function with non-zero displacement we do not use the relative addressing
+            if(displacement > 0
+               && sym->getDeclarationKind() == gtirb::Symbol::DeclarationKind::Func)
             {
                 return std::string{};
             }
-            if(s.Scope == std::string{"GLOBAL"})
+            if(sym->getIsGlobal())
             {
                 // %do not print labels for symbols that have to be relocated
-                const auto name = DisasmData::CleanSymbolNameSuffix(s.Name);
+                const auto name = DisasmData::CleanSymbolNameSuffix(sym->getName());
 
                 if(DisasmData::GetIsReservedSymbol(name) == false)
                 {
-                    if(displacement>0)
+                    if(displacement > 0)
                     {
-                        return DisasmData::AvoidRegNameConflicts(name)+"+"+std::to_string(displacement);
+                        return DisasmData::AvoidRegNameConflicts(name) + "+"
+                               + std::to_string(displacement);
                     }
                     else
                     {
@@ -837,12 +861,13 @@ std::string DisasmData::getGlobalSymbolReference(uint64_t ea) const
             }
         }
     }
-    //check the relocation table
+
+    // check the relocation table
     for(const auto& r : this->relocation)
     {
-        if(r.EA==ea)
+        if(r.EA == ea)
         {
-            return DisasmData::AvoidRegNameConflicts(r.Name)+"@GOTPCREL";
+            return DisasmData::AvoidRegNameConflicts(r.Name) + "@GOTPCREL";
         }
     }
     return std::string{};
@@ -850,21 +875,21 @@ std::string DisasmData::getGlobalSymbolReference(uint64_t ea) const
 
 std::string DisasmData::getGlobalSymbolName(uint64_t ea) const
 {
-    for(const auto& s : this->symbol)
+    for(const auto sym : getSymbolSet()->getSymbols())
     {
-        if(s.Base == ea)
+        if(sym->getEA().get() == ea)
         {
-            if(s.Scope == std::string{"GLOBAL"})
+            if(sym->getIsGlobal())
             {
                 // %do not print labels for symbols that have to be relocated
-                const auto name = DisasmData::CleanSymbolNameSuffix(s.Name);
+                const auto name = DisasmData::CleanSymbolNameSuffix(sym->getName());
 
                 // if it is not relocated...
                 if(this->getRelocation(name) == nullptr)
                 {
                     if(DisasmData::GetIsReservedSymbol(name) == false)
                     {
-                        return DisasmData::AvoidRegNameConflicts(name);
+                        return std::string{DisasmData::AvoidRegNameConflicts(name)};
                     }
                 }
             }
@@ -876,8 +901,9 @@ std::string DisasmData::getGlobalSymbolName(uint64_t ea) const
 
 const PLTReference* const DisasmData::getPLTCodeReference(uint64_t ea) const
 {
-    const auto found = std::find_if(std::begin(this->plt_code_reference), std::end(this->plt_code_reference),
-                                    [ea](const auto& element) { return element.EA == ea; });
+    const auto found =
+        std::find_if(std::begin(this->plt_code_reference), std::end(this->plt_code_reference),
+                     [ea](const auto& element) { return element.EA == ea; });
 
     if(found != std::end(this->plt_code_reference))
     {
@@ -889,8 +915,9 @@ const PLTReference* const DisasmData::getPLTCodeReference(uint64_t ea) const
 
 const PLTReference* const DisasmData::getPLTDataReference(uint64_t ea) const
 {
-    const auto found = std::find_if(std::begin(this->plt_data_reference), std::end(this->plt_data_reference),
-                                    [ea](const auto& element) { return element.EA == ea; });
+    const auto found =
+        std::find_if(std::begin(this->plt_data_reference), std::end(this->plt_data_reference),
+                     [ea](const auto& element) { return element.EA == ea; });
 
     if(found != std::end(this->plt_data_reference))
     {
@@ -915,8 +942,9 @@ const SymbolicData* const DisasmData::getSymbolicData(uint64_t ea) const
 
 const SymbolMinusSymbol* const DisasmData::getSymbolMinusSymbol(uint64_t ea) const
 {
-    const auto found = std::find_if(std::begin(this->symbol_minus_symbol), std::end(this->symbol_minus_symbol),
-                                    [ea](const auto& element) { return element.EA == ea; });
+    const auto found =
+        std::find_if(std::begin(this->symbol_minus_symbol), std::end(this->symbol_minus_symbol),
+                     [ea](const auto& element) { return element.EA == ea; });
 
     if(found != std::end(this->symbol_minus_symbol))
     {
@@ -967,8 +995,9 @@ const MovedLabel* const DisasmData::getMovedLabel(uint64_t ea) const
 
 const MovedDataLabel* const DisasmData::getMovedDataLabel(uint64_t ea) const
 {
-    const auto found = std::find_if(std::begin(this->moved_data_label), std::end(this->moved_data_label),
-                                    [ea](const auto& element) { return element.EA == ea; });
+    const auto found =
+        std::find_if(std::begin(this->moved_data_label), std::end(this->moved_data_label),
+                     [ea](const auto& element) { return element.EA == ea; });
 
     if(found != std::end(this->moved_data_label))
     {
@@ -1007,6 +1036,12 @@ const Relocation* const DisasmData::getRelocation(const std::string& x) const
     return nullptr;
 }
 
+gtirb::SymbolSet* DisasmData::getSymbolSet() const
+{
+    // Note: need const_cast here because of getOrCreate. This is ugly but
+    // should be safe.
+    return const_cast<DisasmData*>(this)->ir.getOrCreateMainModule()->getOrCreateSymbolSet();
+}
 
 const Section* const DisasmData::getSection(const std::string& x) const
 {
@@ -1020,7 +1055,6 @@ const Section* const DisasmData::getSection(const std::string& x) const
 
     return nullptr;
 }
-
 
 const Instruction* const DisasmData::getInstruction(uint64_t ea) const
 {

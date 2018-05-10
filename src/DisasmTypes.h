@@ -170,31 +170,6 @@ struct CodeInBlock
 ///
 ///
 ///
-struct Symbol
-{
-    Symbol() = default;
-
-    Symbol(const std::vector<std::string>& x)
-    {
-        assert(x.size() == 5);
-
-        this->Base = boost::lexical_cast<decltype(Symbol::Base)>(x[0]);
-        this->Size = boost::lexical_cast<decltype(Symbol::Size)>(x[1]);
-        this->Type = x[2];
-        this->Scope = x[3];
-        this->Name = x[4];
-    };
-
-    uint64_t Base{0};
-    uint64_t Size{0};
-    std::string Type;  // OBJECT, FUNC, NOTYPE
-    std::string Scope; // GLOBAL, LOCAL, WEAK
-    std::string Name;
-};
-
-///
-///
-///
 struct Relocation
 {
     Relocation() = default;
@@ -303,7 +278,6 @@ struct DataByte
     {
         return this->EA != x;
     }
-
 
     uint64_t EA{0};
     uint8_t Content{0};
@@ -432,7 +406,7 @@ struct MovedDataLabel
 };
 
 ///
-/// "String" is a bad name for this data type. 
+/// "String" is a bad name for this data type.
 ///
 struct String
 {
@@ -448,7 +422,7 @@ struct String
 
     uint64_t size() const
     {
-    	return this->End - this->EA;
+        return this->End - this->EA;
     }
 
     uint64_t EA{0};
