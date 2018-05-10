@@ -47,12 +47,14 @@ add_library(${PROJECT_NAME} SHARED
 	)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${PROJECT_SOURCE_DIR}/../gt-irb/include)
 set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "debloat")
 
 target_link_libraries(
 	${PROJECT_NAME} 
 	${SYSLIBS}
 	${Boost_LIBRARIES}
+        ${GTIRB}
 )
 
 add_subdirectory(test)
