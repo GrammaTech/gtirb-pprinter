@@ -58,7 +58,7 @@ COPY . /gt/PrettyPrinter/
 RUN rm -rf /gt/PrettyPrinter/build /gt/PrettyPrinter/CMakeCache.txt /gt/PrettyPrinter/CMakeFiles /gt/PrettyPrinter/CMakeScripts
 RUN mkdir -p /gt/PrettyPrinter/build
 WORKDIR /gt/PrettyPrinter/build
-RUN cmake ../ -DDEBLOAT_ISO_CPP_VERSION=C++14 -DDEBLOAT_FOUND_DATALOG_DECODER=/usr/local/src/datalog_disasm/bin/datalog_decoder -DDEBLOAT_FOUND_SOUFFLE_DISASM=/usr/local/src/datalog_disasm/bin/souffle_disasm 
+RUN cmake ../ -DDEBLOAT_ISO_CPP_VERSION=C++14 -DDEBLOAT_FOUND_DATALOG_DECODER=datalog_disasm/bin/datalog_decoder -DDEBLOAT_FOUND_SOUFFLE_DISASM=datalog_disasm/bin/souffle_disasm 
 RUN make -j
 
 WORKDIR /gt/PrettyPrinter/
