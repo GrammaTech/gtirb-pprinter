@@ -1,4 +1,3 @@
-#include "PrettyPrinter.h"
 #include <gtest/gtest.h>
 #include <boost/archive/polymorphic_text_iarchive.hpp>
 #include <boost/archive/polymorphic_text_oarchive.hpp>
@@ -6,6 +5,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/process.hpp>
 #include <memory>
+#include "PrettyPrinter.h"
 
 class DisableConsoleOutput
 {
@@ -26,8 +26,7 @@ public:
 // TestStructure is built by the CMake file and passed in as a preprocessor definition.
 struct TestStructure
 {
-    TestStructure(std::string n, std::string f)
-        : Name(std::move(n)), Flags(std::move(f))
+    TestStructure(std::string n, std::string f) : Name(std::move(n)), Flags(std::move(f))
     {
     }
 
@@ -77,8 +76,8 @@ public:
 
         EXPECT_NO_THROW(result = boost::process::system(cmd.str()))
             << "Make sure that \"datalog_decoder\" is in your PATH.";
-        EXPECT_EQ(EXIT_SUCCESS, result) << cmd.str() << "\n\tResults written to " << disasmPath
-                                        << ".";
+        EXPECT_EQ(EXIT_SUCCESS, result)
+            << cmd.str() << "\n\tResults written to " << disasmPath << ".";
         return result;
     }
 
@@ -92,8 +91,8 @@ public:
 
         EXPECT_NO_THROW(result = boost::process::system(cmd.str()))
             << "Make sure that \"datalog_decoder\" is in your PATH.";
-        EXPECT_EQ(EXIT_SUCCESS, result) << cmd.str() << "\n\tResults written to " << disasmPath
-                                        << ".";
+        EXPECT_EQ(EXIT_SUCCESS, result)
+            << cmd.str() << "\n\tResults written to " << disasmPath << ".";
         return result;
     }
 
@@ -138,7 +137,8 @@ public:
 #ifdef WIN32
         result = EXIT_FAILURE;
 #else
-        cmd << BOOST_PP_STRINGIZE(CMAKE_CXX_COMPILER) << " " << asmPath << " " << GetParam().Flags << " -o " << reasmPath;
+        cmd << BOOST_PP_STRINGIZE(CMAKE_CXX_COMPILER) << " " << asmPath << " " << GetParam().Flags
+            << " -o " << reasmPath;
 #endif
 
         EXPECT_NO_THROW(result = boost::process::system(cmd.str()));
@@ -166,7 +166,7 @@ public:
 };
 
 TEST(Unit_PrettyPrinter, ctor_0)
-    {
+{
     EXPECT_NO_THROW(PrettyPrinter());
 }
 

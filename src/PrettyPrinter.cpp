@@ -1,4 +1,3 @@
-#include "DisasmData.h"
 #include "PrettyPrinter.h"
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/trim.hpp>
@@ -7,6 +6,7 @@
 #include <iostream>
 #include <sstream>
 #include <gsl/gsl>
+#include "DisasmData.h"
 
 ///
 /// Pring a comment that automatically scopes.

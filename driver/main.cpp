@@ -1,11 +1,11 @@
-#include "DisasmData.h"
-#include "PrettyPrinter.h"
 #include <boost/filesystem.hpp>
 #include <boost/process.hpp>
 #include <boost/program_options.hpp>
 #include <iomanip>
 #include <iostream>
+#include "DisasmData.h"
 #include "Logger.h"
+#include "PrettyPrinter.h"
 
 int main(int argc, char** argv)
 {
