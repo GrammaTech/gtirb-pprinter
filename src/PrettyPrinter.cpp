@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <gsl/gsl>
 
 ///
 /// Pring a comment that automatically scopes.
@@ -375,7 +376,7 @@ std::string PrettyPrinter::buildOpImmediate(const OpImmediate* const op, uint64_
     auto moveLabel = this->disasm->getMovedLabel(ea);
     if(moveLabel != nullptr)
     {
-        assert(moveLabel->Offset1 == op->Immediate);
+        Expects(moveLabel->Offset1 == op->Immediate);
         auto diff = moveLabel->Offset1 - moveLabel->Offset2;
         auto symOffset2 = GetSymbolToPrint(moveLabel->Offset2);
         std::stringstream ss;
@@ -521,7 +522,7 @@ std::string PrettyPrinter::buildAdjustMovedDataLabel(uint64_t ea, uint64_t value
     auto moved = this->disasm->getMovedDataLabel(ea);
     if(moved != nullptr)
     {
-        assert(value == moved->Old);
+        Expects(value == moved->Old);
 
         auto diff = value - moved->New;
         ss << "+" << diff << std::dec;
@@ -918,7 +919,7 @@ std::pair<std::string, char> PrettyPrinter::getOffsetAndSign(int64_t offset, uin
     auto moveLabel = this->disasm->getMovedLabel(ea);
     if(moveLabel != nullptr)
     {
-        assert(moveLabel->Offset1 == offset);
+        Expects(moveLabel->Offset1 == offset);
         auto diff = moveLabel->Offset1 - moveLabel->Offset2;
         auto symOffset2 = GetSymbolToPrint(moveLabel->Offset2);
 
