@@ -754,34 +754,38 @@ void PrettyPrinter::printDataGroupPointerDiff(const DataGroupPointerDiff* const 
     ofs << ".long .L_" << x->Symbol2 << "-" << x->Symbol1;
 }
 
-void PrettyPrinter::printDataGroupString(const DataGroupString* const x)
+void PrettyPrinter::printDataGroupString(const DataGroupString *const x)
 {
     auto cleanByte = [](uint8_t b) {
         std::string cleaned;
         cleaned += b;
 
+        cleaned = boost::replace_all_copy(cleaned, "\\", "\\\\");
+        cleaned = boost::replace_all_copy(cleaned, "\"", "\\\"");
         cleaned = boost::replace_all_copy(cleaned, "\n", "\\n");
         cleaned = boost::replace_all_copy(cleaned, "\t", "\\t");
         cleaned = boost::replace_all_copy(cleaned, "\v", "\\v");
         cleaned = boost::replace_all_copy(cleaned, "\b", "\\b");
         cleaned = boost::replace_all_copy(cleaned, "\r", "\\r");
         cleaned = boost::replace_all_copy(cleaned, "\a", "\\a");
-        cleaned = boost::replace_all_copy(cleaned, "\\", "\\\\");
-        cleaned = boost::replace_all_copy(cleaned, "\"", "\\\"");
-        cleaned = boost::replace_all_copy(cleaned, "\0", "\\0");
 
         return cleaned;
     };
 
     this->ofs << ".string \"";
 
-    for(auto& b : x->StringBytes)
+    for(auto &b : x->StringBytes)
     {
-        this->ofs << cleanByte(b);
+
+        if(b != 0)
+        {
+            this->ofs << cleanByte(b);
+        }
     }
 
     this->ofs << "\"";
 }
+
 
 void PrettyPrinter::printDataGroupRawByte(const DataGroupRawByte* const x)
 {

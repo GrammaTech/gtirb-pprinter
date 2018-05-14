@@ -804,11 +804,20 @@ std::string DisasmData::getFunctionName(uint64_t x) const
 
 std::string DisasmData::getGlobalSymbolReference(uint64_t ea) const
 {
+
+    //check the symbol table
     for(const auto& s : this->symbol)
     {
         /// \todo	This will need looked at again to cover the logic of get_global_symbol_ref.
-        if(s.Base == ea)
+        if(s.Base <= ea && s.Base+s.Size>ea )// fall within the symbol
         {
+            uint64_t displacement=ea-s.Base;
+
+            //in a function with non-zero displacement we do not use the relative addressing
+            if(displacement>0 && s.Type==std::string{"FUNC"})
+            {
+                return std::string{};
+            }
             if(s.Scope == std::string{"GLOBAL"})
             {
                 // %do not print labels for symbols that have to be relocated
@@ -816,12 +825,26 @@ std::string DisasmData::getGlobalSymbolReference(uint64_t ea) const
 
                 if(DisasmData::GetIsReservedSymbol(name) == false)
                 {
-                    return DisasmData::AvoidRegNameConflicts(name);
+                    if(displacement>0)
+                    {
+                        return DisasmData::AvoidRegNameConflicts(name)+"+"+std::to_string(displacement);
+                    }
+                    else
+                    {
+                        return DisasmData::AvoidRegNameConflicts(name);
+                    }
                 }
             }
         }
     }
-
+    //check the relocation table
+    for(const auto& r : this->relocation)
+    {
+        if(r.EA==ea)
+        {
+            return DisasmData::AvoidRegNameConflicts(r.Name)+"@GOTPCREL";
+        }
+    }
     return std::string{};
 }
 
