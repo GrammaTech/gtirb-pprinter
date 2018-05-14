@@ -24,7 +24,6 @@ void DisasmData::parseDirectory(std::string x)
     this->parseBlock(x + "/block.csv");
     this->parseCodeInblock(x + "/code_in_block.csv");
     this->parseRemainingEA(x + "/phase2-remaining_ea.csv");
-    this->parseFunctionSymbol(x + "/function_symbol.csv");
     this->parseMainFunction(x + "/main_function.csv");
     this->parseStartFunction(x + "/start_function.csv");
     this->parseFunctionEntry(x + "/function_entry2.csv");
@@ -73,7 +72,6 @@ void DisasmData::parseSymbol(const std::string& x)
 
         gtirb::EA base{boost::lexical_cast<uint64_t>(ff[0])};
         uint64_t size = boost::lexical_cast<uint64_t>(ff[1]);
-        // Not used, unclear how to represent it in gtirb
         std::string type = ff[2];
         std::string scope = ff[3];
         std::string name = ff[4];
@@ -81,11 +79,12 @@ void DisasmData::parseSymbol(const std::string& x)
         auto new_sym = getSymbolSet()->addSymbol(std::make_unique<gtirb::Symbol>(gtirb::EA{base}));
         new_sym->setElementSize(size);
         new_sym->setName(name);
+        // NOTE: don't seem to care about OBJECT or NOTYPE, and not clear how
+        // to represent them in gtirb.
         if(type == "FUNC")
         {
             new_sym->setDeclarationKind(gtirb::Symbol::DeclarationKind::Func);
         }
-
         // NOTE: don't seem to care about LOCAL or WEAK, and not clear how to
         // represent them in gtirb.
         new_sym->setIsGlobal(scope == "GLOBAL");
@@ -224,19 +223,6 @@ void DisasmData::parseRemainingEA(const std::string& x)
     }
 
     std::cerr << " # Number of remaining_ea: " << this->remaining_ea.size() << std::endl;
-}
-
-void DisasmData::parseFunctionSymbol(const std::string& x)
-{
-    Table fromFile{2};
-    fromFile.parseFile(x);
-
-    for(const auto& ff : fromFile)
-    {
-        this->function_symbol.push_back(FunctionSymbol(ff));
-    }
-
-    std::cerr << " # Number of function_symbol: " << this->function_symbol.size() << std::endl;
 }
 
 void DisasmData::parseMainFunction(const std::string& x)
@@ -577,11 +563,6 @@ std::vector<uint64_t>* DisasmData::getRemainingEA()
     return &this->remaining_ea;
 }
 
-std::vector<FunctionSymbol>* DisasmData::getFunctionSymbol()
-{
-    return &this->function_symbol;
-}
-
 std::vector<uint64_t>* DisasmData::getMainFunction()
 {
     return &this->main_function;
@@ -783,17 +764,22 @@ std::string DisasmData::getSectionName(uint64_t x) const
     return std::string{};
 }
 
-// function_complete_name
-std::string DisasmData::getFunctionName(uint64_t x) const
+bool isFunction(const gtirb::Symbol* sym)
 {
-    for(auto& s : this->function_symbol)
+    return sym->getDeclarationKind() == gtirb::Symbol::DeclarationKind::Func;
+}
+
+// function_complete_name
+std::string DisasmData::getFunctionName(gtirb::EA x) const
+{
+    for(auto& s : this->getSymbolSet()->getSymbols(x))
     {
-        if(s.EA == x)
+        if(isFunction(s))
         {
             std::stringstream name;
-            name << s.Name;
+            name << s->getName();
 
-            if(this->getIsAmbiguousSymbol(s.Name) == true)
+            if(this->getIsAmbiguousSymbol(s->getName()) == true)
             {
                 name << "_" << std::hex << x;
             }
@@ -836,8 +822,7 @@ std::string DisasmData::getGlobalSymbolReference(uint64_t ea) const
             uint64_t displacement = ea - sym->getEA().get();
 
             // in a function with non-zero displacement we do not use the relative addressing
-            if(displacement > 0
-               && sym->getDeclarationKind() == gtirb::Symbol::DeclarationKind::Func)
+            if(displacement > 0 && isFunction(sym))
             {
                 return std::string{};
             }

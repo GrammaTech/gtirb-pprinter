@@ -2,6 +2,9 @@
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/lexical_cast.hpp>
+#include <gtirb/Module.hpp>
+#include <gtirb/Symbol.hpp>
+#include <gtirb/SymbolSet.hpp>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -195,7 +198,7 @@ void PrettyPrinter::printBar(bool heavy)
 
 void PrettyPrinter::printFunctionHeader(uint64_t ea)
 {
-    const auto name = this->disasm->getFunctionName(ea);
+    const auto name = this->disasm->getFunctionName(gtirb::EA{ea});
 
     if(name.empty() == false)
     {
@@ -363,7 +366,7 @@ std::string PrettyPrinter::buildOpImmediate(const OpImmediate* const op, uint64_
     auto directCall = this->disasm->getDirectCall(ea);
     if(directCall != nullptr && this->skipEA(directCall->Destination) == false)
     {
-        const auto functionName = this->disasm->getFunctionName(directCall->Destination);
+        const auto functionName = this->disasm->getFunctionName(gtirb::EA{directCall->Destination});
 
         if(functionName.empty() == true)
         {
@@ -881,14 +884,12 @@ bool PrettyPrinter::skipEA(const uint64_t x) const
         }
 
         std::string xFunctionName{};
-        const auto functionSymbols = this->disasm->getFunctionSymbol();
-
-        for(auto& fs : *functionSymbols)
+        for(sym : this->disasm->getSymbolSet()->getSymbols(gtirb::EA(xFunctionAddress)))
         {
-            if(fs.EA == xFunctionAddress)
+            if(sym->getDeclarationKind() == gtirb::Symbol::DeclarationKind::Func)
             {
-                xFunctionName = fs.Name;
-                continue;
+                xFunctionName = sym->getName();
+                break;
             }
         }
 
