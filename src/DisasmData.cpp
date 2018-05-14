@@ -26,7 +26,8 @@ void DisasmData::parseDirectory(std::string x)
     this->parseFunctionEntry(x + "/function_entry2.csv");
     this->parseAmbiguousSymbol(x + "/ambiguous_symbol.csv");
     this->parseDirectCall(x + "/direct_call.csv");
-    this->parsePLTReference(x + "/plt_reference.csv");
+    this->parsePLTCodeReference(x + "/plt_code_reference.csv");
+    this->parsePLTDataReference(x + "/plt_data_reference.csv");
     this->parseSymbolicOperand(x + "/symbolic_operand.csv");
     this->parseMovedLabel(x + "/moved_label.csv");
     this->parseLabeledData(x + "/labeled_data.csv");
@@ -279,17 +280,29 @@ void DisasmData::parseDirectCall(const std::string& x)
     std::cerr << " # Number of direct_call: " << this->direct_call.size() << std::endl;
 }
 
-void DisasmData::parsePLTReference(const std::string& x)
+void DisasmData::parsePLTCodeReference(const std::string& x)
 {
     Table fromFile{2};
     fromFile.parseFile(x);
 
     for(const auto& ff : fromFile)
     {
-        this->plt_reference.push_back(PLTReference(ff));
+        this->plt_code_reference.push_back(PLTReference(ff));
     }
 
-    std::cerr << " # Number of plt_reference: " << this->plt_reference.size() << std::endl;
+    std::cerr << " # Number of plt_code_reference: " << this->plt_code_reference.size() << std::endl;
+}
+void DisasmData::parsePLTDataReference(const std::string& x)
+{
+    Table fromFile{2};
+    fromFile.parseFile(x);
+
+    for(const auto& ff : fromFile)
+    {
+        this->plt_data_reference.push_back(PLTReference(ff));
+    }
+
+    std::cerr << " # Number of plt_data_reference: " << this->plt_data_reference.size() << std::endl;
 }
 
 void DisasmData::parseSymbolicOperand(const std::string& x)
@@ -571,9 +584,14 @@ std::vector<DirectCall>* DisasmData::getDirectCall()
     return &this->direct_call;
 }
 
-std::vector<PLTReference>* DisasmData::getPLTReference()
+std::vector<PLTReference>* DisasmData::getPLTCodeReference()
 {
-    return &this->plt_reference;
+    return &this->plt_code_reference;
+}
+
+std::vector<PLTReference>* DisasmData::getPLTDataReference()
+{
+    return &this->plt_data_reference;
 }
 
 std::vector<SymbolicOperand>* DisasmData::getSymbolicOperand()
@@ -833,12 +851,25 @@ std::string DisasmData::getGlobalSymbolName(uint64_t ea) const
     return std::string{};
 }
 
-const PLTReference* const DisasmData::getPLTReference(uint64_t ea) const
+const PLTReference* const DisasmData::getPLTCodeReference(uint64_t ea) const
 {
-    const auto found = std::find_if(std::begin(this->plt_reference), std::end(this->plt_reference),
+    const auto found = std::find_if(std::begin(this->plt_code_reference), std::end(this->plt_code_reference),
                                     [ea](const auto& element) { return element.EA == ea; });
 
-    if(found != std::end(this->plt_reference))
+    if(found != std::end(this->plt_code_reference))
+    {
+        return &(*found);
+    }
+
+    return nullptr;
+}
+
+const PLTReference* const DisasmData::getPLTDataReference(uint64_t ea) const
+{
+    const auto found = std::find_if(std::begin(this->plt_data_reference), std::end(this->plt_data_reference),
+                                    [ea](const auto& element) { return element.EA == ea; });
+
+    if(found != std::end(this->plt_data_reference))
     {
         return &(*found);
     }

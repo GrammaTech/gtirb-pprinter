@@ -47,7 +47,8 @@ public:
     void parseFunctionEntry(const std::string& x);
     void parseAmbiguousSymbol(const std::string& x);
     void parseDirectCall(const std::string& x);
-    void parsePLTReference(const std::string& x);
+    void parsePLTCodeReference(const std::string& x);
+    void parsePLTDataReference(const std::string& x);
     void parseSymbolicOperand(const std::string& x);
     void parseMovedLabel(const std::string& x);
     void parseLabeledData(const std::string& x);
@@ -88,7 +89,8 @@ public:
     std::vector<uint64_t>* getFunctionEntry();
     std::vector<uint64_t>* getAmbiguousSymbol();
     std::vector<DirectCall>* getDirectCall();
-    std::vector<PLTReference>* getPLTReference();
+    std::vector<PLTReference>* getPLTCodeReference();
+    std::vector<PLTReference>* getPLTDataReference();
     std::vector<SymbolicOperand>* getSymbolicOperand();
     std::vector<MovedLabel>* getMovedLabel();
     std::vector<uint64_t>* getLabeledData();
@@ -117,7 +119,8 @@ public:
     std::string getFunctionName(uint64_t x) const;
     std::string getGlobalSymbolReference(uint64_t ea) const;
     std::string getGlobalSymbolName(uint64_t ea) const;
-    const PLTReference* const getPLTReference(uint64_t ea) const;
+    const PLTReference* const getPLTCodeReference(uint64_t ea) const;
+    const PLTReference* const getPLTDataReference(uint64_t ea) const;
     const SymbolicData* const getSymbolicData(uint64_t ea) const;
     const SymbolMinusSymbol* const getSymbolMinusSymbol(uint64_t ea) const;
     const String* const getString(uint64_t ea) const;
@@ -167,7 +170,8 @@ private:
     std::vector<uint64_t> function_entry;
     std::vector<uint64_t> ambiguous_symbol;
     std::vector<DirectCall> direct_call;
-    std::vector<PLTReference> plt_reference;
+    std::vector<PLTReference> plt_code_reference;
+    std::vector<PLTReference> plt_data_reference;
     std::vector<SymbolicOperand> symbolic_operand;
     std::vector<MovedLabel> moved_label;
     std::vector<uint64_t> labeled_data;

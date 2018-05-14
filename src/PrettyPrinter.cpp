@@ -354,7 +354,7 @@ std::string PrettyPrinter::buildOpRegdirect(const OpRegdirect* const op, uint64_
 std::string PrettyPrinter::buildOpImmediate(const OpImmediate* const op, uint64_t ea,
                                             uint64_t index)
 {
-    auto pltReference = this->disasm->getPLTReference(ea);
+    auto pltReference = this->disasm->getPLTCodeReference(ea);
     if(pltReference != nullptr)
     {
         return PrettyPrinter::StrOffset + " " + pltReference->Name;
@@ -579,7 +579,7 @@ void PrettyPrinter::buildDataGroups()
                 if(symbolic != nullptr)
                 {
                     // Case 1
-                    const auto pltReference = this->disasm->getPLTReference(currentAddr);
+                    const auto pltReference = this->disasm->getPLTDataReference(currentAddr);
                     if(pltReference != nullptr)
                     {
                         auto dataGroup = std::make_unique<DataGroupPLTReference>(currentAddr);
