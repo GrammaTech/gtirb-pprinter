@@ -87,7 +87,7 @@ public:
     std::vector<uint64_t>* getMainFunction();
     std::vector<uint64_t>* getStartFunction();
     std::vector<uint64_t>* getFunctionEntry();
-    std::vector<uint64_t>* getAmbiguousSymbol();
+    std::vector<std::string>* getAmbiguousSymbol();
     std::vector<DirectCall>* getDirectCall();
     std::vector<PLTReference>* getPLTCodeReference();
     std::vector<PLTReference>* getPLTDataReference();
@@ -135,7 +135,7 @@ public:
     const SymbolicOperand* const getSymbolicOperand(uint64_t x, uint64_t opNum) const;
     const Section* const getSection(const std::string& x) const;
 
-    bool getIsAmbiguousSymbol(uint64_t ea) const;
+    bool getIsAmbiguousSymbol(const std::string& ea) const;
 
     static void AdjustPadding(std::list<Block>& blocks);
     static std::string CleanSymbolNameSuffix(std::string x);
@@ -168,7 +168,7 @@ private:
     std::vector<uint64_t> main_function;
     std::vector<uint64_t> start_function;
     std::vector<uint64_t> function_entry;
-    std::vector<uint64_t> ambiguous_symbol;
+    std::vector<std::string> ambiguous_symbol;
     std::vector<DirectCall> direct_call;
     std::vector<PLTReference> plt_code_reference;
     std::vector<PLTReference> plt_data_reference;

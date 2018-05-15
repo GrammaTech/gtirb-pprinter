@@ -261,7 +261,7 @@ void DisasmData::parseAmbiguousSymbol(const std::string& x)
 
     for(const auto& ff : fromFile)
     {
-        this->ambiguous_symbol.push_back(boost::lexical_cast<uint64_t>(ff[0]));
+        this->ambiguous_symbol.push_back(ff[0]);
     }
 
     std::cerr << " # Number of ambiguous_symbol: " << this->ambiguous_symbol.size() << std::endl;
@@ -574,7 +574,7 @@ std::vector<uint64_t>* DisasmData::getFunctionEntry()
     return &this->function_entry;
 }
 
-std::vector<uint64_t>* DisasmData::getAmbiguousSymbol()
+std::vector<std::string>* DisasmData::getAmbiguousSymbol()
 {
     return &this->ambiguous_symbol;
 }
@@ -770,7 +770,7 @@ std::string DisasmData::getFunctionName(uint64_t x) const
             std::stringstream name;
             name << s.Name;
 
-            if(this->getIsAmbiguousSymbol(x) == true)
+            if(this->getIsAmbiguousSymbol(s.Name) == true)
             {
                 name << "_" << std::hex << x;
             }
@@ -1074,10 +1074,10 @@ const OpImmediate* const DisasmData::getOpImmediate(uint64_t x) const
     return nullptr;
 }
 
-bool DisasmData::getIsAmbiguousSymbol(uint64_t ea) const
+bool DisasmData::getIsAmbiguousSymbol(const std::string& name) const
 {
     const auto found =
-        std::find(std::begin(this->ambiguous_symbol), std::end(this->ambiguous_symbol), ea);
+        std::find(std::begin(this->ambiguous_symbol), std::end(this->ambiguous_symbol), name);
     return found != std::end(this->ambiguous_symbol);
 }
 
