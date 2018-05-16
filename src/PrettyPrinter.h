@@ -1,14 +1,14 @@
 #pragma once
 
-#include "DataGroup.h"
-#include "DisasmData.h"
 #include <cstdint>
+#include <gtirb/Section.hpp>
 #include <iosfwd>
 #include <list>
 #include <map>
 #include <string>
 #include <vector>
-
+#include "DataGroup.h"
+#include "DisasmData.h"
 ///
 /// \class PrettyPrinter
 ///
@@ -109,7 +109,7 @@ protected:
 private:
     struct DataSection
     {
-        Section SectionPtr;
+        gtirb::Section SectionPtr;
         std::vector<std::unique_ptr<DataGroup>> DataGroups;
         int Alignment{0};
     };

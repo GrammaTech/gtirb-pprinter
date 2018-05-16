@@ -4,6 +4,7 @@
 #include <fstream>
 #include <gtirb/Module.hpp>
 #include <gtirb/NodeUtilities.hpp>
+#include <gtirb/Section.hpp>
 #include <gtirb/Symbol.hpp>
 #include <gtirb/SymbolSet.hpp>
 #include <iostream>
@@ -100,10 +101,12 @@ void DisasmData::parseSection(const std::string& x)
 
     for(const auto& ff : fromFile)
     {
-        this->section.push_back(Section(ff));
+        gtirb::EA{boost::lexical_cast<uint64_t>(ff[2])};
+        getSectionTable().addSection({ff[0], boost::lexical_cast<uint64_t>(ff[1]),
+                                      gtirb::EA{boost::lexical_cast<uint64_t>(ff[2])}});
     }
 
-    std::cerr << " # Number of section: " << this->section.size() << std::endl;
+    std::cerr << " # Number of section: " << getSectionTable().size() << std::endl;
 }
 
 void DisasmData::parseRelocation(const std::string& x)
@@ -513,9 +516,9 @@ void DisasmData::parseInFunction(const std::string& x)
     std::cerr << " # Number of in_function: " << this->in_function.size() << std::endl;
 }
 
-std::vector<Section>* DisasmData::getSection()
+gtirb::SectionTable& DisasmData::getSectionTable() const
 {
-    return &this->section;
+    return this->ir.getMainModule()->getOrCreateSectionTable();
 }
 
 std::vector<Relocation>* DisasmData::getRelocation()
@@ -753,12 +756,11 @@ std::list<Block> DisasmData::getCodeBlocks() const
 
 std::string DisasmData::getSectionName(uint64_t x) const
 {
-    for(auto& s : this->section)
+    const auto& match = getSectionTable().find(gtirb::EA{x});
+
+    if(match != getSectionTable().end())
     {
-        if(s.StartingAddress == x)
-        {
-            return s.Name;
-        }
+        return match->second.name;
     }
 
     return std::string{};
@@ -1028,14 +1030,14 @@ gtirb::SymbolSet* DisasmData::getSymbolSet() const
     return const_cast<DisasmData*>(this)->ir.getOrCreateMainModule()->getOrCreateSymbolSet();
 }
 
-const Section* const DisasmData::getSection(const std::string& x) const
+const gtirb::Section* const DisasmData::getSection(const std::string& x) const
 {
-    const auto found = std::find_if(std::begin(this->section), std::end(this->section),
-                                    [x](const auto& element) { return element.Name == x; });
+    const auto found = std::find_if(getSectionTable().begin(), getSectionTable().end(),
+                                    [x](const auto& element) { return element.second.name == x; });
 
-    if(found != std::end(this->section))
+    if(found != getSectionTable().end())
     {
-        return &(*found);
+        return &(found->second);
     }
 
     return nullptr;

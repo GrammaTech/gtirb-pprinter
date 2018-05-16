@@ -1,7 +1,9 @@
 #pragma once
 
 #include <boost/lexical_cast.hpp>
+#include <boost/serialization/string.hpp>
 #include <cstdint>
+#include <gtirb/EA.hpp>
 #include <string>
 #include <vector>
 
@@ -18,12 +20,22 @@ struct Section
 
         this->Name = x[0];
         this->Size = boost::lexical_cast<uint64_t>(x[1]);
-        this->StartingAddress = boost::lexical_cast<uint64_t>(x[2]);
+        this->StartingAddress = gtirb::EA{boost::lexical_cast<uint64_t>(x[2])};
     };
 
     std::string Name;
     uint64_t Size{0};
-    uint64_t StartingAddress{0};
+    gtirb::EA StartingAddress{0};
+
+private:
+    friend class boost::serialization::access;
+    template <class Archive>
+    void serialize(Archive& ar, const unsigned int /*version*/)
+    {
+        ar & this->Name;
+        ar & this->Size;
+        ar & this->StartingAddress;
+    }
 };
 
 ///

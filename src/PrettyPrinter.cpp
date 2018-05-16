@@ -2,13 +2,13 @@
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/lexical_cast.hpp>
+#include <gsl/gsl>
 #include <gtirb/Module.hpp>
 #include <gtirb/Symbol.hpp>
 #include <gtirb/SymbolSet.hpp>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
-#include <gsl/gsl>
 #include "DisasmData.h"
 
 ///
@@ -144,15 +144,12 @@ void PrettyPrinter::printBlock(const Block& x)
 
 void PrettyPrinter::condPrintSectionHeader(const Block& x)
 {
-    const auto sections = this->disasm->getSection();
+    const auto name = this->disasm->getSectionName(gtirb::EA{x.StartingAddress});
 
-    for(const auto& s : *sections)
+    if(!name.empty())
     {
-        if(s.StartingAddress == x.StartingAddress)
-        {
-            this->printSectionHeader(s.Name);
-            return;
-        }
+        this->printSectionHeader(name);
+        return;
     }
 }
 
@@ -536,14 +533,15 @@ std::string PrettyPrinter::buildAdjustMovedDataLabel(uint64_t ea, uint64_t value
 
 void PrettyPrinter::buildDataGroups()
 {
-    for(auto s : *this->disasm->getSection())
+    for(auto& p : this->disasm->getSectionTable())
     {
+        auto& s = p.second;
         const auto foundDataSection =
             std::find_if(std::begin(DataSectionDescriptors), std::end(DataSectionDescriptors),
-                         [s](const auto& dsd) { return dsd.first == s.Name; });
+                         [s](const auto& dsd) { return dsd.first == s.name; });
 
         const auto foundSkipSection = std::find(std::begin(PrettyPrinter::AsmSkipSection),
-                                                std::end(PrettyPrinter::AsmSkipSection), s.Name);
+                                                std::end(PrettyPrinter::AsmSkipSection), s.name);
 
         if(foundDataSection != std::end(DataSectionDescriptors)
            && (foundSkipSection == std::end(PrettyPrinter::AsmSkipSection) || this->debug == true))
@@ -552,19 +550,19 @@ void PrettyPrinter::buildDataGroups()
             dataSection.SectionPtr = s;
             dataSection.Alignment = foundDataSection->second;
 
-            const uint64_t startingAddress = s.StartingAddress;
             std::vector<uint8_t> bytes;
 
             auto dataBytes = this->disasm->getDataByte();
-            auto dataIt = std::find(std::begin(*dataBytes), std::end(*dataBytes), startingAddress);
+            auto dataIt =
+                std::find(std::begin(*dataBytes), std::end(*dataBytes), s.startingAddress);
 
-            for(size_t i = 0; i < s.Size; ++i)
+            for(size_t i = 0; i < s.size; ++i)
             {
                 bytes.push_back(dataIt->Content);
                 ++dataIt;
             }
 
-            for(auto currentAddr = startingAddress; currentAddr < startingAddress + s.Size;
+            for(auto currentAddr = s.startingAddress.get(); currentAddr < s.addressLimit();
                 currentAddr++)
             {
                 // Insert a marker for labeled data?
@@ -625,7 +623,7 @@ void PrettyPrinter::buildDataGroups()
 
                     for(; currentAddr < str->End; ++currentAddr)
                     {
-                        dataGroup->StringBytes.push_back(bytes[currentAddr - startingAddress]);
+                        dataGroup->StringBytes.push_back(bytes[currentAddr - s.startingAddress]);
                     }
 
                     // Because the loop is going to increment this counter, don't skip a byte.
@@ -636,7 +634,7 @@ void PrettyPrinter::buildDataGroups()
 
                 // Store raw data
                 auto dataGroup = std::make_unique<DataGroupRawByte>(currentAddr);
-                dataGroup->Byte = bytes[currentAddr - startingAddress];
+                dataGroup->Byte = bytes[currentAddr - s.startingAddress];
                 dataSection.DataGroups.push_back(std::move(dataGroup));
             }
 
@@ -650,14 +648,14 @@ void PrettyPrinter::printDataGroups()
     for(const auto& ds : this->dataSections)
     {
         // Print section header...
-        this->printSectionHeader(ds.SectionPtr.Name, ds.Alignment);
+        this->printSectionHeader(ds.SectionPtr.name, ds.Alignment);
 
         // Print data for this section...
         for(auto dg = std::begin(ds.DataGroups); dg != std::end(ds.DataGroups); ++dg)
         {
             bool exclude = false;
 
-            if(ds.SectionPtr.Name == ".init_array" || ds.SectionPtr.Name == ".fini_array")
+            if(ds.SectionPtr.name == ".init_array" || ds.SectionPtr.name == ".fini_array")
             {
                 auto dgNext = dg;
                 dgNext++;
@@ -724,7 +722,7 @@ void PrettyPrinter::printDataGroups()
         }
 
         // End label
-        const auto endAddress = ds.SectionPtr.StartingAddress + ds.SectionPtr.Size;
+        const auto endAddress = ds.SectionPtr.addressLimit();
         if(this->disasm->getSectionName(endAddress).empty() == true)
         {
             // This is no the start of a new section, so print the label.
@@ -757,7 +755,7 @@ void PrettyPrinter::printDataGroupPointerDiff(const DataGroupPointerDiff* const 
     ofs << ".long .L_" << x->Symbol2 << "-" << x->Symbol1;
 }
 
-void PrettyPrinter::printDataGroupString(const DataGroupString *const x)
+void PrettyPrinter::printDataGroupString(const DataGroupString* const x)
 {
     auto cleanByte = [](uint8_t b) {
         std::string cleaned;
@@ -777,9 +775,8 @@ void PrettyPrinter::printDataGroupString(const DataGroupString *const x)
 
     this->ofs << ".string \"";
 
-    for(auto &b : x->StringBytes)
+    for(auto& b : x->StringBytes)
     {
-
         if(b != 0)
         {
             this->ofs << cleanByte(b);
@@ -788,7 +785,6 @@ void PrettyPrinter::printDataGroupString(const DataGroupString *const x)
 
     this->ofs << "\"";
 }
-
 
 void PrettyPrinter::printDataGroupRawByte(const DataGroupRawByte* const x)
 {
@@ -805,9 +801,9 @@ void PrettyPrinter::printBSS()
         auto bssData = this->disasm->getBSSData();
 
         // Special case.
-        if(bssData->empty() == false && bssData->at(0) != bssSection->StartingAddress)
+        if(bssData->empty() == false && bssData->at(0) != bssSection->startingAddress)
         {
-            const auto current = bssSection->StartingAddress;
+            const auto current = bssSection->startingAddress;
             const auto next = bssData->at(0);
             const auto delta = next - current;
 
@@ -831,7 +827,7 @@ void PrettyPrinter::printBSS()
             else
             {
                 // Print to the end of the section.
-                const auto next = bssSection->StartingAddress + bssSection->Size;
+                const auto next = bssSection->addressLimit().get();
                 const auto delta = next - current;
 
                 this->ofs << " .zero " << delta;
@@ -840,7 +836,7 @@ void PrettyPrinter::printBSS()
             this->ofs << std::endl;
         }
 
-        this->printLabel(bssSection->StartingAddress + bssSection->Size);
+        this->printLabel(bssSection->addressLimit());
         this->ofs << std::endl;
     }
 }
@@ -849,22 +845,15 @@ bool PrettyPrinter::skipEA(const uint64_t x) const
 {
     if(this->debug == false)
     {
-        const auto sections = this->disasm->getSection();
-
-        for(const auto& s : *sections)
+        for(const auto& p : this->disasm->getSectionTable())
         {
+            const auto& s = p.second;
             const auto found = std::find(std::begin(PrettyPrinter::AsmSkipSection),
-                                         std::end(PrettyPrinter::AsmSkipSection), s.Name);
+                                         std::end(PrettyPrinter::AsmSkipSection), s.name);
 
-            if(found != std::end(PrettyPrinter::AsmSkipSection))
+            if(found != std::end(PrettyPrinter::AsmSkipSection) && s.contains(gtirb::EA(x)))
             {
-                const auto isSkipped =
-                    ((x >= s.StartingAddress) && (x < (s.StartingAddress + s.Size)));
-
-                if(isSkipped == true)
-                {
-                    return true;
-                }
+                return true;
             }
         }
 
