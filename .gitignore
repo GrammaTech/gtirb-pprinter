@@ -1,6 +1,7 @@
 build/*
 bin/*
 doc/html/*
+temp/*
 *.o
 *.out
 CMakeCache.txt
