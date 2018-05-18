@@ -67,7 +67,7 @@ protected:
     void printInstructionNop();
     void printLabel(uint64_t ea);
     void printSectionHeader(const std::string& x, uint64_t alignment = 0);
-    void printOperandList(const Instruction* const x);
+    void printOperandList(uint64_t EA, const uint64_t* const operands);
 
     void printDataGroups();
     void printDataGroupLabelMarker(const DataGroupLabelMarker* const x);

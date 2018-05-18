@@ -1,4 +1,5 @@
 #include "PrettyPrinter.h"
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/lexical_cast.hpp>
@@ -237,51 +238,67 @@ void PrettyPrinter::condPrintGlobalSymbol(uint64_t ea)
 
 void PrettyPrinter::printInstruction(uint64_t ea)
 {
-    /*
-    pp_instruction(instruction(EA,Size,'NOP',none,none,none)):-
-        repeat_n_times((print_ea(EA),format(' nop ~n',[])),Size),
-        cond_print_comments(EA).
-
-    pp_instruction(instruction(EA,_Size,String_op,Op1,none,none)):-
-        opcode_suffix(String_op,Op_suffix),
-        member(Op_suffix,['MOVS','CMPS']),!,
-        print_ea(EA),
-        downcase_atom(String_op,OpCode_l),
-        get_op_indirect_size_suffix(Op1,Suffix),
-        format(' ~p~p',[OpCode_l,Suffix]),
-        cond_print_comments(EA).
-
-
-    % FDIV_TO, FMUL_TO, FSUBR_TO, etc.
-    pp_instruction(instruction(EA,Size,Operation_TO,Op1,none,none)):-
-        atom_concat(Operation,'_TO',Operation_TO),!,
-        pp_instruction(instruction(EA,Size,Operation,reg('ST'),Op1,none)).
-
-    pp_instruction(instruction(EA,Size,FCMOV,Op1,none,none)):-
-       atom_concat('FCMOV',_,FCMOV),!,
-       pp_instruction(instruction(EA,Size,FCMOV,Op1,reg('ST'),none)).
-
-    pp_instruction(instruction(EA,Size,Loop,reg('RCX'),Op2,none)):-
-        atom_concat('LOOP',_,Loop),!,
-        pp_instruction(instruction(EA,Size,Loop,none,Op2,none)).
-
-    pp_instruction(instruction(EA,Size,PrefixOperation,Op1,Op2,Op3)):-
-        atom_concat('lock ',Operation,PrefixOperation),!,
-        atom_concat('lock\n           ',Operation,PrefixOperation2),
-        pp_instruction(instruction(EA,Size,PrefixOperation2,Op1,Op2,Op3)).
-    */
-
-    // General Case:
-
     // TODO // Maybe print random nop's.
-    this->printEA(ea);
 
+    this->printEA(ea);
     auto inst = this->disasm->getInstruction(ea);
     auto opcode = str_tolower(inst->Opcode);
-    opcode = DisasmData::AdaptOpcode(opcode);
+    uint64_t operands[3] = {inst->Op1, inst->Op2, inst->Op3};
 
+    ////////////////////////////////////////////////////////////////////
+    // special cases
+
+    if(opcode == std::string{"nop"})
+    {
+        for(uint64_t i = 0; i < inst->Size; ++i)
+            this->ofs << " " << opcode << std::endl;
+        return;
+    }
+
+    // MOVS and CMPS have the operand implicit but size suffix
+    if(boost::algorithm::ends_with(opcode, std::string{"movs"})
+       || boost::algorithm::ends_with(opcode, std::string{"cmps"}))
+    {
+        auto opInd = this->disasm->getOpIndirect(operands[0]);
+
+        if(opInd != nullptr)
+        {
+            // do not print the first operand
+            operands[0] = 0;
+            opcode = opcode + disasm->GetSizeSuffix(*opInd);
+        }
+    }
+
+    // FDIV_TO, FMUL_TO, FSUBR_TO, etc.
+    if(boost::algorithm::ends_with(opcode, std::string{"_to"}))
+    {
+        opcode = boost::replace_all_copy(opcode, "_to", "");
+        operands[1] = operands[0];
+        operands[0] = disasm->getOpRegdirectCode("ST");
+    }
+    if(boost::algorithm::starts_with(opcode, std::string{"fcmov"}))
+    {
+        operands[1] = operands[0];
+        operands[0] = disasm->getOpRegdirectCode("ST");
+    }
+    // for 'loop' with rcx, the operand is implicit
+    if(boost::algorithm::starts_with(opcode, std::string{"loop"}))
+    {
+        auto reg = disasm->getOpRegdirect(operands[0]);
+        if(reg != nullptr && reg->Register == std::string{"RCX"})
+        {
+            operands[0] = 0;
+        }
+    }
+    // print a new line if there is a lock prefix
+    if(boost::algorithm::starts_with(opcode, std::string{"lock"}))
+    {
+        opcode = boost::replace_all_copy(opcode, "lock", "lock\n");
+    }
+    //////////////////////////////////////////////////////////////////////
+    opcode = DisasmData::AdaptOpcode(opcode);
     this->ofs << " " << opcode << " ";
-    this->printOperandList(inst);
+    this->printOperandList(inst->EA, operands);
 
     /// TAKE THIS OUT ///
     this->ofs << std::endl;
@@ -302,24 +319,29 @@ void PrettyPrinter::printEA(uint64_t ea)
     }
 }
 
-void PrettyPrinter::printOperandList(const Instruction* const x)
+void PrettyPrinter::printOperandList(uint64_t EA, const uint64_t* const operands)
 {
-    const auto strOp1 = this->buildOperand(x->Op1, x->EA, 1);
-    const auto strOp2 = this->buildOperand(x->Op2, x->EA, 2);
-    const auto strOp3 = this->buildOperand(x->Op3, x->EA, 3);
+    std::string str_operands[3];
+    str_operands[0] = this->buildOperand(operands[0], EA, 1);
+    str_operands[1] = this->buildOperand(operands[1], EA, 2);
+    str_operands[2] = this->buildOperand(operands[2], EA, 3);
 
-    if(strOp3.empty() == false)
+    uint dest_op_idx = 0;
+    for(int i = 2; i >= 0; --i)
     {
-        this->ofs << strOp3 << ", " << strOp1 << ", " << strOp2;
+        if(str_operands[i].empty() == false)
+        {
+            dest_op_idx = i;
+            break;
+        }
     }
-    else if(strOp2.empty() == false)
-    {
-        this->ofs << strOp2 << ", " << strOp1;
-    }
-    else
-    {
-        this->ofs << strOp1;
-    }
+    // print destination operand
+    if(str_operands[dest_op_idx].empty() == false)
+        this->ofs << str_operands[dest_op_idx];
+    // print source operands
+    for(uint i = 0; i < dest_op_idx; ++i)
+        if(str_operands[i].empty() == false)
+            this->ofs << "," << str_operands[i];
 }
 
 std::string PrettyPrinter::buildOperand(uint64_t operand, uint64_t ea, uint64_t index)

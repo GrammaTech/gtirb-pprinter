@@ -1082,6 +1082,19 @@ const OpRegdirect* const DisasmData::getOpRegdirect(uint64_t x) const
     return nullptr;
 }
 
+uint64_t DisasmData::getOpRegdirectCode(std::string x) const
+{
+    const auto found = std::find_if(std::begin(this->op_regdirect), std::end(this->op_regdirect),
+                                    [x](const auto& element) { return element.Register == x; });
+
+    if(found != std::end(this->op_regdirect))
+    {
+        return found->N;
+    }
+
+    return 0;
+}
+
 const OpImmediate* const DisasmData::getOpImmediate(uint64_t x) const
 {
     const auto found = std::find_if(std::begin(this->op_immediate), std::end(this->op_immediate),

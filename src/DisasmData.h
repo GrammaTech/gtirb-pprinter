@@ -2,8 +2,8 @@
 
 #include <cstdint>
 #include <gtirb/IR.hpp>
-#include <gtirb/Symbol.hpp>
 #include <gtirb/SectionTable.hpp>
+#include <gtirb/Symbol.hpp>
 #include <gtirb/SymbolSet.hpp>
 #include <iosfwd>
 #include <list>
@@ -133,6 +133,7 @@ public:
     const Instruction* const getInstruction(uint64_t ea) const;
     const OpIndirect* const getOpIndirect(uint64_t x) const;
     const OpRegdirect* const getOpRegdirect(uint64_t x) const;
+    uint64_t getOpRegdirectCode(std::string name) const;
     const OpImmediate* const getOpImmediate(uint64_t x) const;
     const MovedLabel* const getMovedLabel(uint64_t x) const;
     const MovedDataLabel* const getMovedDataLabel(uint64_t x) const;
