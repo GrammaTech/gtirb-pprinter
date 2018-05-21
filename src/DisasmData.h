@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <gtirb/Block.hpp>
 #include <gtirb/IR.hpp>
 #include <gtirb/SectionTable.hpp>
 #include <gtirb/Symbol.hpp>
@@ -119,7 +120,7 @@ public:
     Table* getNoReturn();
     Table* getInFunction();
 
-    std::list<Block> getCodeBlocks() const;
+    std::vector<gtirb::Block> getCodeBlocks() const;
     std::string getSectionName(uint64_t x) const;
     std::string getFunctionName(gtirb::EA x) const;
     std::string getGlobalSymbolReference(uint64_t ea) const;
@@ -143,7 +144,7 @@ public:
 
     bool getIsAmbiguousSymbol(const std::string& ea) const;
 
-    static void AdjustPadding(std::list<Block>& blocks);
+    static void AdjustPadding(std::vector<gtirb::Block>& blocks);
     static std::string CleanSymbolNameSuffix(std::string x);
     static std::string AdaptOpcode(const std::string& x);
     static std::string AdaptRegister(const std::string& x);

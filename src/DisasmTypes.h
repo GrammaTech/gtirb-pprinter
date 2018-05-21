@@ -79,29 +79,6 @@ struct PLTReference
 ///
 ///
 ///
-struct Block
-{
-    Block() = default;
-
-    // If instructions is empty, it's a NOP.
-    Block(uint64_t s, uint64_t e) : StartingAddress(s), EndingAddress(e)
-    {
-    }
-
-    uint64_t getSize() const
-    {
-        return this->EndingAddress + this->StartingAddress;
-    }
-
-    // If instructions is empty, it's a NOP.
-    std::vector<uint64_t> Instructions;
-    uint64_t StartingAddress{0};
-    uint64_t EndingAddress{0};
-};
-
-///
-///
-///
 struct Instruction
 {
     Instruction() = default;

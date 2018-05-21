@@ -2,6 +2,8 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/lexical_cast.hpp>
 #include <fstream>
+#include <gtirb/Block.hpp>
+#include <gtirb/Instruction.hpp>
 #include <gtirb/Module.hpp>
 #include <gtirb/NodeUtilities.hpp>
 #include <gtirb/Section.hpp>
@@ -711,44 +713,42 @@ Table* DisasmData::getInFunction()
     return &this->in_function;
 }
 
-std::list<Block> DisasmData::getCodeBlocks() const
+std::vector<gtirb::Block> DisasmData::getCodeBlocks() const
 {
-    std::list<Block> blocks;
+    std::vector<gtirb::Block> blocks;
 
     for(auto& blockAddress : this->block)
     {
-        Block b;
+        std::vector<gtirb::Instruction> instructions;
 
         for(auto& cib : this->code_in_block)
         {
             // The instruction's block address == the block's addres.
             if(cib.BlockAddress == blockAddress)
             {
-                // Push back the instruction.
-                b.Instructions.push_back(cib.EA);
+                instructions.push_back(gtirb::Instruction(gtirb::EA(cib.EA)));
             }
         }
 
-        std::sort(std::begin(b.Instructions), std::end(b.Instructions));
+        std::sort(instructions.begin(), instructions.end(),
+                  [](const auto& left, const auto& right) { return left.getEA() < right.getEA(); });
 
-        b.StartingAddress = blockAddress;
-
-        if(b.Instructions.empty() == false)
+        gtirb::EA end;
+        if(!instructions.empty())
         {
-            const auto address = b.Instructions.back();
-            auto inst = this->getInstruction(address);
-            b.EndingAddress = address + inst->Size;
+            auto address = instructions.back().getEA();
+            end = gtirb::EA(address.get() + this->getInstruction(address)->Size);
         }
         else
         {
-            b.EndingAddress = b.StartingAddress;
+            end = gtirb::EA(blockAddress);
         }
 
-        blocks.push_back(std::move(b));
+        blocks.emplace_back(gtirb::Block(gtirb::EA(blockAddress), end, instructions));
     }
 
-    blocks.sort([](const auto& left, const auto& right) {
-        return left.StartingAddress < right.StartingAddress;
+    std::sort(blocks.begin(), blocks.end(), [](const auto& left, const auto& right) {
+        return left.getStartingAddress() < right.getStartingAddress();
     });
 
     return blocks;
@@ -1118,7 +1118,7 @@ bool DisasmData::getIsAmbiguousSymbol(const std::string& name) const
     return found != std::end(this->ambiguous_symbol);
 }
 
-void DisasmData::AdjustPadding(std::list<Block>& blocks)
+void DisasmData::AdjustPadding(std::vector<gtirb::Block>& blocks)
 {
     for(auto i = std::begin(blocks); i != std::end(blocks); ++i)
     {
@@ -1126,10 +1126,10 @@ void DisasmData::AdjustPadding(std::list<Block>& blocks)
         ++next;
         if(next != std::end(blocks))
         {
-            const auto gap = next->StartingAddress - i->EndingAddress;
+            const auto gap = next->getStartingAddress() - i->getEndingAddress();
 
             // If we have overlap, erase the next element in the list.
-            if(i->EndingAddress > next->StartingAddress)
+            if(i->getEndingAddress() > next->getStartingAddress())
             {
                 blocks.erase(next);
             }
@@ -1137,7 +1137,8 @@ void DisasmData::AdjustPadding(std::list<Block>& blocks)
             {
                 // insert a block with no instructions.
                 // This should be interpreted as nop's.
-                blocks.insert(next, Block{i->EndingAddress, next->StartingAddress});
+                blocks.insert(next,
+                              gtirb::Block{i->getEndingAddress(), next->getStartingAddress()});
             }
         }
     }

@@ -4,6 +4,7 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/lexical_cast.hpp>
 #include <gsl/gsl>
+#include <gtirb/Instruction.hpp>
 #include <gtirb/Module.hpp>
 #include <gtirb/Symbol.hpp>
 #include <gtirb/SymbolSet.hpp>
@@ -111,25 +112,25 @@ void PrettyPrinter::printHeader()
     }
 }
 
-void PrettyPrinter::printBlock(const Block& x)
+void PrettyPrinter::printBlock(const gtirb::Block& x)
 {
-    if(this->skipEA(x.StartingAddress) == false)
+    if(this->skipEA(x.getStartingAddress()) == false)
     {
-        if(x.Instructions.empty() == false)
+        if(x.getInstructions().empty() == false)
         {
             this->condPrintSectionHeader(x);
-            this->printFunctionHeader(x.StartingAddress);
-            this->printLabel(x.StartingAddress);
+            this->printFunctionHeader(x.getStartingAddress());
+            this->printLabel(x.getStartingAddress());
             this->ofs << std::endl;
 
-            for(auto inst : x.Instructions)
+            for(auto inst : x.getInstructions())
             {
-                this->printInstruction(inst);
+                this->printInstruction(inst->getEA().get());
             }
         }
         else
         {
-            const auto nopCount = x.EndingAddress - x.StartingAddress;
+            const auto nopCount = x.getEndingAddress() - x.getStartingAddress();
             this->ofs << std::endl;
 
             const auto bac = BlockAreaComment(this->ofs, "No instruciton padding.");
@@ -143,9 +144,9 @@ void PrettyPrinter::printBlock(const Block& x)
     }
 }
 
-void PrettyPrinter::condPrintSectionHeader(const Block& x)
+void PrettyPrinter::condPrintSectionHeader(const gtirb::Block& x)
 {
-    const auto name = this->disasm->getSectionName(gtirb::EA{x.StartingAddress});
+    const auto name = this->disasm->getSectionName(gtirb::EA{x.getStartingAddress()});
 
     if(!name.empty())
     {

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <gtirb/Section.hpp>
 #include <iosfwd>
 #include <list>
 #include <map>
@@ -59,7 +58,7 @@ protected:
     }};
 
     void printBar(bool heavy = true);
-    void printBlock(const Block& x);
+    void printBlock(const gtirb::Block& x);
     void printEA(uint64_t ea);
     void printFunctionHeader(uint64_t ea);
     void printHeader();
@@ -87,7 +86,7 @@ protected:
     void buildDataGroups();
 
     void condPrintGlobalSymbol(uint64_t ea);
-    void condPrintSectionHeader(const Block& x);
+    void condPrintSectionHeader(const gtirb::Block& x);
 
     bool skipEA(const uint64_t x) const;
     bool isSectionSkipped(const std::string& name);
