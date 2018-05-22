@@ -49,6 +49,10 @@ RUN apt-get -y install gcc-multilib g++-multilib
 RUN cd /usr/local/src \
    && git clone https://git.grammatech.com/debloat/datalog_disasm.git 
 COPY ./standalone_compilation.tar.bz2 /usr/local/src/datalog_disasm/standalone_compilation.tar.bz2
+RUN cd /usr/local/src/datalog_disasm && \
+    tar xjf standalone_compilation.tar.bz2 && \
+    make
+
 
 # Install gt-irb
 RUN git clone https://git.grammatech.com/debloat/gt-irb.git /gt/gt-irb
