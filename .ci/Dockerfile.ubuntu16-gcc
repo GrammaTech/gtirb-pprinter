@@ -47,7 +47,7 @@ RUN cd /usr/local/src \
 # Install and build datalog disassembler.
 RUN cd /usr/local/src \
    && git clone https://git.grammatech.com/afloresmontoya/datalog_disasm.git
-COPY /u4/TARBALLS/datalog_disasm/standalone_compilation.tar.bz2 /usr/local/src/datalog_disasm/standalone_compilation.tar.bz2
+COPY ./standalone_compilation.tar.bz2 /usr/local/src/datalog_disasm/standalone_compilation.tar.bz2
 
 # Build PrettyPrinter
 COPY . /gt/PrettyPrinter/
