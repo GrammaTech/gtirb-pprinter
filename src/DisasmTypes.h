@@ -41,25 +41,6 @@ private:
 ///
 ///
 ///
-struct FunctionSymbol
-{
-    FunctionSymbol() = default;
-
-    FunctionSymbol(const std::vector<std::string>& x)
-    {
-        assert(x.size() == 2);
-
-        this->EA = boost::lexical_cast<uint64_t>(x[0]);
-        this->Name = x[1];
-    };
-
-    std::string Name;
-    uint64_t EA{0};
-};
-
-///
-///
-///
 struct PLTReference
 {
     PLTReference() = default;
