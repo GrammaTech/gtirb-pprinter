@@ -895,7 +895,7 @@ bool PrettyPrinter::skipEA(const uint64_t x) const
         }
 
         std::string xFunctionName{};
-        for(sym : this->disasm->getSymbolSet()->getSymbols(gtirb::EA(xFunctionAddress)))
+        for(const auto& sym : this->disasm->getSymbolSet()->getSymbols(gtirb::EA(xFunctionAddress)))
         {
             if(sym->getDeclarationKind() == gtirb::Symbol::DeclarationKind::Func)
             {

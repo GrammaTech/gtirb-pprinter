@@ -46,16 +46,20 @@ RUN cd /usr/local/src \
 
 # Install and build datalog disassembler.
 RUN cd /usr/local/src \
-   && git clone https://git.grammatech.com/afloresmontoya/datalog_disasm.git
+   && git clone https://git.grammatech.com/debloat/datalog_disasm.git 
 COPY ./standalone_compilation.tar.bz2 /usr/local/src/datalog_disasm/standalone_compilation.tar.bz2
+
+# Install gt-irb
+RUN git clone https://git.grammatech.com/debloat/gt-irb.git /gt/gt-irb
+RUN cd /gt/gt-irb/ && cmake ./ -Bbuild  && cd build &&  make && make install
+
 
 # Build PrettyPrinter
 COPY . /gt/PrettyPrinter/
 RUN rm -rf /gt/PrettyPrinter/build /gt/PrettyPrinter/CMakeCache.txt /gt/PrettyPrinter/CMakeFiles /gt/PrettyPrinter/CMakeScripts
 RUN mkdir -p /gt/PrettyPrinter/build
 WORKDIR /gt/PrettyPrinter/build
-RUN cmake ../ -DDEBLOAT_ISO_CPP_VERSION=C++14 -DDEBLOAT_FOUND_DATALOG_DECODER=datalog_disasm/bin/datalog_decoder -DDEBLOAT_FOUND_SOUFFLE_DISASM=datalog_disasm/bin/souffle_disasm 
-RUN make -j
-
+RUN cmake ../  -DDEBLOAT_FOUND_DATALOG_DECODER=datalog_disasm/bin/datalog_decoder -DDEBLOAT_FOUND_SOUFFLE_DISASM=datalog_disasm/bin/souffle_disasm 
+RUN make -j 
 WORKDIR /gt/PrettyPrinter/
-ENV PATH=/gt/PrettyPrinter/bin:$PATH
+ENV PATH=/gt/PrettyPrinter/bin:/gt/datalog_disasm/bin/:$PATH
