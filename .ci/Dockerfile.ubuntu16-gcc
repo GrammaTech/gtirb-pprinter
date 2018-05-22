@@ -40,11 +40,12 @@ RUN cd /usr/local/src \
     && pwd \
     && ls -l \
     && ./bootstrap \
-    && ./configure \
+    && ./configure --enable-64bit-domain --disable-provenance \
     && make \
     && make install
 
 # Install and build datalog disassembler.
+RUN apt-get -y install gcc-multilib g++-multilib
 RUN cd /usr/local/src \
    && git clone https://git.grammatech.com/debloat/datalog_disasm.git 
 COPY ./standalone_compilation.tar.bz2 /usr/local/src/datalog_disasm/standalone_compilation.tar.bz2
@@ -59,7 +60,7 @@ COPY . /gt/PrettyPrinter/
 RUN rm -rf /gt/PrettyPrinter/build /gt/PrettyPrinter/CMakeCache.txt /gt/PrettyPrinter/CMakeFiles /gt/PrettyPrinter/CMakeScripts
 RUN mkdir -p /gt/PrettyPrinter/build
 WORKDIR /gt/PrettyPrinter/build
-RUN cmake ../  -DDEBLOAT_FOUND_DATALOG_DECODER=datalog_disasm/bin/datalog_decoder -DDEBLOAT_FOUND_SOUFFLE_DISASM=datalog_disasm/bin/souffle_disasm 
+RUN cmake ../  -DDEBLOAT_FOUND_DATALOG_DECODER=/usr/local/src/datalog_disasm/bin/datalog_decoder -DDEBLOAT_FOUND_SOUFFLE_DISASM=/usr/local/src/datalog_disasm/bin/souffle_disasm 
 RUN make -j 
 WORKDIR /gt/PrettyPrinter/
-ENV PATH=/gt/PrettyPrinter/bin:/gt/datalog_disasm/bin/:$PATH
+ENV PATH=/gt/PrettyPrinter/bin:/usr/local/src/datalog_disasm/bin/:$PATH
