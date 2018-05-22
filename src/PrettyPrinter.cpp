@@ -256,8 +256,9 @@ void PrettyPrinter::printInstruction(uint64_t ea)
     }
 
     // MOVS and CMPS have the operand implicit but size suffix
-    if(boost::algorithm::ends_with(opcode, std::string{"movs"})
-       || boost::algorithm::ends_with(opcode, std::string{"cmps"}))
+    if((boost::algorithm::ends_with(opcode, std::string{"movs"})
+        || boost::algorithm::ends_with(opcode, std::string{"cmps"}))
+       && operands[1] == 0 && operands[2] == 0)
     {
         auto opInd = this->disasm->getOpIndirect(operands[0]);
 
@@ -558,15 +559,10 @@ void PrettyPrinter::buildDataGroups()
     for(auto& p : this->disasm->getSectionTable())
     {
         auto& s = p.second;
-        const auto foundDataSection =
-            std::find_if(std::begin(DataSectionDescriptors), std::end(DataSectionDescriptors),
-                         [s](const auto& dsd) { return dsd.first == s.name; });
+        auto foundDataSection = getDataSectionDescriptor(s.name);
 
-        const auto foundSkipSection = std::find(std::begin(PrettyPrinter::AsmSkipSection),
-                                                std::end(PrettyPrinter::AsmSkipSection), s.name);
-
-        if(foundDataSection != std::end(DataSectionDescriptors)
-           && (foundSkipSection == std::end(PrettyPrinter::AsmSkipSection) || this->debug == true))
+        if(foundDataSection != nullptr
+           && (isSectionSkipped(s.name) == false || this->debug == true))
         {
             DataSection dataSection;
             dataSection.SectionPtr = s;
@@ -745,7 +741,9 @@ void PrettyPrinter::printDataGroups()
 
         // End label
         const auto endAddress = ds.SectionPtr.addressLimit();
-        if(this->disasm->getSectionName(endAddress).empty() == true)
+        std::string next_section = this->disasm->getSectionName(endAddress);
+        if(next_section.empty() == true
+           || (next_section != StrSectionBSS && getDataSectionDescriptor(next_section) == nullptr))
         {
             // This is no the start of a new section, so print the label.
             this->printLabel(endAddress);
@@ -1020,4 +1018,22 @@ bool PrettyPrinter::GetIsNullReg(const std::string& x)
 
     const auto found = std::find(std::begin(adapt), std::end(adapt), x);
     return (found != std::end(adapt));
+}
+
+bool PrettyPrinter::isSectionSkipped(const std::string& name)
+{
+    const auto foundSkipSection = std::find(std::begin(PrettyPrinter::AsmSkipSection),
+                                            std::end(PrettyPrinter::AsmSkipSection), name);
+    return foundSkipSection != std::end(PrettyPrinter::AsmSkipSection);
+}
+
+const std::pair<std::string, int>* PrettyPrinter::getDataSectionDescriptor(const std::string& name)
+{
+    const auto foundDataSection =
+        std::find_if(std::begin(DataSectionDescriptors), std::end(DataSectionDescriptors),
+                     [name](const auto& dsd) { return dsd.first == name; });
+    if(foundDataSection != std::end(DataSectionDescriptors))
+        return foundDataSection;
+    else
+        return nullptr;
 }

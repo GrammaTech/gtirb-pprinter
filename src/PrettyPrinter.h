@@ -90,7 +90,8 @@ protected:
     void condPrintSectionHeader(const Block& x);
 
     bool skipEA(const uint64_t x) const;
-
+    bool isSectionSkipped(const std::string& name);
+    const std::pair<std::string, int>* getDataSectionDescriptor(const std::string& name);
     // % avoid_reg_name_conflics
     std::string avoidRegNameConflicts(const std::string& x);
     void printZeros(uint64_t x);
