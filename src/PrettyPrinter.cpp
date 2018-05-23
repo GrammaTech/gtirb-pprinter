@@ -231,7 +231,6 @@ void PrettyPrinter::condPrintGlobalSymbol(uint64_t ea)
 
     if(name.empty() == false)
     {
-        this->ofs << PrettyPrinter::StrSectionGlobal << " " << name << std::endl;
         this->ofs << name << ":" << std::endl;
     }
 }
@@ -780,7 +779,6 @@ void PrettyPrinter::printDataGroupString(const DataGroupString* const x)
     auto cleanByte = [](uint8_t b) {
         std::string cleaned;
         cleaned += b;
-
         cleaned = boost::replace_all_copy(cleaned, "\\", "\\\\");
         cleaned = boost::replace_all_copy(cleaned, "\"", "\\\"");
         cleaned = boost::replace_all_copy(cleaned, "\n", "\\n");
@@ -789,6 +787,7 @@ void PrettyPrinter::printDataGroupString(const DataGroupString* const x)
         cleaned = boost::replace_all_copy(cleaned, "\b", "\\b");
         cleaned = boost::replace_all_copy(cleaned, "\r", "\\r");
         cleaned = boost::replace_all_copy(cleaned, "\a", "\\a");
+        cleaned = boost::replace_all_copy(cleaned, "\'", "\\'");
 
         return cleaned;
     };
@@ -849,8 +848,8 @@ void PrettyPrinter::printBSS()
                 // Print to the end of the section.
                 const auto next = bssSection->addressLimit().get();
                 const auto delta = next - current;
-
-                this->ofs << " .zero " << delta;
+                if(delta>0)
+                    this->ofs << " .zero " << delta;
             }
 
             this->ofs << std::endl;

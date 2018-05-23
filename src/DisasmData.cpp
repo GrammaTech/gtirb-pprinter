@@ -854,7 +854,10 @@ std::string DisasmData::getGlobalSymbolReference(uint64_t ea) const
     {
         if(r.EA == ea)
         {
-            return DisasmData::AvoidRegNameConflicts(r.Name) + "@GOTPCREL";
+            if( r.Type==std::string{"R_X86_64_GLOB_DAT"})
+                return DisasmData::AvoidRegNameConflicts(r.Name) + "@GOTPCREL";
+            else
+                return DisasmData::AvoidRegNameConflicts(r.Name);
         }
     }
     return std::string{};
