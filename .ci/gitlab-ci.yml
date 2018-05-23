@@ -18,9 +18,9 @@ stages:
     - cp /u4/TARBALLS/datalog_disasm/standalone_compilation.tar.bz2 ./standalone_compilation.tar.bz2
     - docker build -f .ci/Dockerfile.$OS-$COMPILER -t ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} .
     - docker run ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} TestPrettyPrinter
-    - docker tag ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} $DOCKER_REGISTRY/$CI_PROJECT_PATH/${OS}-${COMPILER};
+    - docker tag ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} $DOCKER_REGISTRY/$CI_PROJECT_PATH/${OS}-${COMPILER}
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
-    - docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH/${OS}-${COMPILER};
+    - docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH/${OS}-${COMPILER}
 
 build-ubuntu16-gcc:
   stage: build-test-ubuntu16-gcc
@@ -90,7 +90,7 @@ pages:
     OS: 'ubuntu16'
     COMPILER: 'gcc'
   script:
-    - export CONTAINER_FILE=${LOCAL_IMAGE_NAME}-arch.container
+    - export CONTAINER_FILE=${LOCAL_IMAGE_NAME}-${OS}-${COMPILER}.container
     - mkdir -p $(dirname ${CONTAINER_FILE})
     - docker run --cidfile=${CONTAINER_FILE} ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} /bin/bash -c "mkdir -p doc/html; doxygen Doxyfile; cp -R doc/html /public";
     - docker cp $(cat ${CONTAINER_FILE}):/public ./
