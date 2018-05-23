@@ -125,7 +125,7 @@ void PrettyPrinter::printBlock(const gtirb::Block& x)
 
             for(auto inst : x.getInstructions())
             {
-                this->printInstruction(inst->getEA().get());
+                this->printInstruction(inst);
             }
         }
         else
@@ -236,12 +236,13 @@ void PrettyPrinter::condPrintGlobalSymbol(uint64_t ea)
     }
 }
 
-void PrettyPrinter::printInstruction(uint64_t ea)
+void PrettyPrinter::printInstruction(const gtirb::Instruction* instruction)
 {
     // TODO // Maybe print random nop's.
+    auto ea = instruction->getEA();
 
     this->printEA(ea);
-    auto inst = this->disasm->getInstruction(ea);
+    auto inst = this->disasm->getDecodedInstruction(ea);
     auto opcode = str_tolower(inst->Opcode);
     uint64_t operands[3] = {inst->Op1, inst->Op2, inst->Op3};
 
@@ -299,7 +300,7 @@ void PrettyPrinter::printInstruction(uint64_t ea)
     //////////////////////////////////////////////////////////////////////
     opcode = DisasmData::AdaptOpcode(opcode);
     this->ofs << " " << opcode << " ";
-    this->printOperandList(inst->EA, operands);
+    this->printOperandList(instruction, operands);
 
     /// TAKE THIS OUT ///
     this->ofs << std::endl;
@@ -320,12 +321,15 @@ void PrettyPrinter::printEA(uint64_t ea)
     }
 }
 
-void PrettyPrinter::printOperandList(uint64_t EA, const uint64_t* const operands)
+void PrettyPrinter::printOperandList(const gtirb::Instruction* instruction,
+                                     const uint64_t* const operands)
 {
     std::string str_operands[3];
-    str_operands[0] = this->buildOperand(operands[0], EA, 1);
-    str_operands[1] = this->buildOperand(operands[1], EA, 2);
-    str_operands[2] = this->buildOperand(operands[2], EA, 3);
+    auto ea = instruction->getEA();
+    const auto symbolic = instruction->getSymbolicOperands();
+    str_operands[0] = this->buildOperand(symbolic[0], operands[0], ea, 1);
+    str_operands[1] = this->buildOperand(symbolic[1], operands[1], ea, 2);
+    str_operands[2] = this->buildOperand(symbolic[2], operands[2], ea, 3);
 
     uint dest_op_idx = 0;
     for(int i = 2; i >= 0; --i)
@@ -345,7 +349,8 @@ void PrettyPrinter::printOperandList(uint64_t EA, const uint64_t* const operands
             this->ofs << "," << str_operands[i];
 }
 
-std::string PrettyPrinter::buildOperand(uint64_t operand, uint64_t ea, uint64_t index)
+std::string PrettyPrinter::buildOperand(gtirb::Instruction::SymbolicOperand symbolic,
+                                        uint64_t operand, uint64_t ea, uint64_t index)
 {
     auto opReg = this->disasm->getOpRegdirect(operand);
     if(opReg != nullptr)
@@ -356,13 +361,13 @@ std::string PrettyPrinter::buildOperand(uint64_t operand, uint64_t ea, uint64_t 
     auto opImm = this->disasm->getOpImmediate(operand);
     if(opImm != nullptr)
     {
-        return this->buildOpImmediate(opImm, ea, index);
+        return this->buildOpImmediate(symbolic, opImm, ea, index);
     }
 
     auto opInd = this->disasm->getOpIndirect(operand);
     if(opInd != nullptr)
     {
-        return this->buildOpIndirect(opInd, ea, index);
+        return this->buildOpIndirect(symbolic, opInd, ea, index);
     }
 
     return std::string{};
@@ -374,41 +379,41 @@ std::string PrettyPrinter::buildOpRegdirect(const OpRegdirect* const op, uint64_
     return DisasmData::AdaptRegister(op->Register);
 }
 
-std::string PrettyPrinter::buildOpImmediate(const OpImmediate* const op, uint64_t ea,
+std::string PrettyPrinter::buildOpImmediate(gtirb::Instruction::SymbolicOperand symbolic,
+                                            const OpImmediate* const op, uint64_t ea,
                                             uint64_t index)
 {
-    auto pltReference = this->disasm->getPLTCodeReference(ea);
-    if(pltReference != nullptr)
+    if(symbolic.pltReferenceName)
     {
-        return PrettyPrinter::StrOffset + " " + pltReference->Name;
+        return PrettyPrinter::StrOffset + " " + symbolic.pltReferenceName.value();
     }
 
-    auto directCall = this->disasm->getDirectCall(ea);
-    if(directCall != nullptr && this->skipEA(directCall->Destination) == false)
+    if(symbolic.directCallDestination && !this->skipEA(symbolic.directCallDestination.value()))
     {
-        const auto functionName = this->disasm->getFunctionName(gtirb::EA{directCall->Destination});
+        auto dest = symbolic.directCallDestination.value();
+        const auto functionName = this->disasm->getFunctionName(gtirb::EA(dest));
 
         if(functionName.empty() == true)
         {
-            return std::to_string(directCall->Destination);
+            return std::to_string(dest);
         }
 
         return functionName;
     }
 
-    auto moveLabel = this->disasm->getMovedLabel(ea);
-    if(moveLabel != nullptr)
+    if(symbolic.movedLabel)
     {
-        Expects(moveLabel->Offset1 == op->Immediate);
-        auto diff = moveLabel->Offset1 - moveLabel->Offset2;
-        auto symOffset2 = GetSymbolToPrint(moveLabel->Offset2);
+        auto movedLabel = symbolic.movedLabel.value();
+
+        Expects(movedLabel.offset1 == op->Immediate);
+        auto diff = movedLabel.offset1 - movedLabel.offset2;
+        auto symOffset2 = GetSymbolToPrint(movedLabel.offset2);
         std::stringstream ss;
         ss << PrettyPrinter::StrOffset << " " << symOffset2 << "+" << diff;
         return ss.str();
     }
 
-    auto symbolicOperand = this->disasm->getSymbolicOperand(ea, index);
-    if(symbolicOperand != nullptr)
+    if(symbolic.isGlobalSymbol)
     {
         if(index == 1)
         {
@@ -429,7 +434,8 @@ std::string PrettyPrinter::buildOpImmediate(const OpImmediate* const op, uint64_
     return std::to_string(op->Immediate);
 }
 
-std::string PrettyPrinter::buildOpIndirect(const OpIndirect* const op, uint64_t ea, uint64_t index)
+std::string PrettyPrinter::buildOpIndirect(gtirb::Instruction::SymbolicOperand symbolic,
+                                           const OpIndirect* const op, uint64_t ea, uint64_t index)
 {
     const auto sizeName = DisasmData::GetSizeName(op->Size);
 
@@ -457,10 +463,9 @@ std::string PrettyPrinter::buildOpIndirect(const OpIndirect* const op, uint64_t 
     {
         if(PrettyPrinter::GetIsNullReg(op->SReg) && PrettyPrinter::GetIsNullReg(op->Reg2))
         {
-            auto symbolicOperand = this->disasm->getSymbolicOperand(ea, index);
-            if(symbolicOperand != nullptr)
+            if(symbolic.isGlobalSymbol)
             {
-                auto instruction = this->disasm->getInstruction(ea);
+                auto instruction = this->disasm->getDecodedInstruction(ea);
                 auto address = ea + op->Offset + instruction->Size;
                 auto symbol = this->disasm->getGlobalSymbolReference(address);
 
@@ -495,7 +500,7 @@ std::string PrettyPrinter::buildOpIndirect(const OpIndirect* const op, uint64_t 
             return sizeName + putSegmentRegister(symbol);
         }
 
-        auto offsetAndSign = this->getOffsetAndSign(op->Offset, ea, index);
+        auto offsetAndSign = this->getOffsetAndSign(symbolic, op->Offset, ea, index);
         std::string term = std::string{offsetAndSign.second} + offsetAndSign.first;
         return sizeName + " " + putSegmentRegister(term);
     }
@@ -504,7 +509,7 @@ std::string PrettyPrinter::buildOpIndirect(const OpIndirect* const op, uint64_t 
     if(PrettyPrinter::GetIsNullReg(op->Reg2) == true)
     {
         auto adapted = DisasmData::AdaptRegister(op->Reg1);
-        auto offsetAndSign = this->getOffsetAndSign(op->Offset, ea, index);
+        auto offsetAndSign = this->getOffsetAndSign(symbolic, op->Offset, ea, index);
         std::string term = adapted + std::string{offsetAndSign.second} + offsetAndSign.first;
         return sizeName + " " + putSegmentRegister(term);
     }
@@ -513,7 +518,7 @@ std::string PrettyPrinter::buildOpIndirect(const OpIndirect* const op, uint64_t 
     if(PrettyPrinter::GetIsNullReg(op->Reg1) == true)
     {
         auto adapted = DisasmData::AdaptRegister(op->Reg2);
-        auto offsetAndSign = this->getOffsetAndSign(op->Offset, ea, index);
+        auto offsetAndSign = this->getOffsetAndSign(symbolic, op->Offset, ea, index);
         std::string term = adapted + "*" + std::to_string(op->Multiplier)
                            + std::string{offsetAndSign.second} + offsetAndSign.first;
         return sizeName + " " + putSegmentRegister(term);
@@ -531,7 +536,7 @@ std::string PrettyPrinter::buildOpIndirect(const OpIndirect* const op, uint64_t 
     // Case 8
     auto adapted1 = DisasmData::AdaptRegister(op->Reg1);
     auto adapted2 = DisasmData::AdaptRegister(op->Reg2);
-    auto offsetAndSign = this->getOffsetAndSign(op->Offset, ea, index);
+    auto offsetAndSign = this->getOffsetAndSign(symbolic, op->Offset, ea, index);
     std::string term = adapted1 + "+" + adapted2 + "*" + std::to_string(op->Multiplier)
                        + std::string{offsetAndSign.second} + offsetAndSign.first;
     return sizeName + " " + putSegmentRegister(term);
@@ -925,17 +930,17 @@ void PrettyPrinter::printZeros(uint64_t x)
     }
 }
 
-std::pair<std::string, char> PrettyPrinter::getOffsetAndSign(int64_t offset, uint64_t ea,
-                                                             uint64_t index) const
+std::pair<std::string, char> PrettyPrinter::getOffsetAndSign(
+    gtirb::Instruction::SymbolicOperand symbolic, int64_t offset, uint64_t ea, uint64_t index) const
 {
     std::pair<std::string, char> result = {"", '+'};
 
-    auto moveLabel = this->disasm->getMovedLabel(ea);
-    if(moveLabel != nullptr)
+    if(symbolic.movedLabel)
     {
-        Expects(moveLabel->Offset1 == offset);
-        auto diff = moveLabel->Offset1 - moveLabel->Offset2;
-        auto symOffset2 = GetSymbolToPrint(moveLabel->Offset2);
+        auto movedLabel = symbolic.movedLabel.value();
+        Expects(movedLabel.offset1 == offset);
+        auto diff = movedLabel.offset1 - movedLabel.offset2;
+        auto symOffset2 = GetSymbolToPrint(movedLabel.offset2);
 
         if(diff >= 0)
         {
@@ -951,8 +956,7 @@ std::pair<std::string, char> PrettyPrinter::getOffsetAndSign(int64_t offset, uin
         }
     }
 
-    auto symbolicOperand = this->disasm->getSymbolicOperand(ea, index);
-    if(symbolicOperand != nullptr)
+    if(symbolic.isGlobalSymbol)
     {
         result.first = GetSymbolToPrint(offset);
         result.second = '+';

@@ -60,11 +60,11 @@ struct PLTReference
 ///
 ///
 ///
-struct Instruction
+struct DecodedInstruction
 {
-    Instruction() = default;
+    DecodedInstruction() = default;
 
-    Instruction(const std::vector<std::string>& x)
+    DecodedInstruction(const std::vector<std::string>& x)
     {
         assert(x.size() == 6);
 
@@ -284,13 +284,13 @@ struct MovedLabel
         assert(x.size() == 4);
 
         this->EA = boost::lexical_cast<uint64_t>(x[0]);
-        this->N = boost::lexical_cast<int64_t>(x[1]);
+        this->N = boost::lexical_cast<uint64_t>(x[1]);
         this->Offset1 = boost::lexical_cast<int64_t>(x[2]);
         this->Offset2 = boost::lexical_cast<int64_t>(x[3]);
     };
 
     uint64_t EA{0};
-    int64_t N{0};
+    uint64_t N{0};
     int64_t Offset1{0};
     int64_t Offset2{0};
 };

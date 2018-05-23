@@ -62,11 +62,11 @@ protected:
     void printEA(uint64_t ea);
     void printFunctionHeader(uint64_t ea);
     void printHeader();
-    void printInstruction(uint64_t ea);
+    void printInstruction(const gtirb::Instruction* instruction);
     void printInstructionNop();
     void printLabel(uint64_t ea);
     void printSectionHeader(const std::string& x, uint64_t alignment = 0);
-    void printOperandList(uint64_t EA, const uint64_t* const operands);
+    void printOperandList(const gtirb::Instruction* instruction, const uint64_t* const operands);
 
     void printDataGroups();
     void printDataGroupLabelMarker(const DataGroupLabelMarker* const x);
@@ -78,10 +78,13 @@ protected:
 
     void printBSS();
 
-    std::string buildOperand(uint64_t operand, uint64_t ea, uint64_t index);
+    std::string buildOperand(gtirb::Instruction::SymbolicOperand symbolic, uint64_t operand,
+                             uint64_t ea, uint64_t index);
     std::string buildOpRegdirect(const OpRegdirect* const op, uint64_t ea, uint64_t index);
-    std::string buildOpImmediate(const OpImmediate* const op, uint64_t ea, uint64_t index);
-    std::string buildOpIndirect(const OpIndirect* const op, uint64_t ea, uint64_t index);
+    std::string buildOpImmediate(gtirb::Instruction::SymbolicOperand symbolic,
+                                 const OpImmediate* const op, uint64_t ea, uint64_t index);
+    std::string buildOpIndirect(gtirb::Instruction::SymbolicOperand symbolic,
+                                const OpIndirect* const op, uint64_t ea, uint64_t index);
     std::string buildAdjustMovedDataLabel(uint64_t ea, uint64_t value);
     void buildDataGroups();
 
@@ -95,7 +98,8 @@ protected:
     std::string avoidRegNameConflicts(const std::string& x);
     void printZeros(uint64_t x);
 
-    std::pair<std::string, char> getOffsetAndSign(int64_t offset, uint64_t ea,
+    std::pair<std::string, char> getOffsetAndSign(gtirb::Instruction::SymbolicOperand symbolic,
+                                                  int64_t offset, uint64_t ea,
                                                   uint64_t index) const;
     bool getIsPointerToExcludedCode(DataGroup* dg, DataGroup* dgNext);
 

@@ -2,6 +2,7 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/lexical_cast.hpp>
 #include <fstream>
+#include <gsl/gsl>
 #include <gtirb/Block.hpp>
 #include <gtirb/Instruction.hpp>
 #include <gtirb/Module.hpp>
@@ -18,7 +19,7 @@ void DisasmData::parseDirectory(std::string x)
     this->parseSymbol(x + "/symbol.facts");
     this->parseSection(x + "/section.facts");
     this->parseRelocation(x + "/relocation.facts");
-    this->parseInstruction(x + "/instruction.facts");
+    this->parseDecodedInstruction(x + "/instruction.facts");
     this->parseOpRegdirect(x + "/op_regdirect.facts");
     this->parseOpImmediate(x + "/op_immediate.facts");
     this->parseOpIndirect(x + "/op_indirect.facts");
@@ -124,14 +125,14 @@ void DisasmData::parseRelocation(const std::string& x)
     std::cerr << " # Number of relocation: " << this->relocation.size() << std::endl;
 }
 
-void DisasmData::parseInstruction(const std::string& x)
+void DisasmData::parseDecodedInstruction(const std::string& x)
 {
     Table fromFile{6};
     fromFile.parseFile(x);
 
     for(const auto& ff : fromFile)
     {
-        this->instruction.push_back(Instruction(ff));
+        this->instruction.push_back(DecodedInstruction(ff));
     }
 
     std::cerr << " # Number of instruction: " << this->instruction.size() << std::endl;
@@ -528,7 +529,7 @@ std::vector<Relocation>* DisasmData::getRelocation()
     return &this->relocation;
 }
 
-std::vector<Instruction>* DisasmData::getInstruction()
+std::vector<DecodedInstruction>* DisasmData::getDecodedInstruction()
 {
     return &this->instruction;
 }
@@ -713,6 +714,67 @@ Table* DisasmData::getInFunction()
     return &this->in_function;
 }
 
+gtirb::Instruction::SymbolicOperand DisasmData::buildSymbolic(gtirb::Instruction& inst,
+                                                              uint64_t operand,
+                                                              uint64_t index) const
+{
+    auto opImm = this->getOpImmediate(operand);
+    if(opImm != nullptr)
+    {
+        auto pltReference = this->getPLTCodeReference(inst.getEA());
+        if(pltReference != nullptr)
+        {
+            return {{pltReference->Name}, {}, {}, {}};
+        }
+
+        auto directCall = this->getDirectCall(inst.getEA());
+        if(directCall != nullptr)
+        {
+            return {{}, {gtirb::EA(directCall->Destination)}, {}, {}};
+        }
+
+        auto movedLabel = this->getMovedLabel(inst.getEA(), index);
+        if(movedLabel != nullptr)
+        {
+            return {{}, {}, {{movedLabel->Offset1, movedLabel->Offset2}}, {}};
+        }
+
+        if(this->getSymbolicOperand(inst.getEA(), index) != nullptr)
+        {
+            return {{}, {}, {}, true};
+        }
+    }
+
+    if(this->getOpIndirect(operand))
+    {
+        auto movedLabel = this->getMovedLabel(inst.getEA(), index);
+        if(movedLabel != nullptr)
+        {
+            return {{}, {}, {{movedLabel->Offset1, movedLabel->Offset2}}, {}};
+        }
+
+        if(this->getSymbolicOperand(inst.getEA(), index))
+        {
+            return {{}, {}, {}, true};
+        }
+    }
+    return {};
+}
+
+gtirb::Instruction DisasmData::buildInstruction(gtirb::EA ea) const
+{
+    auto inst = this->getDecodedInstruction(ea);
+    gtirb::Instruction gtInst(ea);
+
+    auto& symbolic = gtInst.getSymbolicOperands();
+
+    symbolic.push_back(this->buildSymbolic(gtInst, inst->Op1, 1));
+    symbolic.push_back(this->buildSymbolic(gtInst, inst->Op2, 2));
+    symbolic.push_back(this->buildSymbolic(gtInst, inst->Op3, 3));
+
+    return gtInst;
+}
+
 std::vector<gtirb::Block> DisasmData::getCodeBlocks() const
 {
     std::vector<gtirb::Block> blocks;
@@ -726,7 +788,7 @@ std::vector<gtirb::Block> DisasmData::getCodeBlocks() const
             // The instruction's block address == the block's addres.
             if(cib.BlockAddress == blockAddress)
             {
-                instructions.push_back(gtirb::Instruction(gtirb::EA(cib.EA)));
+                instructions.push_back(this->buildInstruction(gtirb::EA(cib.EA)));
             }
         }
 
@@ -737,7 +799,7 @@ std::vector<gtirb::Block> DisasmData::getCodeBlocks() const
         if(!instructions.empty())
         {
             auto address = instructions.back().getEA();
-            end = gtirb::EA(address.get() + this->getInstruction(address)->Size);
+            end = gtirb::EA(address.get() + this->getDecodedInstruction(address)->Size);
         }
         else
         {
@@ -970,10 +1032,11 @@ const DirectCall* const DisasmData::getDirectCall(uint64_t ea) const
     return nullptr;
 }
 
-const MovedLabel* const DisasmData::getMovedLabel(uint64_t ea) const
+const MovedLabel* const DisasmData::getMovedLabel(uint64_t ea, uint64_t index) const
 {
-    const auto found = std::find_if(std::begin(this->moved_label), std::end(this->moved_label),
-                                    [ea](const auto& element) { return element.EA == ea; });
+    const auto found = std::find_if(
+        std::begin(this->moved_label), std::end(this->moved_label),
+        [ea, index](const auto& element) { return element.EA == ea && element.N == index; });
 
     if(found != std::end(this->moved_label))
     {
@@ -1046,7 +1109,7 @@ const gtirb::Section* const DisasmData::getSection(const std::string& x) const
     return nullptr;
 }
 
-const Instruction* const DisasmData::getInstruction(uint64_t ea) const
+const DecodedInstruction* const DisasmData::getDecodedInstruction(uint64_t ea) const
 {
     const auto inst = std::find_if(std::begin(this->instruction), std::end(this->instruction),
                                    [ea](const auto& x) { return x.EA == ea; });
