@@ -35,6 +35,90 @@ public:
     // FIXME: IR should replace DisasmData entirely.
     gtirb::IR ir;
 
+    gtirb::SymbolSet* getSymbolSet() const;
+    gtirb::SectionTable& getSectionTable() const;
+    std::vector<Relocation>* getRelocation();
+    std::vector<DecodedInstruction>* getDecodedInstruction();
+    std::vector<OpRegdirect>* getOPRegdirect();
+    std::vector<OpImmediate>* getOPImmediate();
+    std::vector<OpIndirect>* getOPIndirect();
+    std::vector<DataByte>* getDataByte();
+    std::vector<uint64_t>* getBlock();
+    std::vector<CodeInBlock>* getCodeInBlock();
+    std::vector<uint64_t>* getRemainingEA();
+    std::vector<uint64_t>* getMainFunction();
+    std::vector<uint64_t>* getStartFunction();
+    std::vector<uint64_t>* getFunctionEntry();
+    std::vector<std::string>* getAmbiguousSymbol();
+    std::vector<PLTReference>* getPLTDataReference();
+    std::vector<uint64_t>* getLabeledData();
+    std::vector<SymbolicData>* getSymbolicData();
+    std::vector<SymbolMinusSymbol>* getSymbolMinusSymbol();
+    std::vector<MovedDataLabel>* getMovedDataLabel();
+    std::vector<String>* getString();
+    std::vector<uint64_t>* getBSSData();
+    Table* getStackOperand();
+    Table* getPreferredDataAccess();
+    Table* getDataAccessPattern();
+    Table* getDiscardedBlock();
+    Table* getDirectJump();
+    Table* getPCRelativeJump();
+    Table* getPCRelativeCall();
+    Table* getBlockOverlap();
+    Table* getDefUsed();
+    Table* getPairedDataAccess();
+    Table* getValueReg();
+    Table* getIncompleteCFG();
+    Table* getNoReturn();
+    Table* getInFunction();
+
+    std::vector<gtirb::Block> getCodeBlocks() const;
+    std::string getSectionName(uint64_t x) const;
+    std::string getFunctionName(gtirb::EA x) const;
+    std::string getGlobalSymbolReference(uint64_t ea) const;
+    std::string getGlobalSymbolName(uint64_t ea) const;
+    const PLTReference* const getPLTDataReference(uint64_t ea) const;
+    const SymbolicData* const getSymbolicData(uint64_t ea) const;
+    const SymbolMinusSymbol* const getSymbolMinusSymbol(uint64_t ea) const;
+    const String* const getString(uint64_t ea) const;
+    const DecodedInstruction* const getDecodedInstruction(uint64_t ea) const;
+    const OpIndirect* const getOpIndirect(uint64_t x) const;
+    const OpRegdirect* const getOpRegdirect(uint64_t x) const;
+    uint64_t getOpRegdirectCode(std::string name) const;
+    const OpImmediate* const getOpImmediate(uint64_t x) const;
+    const MovedDataLabel* const getMovedDataLabel(uint64_t x) const;
+    const Relocation* const getRelocation(const std::string& x) const;
+    const gtirb::Section* const getSection(const std::string& x) const;
+
+    bool getIsAmbiguousSymbol(const std::string& ea) const;
+
+    static void AdjustPadding(std::vector<gtirb::Block>& blocks);
+    static std::string CleanSymbolNameSuffix(std::string x);
+    static std::string AdaptOpcode(const std::string& x);
+    static std::string AdaptRegister(const std::string& x);
+    static std::string GetSizeName(uint64_t x);
+    static std::string GetSizeName(const std::string& x);
+    static std::string GetSizeSuffix(const OpIndirect& x);
+    static std::string GetSizeSuffix(uint64_t x);
+    static std::string GetSizeSuffix(const std::string& x);
+    static bool GetIsReservedSymbol(const std::string& x);
+    static std::string AvoidRegNameConflicts(const std::string& x);
+
+private:
+    gtirb::Instruction::SymbolicOperand buildSymbolic(gtirb::Instruction& inst, uint64_t operand,
+                                                      uint64_t index) const;
+    gtirb::Instruction buildInstruction(gtirb::EA ea) const;
+    std::vector<DirectCall>* getDirectCall();
+    std::vector<MovedLabel>* getMovedLabel();
+    std::vector<PLTReference>* getPLTCodeReference();
+    std::vector<SymbolicOperand>* getSymbolicOperand();
+
+    const PLTReference* const getPLTCodeReference(uint64_t ea) const;
+    const DirectCall* const getDirectCall(uint64_t ea) const;
+    const MovedLabel* const getMovedLabel(uint64_t x, uint64_t index) const;
+    const SymbolicOperand* const getSymbolicOperand(uint64_t x, uint64_t opNum) const;
+
+
     ///
     /// Parse the statistics facts file.
     ///
@@ -79,90 +163,6 @@ public:
     void parseIncompleteCFG(const std::string& x);
     void parseNoReturn(const std::string& x);
     void parseInFunction(const std::string& x);
-
-    gtirb::SymbolSet* getSymbolSet() const;
-    gtirb::SectionTable& getSectionTable() const;
-    std::vector<Relocation>* getRelocation();
-    std::vector<DecodedInstruction>* getDecodedInstruction();
-    std::vector<OpRegdirect>* getOPRegdirect();
-    std::vector<OpImmediate>* getOPImmediate();
-    std::vector<OpIndirect>* getOPIndirect();
-    std::vector<DataByte>* getDataByte();
-    std::vector<uint64_t>* getBlock();
-    std::vector<CodeInBlock>* getCodeInBlock();
-    std::vector<uint64_t>* getRemainingEA();
-    std::vector<uint64_t>* getMainFunction();
-    std::vector<uint64_t>* getStartFunction();
-    std::vector<uint64_t>* getFunctionEntry();
-    std::vector<std::string>* getAmbiguousSymbol();
-    std::vector<PLTReference>* getPLTDataReference();
-    std::vector<uint64_t>* getLabeledData();
-    std::vector<SymbolicData>* getSymbolicData();
-    std::vector<SymbolMinusSymbol>* getSymbolMinusSymbol();
-    std::vector<MovedDataLabel>* getMovedDataLabel();
-    std::vector<String>* getString();
-    std::vector<uint64_t>* getBSSData();
-    Table* getStackOperand();
-    Table* getPreferredDataAccess();
-    Table* getDataAccessPattern();
-    Table* getDiscardedBlock();
-    Table* getDirectJump();
-    Table* getPCRelativeJump();
-    Table* getPCRelativeCall();
-    Table* getBlockOverlap();
-    Table* getDefUsed();
-    Table* getPairedDataAccess();
-    Table* getValueReg();
-    Table* getIncompleteCFG();
-    Table* getNoReturn();
-    Table* getInFunction();
-
-    std::vector<gtirb::Block> getCodeBlocks() const;
-    std::string getSectionName(uint64_t x) const;
-    std::string getFunctionName(gtirb::EA x) const;
-    std::string getGlobalSymbolReference(uint64_t ea) const;
-    std::string getGlobalSymbolName(uint64_t ea) const;
-    const PLTReference* const getPLTCodeReference(uint64_t ea) const;
-    const PLTReference* const getPLTDataReference(uint64_t ea) const;
-    const SymbolicData* const getSymbolicData(uint64_t ea) const;
-    const SymbolMinusSymbol* const getSymbolMinusSymbol(uint64_t ea) const;
-    const String* const getString(uint64_t ea) const;
-    const DecodedInstruction* const getDecodedInstruction(uint64_t ea) const;
-    const OpIndirect* const getOpIndirect(uint64_t x) const;
-    const OpRegdirect* const getOpRegdirect(uint64_t x) const;
-    uint64_t getOpRegdirectCode(std::string name) const;
-    const OpImmediate* const getOpImmediate(uint64_t x) const;
-    const MovedDataLabel* const getMovedDataLabel(uint64_t x) const;
-    const Relocation* const getRelocation(const std::string& x) const;
-    const gtirb::Section* const getSection(const std::string& x) const;
-
-    bool getIsAmbiguousSymbol(const std::string& ea) const;
-
-    static void AdjustPadding(std::vector<gtirb::Block>& blocks);
-    static std::string CleanSymbolNameSuffix(std::string x);
-    static std::string AdaptOpcode(const std::string& x);
-    static std::string AdaptRegister(const std::string& x);
-    static std::string GetSizeName(uint64_t x);
-    static std::string GetSizeName(const std::string& x);
-    static std::string GetSizeSuffix(const OpIndirect& x);
-    static std::string GetSizeSuffix(uint64_t x);
-    static std::string GetSizeSuffix(const std::string& x);
-    static bool GetIsReservedSymbol(const std::string& x);
-    static std::string AvoidRegNameConflicts(const std::string& x);
-
-private:
-    gtirb::Instruction::SymbolicOperand buildSymbolic(gtirb::Instruction& inst, uint64_t operand,
-                                                      uint64_t index) const;
-    gtirb::Instruction buildInstruction(gtirb::EA ea) const;
-    std::vector<DirectCall>* getDirectCall();
-    std::vector<MovedLabel>* getMovedLabel();
-    std::vector<PLTReference>* getPLTCodeReference();
-    std::vector<SymbolicOperand>* getSymbolicOperand();
-
-    const DirectCall* const getDirectCall(uint64_t ea) const;
-    const MovedLabel* const getMovedLabel(uint64_t x, uint64_t index) const;
-    const SymbolicOperand* const getSymbolicOperand(uint64_t x, uint64_t opNum) const;
-
     // these are facts generated by the decoder
     std::vector<Relocation> relocation;
     std::vector<DecodedInstruction> instruction;

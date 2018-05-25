@@ -243,7 +243,7 @@ void PrettyPrinter::printInstruction(const gtirb::Instruction& instruction)
 
     this->printEA(ea);
     auto inst = this->disasm->getDecodedInstruction(ea);
-    auto prefix=inst->Prefix;
+    auto prefix = inst->Prefix;
     auto opcode = str_tolower(inst->Opcode);
     uint64_t operands[3] = {inst->Op1, inst->Op2, inst->Op3};
 
@@ -294,13 +294,13 @@ void PrettyPrinter::printInstruction(const gtirb::Instruction& instruction)
         }
     }
     // print a new line if there is a lock prefix
-    if(prefix== std::string{"lock"})
+    if(prefix == std::string{"lock"})
     {
-        prefix="lock\n";
+        prefix = "lock\n";
     }
     //////////////////////////////////////////////////////////////////////
     opcode = DisasmData::AdaptOpcode(opcode);
-    this->ofs << " " <<prefix<<" "<< opcode << " ";
+    this->ofs << " " << prefix << " " << opcode << " ";
     this->printOperandList(instruction, operands);
 
     /// TAKE THIS OUT ///

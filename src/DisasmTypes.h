@@ -10,37 +10,6 @@
 ///
 ///
 ///
-struct Section
-{
-    Section() = default;
-
-    Section(const std::vector<std::string>& x)
-    {
-        assert(x.size() == 3);
-
-        this->Name = x[0];
-        this->Size = boost::lexical_cast<uint64_t>(x[1]);
-        this->StartingAddress = gtirb::EA{boost::lexical_cast<uint64_t>(x[2])};
-    };
-
-    std::string Name;
-    uint64_t Size{0};
-    gtirb::EA StartingAddress{0};
-
-private:
-    friend class boost::serialization::access;
-    template <class Archive>
-    void serialize(Archive& ar, const unsigned int /*version*/)
-    {
-        ar & this->Name;
-        ar & this->Size;
-        ar & this->StartingAddress;
-    }
-};
-
-///
-///
-///
 struct PLTReference
 {
     PLTReference() = default;
