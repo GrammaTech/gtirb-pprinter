@@ -61,6 +61,47 @@ void DisasmData::parseDirectory(std::string x)
     this->parseInFunction(x + "/in_function.csv");
 }
 
+void DisasmData::createCodeBlocks()
+{
+    std::vector<gtirb::Block> blocks;
+
+    for(auto& blockAddress : this->block)
+    {
+        std::vector<gtirb::Instruction> instructions;
+
+        for(auto& cib : this->code_in_block)
+        {
+            // The instruction's block address == the block's addres.
+            if(cib.BlockAddress == blockAddress)
+            {
+                instructions.push_back(this->buildInstruction(gtirb::EA(cib.EA)));
+            }
+        }
+
+        std::sort(instructions.begin(), instructions.end(),
+                  [](const auto& left, const auto& right) { return left.getEA() < right.getEA(); });
+
+        gtirb::EA end;
+        if(!instructions.empty())
+        {
+            auto address = instructions.back().getEA();
+            end = gtirb::EA(address.get() + this->getDecodedInstruction(address)->Size);
+        }
+        else
+        {
+            end = gtirb::EA(blockAddress);
+        }
+
+        blocks.emplace_back(gtirb::Block(gtirb::EA(blockAddress), end, instructions));
+    }
+
+    std::sort(blocks.begin(), blocks.end(), [](const auto& left, const auto& right) {
+        return left.getStartingAddress() < right.getStartingAddress();
+    });
+
+    this->ir.getMainModule()->setBlocks(blocks);
+}
+
 void DisasmData::parseSymbol(const std::string& x)
 {
     Table fromFile{5};
@@ -553,16 +594,6 @@ std::vector<DataByte>* DisasmData::getDataByte()
     return &this->data_byte;
 }
 
-std::vector<uint64_t>* DisasmData::getBlock()
-{
-    return &this->block;
-}
-
-std::vector<CodeInBlock>* DisasmData::getCodeInBlock()
-{
-    return &this->code_in_block;
-}
-
 std::vector<uint64_t>* DisasmData::getRemainingEA()
 {
     return &this->remaining_ea;
@@ -774,45 +805,9 @@ gtirb::Instruction DisasmData::buildInstruction(gtirb::EA ea) const
     return gtInst;
 }
 
-std::vector<gtirb::Block> DisasmData::getCodeBlocks() const
+const std::vector<gtirb::Block>& DisasmData::getCodeBlocks() const
 {
-    std::vector<gtirb::Block> blocks;
-
-    for(auto& blockAddress : this->block)
-    {
-        std::vector<gtirb::Instruction> instructions;
-
-        for(auto& cib : this->code_in_block)
-        {
-            // The instruction's block address == the block's addres.
-            if(cib.BlockAddress == blockAddress)
-            {
-                instructions.push_back(this->buildInstruction(gtirb::EA(cib.EA)));
-            }
-        }
-
-        std::sort(instructions.begin(), instructions.end(),
-                  [](const auto& left, const auto& right) { return left.getEA() < right.getEA(); });
-
-        gtirb::EA end;
-        if(!instructions.empty())
-        {
-            auto address = instructions.back().getEA();
-            end = gtirb::EA(address.get() + this->getDecodedInstruction(address)->Size);
-        }
-        else
-        {
-            end = gtirb::EA(blockAddress);
-        }
-
-        blocks.emplace_back(gtirb::Block(gtirb::EA(blockAddress), end, instructions));
-    }
-
-    std::sort(blocks.begin(), blocks.end(), [](const auto& left, const auto& right) {
-        return left.getStartingAddress() < right.getStartingAddress();
-    });
-
-    return blocks;
+    return this->ir.getMainModule()->getBlocks();
 }
 
 std::string DisasmData::getSectionName(uint64_t x) const

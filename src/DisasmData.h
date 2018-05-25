@@ -43,8 +43,6 @@ public:
     std::vector<OpImmediate>* getOPImmediate();
     std::vector<OpIndirect>* getOPIndirect();
     std::vector<DataByte>* getDataByte();
-    std::vector<uint64_t>* getBlock();
-    std::vector<CodeInBlock>* getCodeInBlock();
     std::vector<uint64_t>* getRemainingEA();
     std::vector<uint64_t>* getMainFunction();
     std::vector<uint64_t>* getStartFunction();
@@ -72,7 +70,7 @@ public:
     Table* getNoReturn();
     Table* getInFunction();
 
-    std::vector<gtirb::Block> getCodeBlocks() const;
+    const std::vector<gtirb::Block>& getCodeBlocks() const;
     std::string getSectionName(uint64_t x) const;
     std::string getFunctionName(gtirb::EA x) const;
     std::string getGlobalSymbolReference(uint64_t ea) const;
@@ -118,6 +116,7 @@ private:
     const MovedLabel* const getMovedLabel(uint64_t x, uint64_t index) const;
     const SymbolicOperand* const getSymbolicOperand(uint64_t x, uint64_t opNum) const;
 
+    void createCodeBlocks();
 
     ///
     /// Parse the statistics facts file.
