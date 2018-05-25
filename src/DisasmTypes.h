@@ -111,29 +111,6 @@ struct CodeInBlock
 ///
 ///
 ///
-struct Relocation
-{
-    Relocation() = default;
-
-    Relocation(const std::vector<std::string>& x)
-    {
-        assert(x.size() == 4);
-
-        this->EA = boost::lexical_cast<uint64_t>(x[0]);
-        this->Type = x[1];
-        this->Name = x[2];
-        this->Offset = boost::lexical_cast<uint64_t>(x[3]);
-    };
-
-    uint64_t EA{0};
-    std::string Type;
-    std::string Name;
-    uint64_t Offset{0};
-};
-
-///
-///
-///
 struct OpRegdirect
 {
     OpRegdirect() = default;

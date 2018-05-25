@@ -80,7 +80,7 @@ std::string PrettyPrinter::prettyPrint(DisasmData* x)
     this->printHeader();
 
     // Note: making a copy due to AdjustPadding below.
-    auto blocks = this->disasm->getCodeBlocks();
+    auto blocks = *this->disasm->getCodeBlocks();
 
     if(this->getDebug() == true)
     {

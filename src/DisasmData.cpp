@@ -59,6 +59,9 @@ void DisasmData::parseDirectory(std::string x)
     this->parseIncompleteCFG(x + "/incomplete_cfg.csv");
     this->parseNoReturn(x + "/no_return.csv");
     this->parseInFunction(x + "/in_function.csv");
+
+    // Build IR for blocks from parsed data
+    this->createCodeBlocks();
 }
 
 void DisasmData::createCodeBlocks()
@@ -156,13 +159,18 @@ void DisasmData::parseRelocation(const std::string& x)
 {
     Table fromFile{4};
     fromFile.parseFile(x);
+    std::vector<gtirb::Relocation> relocations;
 
     for(const auto& ff : fromFile)
     {
-        this->relocation.push_back(Relocation(ff));
+        relocations.push_back(gtirb::Relocation{gtirb::EA(boost::lexical_cast<uint64_t>(ff[0])),
+                                                ff[1], ff[2],
+                                                boost::lexical_cast<uint64_t>(ff[3])});
     }
+    this->ir.getMainModule()->setRelocations(relocations);
 
-    std::cerr << " # Number of relocation: " << this->relocation.size() << std::endl;
+    std::cerr << " # Number of relocation: " << this->ir.getMainModule()->getRelocations()->size()
+              << std::endl;
 }
 
 void DisasmData::parseDecodedInstruction(const std::string& x)
@@ -564,11 +572,6 @@ gtirb::SectionTable& DisasmData::getSectionTable() const
     return this->ir.getMainModule()->getOrCreateSectionTable();
 }
 
-std::vector<Relocation>* DisasmData::getRelocation()
-{
-    return &this->relocation;
-}
-
 std::vector<DecodedInstruction>* DisasmData::getDecodedInstruction()
 {
     return &this->instruction;
@@ -805,7 +808,7 @@ gtirb::Instruction DisasmData::buildInstruction(gtirb::EA ea) const
     return gtInst;
 }
 
-const std::vector<gtirb::Block>& DisasmData::getCodeBlocks() const
+const std::vector<gtirb::Block>* DisasmData::getCodeBlocks() const
 {
     return this->ir.getMainModule()->getBlocks();
 }
@@ -906,14 +909,14 @@ std::string DisasmData::getGlobalSymbolReference(uint64_t ea) const
     }
 
     // check the relocation table
-    for(const auto& r : this->relocation)
+    for(const auto& r : *this->ir.getMainModule()->getRelocations())
     {
-        if(r.EA == ea)
+        if(r.ea == ea)
         {
-            if(r.Type == std::string{"R_X86_64_GLOB_DAT"})
-                return DisasmData::AvoidRegNameConflicts(r.Name) + "@GOTPCREL";
+            if(r.type == std::string{"R_X86_64_GLOB_DAT"})
+                return DisasmData::AvoidRegNameConflicts(r.name) + "@GOTPCREL";
             else
-                return DisasmData::AvoidRegNameConflicts(r.Name);
+                return DisasmData::AvoidRegNameConflicts(r.name);
         }
     }
     return std::string{};
@@ -1070,12 +1073,13 @@ const SymbolicOperand* const DisasmData::getSymbolicOperand(uint64_t ea, uint64_
     return nullptr;
 }
 
-const Relocation* const DisasmData::getRelocation(const std::string& x) const
+const gtirb::Relocation* const DisasmData::getRelocation(const std::string& x) const
 {
-    const auto found = std::find_if(std::begin(this->relocation), std::end(this->relocation),
-                                    [x](const auto& element) { return element.Name == x; });
+    auto relocations = this->ir.getMainModule()->getRelocations();
+    const auto found = std::find_if(std::begin(*relocations), std::end(*relocations),
+                                    [x](const auto& element) { return element.name == x; });
 
-    if(found != std::end(this->relocation))
+    if(found != std::end(*relocations))
     {
         return &(*found);
     }
