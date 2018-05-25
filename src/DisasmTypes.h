@@ -66,14 +66,15 @@ struct DecodedInstruction
 
     DecodedInstruction(const std::vector<std::string>& x)
     {
-        assert(x.size() == 6);
+        assert(x.size() == 7);
 
         this->EA = boost::lexical_cast<uint64_t>(x[0]);
         this->Size = boost::lexical_cast<uint64_t>(x[1]);
-        this->Opcode = x[2];
-        this->Op1 = boost::lexical_cast<uint64_t>(x[3]);
-        this->Op2 = boost::lexical_cast<uint64_t>(x[4]);
-        this->Op3 = boost::lexical_cast<uint64_t>(x[5]);
+        this->Prefix = x[2];
+        this->Opcode = x[3];
+        this->Op1 = boost::lexical_cast<uint64_t>(x[4]);
+        this->Op2 = boost::lexical_cast<uint64_t>(x[5]);
+        this->Op3 = boost::lexical_cast<uint64_t>(x[6]);
     };
 
     uint64_t getEndAddress() const
@@ -81,6 +82,7 @@ struct DecodedInstruction
         return this->EA + this->Size;
     }
 
+    std::string Prefix;
     std::string Opcode;
     uint64_t EA{0};
     uint64_t Size{0};

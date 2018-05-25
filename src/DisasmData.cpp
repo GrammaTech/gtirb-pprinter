@@ -127,7 +127,7 @@ void DisasmData::parseRelocation(const std::string& x)
 
 void DisasmData::parseDecodedInstruction(const std::string& x)
 {
-    Table fromFile{6};
+    Table fromFile{7};
     fromFile.parseFile(x);
 
     for(const auto& ff : fromFile)
