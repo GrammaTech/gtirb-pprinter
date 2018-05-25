@@ -62,11 +62,11 @@ protected:
     void printEA(uint64_t ea);
     void printFunctionHeader(uint64_t ea);
     void printHeader();
-    void printInstruction(const gtirb::Instruction* instruction);
+    void printInstruction(const gtirb::Instruction& instruction);
     void printInstructionNop();
     void printLabel(uint64_t ea);
     void printSectionHeader(const std::string& x, uint64_t alignment = 0);
-    void printOperandList(const gtirb::Instruction* instruction, const uint64_t* const operands);
+    void printOperandList(const gtirb::Instruction& instruction, const uint64_t* const operands);
 
     void printDataGroups();
     void printDataGroupLabelMarker(const DataGroupLabelMarker* const x);

@@ -123,7 +123,7 @@ void PrettyPrinter::printBlock(const gtirb::Block& x)
             this->printLabel(x.getStartingAddress());
             this->ofs << std::endl;
 
-            for(auto inst : x.getInstructions())
+            for(const auto& inst : x.getInstructions())
             {
                 this->printInstruction(inst);
             }
@@ -236,10 +236,10 @@ void PrettyPrinter::condPrintGlobalSymbol(uint64_t ea)
     }
 }
 
-void PrettyPrinter::printInstruction(const gtirb::Instruction* instruction)
+void PrettyPrinter::printInstruction(const gtirb::Instruction& instruction)
 {
     // TODO // Maybe print random nop's.
-    auto ea = instruction->getEA();
+    auto ea = instruction.getEA();
 
     this->printEA(ea);
     auto inst = this->disasm->getDecodedInstruction(ea);
@@ -322,12 +322,12 @@ void PrettyPrinter::printEA(uint64_t ea)
     }
 }
 
-void PrettyPrinter::printOperandList(const gtirb::Instruction* instruction,
+void PrettyPrinter::printOperandList(const gtirb::Instruction& instruction,
                                      const uint64_t* const operands)
 {
     std::string str_operands[3];
-    auto ea = instruction->getEA();
-    const auto symbolic = instruction->getSymbolicOperands();
+    auto ea = instruction.getEA();
+    const auto symbolic = instruction.getSymbolicOperands();
     str_operands[0] = this->buildOperand(symbolic[0], operands[0], ea, 1);
     str_operands[1] = this->buildOperand(symbolic[1], operands[1], ea, 2);
     str_operands[2] = this->buildOperand(symbolic[2], operands[2], ea, 3);
@@ -855,7 +855,7 @@ void PrettyPrinter::printBSS()
                 // Print to the end of the section.
                 const auto next = bssSection->addressLimit().get();
                 const auto delta = next - current;
-                if(delta>0)
+                if(delta > 0)
                     this->ofs << " .zero " << delta;
             }
 

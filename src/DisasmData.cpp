@@ -6,7 +6,6 @@
 #include <gtirb/Block.hpp>
 #include <gtirb/Instruction.hpp>
 #include <gtirb/Module.hpp>
-#include <gtirb/NodeUtilities.hpp>
 #include <gtirb/Section.hpp>
 #include <gtirb/Symbol.hpp>
 #include <gtirb/SymbolSet.hpp>
@@ -80,18 +79,18 @@ void DisasmData::parseSymbol(const std::string& x)
         std::string scope = ff[3];
         std::string name = ff[4];
 
-        auto new_sym = getSymbolSet()->addSymbol(std::make_unique<gtirb::Symbol>(gtirb::EA{base}));
-        new_sym->setElementSize(size);
-        new_sym->setName(name);
+        auto& new_sym = getSymbolSet()->addSymbol(gtirb::Symbol(gtirb::EA(base)));
+        new_sym.setElementSize(size);
+        new_sym.setName(name);
         // NOTE: don't seem to care about OBJECT or NOTYPE, and not clear how
         // to represent them in gtirb.
         if(type == "FUNC")
         {
-            new_sym->setDeclarationKind(gtirb::Symbol::DeclarationKind::Func);
+            new_sym.setDeclarationKind(gtirb::Symbol::DeclarationKind::Func);
         }
         // NOTE: don't seem to care about LOCAL or WEAK, and not clear how to
         // represent them in gtirb.
-        new_sym->setIsGlobal(scope == "GLOBAL");
+        new_sym.setIsGlobal(scope == "GLOBAL");
     }
 
     std::cerr << " # Number of symbol: " << count << std::endl;
@@ -828,9 +827,9 @@ std::string DisasmData::getSectionName(uint64_t x) const
     return std::string{};
 }
 
-bool isFunction(const gtirb::Symbol* sym)
+static bool isFunction(const gtirb::Symbol& sym)
 {
-    return sym->getDeclarationKind() == gtirb::Symbol::DeclarationKind::Func;
+    return sym.getDeclarationKind() == gtirb::Symbol::DeclarationKind::Func;
 }
 
 // function_complete_name
@@ -838,7 +837,7 @@ std::string DisasmData::getFunctionName(gtirb::EA x) const
 {
     for(auto& s : this->getSymbolSet()->getSymbols(x))
     {
-        if(isFunction(s))
+        if(isFunction(*s))
         {
             std::stringstream name;
             name << s->getName();
@@ -877,23 +876,23 @@ std::string DisasmData::getFunctionName(gtirb::EA x) const
 
 std::string DisasmData::getGlobalSymbolReference(uint64_t ea) const
 {
-    for(const auto sym : getSymbolSet()->getSymbols())
+    for(const auto& sym : getSymbolSet()->getSymbols())
     {
         /// \todo This will need looked at again to cover the logic
-        if(sym->getEA().get() <= ea
-           && sym->getEA().get() + sym->getElementSize() > ea) // fall within the symbol
+        if(sym.getEA().get() <= ea
+           && sym.getEA().get() + sym.getElementSize() > ea) // fall within the symbol
         {
-            uint64_t displacement = ea - sym->getEA().get();
+            uint64_t displacement = ea - sym.getEA().get();
 
             // in a function with non-zero displacement we do not use the relative addressing
             if(displacement > 0 && isFunction(sym))
             {
                 return std::string{};
             }
-            if(sym->getIsGlobal())
+            if(sym.getIsGlobal())
             {
                 // %do not print labels for symbols that have to be relocated
-                const auto name = DisasmData::CleanSymbolNameSuffix(sym->getName());
+                const auto name = DisasmData::CleanSymbolNameSuffix(sym.getName());
 
                 if(DisasmData::GetIsReservedSymbol(name) == false)
                 {
@@ -916,7 +915,7 @@ std::string DisasmData::getGlobalSymbolReference(uint64_t ea) const
     {
         if(r.EA == ea)
         {
-            if( r.Type==std::string{"R_X86_64_GLOB_DAT"})
+            if(r.Type == std::string{"R_X86_64_GLOB_DAT"})
                 return DisasmData::AvoidRegNameConflicts(r.Name) + "@GOTPCREL";
             else
                 return DisasmData::AvoidRegNameConflicts(r.Name);
@@ -927,14 +926,14 @@ std::string DisasmData::getGlobalSymbolReference(uint64_t ea) const
 
 std::string DisasmData::getGlobalSymbolName(uint64_t ea) const
 {
-    for(const auto sym : getSymbolSet()->getSymbols())
+    for(const auto& sym : getSymbolSet()->getSymbols())
     {
-        if(sym->getEA().get() == ea)
+        if(sym.getEA().get() == ea)
         {
-            if(sym->getIsGlobal())
+            if(sym.getIsGlobal())
             {
                 // %do not print labels for symbols that have to be relocated
-                const auto name = DisasmData::CleanSymbolNameSuffix(sym->getName());
+                const auto name = DisasmData::CleanSymbolNameSuffix(sym.getName());
 
                 // if it is not relocated...
                 if(this->getRelocation(name) == nullptr)
@@ -1091,9 +1090,7 @@ const Relocation* const DisasmData::getRelocation(const std::string& x) const
 
 gtirb::SymbolSet* DisasmData::getSymbolSet() const
 {
-    // Note: need const_cast here because of getOrCreate. This is ugly but
-    // should be safe.
-    return const_cast<DisasmData*>(this)->ir.getOrCreateMainModule()->getOrCreateSymbolSet();
+    return this->ir.getMainModule()->getSymbolSet();
 }
 
 const gtirb::Section* const DisasmData::getSection(const std::string& x) const
