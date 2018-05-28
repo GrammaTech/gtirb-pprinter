@@ -4,6 +4,7 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/lexical_cast.hpp>
 #include <gsl/gsl>
+#include <gtirb/ImageByteMap.hpp>
 #include <gtirb/Instruction.hpp>
 #include <gtirb/Module.hpp>
 #include <gtirb/Symbol.hpp>
@@ -575,17 +576,9 @@ void PrettyPrinter::buildDataGroups()
             dataSection.SectionPtr = s;
             dataSection.Alignment = foundDataSection->second;
 
-            std::vector<uint8_t> bytes;
-
-            auto dataBytes = this->disasm->getDataByte();
-            auto dataIt =
-                std::find(std::begin(*dataBytes), std::end(*dataBytes), s.startingAddress);
-
-            for(size_t i = 0; i < s.size; ++i)
-            {
-                bytes.push_back(dataIt->Content);
-                ++dataIt;
-            }
+            std::vector<uint8_t> bytes =
+                this->disasm->ir.getMainModule()->getImageByteMap()->getData(s.startingAddress,
+                                                                             s.size);
 
             for(auto currentAddr = s.startingAddress.get(); currentAddr < s.addressLimit();
                 currentAddr++)

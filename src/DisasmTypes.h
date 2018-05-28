@@ -149,61 +149,6 @@ struct OpImmediate
 ///
 ///
 ///
-struct DataByte
-{
-    DataByte() = default;
-
-    DataByte(const std::vector<std::string>& x)
-    {
-        assert(x.size() == 2);
-
-        this->EA = boost::lexical_cast<uint64_t>(x[0]);
-
-        // A lexical cast directly to uint8_t failed on double-digit numbers.
-        const auto byte = boost::lexical_cast<int>(x[1]);
-        assert(byte >= 0);
-        assert(byte < 256);
-
-        this->Content = static_cast<uint8_t>(byte);
-    };
-
-    bool operator<(const DataByte& x) const
-    {
-        return this->EA < x.EA;
-    }
-
-    bool operator<(const uint64_t x) const
-    {
-        return this->EA < x;
-    }
-
-    bool operator==(const DataByte& x) const
-    {
-        return this->EA == x.EA;
-    }
-
-    bool operator!=(const DataByte& x) const
-    {
-        return this->EA != x.EA;
-    }
-
-    bool operator==(const uint64_t x) const
-    {
-        return this->EA == x;
-    }
-
-    bool operator!=(const uint64_t x) const
-    {
-        return this->EA != x;
-    }
-
-    uint64_t EA{0};
-    uint8_t Content{0};
-};
-
-///
-///
-///
 struct DirectCall
 {
     DirectCall() = default;

@@ -42,7 +42,6 @@ public:
     std::vector<OpRegdirect>* getOPRegdirect();
     std::vector<OpImmediate>* getOPImmediate();
     std::vector<OpIndirect>* getOPIndirect();
-    std::vector<DataByte>* getDataByte();
     std::vector<uint64_t>* getRemainingEA();
     std::vector<uint64_t>* getMainFunction();
     std::vector<uint64_t>* getStartFunction();
@@ -167,7 +166,6 @@ private:
     std::vector<OpRegdirect> op_regdirect;
     std::vector<OpImmediate> op_immediate;
     std::vector<OpIndirect> op_indirect;
-    std::vector<DataByte> data_byte;
 
     // these facts are necessary for printing the asm
     std::vector<uint64_t> block;

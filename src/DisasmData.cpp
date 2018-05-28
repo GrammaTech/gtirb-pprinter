@@ -4,6 +4,7 @@
 #include <fstream>
 #include <gsl/gsl>
 #include <gtirb/Block.hpp>
+#include <gtirb/ImageByteMap.hpp>
 #include <gtirb/Instruction.hpp>
 #include <gtirb/Module.hpp>
 #include <gtirb/Section.hpp>
@@ -230,14 +231,25 @@ void DisasmData::parseDataByte(const std::string& x)
     Table fromFile{2};
     fromFile.parseFile(x);
 
+    int count = 0;
     for(const auto& ff : fromFile)
     {
-        this->data_byte.push_back(DataByte(ff));
+        gtirb::EA ea(boost::lexical_cast<uint64_t>(ff[0]));
+
+        // A lexical cast directly to uint8_t failed on double-digit numbers.
+        const auto byte = boost::lexical_cast<int>(ff[1]);
+        assert(byte >= 0);
+        assert(byte < 256);
+
+        auto byteMap = this->ir.getMainModule()->getImageByteMap();
+        auto minMax = byteMap->getEAMinMax();
+        byteMap->setEAMinMax({std::min(minMax.first, ea), std::max(minMax.second, ea)});
+        byteMap->setData(ea, static_cast<uint8_t>(byte));
+
+        count++;
     }
 
-    std::sort(std::begin(this->data_byte), std::end(this->data_byte));
-
-    std::cerr << " # Number of data_byte: " << this->data_byte.size() << std::endl;
+    std::cerr << " # Number of data_byte: " << count << std::endl;
 }
 
 void DisasmData::parseBlock(const std::string& x)
@@ -590,11 +602,6 @@ std::vector<OpImmediate>* DisasmData::getOPImmediate()
 std::vector<OpIndirect>* DisasmData::getOPIndirect()
 {
     return &this->op_indirect;
-}
-
-std::vector<DataByte>* DisasmData::getDataByte()
-{
-    return &this->data_byte;
 }
 
 std::vector<uint64_t>* DisasmData::getRemainingEA()
