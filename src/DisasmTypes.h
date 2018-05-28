@@ -10,6 +10,16 @@
 ///
 ///
 ///
+struct DataSection
+{
+    gtirb::Section SectionPtr;
+    std::vector<std::unique_ptr<gtirb::Data>> DataGroups;
+    int Alignment{0};
+};
+
+///
+///
+///
 struct PLTReference
 {
     PLTReference() = default;

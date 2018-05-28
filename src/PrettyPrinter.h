@@ -6,7 +6,6 @@
 #include <map>
 #include <string>
 #include <vector>
-#include "DataGroup.h"
 #include "DisasmData.h"
 ///
 /// \class PrettyPrinter
@@ -46,17 +45,6 @@ protected:
         {"_start", "deregister_tm_clones", "register_tm_clones", "__do_global_dtors_aux",
          "frame_dummy", "__libc_csu_fini", "__libc_csu_init"}};
 
-    // Name, Alignment.
-    const std::array<std::pair<std::string, int>, 7> DataSectionDescriptors{{
-        {".got", 8},         //
-        {".got.plt", 8},     //
-        {".data.rel.ro", 8}, //
-        {".init_array", 8},  //
-        {".fini_array", 8},  //
-        {".rodata", 16},     //
-        {".data", 16}        //
-    }};
-
     void printBar(bool heavy = true);
     void printBlock(const gtirb::Block& x);
     void printEA(uint64_t ea);
@@ -69,12 +57,12 @@ protected:
     void printOperandList(const gtirb::Instruction& instruction, const uint64_t* const operands);
 
     void printDataGroups();
-    void printDataGroupLabelMarker(const DataGroupLabelMarker* const x);
-    void printDataGroupPLTReference(const DataGroupPLTReference* const x);
-    void printDataGroupPointer(const DataGroupPointer* const x);
-    void printDataGroupPointerDiff(const DataGroupPointerDiff* const x);
-    void printDataGroupString(const DataGroupString* const x);
-    void printDataGroupRawByte(const DataGroupRawByte* const x);
+    void printLabelMarker(const gtirb::DataLabelMarker* const x);
+    void printPLTReference(const gtirb::DataPLTReference* const x);
+    void printPointer(const gtirb::DataPointer* const x);
+    void printPointerDiff(const gtirb::DataPointerDiff* const x);
+    void printString(const gtirb::DataString* const x);
+    void printRawByte(const gtirb::DataRawByte* const x);
 
     void printBSS();
 
@@ -86,14 +74,12 @@ protected:
     std::string buildOpIndirect(gtirb::Instruction::SymbolicOperand symbolic,
                                 const OpIndirect* const op, uint64_t ea, uint64_t index);
     std::string buildAdjustMovedDataLabel(uint64_t ea, uint64_t value);
-    void buildDataGroups();
 
     void condPrintGlobalSymbol(uint64_t ea);
     void condPrintSectionHeader(const gtirb::Block& x);
 
     bool skipEA(const uint64_t x) const;
     bool isSectionSkipped(const std::string& name);
-    const std::pair<std::string, int>* getDataSectionDescriptor(const std::string& name);
     // % avoid_reg_name_conflics
     std::string avoidRegNameConflicts(const std::string& x);
     void printZeros(uint64_t x);
@@ -101,7 +87,7 @@ protected:
     std::pair<std::string, char> getOffsetAndSign(gtirb::Instruction::SymbolicOperand symbolic,
                                                   int64_t offset, uint64_t ea,
                                                   uint64_t index) const;
-    bool getIsPointerToExcludedCode(DataGroup* dg, DataGroup* dgNext);
+    bool getIsPointerToExcludedCode(gtirb::Data* dg, gtirb::Data* dgNext);
 
     // Static utility functions.
 
@@ -111,15 +97,6 @@ protected:
     static bool GetIsNullReg(const std::string& x);
 
 private:
-    struct DataSection
-    {
-        gtirb::Section SectionPtr;
-        std::vector<std::unique_ptr<DataGroup>> DataGroups;
-        int Alignment{0};
-    };
-
-    std::vector<DataSection> dataSections;
-
     std::stringstream ofs;
     DisasmData* disasm{nullptr};
     bool debug{false};

@@ -93,7 +93,6 @@ std::string PrettyPrinter::prettyPrint(DisasmData* x)
         this->printBlock(b);
     }
 
-    this->buildDataGroups();
     this->printDataGroups();
 
     this->printBSS();
@@ -562,109 +561,13 @@ std::string PrettyPrinter::buildAdjustMovedDataLabel(uint64_t ea, uint64_t value
     return ss.str();
 }
 
-void PrettyPrinter::buildDataGroups()
-{
-    for(auto& p : this->disasm->getSectionTable())
-    {
-        auto& s = p.second;
-        auto foundDataSection = getDataSectionDescriptor(s.name);
-
-        if(foundDataSection != nullptr
-           && (isSectionSkipped(s.name) == false || this->debug == true))
-        {
-            DataSection dataSection;
-            dataSection.SectionPtr = s;
-            dataSection.Alignment = foundDataSection->second;
-
-            std::vector<uint8_t> bytes =
-                this->disasm->ir.getMainModule()->getImageByteMap()->getData(s.startingAddress,
-                                                                             s.size);
-
-            for(auto currentAddr = s.startingAddress.get(); currentAddr < s.addressLimit();
-                currentAddr++)
-            {
-                // Insert a marker for labeled data?
-                const auto foundLabeledData =
-                    std::find(std::begin(*this->disasm->getLabeledData()),
-                              std::end(*this->disasm->getLabeledData()), currentAddr);
-                if(foundLabeledData != std::end(*this->disasm->getLabeledData()))
-                {
-                    auto dataGroup = std::make_unique<DataGroupLabelMarker>(currentAddr);
-                    dataSection.DataGroups.push_back(std::move(dataGroup));
-                }
-
-                // Case 1, 2, 3
-                const auto symbolic = this->disasm->getSymbolicData(currentAddr);
-                if(symbolic != nullptr)
-                {
-                    // Case 1
-                    const auto pltReference = this->disasm->getPLTDataReference(currentAddr);
-                    if(pltReference != nullptr)
-                    {
-                        auto dataGroup = std::make_unique<DataGroupPLTReference>(currentAddr);
-                        dataGroup->Function = pltReference->Name;
-                        dataSection.DataGroups.push_back(std::move(dataGroup));
-
-                        currentAddr += 7;
-                        continue;
-                    }
-
-                    // Case 2, 3
-                    // There was no PLT Reference and there was no label found.
-                    auto dataGroup = std::make_unique<DataGroupPointer>(currentAddr);
-                    dataGroup->Content = symbolic->GroupContent;
-                    dataSection.DataGroups.push_back(std::move(dataGroup));
-
-                    currentAddr += 7;
-                    continue;
-                }
-
-                // Case 4, 5
-                const auto symMinusSym = this->disasm->getSymbolMinusSymbol(currentAddr);
-                if(symMinusSym != nullptr)
-                {
-                    // Case 4, 5
-                    auto dataGroup = std::make_unique<DataGroupPointerDiff>(currentAddr);
-                    dataGroup->Symbol1 = symMinusSym->Symbol1;
-                    dataGroup->Symbol2 = symMinusSym->Symbol2;
-                    dataSection.DataGroups.push_back(std::move(dataGroup));
-
-                    currentAddr += 3;
-                    continue;
-                }
-
-                // Case 6
-                const auto str = this->disasm->getString(currentAddr);
-                if(str != nullptr)
-                {
-                    auto dataGroup = std::make_unique<DataGroupString>(currentAddr);
-
-                    for(; currentAddr < str->End; ++currentAddr)
-                    {
-                        dataGroup->StringBytes.push_back(bytes[currentAddr - s.startingAddress]);
-                    }
-
-                    // Because the loop is going to increment this counter, don't skip a byte.
-                    currentAddr--;
-                    dataSection.DataGroups.push_back(std::move(dataGroup));
-                    continue;
-                }
-
-                // Store raw data
-                auto dataGroup = std::make_unique<DataGroupRawByte>(currentAddr);
-                dataGroup->Byte = bytes[currentAddr - s.startingAddress];
-                dataSection.DataGroups.push_back(std::move(dataGroup));
-            }
-
-            this->dataSections.push_back(std::move(dataSection));
-        }
-    }
-}
-
 void PrettyPrinter::printDataGroups()
 {
-    for(const auto& ds : this->dataSections)
+    for(const auto& ds : this->disasm->getDataSections())
     {
+        if(isSectionSkipped(ds.SectionPtr.name) && !this->debug)
+            continue;
+
         // Print section header...
         this->printSectionHeader(ds.SectionPtr.name, ds.Alignment);
 
@@ -701,34 +604,33 @@ void PrettyPrinter::printDataGroups()
 
                 switch((*dg)->getType())
                 {
-                    case DataGroup::Type::LabelMarker:
-                        this->printDataGroupLabelMarker(
-                            dynamic_cast<const DataGroupLabelMarker* const>(dg->get()));
+                    case gtirb::Data::Type::LabelMarker:
+                        this->printLabelMarker(
+                            dynamic_cast<const gtirb::DataLabelMarker* const>(dg->get()));
                         break;
-                    case DataGroup::Type::PLTReference:
+                    case gtirb::Data::Type::PLTReference:
                         printTab();
-                        this->printDataGroupPLTReference(
-                            dynamic_cast<const DataGroupPLTReference* const>(dg->get()));
+                        this->printPLTReference(
+                            dynamic_cast<const gtirb::DataPLTReference* const>(dg->get()));
                         break;
-                    case DataGroup::Type::Pointer:
+                    case gtirb::Data::Type::Pointer:
                         printTab();
-                        this->printDataGroupPointer(
-                            dynamic_cast<const DataGroupPointer* const>(dg->get()));
+                        this->printPointer(
+                            dynamic_cast<const gtirb::DataPointer* const>(dg->get()));
                         break;
-                    case DataGroup::Type::PointerDiff:
+                    case gtirb::Data::Type::PointerDiff:
                         printTab();
-                        this->printDataGroupPointerDiff(
-                            dynamic_cast<const DataGroupPointerDiff* const>(dg->get()));
+                        this->printPointerDiff(
+                            dynamic_cast<const gtirb::DataPointerDiff* const>(dg->get()));
                         break;
-                    case DataGroup::Type::String:
+                    case gtirb::Data::Type::String:
                         printTab();
-                        this->printDataGroupString(
-                            dynamic_cast<const DataGroupString* const>(dg->get()));
+                        this->printString(dynamic_cast<const gtirb::DataString* const>(dg->get()));
                         break;
-                    case DataGroup::Type::RawByte:
+                    case gtirb::Data::Type::RawByte:
                         printTab();
-                        this->printDataGroupRawByte(
-                            dynamic_cast<const DataGroupRawByte* const>(dg->get()));
+                        this->printRawByte(
+                            dynamic_cast<const gtirb::DataRawByte* const>(dg->get()));
                         break;
                 }
 
@@ -752,30 +654,30 @@ void PrettyPrinter::printDataGroups()
     }
 }
 
-void PrettyPrinter::printDataGroupLabelMarker(const DataGroupLabelMarker* const x)
+void PrettyPrinter::printLabelMarker(const gtirb::DataLabelMarker* const x)
 {
     this->printLabel(x->getEA());
 }
 
-void PrettyPrinter::printDataGroupPLTReference(const DataGroupPLTReference* const x)
+void PrettyPrinter::printPLTReference(const gtirb::DataPLTReference* const x)
 {
     this->printEA(x->getEA());
-    this->ofs << ".quad " << x->Function;
+    this->ofs << ".quad " << x->function;
 }
 
-void PrettyPrinter::printDataGroupPointer(const DataGroupPointer* const x)
+void PrettyPrinter::printPointer(const gtirb::DataPointer* const x)
 {
-    auto printed = this->buildAdjustMovedDataLabel(x->getEA(), x->Content);
+    auto printed = this->buildAdjustMovedDataLabel(x->getEA(), x->content);
     this->ofs << ".quad " << printed;
 }
 
-void PrettyPrinter::printDataGroupPointerDiff(const DataGroupPointerDiff* const x)
+void PrettyPrinter::printPointerDiff(const gtirb::DataPointerDiff* const x)
 {
     this->printEA(x->getEA());
-    ofs << ".long .L_" << x->Symbol2 << "-" << x->Symbol1;
+    ofs << ".long .L_" << x->symbol2 << "-" << x->symbol1;
 }
 
-void PrettyPrinter::printDataGroupString(const DataGroupString* const x)
+void PrettyPrinter::printString(const gtirb::DataString* const x)
 {
     auto cleanByte = [](uint8_t b) {
         std::string cleaned;
@@ -795,7 +697,7 @@ void PrettyPrinter::printDataGroupString(const DataGroupString* const x)
 
     this->ofs << ".string \"";
 
-    for(auto& b : x->StringBytes)
+    for(auto& b : x->getStringBytes(*this->disasm->ir.getMainModule()))
     {
         if(b != 0)
         {
@@ -806,9 +708,10 @@ void PrettyPrinter::printDataGroupString(const DataGroupString* const x)
     this->ofs << "\"";
 }
 
-void PrettyPrinter::printDataGroupRawByte(const DataGroupRawByte* const x)
+void PrettyPrinter::printRawByte(const gtirb::DataRawByte* const x)
 {
-    ofs << ".byte 0x" << std::hex << static_cast<uint32_t>(x->Byte) << std::dec;
+    ofs << ".byte 0x" << std::hex
+        << static_cast<uint32_t>(x->getByte(*this->disasm->ir.getMainModule())) << std::dec;
 }
 
 void PrettyPrinter::printBSS()
@@ -970,24 +873,24 @@ std::pair<std::string, char> PrettyPrinter::getOffsetAndSign(
     return result;
 }
 
-bool PrettyPrinter::getIsPointerToExcludedCode(DataGroup* dg, DataGroup* dgNext)
+bool PrettyPrinter::getIsPointerToExcludedCode(gtirb::Data* dg, gtirb::Data* dgNext)
 {
     // If we have a label followed by a pointer.
-    auto dgLabel = dynamic_cast<DataGroupLabelMarker*>(dg);
+    auto dgLabel = dynamic_cast<gtirb::DataLabelMarker*>(dg);
     if(dgLabel != nullptr)
     {
-        auto dgPtr = dynamic_cast<DataGroupPointer*>(dgNext);
+        auto dgPtr = dynamic_cast<gtirb::DataPointer*>(dgNext);
         if(dgPtr != nullptr)
         {
-            return this->skipEA(dgPtr->Content);
+            return this->skipEA(dgPtr->content);
         }
     }
 
     // Or if we just have a pointer...
-    auto dgPtr = dynamic_cast<DataGroupPointer*>(dg);
+    auto dgPtr = dynamic_cast<gtirb::DataPointer*>(dg);
     if(dgPtr != nullptr)
     {
-        return this->skipEA(dgPtr->Content);
+        return this->skipEA(dgPtr->content);
     }
 
     return false;
@@ -1024,15 +927,4 @@ bool PrettyPrinter::isSectionSkipped(const std::string& name)
     const auto foundSkipSection = std::find(std::begin(PrettyPrinter::AsmSkipSection),
                                             std::end(PrettyPrinter::AsmSkipSection), name);
     return foundSkipSection != std::end(PrettyPrinter::AsmSkipSection);
-}
-
-const std::pair<std::string, int>* PrettyPrinter::getDataSectionDescriptor(const std::string& name)
-{
-    const auto foundDataSection =
-        std::find_if(std::begin(DataSectionDescriptors), std::end(DataSectionDescriptors),
-                     [name](const auto& dsd) { return dsd.first == name; });
-    if(foundDataSection != std::end(DataSectionDescriptors))
-        return foundDataSection;
-    else
-        return nullptr;
 }

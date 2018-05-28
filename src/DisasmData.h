@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <gtirb/Block.hpp>
+#include <gtirb/Data.hpp>
 #include <gtirb/IR.hpp>
 #include <gtirb/Instruction.hpp>
 #include <gtirb/Relocation.hpp>
@@ -47,13 +48,8 @@ public:
     std::vector<uint64_t>* getStartFunction();
     std::vector<uint64_t>* getFunctionEntry();
     std::vector<std::string>* getAmbiguousSymbol();
-    std::vector<PLTReference>* getPLTDataReference();
-    std::vector<uint64_t>* getLabeledData();
-    std::vector<SymbolicData>* getSymbolicData();
-    std::vector<SymbolMinusSymbol>* getSymbolMinusSymbol();
-    std::vector<MovedDataLabel>* getMovedDataLabel();
-    std::vector<String>* getString();
     std::vector<uint64_t>* getBSSData();
+    const std::vector<DataSection>& getDataSections() const;
     Table* getStackOperand();
     Table* getPreferredDataAccess();
     Table* getDataAccessPattern();
@@ -109,13 +105,19 @@ private:
     std::vector<MovedLabel>* getMovedLabel();
     std::vector<PLTReference>* getPLTCodeReference();
     std::vector<SymbolicOperand>* getSymbolicOperand();
-
     const PLTReference* const getPLTCodeReference(uint64_t ea) const;
     const DirectCall* const getDirectCall(uint64_t ea) const;
     const MovedLabel* const getMovedLabel(uint64_t x, uint64_t index) const;
     const SymbolicOperand* const getSymbolicOperand(uint64_t x, uint64_t opNum) const;
+    std::vector<PLTReference>* getPLTDataReference();
+    std::vector<uint64_t>* getLabeledData();
+    std::vector<SymbolicData>* getSymbolicData();
+    std::vector<SymbolMinusSymbol>* getSymbolMinusSymbol();
+    std::vector<MovedDataLabel>* getMovedDataLabel();
+    std::vector<String>* getString();
 
     void createCodeBlocks();
+    void buildDataGroups();
 
     ///
     /// Parse the statistics facts file.
@@ -204,4 +206,8 @@ private:
     Table incomplete_cfg{1};
     Table no_return{1};
     Table in_function{2};
+
+    std::vector<DataSection> dataSections;
 };
+
+const std::pair<std::string, int>* getDataSectionDescriptor(const std::string& name);

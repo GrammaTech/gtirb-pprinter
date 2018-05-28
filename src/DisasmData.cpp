@@ -63,6 +63,7 @@ void DisasmData::parseDirectory(std::string x)
 
     // Build IR for blocks from parsed data
     this->createCodeBlocks();
+    this->buildDataGroups();
 }
 
 void DisasmData::createCodeBlocks()
@@ -684,6 +685,11 @@ std::vector<uint64_t>* DisasmData::getBSSData()
     return &this->bss_data;
 }
 
+const std::vector<DataSection>& DisasmData::getDataSections() const
+{
+    return this->dataSections;
+}
+
 Table* DisasmData::getStackOperand()
 {
     return &this->stack_operand;
@@ -813,6 +819,101 @@ gtirb::Instruction DisasmData::buildInstruction(gtirb::EA ea) const
     symbolic.push_back(this->buildSymbolic(gtInst, inst->Op3, 3));
 
     return gtInst;
+}
+
+void DisasmData::buildDataGroups()
+{
+    for(auto& p : this->getSectionTable())
+    {
+        auto& s = p.second;
+        auto foundDataSection = getDataSectionDescriptor(s.name);
+
+        if(foundDataSection != nullptr)
+        {
+            DataSection dataSection;
+            dataSection.SectionPtr = s;
+            dataSection.Alignment = foundDataSection->second;
+
+            std::vector<uint8_t> bytes =
+                this->ir.getMainModule()->getImageByteMap()->getData(s.startingAddress, s.size);
+
+            for(auto currentAddr = s.startingAddress.get(); currentAddr < s.addressLimit();
+                currentAddr++)
+            {
+                // Insert a marker for labeled data?
+                const auto foundLabeledData =
+                    std::find(std::begin(*this->getLabeledData()),
+                              std::end(*this->getLabeledData()), currentAddr);
+                if(foundLabeledData != std::end(*this->getLabeledData()))
+                {
+                    auto dataGroup =
+                        std::make_unique<gtirb::DataLabelMarker>(gtirb::EA(currentAddr));
+                    dataSection.DataGroups.push_back(std::move(dataGroup));
+                }
+
+                // Case 1, 2, 3
+                const auto symbolic = this->getSymbolicData(currentAddr);
+                if(symbolic != nullptr)
+                {
+                    // Case 1
+                    const auto pltReference = this->getPLTDataReference(gtirb::EA(currentAddr));
+                    if(pltReference != nullptr)
+                    {
+                        auto dataGroup =
+                            std::make_unique<gtirb::DataPLTReference>(gtirb::EA(currentAddr));
+                        dataGroup->function = pltReference->Name;
+                        dataSection.DataGroups.push_back(std::move(dataGroup));
+
+                        currentAddr += 7;
+                        continue;
+                    }
+
+                    // Case 2, 3
+                    // There was no PLT Reference and there was no label found.
+                    auto dataGroup = std::make_unique<gtirb::DataPointer>(gtirb::EA(currentAddr));
+                    dataGroup->content = gtirb::EA(symbolic->GroupContent);
+                    dataSection.DataGroups.push_back(std::move(dataGroup));
+
+                    currentAddr += 7;
+                    continue;
+                }
+
+                // Case 4, 5
+                const auto symMinusSym = this->getSymbolMinusSymbol(currentAddr);
+                if(symMinusSym != nullptr)
+                {
+                    // Case 4, 5
+                    auto dataGroup =
+                        std::make_unique<gtirb::DataPointerDiff>(gtirb::EA(currentAddr));
+                    dataGroup->symbol1 = gtirb::EA(symMinusSym->Symbol1);
+                    dataGroup->symbol2 = gtirb::EA(symMinusSym->Symbol2);
+                    dataSection.DataGroups.push_back(std::move(dataGroup));
+
+                    currentAddr += 3;
+                    continue;
+                }
+
+                // Case 6
+                const auto str = this->getString(currentAddr);
+                if(str != nullptr)
+                {
+                    auto dataGroup = std::make_unique<gtirb::DataString>(gtirb::EA(currentAddr));
+                    dataGroup->size = str->End - currentAddr;
+
+                    // Because the loop is going to increment this counter, don't skip a byte.
+                    currentAddr = str->End - 1;
+                    dataSection.DataGroups.push_back(std::move(dataGroup));
+                    continue;
+                }
+
+                // Store raw data
+                auto dataGroup = std::make_unique<gtirb::DataRawByte>(gtirb::EA(currentAddr));
+                dataSection.DataGroups.push_back(std::move(dataGroup));
+            }
+
+            this->dataSections.push_back(std::move(dataSection));
+        }
+    }
 }
 
 const std::vector<gtirb::Block>* DisasmData::getCodeBlocks() const
@@ -1317,4 +1418,26 @@ std::string DisasmData::AvoidRegNameConflicts(const std::string& x)
     }
 
     return x;
+}
+
+// Name, Alignment.
+const std::array<std::pair<std::string, int>, 7> DataSectionDescriptors{{
+    {".got", 8},         //
+    {".got.plt", 8},     //
+    {".data.rel.ro", 8}, //
+    {".init_array", 8},  //
+    {".fini_array", 8},  //
+    {".rodata", 16},     //
+    {".data", 16}        //
+}};
+
+const std::pair<std::string, int>* getDataSectionDescriptor(const std::string& name)
+{
+    const auto foundDataSection =
+        std::find_if(std::begin(DataSectionDescriptors), std::end(DataSectionDescriptors),
+                     [name](const auto& dsd) { return dsd.first == name; });
+    if(foundDataSection != std::end(DataSectionDescriptors))
+        return foundDataSection;
+    else
+        return nullptr;
 }
