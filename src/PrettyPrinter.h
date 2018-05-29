@@ -87,7 +87,7 @@ protected:
     std::pair<std::string, char> getOffsetAndSign(gtirb::Instruction::SymbolicOperand symbolic,
                                                   int64_t offset, uint64_t ea,
                                                   uint64_t index) const;
-    bool getIsPointerToExcludedCode(const gtirb::Data* dg, const gtirb::Data* dgNext);
+    bool getIsPointerToExcludedCode(const gtirb::Node* dg, const gtirb::Node* dgNext);
 
     // Static utility functions.
 

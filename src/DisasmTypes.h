@@ -4,18 +4,9 @@
 #include <boost/serialization/string.hpp>
 #include <cstdint>
 #include <gtirb/EA.hpp>
+#include <gtirb/Section.hpp>
 #include <string>
 #include <vector>
-
-///
-///
-///
-struct DataSection
-{
-    gtirb::Section SectionPtr;
-    std::vector<const gtirb::Data*> DataGroups;
-    int Alignment{0};
-};
 
 ///
 ///

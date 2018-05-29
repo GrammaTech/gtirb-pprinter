@@ -150,11 +150,11 @@ void DisasmData::parseSection(const std::string& x)
     for(const auto& ff : fromFile)
     {
         gtirb::EA{boost::lexical_cast<uint64_t>(ff[2])};
-        getSectionTable().addSection({ff[0], boost::lexical_cast<uint64_t>(ff[1]),
-                                      gtirb::EA{boost::lexical_cast<uint64_t>(ff[2])}});
+        this->ir.getMainModule()->addSection({ff[0], boost::lexical_cast<uint64_t>(ff[1]),
+                                              gtirb::EA{boost::lexical_cast<uint64_t>(ff[2])}});
     }
 
-    std::cerr << " # Number of section: " << getSectionTable().size() << std::endl;
+    std::cerr << " # Number of section: " << getSections().size() << std::endl;
 }
 
 void DisasmData::parseRelocation(const std::string& x)
@@ -580,9 +580,9 @@ void DisasmData::parseInFunction(const std::string& x)
     std::cerr << " # Number of in_function: " << this->in_function.size() << std::endl;
 }
 
-gtirb::SectionTable& DisasmData::getSectionTable() const
+const std::vector<gtirb::Section>& DisasmData::getSections() const
 {
-    return this->ir.getMainModule()->getOrCreateSectionTable();
+    return this->ir.getMainModule()->getSections();
 }
 
 std::vector<DecodedInstruction>* DisasmData::getDecodedInstruction()
@@ -685,9 +685,10 @@ std::vector<uint64_t>* DisasmData::getBSSData()
     return &this->bss_data;
 }
 
-const std::vector<DataSection>& DisasmData::getDataSections() const
+std::vector<gtirb::Table::InnerMapType>& DisasmData::getDataSections()
 {
-    return this->dataSections;
+    auto& v = this->ir.getMainModule()->getTable("DisasmData")->contents["dataSections"];
+    return boost::get<std::vector<gtirb::Table::InnerMapType>>(v);
 }
 
 Table* DisasmData::getStackOperand()
@@ -823,16 +824,19 @@ gtirb::Instruction DisasmData::buildInstruction(gtirb::EA ea) const
 
 void DisasmData::buildDataGroups()
 {
-    for(auto& p : this->getSectionTable())
+    std::vector<gtirb::Table::InnerMapType> dataSections;
+
+    for(auto& s : this->getSections())
     {
-        auto& s = p.second;
         auto foundDataSection = getDataSectionDescriptor(s.name);
 
         if(foundDataSection != nullptr)
         {
-            DataSection dataSection;
-            dataSection.SectionPtr = s;
-            dataSection.Alignment = foundDataSection->second;
+            gtirb::Table::InnerMapType dataSection;
+            dataSection["name"] = s.name;
+            dataSection["alignment"] = foundDataSection->second;
+
+            std::vector<uint64_t> dataGroupIndices;
 
             auto module = this->ir.getMainModule();
             std::vector<uint8_t> bytes =
@@ -847,9 +851,10 @@ void DisasmData::buildDataGroups()
                               std::end(*this->getLabeledData()), currentAddr);
                 if(foundLabeledData != std::end(*this->getLabeledData()))
                 {
+                    dataGroupIndices.push_back(module->getData().size());
                     auto dataGroup =
                         std::make_unique<gtirb::DataLabelMarker>(gtirb::EA(currentAddr));
-                    dataSection.DataGroups.push_back(module->addData(std::move(dataGroup)));
+                    module->addData(std::move(dataGroup));
                 }
 
                 // Case 1, 2, 3
@@ -860,10 +865,11 @@ void DisasmData::buildDataGroups()
                     const auto pltReference = this->getPLTDataReference(gtirb::EA(currentAddr));
                     if(pltReference != nullptr)
                     {
+                        dataGroupIndices.push_back(module->getData().size());
                         auto dataGroup =
                             std::make_unique<gtirb::DataPLTReference>(gtirb::EA(currentAddr));
                         dataGroup->function = pltReference->Name;
-                        dataSection.DataGroups.push_back(module->addData(std::move(dataGroup)));
+                        module->addData(std::move(dataGroup));
 
                         currentAddr += 7;
                         continue;
@@ -871,9 +877,10 @@ void DisasmData::buildDataGroups()
 
                     // Case 2, 3
                     // There was no PLT Reference and there was no label found.
+                    dataGroupIndices.push_back(module->getData().size());
                     auto dataGroup = std::make_unique<gtirb::DataPointer>(gtirb::EA(currentAddr));
                     dataGroup->content = gtirb::EA(symbolic->GroupContent);
-                    dataSection.DataGroups.push_back(module->addData(std::move(dataGroup)));
+                    module->addData(std::move(dataGroup));
 
                     currentAddr += 7;
                     continue;
@@ -884,11 +891,12 @@ void DisasmData::buildDataGroups()
                 if(symMinusSym != nullptr)
                 {
                     // Case 4, 5
+                    dataGroupIndices.push_back(module->getData().size());
                     auto dataGroup =
                         std::make_unique<gtirb::DataPointerDiff>(gtirb::EA(currentAddr));
                     dataGroup->symbol1 = gtirb::EA(symMinusSym->Symbol1);
                     dataGroup->symbol2 = gtirb::EA(symMinusSym->Symbol2);
-                    dataSection.DataGroups.push_back(module->addData(std::move(dataGroup)));
+                    module->addData(std::move(dataGroup));
 
                     currentAddr += 3;
                     continue;
@@ -898,23 +906,29 @@ void DisasmData::buildDataGroups()
                 const auto str = this->getString(currentAddr);
                 if(str != nullptr)
                 {
+                    dataGroupIndices.push_back(module->getData().size());
                     auto dataGroup = std::make_unique<gtirb::DataString>(gtirb::EA(currentAddr));
                     dataGroup->size = str->End - currentAddr;
 
                     // Because the loop is going to increment this counter, don't skip a byte.
                     currentAddr = str->End - 1;
-                    dataSection.DataGroups.push_back(module->addData(std::move(dataGroup)));
+                    module->addData(std::move(dataGroup));
                     continue;
                 }
 
                 // Store raw data
+                dataGroupIndices.push_back(module->getData().size());
                 auto dataGroup = std::make_unique<gtirb::DataRawByte>(gtirb::EA(currentAddr));
-                dataSection.DataGroups.push_back(module->addData(std::move(dataGroup)));
+                module->addData(std::move(dataGroup));
             }
 
-            this->dataSections.push_back(std::move(dataSection));
+            dataSection["dataGroups"] = dataGroupIndices;
+            dataSections.push_back(std::move(dataSection));
         }
     }
+
+    auto table = this->ir.getMainModule()->addTable("DisasmData", std::make_unique<gtirb::Table>());
+    table->contents["dataSections"] = dataSections;
 }
 
 const std::vector<gtirb::Block>* DisasmData::getCodeBlocks() const
@@ -924,11 +938,13 @@ const std::vector<gtirb::Block>* DisasmData::getCodeBlocks() const
 
 std::string DisasmData::getSectionName(uint64_t x) const
 {
-    const auto& match = getSectionTable().find(gtirb::EA{x});
+    const auto& sections = this->getSections();
+    const auto& match = find_if(sections.begin(), sections.end(),
+                                [x](const auto& s) { return s.startingAddress == x; });
 
-    if(match != getSectionTable().end())
+    if(match != sections.end())
     {
-        return match->second.name;
+        return match->name;
     }
 
     return std::string{};
@@ -1203,12 +1219,12 @@ gtirb::SymbolSet* DisasmData::getSymbolSet() const
 
 const gtirb::Section* const DisasmData::getSection(const std::string& x) const
 {
-    const auto found = std::find_if(getSectionTable().begin(), getSectionTable().end(),
-                                    [x](const auto& element) { return element.second.name == x; });
+    const auto found = std::find_if(getSections().begin(), getSections().end(),
+                                    [x](const auto& element) { return element.name == x; });
 
-    if(found != getSectionTable().end())
+    if(found != getSections().end())
     {
-        return &(found->second);
+        return &(*found);
     }
 
     return nullptr;

@@ -563,25 +563,35 @@ std::string PrettyPrinter::buildAdjustMovedDataLabel(uint64_t ea, uint64_t value
 
 void PrettyPrinter::printDataGroups()
 {
-    for(const auto& ds : this->disasm->getDataSections())
+    for(gtirb::Table::InnerMapType& ds : this->disasm->getDataSections())
     {
-        if(isSectionSkipped(ds.SectionPtr.name) && !this->debug)
+        auto sectionPtr = this->disasm->getSection(boost::get<std::string>(ds["name"]));
+
+        std::vector<const gtirb::Node*> dataGroups;
+        const auto& moduleData = this->disasm->ir.getMainModule()->getData();
+        for(auto i : boost::get<std::vector<uint64_t>>(ds["dataGroups"]))
+        {
+            dataGroups.push_back(moduleData[i]);
+        }
+
+        if(isSectionSkipped(sectionPtr->name) && !this->debug)
             continue;
 
         // Print section header...
-        this->printSectionHeader(ds.SectionPtr.name, ds.Alignment);
+        this->printSectionHeader(sectionPtr->name, boost::get<uint64_t>(ds["alignment"]));
 
         // Print data for this section...
-        for(auto dg = std::begin(ds.DataGroups); dg != std::end(ds.DataGroups); ++dg)
+        for(auto dg = std::begin(dataGroups); dg != std::end(dataGroups); ++dg)
         {
             bool exclude = false;
+            auto data = dynamic_cast<const gtirb::Data*>(*dg);
 
-            if(ds.SectionPtr.name == ".init_array" || ds.SectionPtr.name == ".fini_array")
+            if(sectionPtr->name == ".init_array" || sectionPtr->name == ".fini_array")
             {
                 auto dgNext = dg;
                 dgNext++;
 
-                if(dgNext != std::end(ds.DataGroups))
+                if(dgNext != std::end(dataGroups))
                 {
                     exclude = this->getIsPointerToExcludedCode(*dg, *dgNext);
                 }
@@ -593,16 +603,16 @@ void PrettyPrinter::printDataGroups()
 
             if(exclude == false)
             {
-                auto printTab = [this, &dg]() {
+                auto printTab = [this, &data]() {
                     this->ofs << PrettyPrinter::StrTab;
 
                     if(this->debug == true)
                     {
-                        this->ofs << std::hex << (*dg)->getEA() << std::dec << ":";
+                        this->ofs << std::hex << data->getEA() << std::dec << ":";
                     }
                 };
 
-                switch((*dg)->getType())
+                switch(data->getType())
                 {
                     case gtirb::Data::Type::LabelMarker:
                         this->printLabelMarker(
@@ -640,7 +650,7 @@ void PrettyPrinter::printDataGroups()
         }
 
         // End label
-        const auto endAddress = ds.SectionPtr.addressLimit();
+        const auto endAddress = sectionPtr->addressLimit();
         std::string next_section = this->disasm->getSectionName(endAddress);
         if(next_section.empty() == true
            || (next_section != StrSectionBSS && getDataSectionDescriptor(next_section) == nullptr))
@@ -766,9 +776,8 @@ bool PrettyPrinter::skipEA(const uint64_t x) const
 {
     if(this->debug == false)
     {
-        for(const auto& p : this->disasm->getSectionTable())
+        for(const auto& s : this->disasm->getSections())
         {
-            const auto& s = p.second;
             const auto found = std::find(std::begin(PrettyPrinter::AsmSkipSection),
                                          std::end(PrettyPrinter::AsmSkipSection), s.name);
 
@@ -871,7 +880,7 @@ std::pair<std::string, char> PrettyPrinter::getOffsetAndSign(
     return result;
 }
 
-bool PrettyPrinter::getIsPointerToExcludedCode(const gtirb::Data* dg, const gtirb::Data* dgNext)
+bool PrettyPrinter::getIsPointerToExcludedCode(const gtirb::Node* dg, const gtirb::Node* dgNext)
 {
     // If we have a label followed by a pointer.
     auto dgLabel = dynamic_cast<const gtirb::DataLabelMarker*>(dg);

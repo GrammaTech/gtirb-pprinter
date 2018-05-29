@@ -6,9 +6,9 @@
 #include <gtirb/IR.hpp>
 #include <gtirb/Instruction.hpp>
 #include <gtirb/Relocation.hpp>
-#include <gtirb/SectionTable.hpp>
 #include <gtirb/Symbol.hpp>
 #include <gtirb/SymbolSet.hpp>
+#include <gtirb/Table.hpp>
 #include <iosfwd>
 #include <list>
 #include <map>
@@ -38,7 +38,7 @@ public:
     gtirb::IR ir;
 
     gtirb::SymbolSet* getSymbolSet() const;
-    gtirb::SectionTable& getSectionTable() const;
+    const std::vector<gtirb::Section>& getSections() const;
     std::vector<DecodedInstruction>* getDecodedInstruction();
     std::vector<OpRegdirect>* getOPRegdirect();
     std::vector<OpImmediate>* getOPImmediate();
@@ -49,7 +49,7 @@ public:
     std::vector<uint64_t>* getFunctionEntry();
     std::vector<std::string>* getAmbiguousSymbol();
     std::vector<uint64_t>* getBSSData();
-    const std::vector<DataSection>& getDataSections() const;
+    std::vector<gtirb::Table::InnerMapType>& getDataSections();
     Table* getStackOperand();
     Table* getPreferredDataAccess();
     Table* getDataAccessPattern();
@@ -206,8 +206,6 @@ private:
     Table incomplete_cfg{1};
     Table no_return{1};
     Table in_function{2};
-
-    std::vector<DataSection> dataSections;
 };
 
 const std::pair<std::string, int>* getDataSectionDescriptor(const std::string& name);
