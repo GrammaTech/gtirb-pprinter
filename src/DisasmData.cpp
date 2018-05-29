@@ -834,8 +834,9 @@ void DisasmData::buildDataGroups()
             dataSection.SectionPtr = s;
             dataSection.Alignment = foundDataSection->second;
 
+            auto module = this->ir.getMainModule();
             std::vector<uint8_t> bytes =
-                this->ir.getMainModule()->getImageByteMap()->getData(s.startingAddress, s.size);
+                module->getImageByteMap()->getData(s.startingAddress, s.size);
 
             for(auto currentAddr = s.startingAddress.get(); currentAddr < s.addressLimit();
                 currentAddr++)
@@ -848,7 +849,7 @@ void DisasmData::buildDataGroups()
                 {
                     auto dataGroup =
                         std::make_unique<gtirb::DataLabelMarker>(gtirb::EA(currentAddr));
-                    dataSection.DataGroups.push_back(std::move(dataGroup));
+                    dataSection.DataGroups.push_back(module->addData(std::move(dataGroup)));
                 }
 
                 // Case 1, 2, 3
@@ -862,7 +863,7 @@ void DisasmData::buildDataGroups()
                         auto dataGroup =
                             std::make_unique<gtirb::DataPLTReference>(gtirb::EA(currentAddr));
                         dataGroup->function = pltReference->Name;
-                        dataSection.DataGroups.push_back(std::move(dataGroup));
+                        dataSection.DataGroups.push_back(module->addData(std::move(dataGroup)));
 
                         currentAddr += 7;
                         continue;
@@ -872,7 +873,7 @@ void DisasmData::buildDataGroups()
                     // There was no PLT Reference and there was no label found.
                     auto dataGroup = std::make_unique<gtirb::DataPointer>(gtirb::EA(currentAddr));
                     dataGroup->content = gtirb::EA(symbolic->GroupContent);
-                    dataSection.DataGroups.push_back(std::move(dataGroup));
+                    dataSection.DataGroups.push_back(module->addData(std::move(dataGroup)));
 
                     currentAddr += 7;
                     continue;
@@ -887,7 +888,7 @@ void DisasmData::buildDataGroups()
                         std::make_unique<gtirb::DataPointerDiff>(gtirb::EA(currentAddr));
                     dataGroup->symbol1 = gtirb::EA(symMinusSym->Symbol1);
                     dataGroup->symbol2 = gtirb::EA(symMinusSym->Symbol2);
-                    dataSection.DataGroups.push_back(std::move(dataGroup));
+                    dataSection.DataGroups.push_back(module->addData(std::move(dataGroup)));
 
                     currentAddr += 3;
                     continue;
@@ -902,13 +903,13 @@ void DisasmData::buildDataGroups()
 
                     // Because the loop is going to increment this counter, don't skip a byte.
                     currentAddr = str->End - 1;
-                    dataSection.DataGroups.push_back(std::move(dataGroup));
+                    dataSection.DataGroups.push_back(module->addData(std::move(dataGroup)));
                     continue;
                 }
 
                 // Store raw data
                 auto dataGroup = std::make_unique<gtirb::DataRawByte>(gtirb::EA(currentAddr));
-                dataSection.DataGroups.push_back(std::move(dataGroup));
+                dataSection.DataGroups.push_back(module->addData(std::move(dataGroup)));
             }
 
             this->dataSections.push_back(std::move(dataSection));

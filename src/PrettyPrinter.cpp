@@ -583,11 +583,11 @@ void PrettyPrinter::printDataGroups()
 
                 if(dgNext != std::end(ds.DataGroups))
                 {
-                    exclude = this->getIsPointerToExcludedCode(dg->get(), dgNext->get());
+                    exclude = this->getIsPointerToExcludedCode(*dg, *dgNext);
                 }
                 else
                 {
-                    exclude = this->getIsPointerToExcludedCode(dg->get(), nullptr);
+                    exclude = this->getIsPointerToExcludedCode(*dg, nullptr);
                 }
             }
 
@@ -598,7 +598,7 @@ void PrettyPrinter::printDataGroups()
 
                     if(this->debug == true)
                     {
-                        this->ofs << std::hex << dg->get()->getEA() << std::dec << ":";
+                        this->ofs << std::hex << (*dg)->getEA() << std::dec << ":";
                     }
                 };
 
@@ -606,31 +606,29 @@ void PrettyPrinter::printDataGroups()
                 {
                     case gtirb::Data::Type::LabelMarker:
                         this->printLabelMarker(
-                            dynamic_cast<const gtirb::DataLabelMarker* const>(dg->get()));
+                            dynamic_cast<const gtirb::DataLabelMarker* const>(*dg));
                         break;
                     case gtirb::Data::Type::PLTReference:
                         printTab();
                         this->printPLTReference(
-                            dynamic_cast<const gtirb::DataPLTReference* const>(dg->get()));
+                            dynamic_cast<const gtirb::DataPLTReference* const>(*dg));
                         break;
                     case gtirb::Data::Type::Pointer:
                         printTab();
-                        this->printPointer(
-                            dynamic_cast<const gtirb::DataPointer* const>(dg->get()));
+                        this->printPointer(dynamic_cast<const gtirb::DataPointer* const>(*dg));
                         break;
                     case gtirb::Data::Type::PointerDiff:
                         printTab();
                         this->printPointerDiff(
-                            dynamic_cast<const gtirb::DataPointerDiff* const>(dg->get()));
+                            dynamic_cast<const gtirb::DataPointerDiff* const>(*dg));
                         break;
                     case gtirb::Data::Type::String:
                         printTab();
-                        this->printString(dynamic_cast<const gtirb::DataString* const>(dg->get()));
+                        this->printString(dynamic_cast<const gtirb::DataString* const>(*dg));
                         break;
                     case gtirb::Data::Type::RawByte:
                         printTab();
-                        this->printRawByte(
-                            dynamic_cast<const gtirb::DataRawByte* const>(dg->get()));
+                        this->printRawByte(dynamic_cast<const gtirb::DataRawByte* const>(*dg));
                         break;
                 }
 
@@ -873,13 +871,13 @@ std::pair<std::string, char> PrettyPrinter::getOffsetAndSign(
     return result;
 }
 
-bool PrettyPrinter::getIsPointerToExcludedCode(gtirb::Data* dg, gtirb::Data* dgNext)
+bool PrettyPrinter::getIsPointerToExcludedCode(const gtirb::Data* dg, const gtirb::Data* dgNext)
 {
     // If we have a label followed by a pointer.
-    auto dgLabel = dynamic_cast<gtirb::DataLabelMarker*>(dg);
+    auto dgLabel = dynamic_cast<const gtirb::DataLabelMarker*>(dg);
     if(dgLabel != nullptr)
     {
-        auto dgPtr = dynamic_cast<gtirb::DataPointer*>(dgNext);
+        auto dgPtr = dynamic_cast<const gtirb::DataPointer*>(dgNext);
         if(dgPtr != nullptr)
         {
             return this->skipEA(dgPtr->content);
@@ -887,7 +885,7 @@ bool PrettyPrinter::getIsPointerToExcludedCode(gtirb::Data* dg, gtirb::Data* dgN
     }
 
     // Or if we just have a pointer...
-    auto dgPtr = dynamic_cast<gtirb::DataPointer*>(dg);
+    auto dgPtr = dynamic_cast<const gtirb::DataPointer*>(dg);
     if(dgPtr != nullptr)
     {
         return this->skipEA(dgPtr->content);

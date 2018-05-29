@@ -13,7 +13,7 @@
 struct DataSection
 {
     gtirb::Section SectionPtr;
-    std::vector<std::unique_ptr<gtirb::Data>> DataGroups;
+    std::vector<const gtirb::Data*> DataGroups;
     int Alignment{0};
 };
 
