@@ -86,19 +86,19 @@ cleanup-ubuntu16-gcc:
 #  except:
 #    - master
 
-pages:
-  stage: cleanup-ubuntu16-gcc
-  variables:
-    OS: 'ubuntu16'
-    COMPILER: 'gcc'
-  script:
-    - export CONTAINER_FILE=${LOCAL_IMAGE_NAME}-${OS}-${COMPILER}.container
-    - mkdir -p $(dirname ${CONTAINER_FILE})
-    - docker run --cidfile=${CONTAINER_FILE} ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} /bin/bash -c "mkdir -p doc/html; doxygen Doxyfile; cp -R doc/html /public";
-    - docker cp $(cat ${CONTAINER_FILE}):/public ./
-    - docker rmi -f ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER}
-  artifacts:
-    paths:
-      - public
-  only:
-    - master
+# pages:
+#   stage: cleanup-ubuntu16-gcc
+#   variables:
+#     OS: 'ubuntu16'
+#     COMPILER: 'gcc'
+#   script:
+#     - export CONTAINER_FILE=${LOCAL_IMAGE_NAME}-${OS}-${COMPILER}.container
+#     - mkdir -p $(dirname ${CONTAINER_FILE})
+#     - docker run --cidfile=${CONTAINER_FILE} ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} /bin/bash -c "mkdir -p doc/html; doxygen Doxyfile; cp -R doc/html /public";
+#     - docker cp $(cat ${CONTAINER_FILE}):/public ./
+#     - docker rmi -f ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER}
+#   artifacts:
+#     paths:
+#       - public
+#   only:
+#     - master
