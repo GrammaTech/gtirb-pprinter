@@ -44,27 +44,24 @@ RUN cd /usr/local/src \
     && make \
     && make install
 
-# Install and build datalog disassembler.
+COPY . /gt/pretty-printer/
+
+
+# Build datalog disassembler.
 RUN apt-get -y install gcc-multilib g++-multilib
-RUN cd /usr/local/src \
-   && git clone https://git.grammatech.com/debloat/datalog_disasm.git 
-COPY ./standalone_compilation.tar.bz2 /usr/local/src/datalog_disasm/standalone_compilation.tar.bz2
-RUN cd /usr/local/src/datalog_disasm && \
-    tar xjf standalone_compilation.tar.bz2 && \
-    make
+RUN cd /gt/pretty-printer/datalog_disasm && make
 
 
 # Install gt-irb
-RUN git clone https://git.grammatech.com/debloat/gt-irb.git /gt/gt-irb
-RUN cd /gt/gt-irb/ && cmake ./ -Bbuild  && cd build &&  make && make install
+RUN rm -rf /gt/pretty-printer/gt-irb/build /gt/pretty-printer/gt-irb/CMakeCache.txt /gt/pretty-printer/gt-irb/CMakeFiles /gt/pretty-printer/gt-irb/CMakeScripts
+RUN cd /gt/pretty-printer/gt-irb/ && cmake ./ -Bbuild  && cd build &&  make && make install
 
 
-# Build PrettyPrinter
-COPY . /gt/PrettyPrinter/
-RUN rm -rf /gt/PrettyPrinter/build /gt/PrettyPrinter/CMakeCache.txt /gt/PrettyPrinter/CMakeFiles /gt/PrettyPrinter/CMakeScripts
-RUN mkdir -p /gt/PrettyPrinter/build
-WORKDIR /gt/PrettyPrinter/build
-RUN cmake ../  -DDEBLOAT_FOUND_DATALOG_DECODER=/usr/local/src/datalog_disasm/bin/datalog_decoder -DDEBLOAT_FOUND_SOUFFLE_DISASM=/usr/local/src/datalog_disasm/bin/souffle_disasm 
+# Build pretty-printer
+RUN rm -rf /gt/pretty-printer/build /gt/pretty-printer/CMakeCache.txt /gt/pretty-printer/CMakeFiles /gt/pretty-printer/CMakeScripts
+RUN mkdir -p /gt/pretty-printer/build
+WORKDIR /gt/pretty-printer/build
+RUN cmake ../  -DDEBLOAT_FOUND_DATALOG_DECODER=/gt/pretty-printer/datalog_disasm/bin/datalog_decoder -DDEBLOAT_FOUND_SOUFFLE_DISASM=/gt/pretty-printer/datalog_disasm/bin/souffle_disasm
 RUN make -j 
-WORKDIR /gt/PrettyPrinter/
-ENV PATH=/gt/PrettyPrinter/bin:/usr/local/src/datalog_disasm/bin/:$PATH
+WORKDIR /gt/pretty-printer/
+ENV PATH=/gt/pretty-printer/bin:/gt/pretty-printer/datalog_disasm/bin/:$PATH

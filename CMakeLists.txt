@@ -200,12 +200,12 @@ include_directories("${gtest_SOURCE_DIR}/include")
 # FIXME: there's probably a more flexible way to do this
 find_library(GTIRB
   NAMES gtirb
-  PATHS ${PROJECT_SOURCE_DIR}/../gt-irb/bin/)
+  PATHS ${PROJECT_SOURCE_DIR}/gt-irb/bin/)
 if(NOT GTIRB)
   message(FATAL_ERROR "gtirb library not found")
 endif()
 
-include_directories(${PROJECT_SOURCE_DIR}/../gt-irb/include)
+include_directories(${PROJECT_SOURCE_DIR}/gt-irb/include)
 
 
 add_subdirectory(src)
