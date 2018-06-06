@@ -34,6 +34,9 @@ public:
     ///
     void parseDirectory(std::string x);
 
+    void saveIRToFile(std::string path);
+    void loadIRFromFile(std::string path);
+
     // FIXME: IR should replace DisasmData entirely.
     gtirb::IR ir;
 

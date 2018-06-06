@@ -1,5 +1,7 @@
 #include "DisasmData.h"
 #include <boost/algorithm/string/trim.hpp>
+#include <boost/archive/polymorphic_text_iarchive.hpp>
+#include <boost/archive/polymorphic_text_oarchive.hpp>
 #include <boost/lexical_cast.hpp>
 #include <fstream>
 #include <gsl/gsl>
@@ -16,54 +18,107 @@ void DisasmData::parseDirectory(std::string x)
 {
     boost::trim(x);
 
-    this->parseSymbol(x + "/symbol.facts");
-    this->parseSection(x + "/section.facts");
-    this->parseRelocation(x + "/relocation.facts");
-    this->parseDecodedInstruction(x + "/instruction.facts");
-    this->parseOpRegdirect(x + "/op_regdirect.facts");
-    this->parseOpImmediate(x + "/op_immediate.facts");
-    this->parseOpIndirect(x + "/op_indirect.facts");
-    this->parseDataByte(x + "/data_byte.facts");
+    boost::filesystem::path irPath(x + "/out.ir");
+    if(boost::filesystem::is_regular_file(irPath))
+    {
+        this->loadIRFromFile(irPath.string());
 
-    this->parseBlock(x + "/block.csv");
-    this->parseCodeInblock(x + "/code_in_block.csv");
-    this->parseRemainingEA(x + "/phase2-remaining_ea.csv");
-    this->parseMainFunction(x + "/main_function.csv");
-    this->parseStartFunction(x + "/start_function.csv");
-    this->parseFunctionEntry(x + "/function_entry2.csv");
-    this->parseAmbiguousSymbol(x + "/ambiguous_symbol.csv");
-    this->parseDirectCall(x + "/direct_call.csv");
-    this->parsePLTCodeReference(x + "/plt_code_reference.csv");
-    this->parsePLTDataReference(x + "/plt_data_reference.csv");
-    this->parseSymbolicOperand(x + "/symbolic_operand.csv");
-    this->parseMovedLabel(x + "/moved_label.csv");
-    this->parseLabeledData(x + "/labeled_data.csv");
-    this->parseSymbolicData(x + "/symbolic_data.csv");
-    this->parseSymbolMinusSymbol(x + "/symbol_minus_symbol.csv");
-    this->parseMovedDataLabel(x + "/moved_data_label.csv");
-    this->parseString(x + "/string.csv");
-    this->parseBSSData(x + "/bss_data.csv");
+        // These things aren't stored in gtirb yet.
+        this->parseDecodedInstruction(x + "/instruction.facts");
+        this->parseOpRegdirect(x + "/op_regdirect.facts");
+        this->parseOpImmediate(x + "/op_immediate.facts");
+        this->parseOpIndirect(x + "/op_indirect.facts");
 
-    this->parseStackOperand(x + "/stack_operand.csv");
-    this->parsePreferredDataAccess(x + "/preferred_data_access.csv");
-    this->parseDataAccessPattern(x + "/data_access_pattern.csv");
+        this->parseRemainingEA(x + "/phase2-remaining_ea.csv");
+        this->parseMainFunction(x + "/main_function.csv");
+        this->parseStartFunction(x + "/start_function.csv");
+        this->parseFunctionEntry(x + "/function_entry2.csv");
+        this->parseAmbiguousSymbol(x + "/ambiguous_symbol.csv");
 
-    this->parseDiscardedBlock(x + "/discarded_block.csv");
-    this->parseDirectJump(x + "/direct_jump.csv");
-    this->parsePCRelativeJump(x + "/pc_relative_jump.csv");
-    this->parsePCRelativeCall(x + "/pc_relative_call.csv");
-    this->parseBlockOverlap(x + "/block_still_overlap.csv");
-    this->parseDefUsed(x + "/def_used.csv");
+        this->parseStackOperand(x + "/stack_operand.csv");
+        this->parsePreferredDataAccess(x + "/preferred_data_access.csv");
+        this->parseDataAccessPattern(x + "/data_access_pattern.csv");
 
-    this->parsePairedDataAccess(x + "/paired_data_access.csv");
-    this->parseValueReg(x + "/value_reg.csv");
-    this->parseIncompleteCFG(x + "/incomplete_cfg.csv");
-    this->parseNoReturn(x + "/no_return.csv");
-    this->parseInFunction(x + "/in_function.csv");
+        this->parseDiscardedBlock(x + "/discarded_block.csv");
+        this->parseDirectJump(x + "/direct_jump.csv");
+        this->parsePCRelativeJump(x + "/pc_relative_jump.csv");
+        this->parsePCRelativeCall(x + "/pc_relative_call.csv");
+        this->parseBlockOverlap(x + "/block_still_overlap.csv");
+        this->parseDefUsed(x + "/def_used.csv");
 
-    // Build IR for blocks from parsed data
-    this->createCodeBlocks();
-    this->buildDataGroups();
+        this->parsePairedDataAccess(x + "/paired_data_access.csv");
+        this->parseValueReg(x + "/value_reg.csv");
+        this->parseIncompleteCFG(x + "/incomplete_cfg.csv");
+        this->parseNoReturn(x + "/no_return.csv");
+        this->parseInFunction(x + "/in_function.csv");
+    }
+    else
+    {
+        this->parseSymbol(x + "/symbol.facts");
+        this->parseSection(x + "/section.facts");
+        this->parseRelocation(x + "/relocation.facts");
+        this->parseDecodedInstruction(x + "/instruction.facts");
+        this->parseOpRegdirect(x + "/op_regdirect.facts");
+        this->parseOpImmediate(x + "/op_immediate.facts");
+        this->parseOpIndirect(x + "/op_indirect.facts");
+        this->parseDataByte(x + "/data_byte.facts");
+
+        this->parseBlock(x + "/block.csv");
+        this->parseCodeInblock(x + "/code_in_block.csv");
+        this->parseRemainingEA(x + "/phase2-remaining_ea.csv");
+        this->parseMainFunction(x + "/main_function.csv");
+        this->parseStartFunction(x + "/start_function.csv");
+        this->parseFunctionEntry(x + "/function_entry2.csv");
+        this->parseAmbiguousSymbol(x + "/ambiguous_symbol.csv");
+        this->parseDirectCall(x + "/direct_call.csv");
+        this->parsePLTCodeReference(x + "/plt_code_reference.csv");
+        this->parsePLTDataReference(x + "/plt_data_reference.csv");
+        this->parseSymbolicOperand(x + "/symbolic_operand.csv");
+        this->parseMovedLabel(x + "/moved_label.csv");
+        this->parseLabeledData(x + "/labeled_data.csv");
+        this->parseSymbolicData(x + "/symbolic_data.csv");
+        this->parseSymbolMinusSymbol(x + "/symbol_minus_symbol.csv");
+        this->parseMovedDataLabel(x + "/moved_data_label.csv");
+        this->parseString(x + "/string.csv");
+        this->parseBSSData(x + "/bss_data.csv");
+
+        this->parseStackOperand(x + "/stack_operand.csv");
+        this->parsePreferredDataAccess(x + "/preferred_data_access.csv");
+        this->parseDataAccessPattern(x + "/data_access_pattern.csv");
+
+        this->parseDiscardedBlock(x + "/discarded_block.csv");
+        this->parseDirectJump(x + "/direct_jump.csv");
+        this->parsePCRelativeJump(x + "/pc_relative_jump.csv");
+        this->parsePCRelativeCall(x + "/pc_relative_call.csv");
+        this->parseBlockOverlap(x + "/block_still_overlap.csv");
+        this->parseDefUsed(x + "/def_used.csv");
+
+        this->parsePairedDataAccess(x + "/paired_data_access.csv");
+        this->parseValueReg(x + "/value_reg.csv");
+        this->parseIncompleteCFG(x + "/incomplete_cfg.csv");
+        this->parseNoReturn(x + "/no_return.csv");
+        this->parseInFunction(x + "/in_function.csv");
+
+        // Build IR for blocks from parsed data
+        this->createCodeBlocks();
+        this->buildDataGroups();
+    }
+}
+
+void DisasmData::loadIRFromFile(std::string path)
+{
+    std::ifstream in(path);
+    boost::archive::polymorphic_text_iarchive ia(in);
+    ia >> this->ir;
+    in.close();
+}
+
+void DisasmData::saveIRToFile(std::string path)
+{
+    std::ofstream out(path);
+    boost::archive::polymorphic_text_oarchive oa{out};
+    oa << this->ir;
+    out.close();
 }
 
 void DisasmData::createCodeBlocks()

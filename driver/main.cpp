@@ -21,6 +21,7 @@ int main(int argc, char** argv)
                        "The name of the assembly output file.");
     desc.add_options()("debug,D", boost::program_options::value<bool>()->default_value(false),
                        "Turn on debugging (will break assembly)");
+    desc.add_options()("save", boost::program_options::value<std::string>(), "Save IR to file");
 
     boost::program_options::variables_map vm;
     boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
@@ -143,6 +144,15 @@ int main(int argc, char** argv)
         LOG_INFO << std::setw(24) << std::left << "Reading Directory: " << disasmPath << std::endl;
 
         disasm.parseDirectory(disasmPath.string());
+
+        // Save IR, for testing
+        if(vm.count("save") != 0)
+        {
+            boost::filesystem::path irPath(vm["save"].as<std::string>());
+
+            disasm.saveIRToFile(irPath.string());
+            return EXIT_SUCCESS;
+        }
 
         // Perform the Pretty Printing step.
         PrettyPrinter pp;
