@@ -299,9 +299,17 @@ void DisasmData::parseDataByte(const std::string& x)
 
         auto byteMap = this->ir.getMainModule()->getImageByteMap();
         auto minMax = byteMap->getEAMinMax();
-        byteMap->setEAMinMax({std::min(minMax.first, ea), std::max(minMax.second, ea)});
-        byteMap->setData(ea, static_cast<uint8_t>(byte));
+        if(minMax.first == gtirb::constants::BadAddress
+           && minMax.second == gtirb::constants::BadAddress)
+        {
+            byteMap->setEAMinMax({ea, ea});
+        }
+        else
+        {
+            byteMap->setEAMinMax({std::min(minMax.first, ea), std::max(minMax.second, ea)});
+        }
 
+        byteMap->setData(ea, static_cast<uint8_t>(byte));
         count++;
     }
 
