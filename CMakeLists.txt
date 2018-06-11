@@ -208,5 +208,5 @@ endif()
 include_directories(${PROJECT_SOURCE_DIR}/gt-irb/include)
 
 
-add_subdirectory(src)
 add_subdirectory(driver)
+add_subdirectory(src)
