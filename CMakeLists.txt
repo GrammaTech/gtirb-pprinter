@@ -195,17 +195,17 @@ add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
 include_directories("${gtest_SOURCE_DIR}/include")
 
 # ---------------------------------------------------------------------------
-# gt-irb
+# gtirb
 # ---------------------------------------------------------------------------
 # FIXME: there's probably a more flexible way to do this
 find_library(GTIRB
   NAMES gtirb
-  PATHS ${PROJECT_SOURCE_DIR}/gt-irb/bin/)
+  PATHS ${PROJECT_SOURCE_DIR}/gtirb/bin/)
 if(NOT GTIRB)
   message(FATAL_ERROR "gtirb library not found")
 endif()
 
-include_directories(${PROJECT_SOURCE_DIR}/gt-irb/include)
+include_directories(${PROJECT_SOURCE_DIR}/gtirb/include)
 
 
 add_subdirectory(driver)
