@@ -18,7 +18,7 @@ void DisasmData::parseDirectory(std::string x)
 {
     boost::trim(x);
 
-    boost::filesystem::path irPath(x + "/out.ir");
+    boost::filesystem::path irPath(x + "/gtirb");
     if(boost::filesystem::is_regular_file(irPath))
     {
         this->loadIRFromFile(irPath.string());
