@@ -386,55 +386,57 @@ std::string PrettyPrinter::buildOpImmediate(gtirb::Instruction::SymbolicOperand 
                                             const OpImmediate* const op, uint64_t ea,
                                             uint64_t index)
 {
-    if(symbolic.pltReferenceName)
+    switch(symbolic.kind)
     {
-        return PrettyPrinter::StrOffset + " " + symbolic.pltReferenceName.value();
-    }
+        case gtirb::Instruction::SymbolicKind::PLTReference:
+            return PrettyPrinter::StrOffset + " " + symbolic.pltReferenceName;
 
-    if(symbolic.directCallDestination && !this->skipEA(symbolic.directCallDestination.value()))
-    {
-        auto dest = symbolic.directCallDestination.value();
-        const auto functionName = this->disasm->getFunctionName(gtirb::EA(dest));
+        case gtirb::Instruction::SymbolicKind::DirectCall:
+            if(!this->skipEA(symbolic.directCallDestination))
+            {
+                auto dest = symbolic.directCallDestination;
+                const auto functionName = this->disasm->getFunctionName(gtirb::EA(dest));
 
-        if(functionName.empty() == true)
+                if(functionName.empty() == true)
+                {
+                    return std::to_string(dest);
+                }
+
+                return functionName;
+            }
+            break;
+
+        case gtirb::Instruction::SymbolicKind::MovedLabel:
         {
-            return std::to_string(dest);
+            Expects(symbolic.movedLabel.offset1 == op->Immediate);
+            auto diff = symbolic.movedLabel.offset1 - symbolic.movedLabel.offset2;
+            auto symOffset2 = GetSymbolToPrint(symbolic.movedLabel.offset2);
+            std::stringstream ss;
+            ss << PrettyPrinter::StrOffset << " " << symOffset2 << "+" << diff;
+            return ss.str();
         }
 
-        return functionName;
-    }
-
-    if(symbolic.movedLabel)
-    {
-        auto movedLabel = symbolic.movedLabel.value();
-
-        Expects(movedLabel.offset1 == op->Immediate);
-        auto diff = movedLabel.offset1 - movedLabel.offset2;
-        auto symOffset2 = GetSymbolToPrint(movedLabel.offset2);
-        std::stringstream ss;
-        ss << PrettyPrinter::StrOffset << " " << symOffset2 << "+" << diff;
-        return ss.str();
-    }
-
-    if(symbolic.isGlobalSymbol)
-    {
-        if(index == 1)
-        {
-            auto ref = this->disasm->getGlobalSymbolReference(op->Immediate);
-            if(ref.empty() == false)
+        case gtirb::Instruction::SymbolicKind::GlobalSymbol:
+            if(index == 1)
             {
-                return PrettyPrinter::StrOffset + " " + ref;
+                auto ref = this->disasm->getGlobalSymbolReference(op->Immediate);
+                if(ref.empty() == false)
+                {
+                    return PrettyPrinter::StrOffset + " " + ref;
+                }
+                else
+                {
+                    return PrettyPrinter::StrOffset + " " + GetSymbolToPrint(op->Immediate);
+                }
             }
-            else
-            {
-                return PrettyPrinter::StrOffset + " " + GetSymbolToPrint(op->Immediate);
-            }
-        }
 
-        return GetSymbolToPrint(op->Immediate);
+            return GetSymbolToPrint(op->Immediate);
+        case gtirb::Instruction::SymbolicKind::None:
+            return std::to_string(op->Immediate);
     }
 
-    return std::to_string(op->Immediate);
+    // Not reachable
+    assert(0);
 }
 
 std::string PrettyPrinter::buildOpIndirect(gtirb::Instruction::SymbolicOperand symbolic,
@@ -466,7 +468,7 @@ std::string PrettyPrinter::buildOpIndirect(gtirb::Instruction::SymbolicOperand s
     {
         if(PrettyPrinter::GetIsNullReg(op->SReg) && PrettyPrinter::GetIsNullReg(op->Reg2))
         {
-            if(symbolic.isGlobalSymbol)
+            if(symbolic.kind == gtirb::Instruction::SymbolicKind::GlobalSymbol)
             {
                 auto instruction = this->disasm->getDecodedInstruction(ea);
                 auto address = ea + op->Offset + instruction->Size;
@@ -841,12 +843,11 @@ std::pair<std::string, char> PrettyPrinter::getOffsetAndSign(
 {
     std::pair<std::string, char> result = {"", '+'};
 
-    if(symbolic.movedLabel)
+    if(symbolic.kind == gtirb::Instruction::SymbolicKind::MovedLabel)
     {
-        auto movedLabel = symbolic.movedLabel.value();
-        Expects(movedLabel.offset1 == offset);
-        auto diff = movedLabel.offset1 - movedLabel.offset2;
-        auto symOffset2 = GetSymbolToPrint(movedLabel.offset2);
+        Expects(symbolic.movedLabel.offset1 == offset);
+        auto diff = symbolic.movedLabel.offset1 - symbolic.movedLabel.offset2;
+        auto symOffset2 = GetSymbolToPrint(symbolic.movedLabel.offset2);
 
         if(diff >= 0)
         {
@@ -862,7 +863,7 @@ std::pair<std::string, char> PrettyPrinter::getOffsetAndSign(
         }
     }
 
-    if(symbolic.isGlobalSymbol)
+    if(symbolic.kind == gtirb::Instruction::SymbolicKind::GlobalSymbol)
     {
         result.first = GetSymbolToPrint(offset);
         result.second = '+';

@@ -835,24 +835,30 @@ gtirb::Instruction::SymbolicOperand DisasmData::buildSymbolic(gtirb::Instruction
         auto pltReference = this->getPLTCodeReference(inst.getEA());
         if(pltReference != nullptr)
         {
-            return {{pltReference->Name}, {}, {}, {}};
+            return {gtirb::Instruction::SymbolicKind::PLTReference, {pltReference->Name}, {}, {}};
         }
 
         auto directCall = this->getDirectCall(inst.getEA());
         if(directCall != nullptr)
         {
-            return {{}, {gtirb::EA(directCall->Destination)}, {}, {}};
+            return {gtirb::Instruction::SymbolicKind::DirectCall,
+                    {},
+                    gtirb::EA(directCall->Destination),
+                    {}};
         }
 
         auto movedLabel = this->getMovedLabel(inst.getEA(), index);
         if(movedLabel != nullptr)
         {
-            return {{}, {}, {{movedLabel->Offset1, movedLabel->Offset2}}, {}};
+            return {gtirb::Instruction::SymbolicKind::MovedLabel,
+                    {},
+                    {},
+                    {movedLabel->Offset1, movedLabel->Offset2}};
         }
 
         if(this->getSymbolicOperand(inst.getEA(), index) != nullptr)
         {
-            return {{}, {}, {}, true};
+            return {gtirb::Instruction::SymbolicKind::GlobalSymbol};
         }
     }
 
@@ -861,15 +867,18 @@ gtirb::Instruction::SymbolicOperand DisasmData::buildSymbolic(gtirb::Instruction
         auto movedLabel = this->getMovedLabel(inst.getEA(), index);
         if(movedLabel != nullptr)
         {
-            return {{}, {}, {{movedLabel->Offset1, movedLabel->Offset2}}, {}};
+            return {gtirb::Instruction::SymbolicKind::MovedLabel,
+                    {},
+                    {},
+                    {movedLabel->Offset1, movedLabel->Offset2}};
         }
 
         if(this->getSymbolicOperand(inst.getEA(), index))
         {
-            return {{}, {}, {}, true};
+            return {gtirb::Instruction::SymbolicKind::GlobalSymbol};
         }
     }
-    return {};
+    return {gtirb::Instruction::SymbolicKind::None};
 }
 
 gtirb::Instruction DisasmData::buildInstruction(gtirb::EA ea) const
