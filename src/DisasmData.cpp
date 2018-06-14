@@ -51,6 +51,7 @@ void DisasmData::parseDirectory(std::string x)
         this->parseIncompleteCFG(x + "/incomplete_cfg.csv");
         this->parseNoReturn(x + "/no_return.csv");
         this->parseInFunction(x + "/in_function.csv");
+        this->parseBSSData(x + "/bss_data.csv");
     }
     else
     {
