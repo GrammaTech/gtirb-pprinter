@@ -4,7 +4,8 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
 stages:
-  - build-test-ubuntu16-gcc
+  - build-ubuntu16-gcc
+  - test-and-tag-ubuntu16-gcc
 # - build-test-ubuntu16-clang
 # - build-test-ubuntu14-gcc
 # - build-test-arch-gcc
@@ -25,14 +26,28 @@ stages:
     - docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH/${OS}-${COMPILER}
 
 build-ubuntu16-gcc:
-  stage: build-test-ubuntu16-gcc
+  stage: build-ubuntu16-gcc
   variables:
     OS: 'ubuntu16'
     COMPILER: 'gcc'
   <<: *build
 
+run-ubuntu16-gcc:
+  stage: test-and-tag-ubuntu16-gcc
+  variables:
+    OS: 'ubuntu16'
+    COMPILER: 'gcc'
+  script:
+    - docker run ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} /bin/bash -c "cd /gt/pretty-printer/build && make check";
+    - if [ "$CI_BUILD_REF_NAME" = "master" && "$OS" = "ubuntu16" ];
+      then
+        docker tag ${LOCAL_IMAGE_NAME}-${OS} $DOCKER_REGISTRY/$CI_PROJECT_PATH:latest;
+        docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY;
+        docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH:latest;
+      fi
+
 # build-ubuntu16-clang:
-#   stage: build-test-ubuntu16-clang
+#   stage: build-ubuntu16-clang
 #   variables:
 #     OS: 'ubuntu16'
 #     COMPILER: 'clang'
