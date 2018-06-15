@@ -41,9 +41,9 @@ protected:
     const std::array<std::string, 7> AsmSkipSection{
         {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt"}};
 
-    const std::array<std::string, 7> AsmSkipFunction{
+    const std::array<std::string, 8> AsmSkipFunction{
         {"_start", "deregister_tm_clones", "register_tm_clones", "__do_global_dtors_aux",
-         "frame_dummy", "__libc_csu_fini", "__libc_csu_init"}};
+         "frame_dummy", "__libc_csu_fini", "__libc_csu_init", "_dl_relocate_static_pie"}};
 
     void printBar(bool heavy = true);
     void printBlock(const gtirb::Block& x);

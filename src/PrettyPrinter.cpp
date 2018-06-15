@@ -246,7 +246,7 @@ void PrettyPrinter::printInstruction(const gtirb::Instruction& instruction)
     auto inst = this->disasm->getDecodedInstruction(ea);
     auto prefix = inst->Prefix;
     auto opcode = str_tolower(inst->Opcode);
-    uint64_t operands[3] = {inst->Op1, inst->Op2, inst->Op3};
+    uint64_t operands[4] = {inst->Op1, inst->Op2, inst->Op3, inst->Op4};
 
     ////////////////////////////////////////////////////////////////////
     // special cases
@@ -326,15 +326,16 @@ void PrettyPrinter::printEA(uint64_t ea)
 void PrettyPrinter::printOperandList(const gtirb::Instruction& instruction,
                                      const uint64_t* const operands)
 {
-    std::string str_operands[3];
+    std::string str_operands[4];
     auto ea = instruction.getEA();
     const auto symbolic = instruction.getSymbolicOperands();
     str_operands[0] = this->buildOperand(symbolic[0], operands[0], ea, 1);
     str_operands[1] = this->buildOperand(symbolic[1], operands[1], ea, 2);
     str_operands[2] = this->buildOperand(symbolic[2], operands[2], ea, 3);
+    str_operands[3] = this->buildOperand(symbolic[3], operands[3], ea, 4);
 
     uint dest_op_idx = 0;
-    for(int i = 2; i >= 0; --i)
+    for(int i = 3; i >= 0; --i)
     {
         if(str_operands[i].empty() == false)
         {

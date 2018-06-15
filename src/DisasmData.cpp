@@ -232,7 +232,7 @@ void DisasmData::parseRelocation(const std::string& x)
 
 void DisasmData::parseDecodedInstruction(const std::string& x)
 {
-    Table fromFile{7};
+    Table fromFile{8};
     fromFile.parseFile(x);
 
     for(const auto& ff : fromFile)
@@ -881,6 +881,7 @@ gtirb::Instruction DisasmData::buildInstruction(gtirb::EA ea) const
     symbolic.push_back(this->buildSymbolic(gtInst, inst->Op1, 1));
     symbolic.push_back(this->buildSymbolic(gtInst, inst->Op2, 2));
     symbolic.push_back(this->buildSymbolic(gtInst, inst->Op3, 3));
+    symbolic.push_back(this->buildSymbolic(gtInst, inst->Op4, 4));
 
     return gtInst;
 }
