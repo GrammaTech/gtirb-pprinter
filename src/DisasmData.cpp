@@ -203,14 +203,14 @@ void DisasmData::parseSection(const std::string& x)
     Table fromFile{3};
     fromFile.parseFile(x);
 
+    auto& sections = this->ir.getMainModule()->getSections();
     for(const auto& ff : fromFile)
     {
-        gtirb::EA{boost::lexical_cast<uint64_t>(ff[2])};
-        this->ir.getMainModule()->addSection({ff[0], boost::lexical_cast<uint64_t>(ff[1]),
-                                              gtirb::EA{boost::lexical_cast<uint64_t>(ff[2])}});
+        sections.emplace_back(ff[0], boost::lexical_cast<uint64_t>(ff[1]),
+                              gtirb::EA(boost::lexical_cast<uint64_t>(ff[2])));
     }
 
-    std::cerr << " # Number of section: " << getSections().size() << std::endl;
+    std::cerr << " # Number of section: " << this->getSections().size() << std::endl;
 }
 
 void DisasmData::parseRelocation(const std::string& x)
@@ -751,7 +751,7 @@ std::vector<uint64_t>* DisasmData::getBSSData()
 
 std::vector<gtirb::Table::InnerMapType>& DisasmData::getDataSections()
 {
-    auto& v = this->ir.getMainModule()->getTable("DisasmData")->contents["dataSections"];
+    auto& v = this->ir.getTable("DisasmData")->contents["dataSections"];
     return boost::get<std::vector<gtirb::Table::InnerMapType>>(v);
 }
 
@@ -1001,7 +1001,7 @@ void DisasmData::buildDataGroups()
         }
     }
 
-    auto table = this->ir.getMainModule()->addTable("DisasmData", std::make_unique<gtirb::Table>());
+    auto table = this->ir.addTable("DisasmData", std::make_unique<gtirb::Table>());
     table->contents["dataSections"] = dataSections;
 }
 
