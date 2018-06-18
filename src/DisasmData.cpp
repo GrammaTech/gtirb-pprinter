@@ -504,7 +504,7 @@ void DisasmData::parseSymbolicData(const std::string& x)
 
 void DisasmData::parseSymbolMinusSymbol(const std::string& x)
 {
-    Table fromFile{2};
+    Table fromFile{3};
     fromFile.parseFile(x);
 
     for(const auto& ff : fromFile)
