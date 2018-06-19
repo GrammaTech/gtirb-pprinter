@@ -685,7 +685,7 @@ void PrettyPrinter::printPointer(const gtirb::DataPointer* const x)
 void PrettyPrinter::printPointerDiff(const gtirb::DataPointerDiff* const x)
 {
     this->printEA(x->getEA());
-    ofs << ".long .L_" << x->symbol2 << "-" << x->symbol1;
+    ofs << ".long .L_" << std::hex << x->symbol2 << "-.L_" << std::hex << x->symbol1;
 }
 
 void PrettyPrinter::printString(const gtirb::DataString* const x)
