@@ -64,3 +64,4 @@ RUN cmake ../  -DDEBLOAT_FOUND_DATALOG_DECODER=/gt/pretty-printer/datalog_disasm
 RUN make -j 
 WORKDIR /gt/pretty-printer/
 ENV PATH=/gt/pretty-printer/bin:/gt/pretty-printer/datalog_disasm/bin/:$PATH
+ENV LD_LIBRARY_PATH /gt/pretty-printer/gtirb/bin
