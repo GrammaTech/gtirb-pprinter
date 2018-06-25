@@ -24,7 +24,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 14)
 
 #
 # Grammatech Options (CMake)
@@ -32,7 +32,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 option(DEBLOAT_ENABLE_TESTS "Enable building and running unit tests." ON)
 
-set(DEBLOAT_ISO_CPP_VERSION "C++17" CACHE STRING "C++ ISO Standard to use.")
+set(DEBLOAT_ISO_CPP_VERSION "C++14" CACHE STRING "C++ ISO Standard to use.")
 set_property(CACHE DEBLOAT_ISO_CPP_VERSION PROPERTY STRINGS C++17 C++14)
 
 # Default to C++17, then override to C++14 if necessary.
@@ -68,7 +68,7 @@ if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
 	add_compile_options(-W4)
 	add_compile_options(-WX)
 
-	add_compile_options(-wd4251) # 'identifier' : class 'type' needs to have dll-interface to be used by clients of class 'type2' 
+	add_compile_options(-wd4251) # 'identifier' : class 'type' needs to have dll-interface to be used by clients of class 'type2'
 	add_compile_options(-wd4275) # Non-dll interface base classes.
 	add_compile_options(-wd4996) # VC8: Deprecated libc functions.
 	add_compile_options(-wd4351) # This is a warning about a change in behavior from old versions of visual c++.  We want the new (standard-compliant) behavior, so we don't want the warning.  The warning is that using an array in a class initializer list will cause its elements to be default initialized.
@@ -131,11 +131,11 @@ find_package(Boost 1.59 REQUIRED COMPONENTS serialization filesystem system prog
 include_directories(${Boost_INCLUDE_DIRS})
 
 # ---------------------------------------------------------------------------
-# Microsoft GSL 
+# Microsoft GSL
 # ---------------------------------------------------------------------------
 configure_file(CMakeLists.gsl gsl-download/CMakeLists.txt)
 
-execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" . 
+execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
 	RESULT_VARIABLE result
 	WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/gsl-download )
 
@@ -166,7 +166,7 @@ include_directories("${CMAKE_BINARY_DIR}/gsl-src/include")
 # Download and unpack googletest at configure time
 configure_file(CMakeLists.googletest googletest-download/CMakeLists.txt)
 
-execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" . 
+execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
 	RESULT_VARIABLE result
 	WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/googletest-download )
 
