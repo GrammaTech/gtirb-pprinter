@@ -1,12 +1,14 @@
 #pragma once
 
 #include <cstdint>
+#include <gtirb/SymbolicOperand.hpp>
 #include <iosfwd>
 #include <list>
 #include <map>
 #include <string>
 #include <vector>
 #include "DisasmData.h"
+
 ///
 /// \class PrettyPrinter
 ///
@@ -54,25 +56,21 @@ protected:
     void printInstructionNop();
     void printLabel(uint64_t ea);
     void printSectionHeader(const std::string& x, uint64_t alignment = 0);
-    void printOperandList(const gtirb::Instruction& instruction, const uint64_t* const operands);
+    void printOperandList(const std::string& opcode, const gtirb::Instruction& instruction,
+                          const uint64_t* const operands);
 
     void printDataGroups();
-    void printLabelMarker(const gtirb::DataLabelMarker* const x);
-    void printPLTReference(const gtirb::DataPLTReference* const x);
-    void printPointer(const gtirb::DataPointer* const x);
-    void printPointerDiff(const gtirb::DataPointerDiff* const x);
-    void printString(const gtirb::DataString* const x);
-    void printRawByte(const gtirb::DataRawByte* const x);
+    void printString(const gtirb::Data& x);
 
     void printBSS();
 
-    std::string buildOperand(gtirb::Instruction::SymbolicOperand symbolic, uint64_t operand,
-                             uint64_t ea, uint64_t index);
+    std::string buildOperand(const std::string& opcode, const gtirb::SymbolicOperand* symbolic,
+                             uint64_t operand, uint64_t ea, uint64_t index);
     std::string buildOpRegdirect(const OpRegdirect* const op, uint64_t ea, uint64_t index);
-    std::string buildOpImmediate(gtirb::Instruction::SymbolicOperand symbolic,
+    std::string buildOpImmediate(const std::string& opcode, const gtirb::SymbolicOperand* symbolic,
                                  const OpImmediate* const op, uint64_t ea, uint64_t index);
-    std::string buildOpIndirect(gtirb::Instruction::SymbolicOperand symbolic,
-                                const OpIndirect* const op, uint64_t ea, uint64_t index);
+    std::string buildOpIndirect(const gtirb::SymbolicOperand* symbolic, const OpIndirect* const op,
+                                uint64_t ea, uint64_t index);
     std::string buildAdjustMovedDataLabel(uint64_t ea, uint64_t value);
 
     void condPrintGlobalSymbol(uint64_t ea);
@@ -84,10 +82,11 @@ protected:
     std::string avoidRegNameConflicts(const std::string& x);
     void printZeros(uint64_t x);
 
-    std::pair<std::string, char> getOffsetAndSign(gtirb::Instruction::SymbolicOperand symbolic,
+    std::pair<std::string, char> getOffsetAndSign(const gtirb::SymbolicOperand* symbolic,
                                                   int64_t offset, uint64_t ea,
                                                   uint64_t index) const;
-    bool getIsPointerToExcludedCode(const gtirb::Node* dg, const gtirb::Node* dgNext);
+    bool getIsPointerToExcludedCode(bool hasLabel, const gtirb::SymbolicOperandSet& symbolic,
+                                    const gtirb::Data* dg, const gtirb::Data* dgNext);
 
     // Static utility functions.
 

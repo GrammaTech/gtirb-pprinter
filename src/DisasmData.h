@@ -101,9 +101,6 @@ public:
     static std::string AvoidRegNameConflicts(const std::string& x);
 
 private:
-    gtirb::Instruction::SymbolicOperand buildSymbolic(gtirb::Instruction& inst, uint64_t operand,
-                                                      uint64_t index) const;
-    gtirb::Instruction buildInstruction(gtirb::EA ea) const;
     std::vector<DirectCall>* getDirectCall();
     std::vector<MovedLabel>* getMovedLabel();
     std::vector<PLTReference>* getPLTCodeReference();

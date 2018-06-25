@@ -9,6 +9,7 @@
 #include <gtirb/Module.hpp>
 #include <gtirb/Symbol.hpp>
 #include <gtirb/SymbolSet.hpp>
+#include <gtirb/SymbolicOperand.hpp>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -302,7 +303,7 @@ void PrettyPrinter::printInstruction(const gtirb::Instruction& instruction)
     //////////////////////////////////////////////////////////////////////
     opcode = DisasmData::AdaptOpcode(opcode);
     this->ofs << " " << prefix << " " << opcode << " ";
-    this->printOperandList(instruction, operands);
+    this->printOperandList(opcode, instruction, operands);
 
     /// TAKE THIS OUT ///
     this->ofs << std::endl;
@@ -323,16 +324,47 @@ void PrettyPrinter::printEA(uint64_t ea)
     }
 }
 
-void PrettyPrinter::printOperandList(const gtirb::Instruction& instruction,
+template <typename T>
+static const T* get(const gtirb::SymbolicOperand& symbolic)
+{
+    try
+    {
+        return &boost::get<T>(symbolic);
+    }
+    catch(boost::bad_get)
+    {
+        return nullptr;
+    }
+}
+
+void PrettyPrinter::printOperandList(const std::string& opcode,
+                                     const gtirb::Instruction& instruction,
                                      const uint64_t* const operands)
 {
     std::string str_operands[4];
     auto ea = instruction.getEA();
-    const auto symbolic = instruction.getSymbolicOperands();
-    str_operands[0] = this->buildOperand(symbolic[0], operands[0], ea, 1);
-    str_operands[1] = this->buildOperand(symbolic[1], operands[1], ea, 2);
-    str_operands[2] = this->buildOperand(symbolic[2], operands[2], ea, 3);
-    str_operands[3] = this->buildOperand(symbolic[3], operands[3], ea, 4);
+
+    const auto& symbolic = this->disasm->ir.getMainModule()->getSymbolicOperands();
+    auto findSymbolic = [symbolic, ea](int index) {
+        // FIXME: we're faking the operand offset here, assuming it's equal
+        // to index. This works as long as the disassembler does the same
+        // thing, but it isn't right.
+        auto found = symbolic.find(gtirb::EA(ea.get() + index));
+
+        if(found != symbolic.end())
+        {
+            return &found->second;
+        }
+        else
+        {
+            return static_cast<const gtirb::SymbolicOperand*>(nullptr);
+        }
+    };
+
+    str_operands[0] = this->buildOperand(opcode, findSymbolic(1), operands[0], ea, 1);
+    str_operands[1] = this->buildOperand(opcode, findSymbolic(2), operands[1], ea, 2);
+    str_operands[2] = this->buildOperand(opcode, findSymbolic(3), operands[2], ea, 3);
+    str_operands[3] = this->buildOperand(opcode, findSymbolic(4), operands[3], ea, 4);
 
     uint dest_op_idx = 0;
     for(int i = 3; i >= 0; --i)
@@ -352,8 +384,9 @@ void PrettyPrinter::printOperandList(const gtirb::Instruction& instruction,
             this->ofs << "," << str_operands[i];
 }
 
-std::string PrettyPrinter::buildOperand(gtirb::Instruction::SymbolicOperand symbolic,
-                                        uint64_t operand, uint64_t ea, uint64_t index)
+std::string PrettyPrinter::buildOperand(const std::string& opcode,
+                                        const gtirb::SymbolicOperand* symbolic, uint64_t operand,
+                                        uint64_t ea, uint64_t index)
 {
     auto opReg = this->disasm->getOpRegdirect(operand);
     if(opReg != nullptr)
@@ -364,7 +397,7 @@ std::string PrettyPrinter::buildOperand(gtirb::Instruction::SymbolicOperand symb
     auto opImm = this->disasm->getOpImmediate(operand);
     if(opImm != nullptr)
     {
-        return this->buildOpImmediate(symbolic, opImm, ea, index);
+        return this->buildOpImmediate(opcode, symbolic, opImm, ea, index);
     }
 
     auto opInd = this->disasm->getOpIndirect(operand);
@@ -382,64 +415,71 @@ std::string PrettyPrinter::buildOpRegdirect(const OpRegdirect* const op, uint64_
     return DisasmData::AdaptRegister(op->Register);
 }
 
-std::string PrettyPrinter::buildOpImmediate(gtirb::Instruction::SymbolicOperand symbolic,
+std::string PrettyPrinter::buildOpImmediate(const std::string& opcode,
+                                            const gtirb::SymbolicOperand* symbolic,
                                             const OpImmediate* const op, uint64_t ea,
                                             uint64_t index)
 {
-    switch(symbolic.kind)
+    if(symbolic)
     {
-        case gtirb::Instruction::SymbolicKind::PLTReference:
-            return PrettyPrinter::StrOffset + " " + symbolic.pltReferenceName;
-
-        case gtirb::Instruction::SymbolicKind::DirectCall:
-            if(!this->skipEA(symbolic.directCallDestination))
-            {
-                auto dest = symbolic.directCallDestination;
-                const auto functionName = this->disasm->getFunctionName(gtirb::EA(dest));
-
-                if(functionName.empty() == true)
-                {
-                    return std::to_string(dest);
-                }
-
-                return functionName;
-            }
-            break;
-
-        case gtirb::Instruction::SymbolicKind::MovedLabel:
+        const auto& pltReferences = boost::get<gtirb::Table::InnerMapType>(
+            this->disasm->ir.getTable("DisasmData")->contents["pltCodeReferences"]);
+        const auto p = pltReferences.find(gtirb::EA(ea));
+        if(p != pltReferences.end())
         {
-            Expects(symbolic.movedLabel.offset1 == op->Immediate);
-            auto diff = symbolic.movedLabel.offset1 - symbolic.movedLabel.offset2;
-            auto symOffset2 = GetSymbolToPrint(symbolic.movedLabel.offset2);
-            std::stringstream ss;
-            ss << PrettyPrinter::StrOffset << " " << symOffset2 << "+" << diff;
-            return ss.str();
+            return PrettyPrinter::StrOffset + " " + boost::get<std::string>(p->second);
         }
 
-        case gtirb::Instruction::SymbolicKind::GlobalSymbol:
-            if(index == 1)
+        try
+        {
+            const gtirb::SymAddrConst s = boost::get<gtirb::SymAddrConst>(*symbolic);
+            if(opcode == "call")
             {
-                auto ref = this->disasm->getGlobalSymbolReference(op->Immediate);
-                if(ref.empty() == false)
+                assert(s.displacement == 0);
+                if(this->skipEA(op->Immediate))
                 {
-                    return PrettyPrinter::StrOffset + " " + ref;
+                    return std::to_string(op->Immediate);
                 }
                 else
                 {
-                    return PrettyPrinter::StrOffset + " " + GetSymbolToPrint(op->Immediate);
+                    return s.symbol->getName();
                 }
             }
 
-            return GetSymbolToPrint(op->Immediate);
-        case gtirb::Instruction::SymbolicKind::None:
-            return std::to_string(op->Immediate);
+            if(s.displacement == 0)
+            {
+                if(index == 1)
+                {
+                    auto ref = this->disasm->getGlobalSymbolReference(op->Immediate);
+                    if(ref.empty() == false)
+                    {
+                        return PrettyPrinter::StrOffset + " " + ref;
+                    }
+                    else
+                    {
+                        return PrettyPrinter::StrOffset + " " + GetSymbolToPrint(op->Immediate);
+                    }
+                }
+
+                return GetSymbolToPrint(op->Immediate);
+            }
+            else
+            {
+                std::stringstream ss;
+                ss << PrettyPrinter::StrOffset << " " << s.symbol->getName() << "+"
+                   << s.displacement;
+                return ss.str();
+            }
+        }
+        catch(boost::bad_get&)
+        {
+        }
     }
 
-    // Not reachable
-    assert(0);
+    return std::to_string(op->Immediate);
 }
 
-std::string PrettyPrinter::buildOpIndirect(gtirb::Instruction::SymbolicOperand symbolic,
+std::string PrettyPrinter::buildOpIndirect(const gtirb::SymbolicOperand* symbolic,
                                            const OpIndirect* const op, uint64_t ea, uint64_t index)
 {
     const auto sizeName = DisasmData::GetSizeName(op->Size);
@@ -468,13 +508,14 @@ std::string PrettyPrinter::buildOpIndirect(gtirb::Instruction::SymbolicOperand s
     {
         if(PrettyPrinter::GetIsNullReg(op->SReg) && PrettyPrinter::GetIsNullReg(op->Reg2))
         {
-            if(symbolic.kind == gtirb::Instruction::SymbolicKind::GlobalSymbol)
+            try
             {
+                boost::get<gtirb::SymAddrConst>(*symbolic);
                 auto instruction = this->disasm->getDecodedInstruction(ea);
                 auto address = ea + op->Offset + instruction->Size;
                 auto symbol = this->disasm->getGlobalSymbolReference(address);
 
-                if(symbol.empty() == false)
+                if(!symbol.empty())
                 {
                     return sizeName + " " + symbol + PrettyPrinter::StrRIP;
                 }
@@ -483,6 +524,9 @@ std::string PrettyPrinter::buildOpIndirect(gtirb::Instruction::SymbolicOperand s
                     auto symbolToPrint = GetSymbolToPrint(address);
                     return sizeName + " " + symbolToPrint + PrettyPrinter::StrRIP;
                 }
+            }
+            catch(boost::bad_get&)
+            {
             }
         }
     }
@@ -566,15 +610,23 @@ std::string PrettyPrinter::buildAdjustMovedDataLabel(uint64_t ea, uint64_t value
 
 void PrettyPrinter::printDataGroups()
 {
+    auto* dataTable = this->disasm->ir.getTable("DisasmData");
+
+    const auto& pltReferences =
+        boost::get<gtirb::Table::InnerMapType>(dataTable->contents["pltDataReferences"]);
+    const auto& stringEAs = boost::get<std::vector<gtirb::EA>>(dataTable->contents["stringEAs"]);
+    const auto& symbolic = this->disasm->ir.getMainModule()->getSymbolicOperands();
+    const auto symbolSet = this->disasm->ir.getMainModule()->getSymbolSet();
+
     for(gtirb::Table::InnerMapType& ds : this->disasm->getDataSections())
     {
         auto sectionPtr = this->disasm->getSection(boost::get<std::string>(ds["name"]));
 
-        std::vector<const gtirb::Node*> dataGroups;
+        std::vector<const gtirb::Data*> dataGroups;
         const auto& moduleData = this->disasm->ir.getMainModule()->getData();
         for(auto i : boost::get<std::vector<uint64_t>>(ds["dataGroups"]))
         {
-            dataGroups.push_back(moduleData[i]);
+            dataGroups.push_back(&moduleData[i]);
         }
 
         if(isSectionSkipped(sectionPtr->name) && !this->debug)
@@ -588,6 +640,7 @@ void PrettyPrinter::printDataGroups()
         {
             bool exclude = false;
             auto data = dynamic_cast<const gtirb::Data*>(*dg);
+            auto foundSymbol = symbolSet->getSymbols(data->getEA());
 
             if(sectionPtr->name == ".init_array" || sectionPtr->name == ".fini_array")
             {
@@ -596,11 +649,13 @@ void PrettyPrinter::printDataGroups()
 
                 if(dgNext != std::end(dataGroups))
                 {
-                    exclude = this->getIsPointerToExcludedCode(*dg, *dgNext);
+                    exclude = this->getIsPointerToExcludedCode(foundSymbol.empty(), symbolic, *dg,
+                                                               *dgNext);
                 }
                 else
                 {
-                    exclude = this->getIsPointerToExcludedCode(*dg, nullptr);
+                    exclude = this->getIsPointerToExcludedCode(foundSymbol.empty(), symbolic, *dg,
+                                                               nullptr);
                 }
             }
 
@@ -615,40 +670,69 @@ void PrettyPrinter::printDataGroups()
                     }
                 };
 
-                switch(data->getType())
+                // Print all symbols
+                for(const auto s : foundSymbol)
                 {
-                    case gtirb::Data::Type::LabelMarker:
-                        this->printLabelMarker(
-                            dynamic_cast<const gtirb::DataLabelMarker* const>(*dg));
-                        break;
-                    case gtirb::Data::Type::PLTReference:
-                        printTab();
-                        this->printPLTReference(
-                            dynamic_cast<const gtirb::DataPLTReference* const>(*dg));
-                        break;
-                    case gtirb::Data::Type::Pointer:
-                        printTab();
-                        this->printPointer(dynamic_cast<const gtirb::DataPointer* const>(*dg));
-                        break;
-                    case gtirb::Data::Type::PointerDiff:
-                        printTab();
-                        this->printPointerDiff(
-                            dynamic_cast<const gtirb::DataPointerDiff* const>(*dg));
-                        break;
-                    case gtirb::Data::Type::String:
-                        printTab();
-                        this->printString(dynamic_cast<const gtirb::DataString* const>(*dg));
-                        break;
-                    case gtirb::Data::Type::RawByte:
-                        printTab();
-                        this->printRawByte(dynamic_cast<const gtirb::DataRawByte* const>(*dg));
-                        break;
+                    this->ofs << s->getName() << ":\n";
+                }
+                // Also print local label just in case. There is still some code that makes up
+                // ".L_<ea>" references without having a corresponding symbol.
+                if(!foundSymbol.empty())
+                {
+                    this->ofs << ".L_" << std::hex << data->getEA() << ":\n" << std::dec;
                 }
 
-                // Print Comments...
-
-                // Done.
-                this->ofs << std::endl;
+                const auto& foundSymbolic = symbolic.find(data->getEA());
+                const auto p = pltReferences.find(data->getEA());
+                if(p != pltReferences.end())
+                {
+                    printTab();
+                    this->printEA(boost::get<gtirb::EA>(p->first));
+                    this->ofs << ".quad " << boost::get<std::string>(p->second);
+                    this->ofs << std::endl;
+                }
+                else if(std::find(stringEAs.begin(), stringEAs.end(), data->getEA())
+                        != stringEAs.end())
+                {
+                    printTab();
+                    this->printString(*data);
+                    this->ofs << std::endl;
+                }
+                else if(foundSymbolic != symbolic.end())
+                {
+                    try
+                    {
+                        auto s = boost::get<gtirb::SymAddrConst>(foundSymbolic->second);
+                        printTab();
+                        this->ofs << ".quad " << s.symbol->getName();
+                        this->ofs << std::endl;
+                    }
+                    catch(boost::bad_get)
+                    {
+                        try
+                        {
+                            auto s = boost::get<gtirb::SymAddrAddr>(foundSymbolic->second);
+                            printTab();
+                            this->printEA(data->getEA());
+                            this->ofs << ".long " << s.symbol1->getName() << "-"
+                                      << s.symbol2->getName();
+                            this->ofs << std::endl;
+                        }
+                        catch(boost::bad_get)
+                        {
+                        }
+                    }
+                }
+                else
+                {
+                    for(auto byte : data->getBytes(*this->disasm->ir.getMainModule()))
+                    {
+                        printTab();
+                        this->ofs << ".byte 0x" << std::hex << static_cast<uint32_t>(byte)
+                                  << std::dec;
+                        this->ofs << std::endl;
+                    }
+                }
             }
         }
 
@@ -665,30 +749,7 @@ void PrettyPrinter::printDataGroups()
     }
 }
 
-void PrettyPrinter::printLabelMarker(const gtirb::DataLabelMarker* const x)
-{
-    this->printLabel(x->getEA());
-}
-
-void PrettyPrinter::printPLTReference(const gtirb::DataPLTReference* const x)
-{
-    this->printEA(x->getEA());
-    this->ofs << ".quad " << x->function;
-}
-
-void PrettyPrinter::printPointer(const gtirb::DataPointer* const x)
-{
-    auto printed = this->buildAdjustMovedDataLabel(x->getEA(), x->content);
-    this->ofs << ".quad " << printed;
-}
-
-void PrettyPrinter::printPointerDiff(const gtirb::DataPointerDiff* const x)
-{
-    this->printEA(x->getEA());
-    ofs << ".long .L_" << std::hex << x->symbol2 << "-.L_" << std::hex << x->symbol1;
-}
-
-void PrettyPrinter::printString(const gtirb::DataString* const x)
+void PrettyPrinter::printString(const gtirb::Data& x)
 {
     auto cleanByte = [](uint8_t b) {
         std::string cleaned;
@@ -708,7 +769,7 @@ void PrettyPrinter::printString(const gtirb::DataString* const x)
 
     this->ofs << ".string \"";
 
-    for(auto& b : x->getStringBytes(*this->disasm->ir.getMainModule()))
+    for(auto& b : x.getBytes(*this->disasm->ir.getMainModule()))
     {
         if(b != 0)
         {
@@ -717,12 +778,6 @@ void PrettyPrinter::printString(const gtirb::DataString* const x)
     }
 
     this->ofs << "\"";
-}
-
-void PrettyPrinter::printRawByte(const gtirb::DataRawByte* const x)
-{
-    ofs << ".byte 0x" << std::hex
-        << static_cast<uint32_t>(x->getByte(*this->disasm->ir.getMainModule())) << std::dec;
 }
 
 void PrettyPrinter::printBSS()
@@ -838,68 +893,68 @@ void PrettyPrinter::printZeros(uint64_t x)
     }
 }
 
-std::pair<std::string, char> PrettyPrinter::getOffsetAndSign(
-    gtirb::Instruction::SymbolicOperand symbolic, int64_t offset, uint64_t ea, uint64_t index) const
+std::pair<std::string, char> PrettyPrinter::getOffsetAndSign(const gtirb::SymbolicOperand* symbolic,
+                                                             int64_t offset, uint64_t ea,
+                                                             uint64_t index) const
 {
-    std::pair<std::string, char> result = {"", '+'};
-
-    if(symbolic.kind == gtirb::Instruction::SymbolicKind::MovedLabel)
+    if(symbolic)
     {
-        Expects(symbolic.movedLabel.offset1 == offset);
-        auto diff = symbolic.movedLabel.offset1 - symbolic.movedLabel.offset2;
-        auto symOffset2 = GetSymbolToPrint(symbolic.movedLabel.offset2);
-
-        if(diff >= 0)
+        try
         {
-            result.first = symOffset2 + "+" + std::to_string(diff);
-            result.second = '+';
-            return result;
-        }
-        else
-        {
-            result.first = symOffset2 + std::to_string(diff);
-            result.second = '+';
-            return result;
-        }
-    }
+            const gtirb::SymAddrConst s = boost::get<gtirb::SymAddrConst>(*symbolic);
 
-    if(symbolic.kind == gtirb::Instruction::SymbolicKind::GlobalSymbol)
-    {
-        result.first = GetSymbolToPrint(offset);
-        result.second = '+';
-        return result;
+            if(s.displacement == 0)
+            {
+                return {s.symbol->getName(), '+'};
+            }
+            else if(s.displacement > 0)
+            {
+                return {s.symbol->getName() + "+" + std::to_string(s.displacement), '+'};
+            }
+            else
+            {
+                return {s.symbol->getName() + std::to_string(s.displacement), '+'};
+            }
+        }
+        catch(boost::bad_get&)
+        {
+        }
     }
 
     if(offset < 0)
     {
-        result.first = std::to_string(-offset);
-        result.second = '-';
-        return result;
+        return {std::to_string(-offset), '-'};
     }
-
-    result.first = std::to_string(offset);
-    result.second = '+';
-    return result;
+    return {std::to_string(offset), '+'};
 }
 
-bool PrettyPrinter::getIsPointerToExcludedCode(const gtirb::Node* dg, const gtirb::Node* dgNext)
+bool PrettyPrinter::getIsPointerToExcludedCode(bool hasLabel,
+                                               const gtirb::SymbolicOperandSet& symbolic,
+                                               const gtirb::Data* dg, const gtirb::Data* dgNext)
 {
     // If we have a label followed by a pointer.
-    auto dgLabel = dynamic_cast<const gtirb::DataLabelMarker*>(dg);
-    if(dgLabel != nullptr)
+    if(hasLabel && dgNext)
     {
-        auto dgPtr = dynamic_cast<const gtirb::DataPointer*>(dgNext);
-        if(dgPtr != nullptr)
+        auto foundSymbolic = symbolic.find(dgNext->getEA());
+        if(foundSymbolic != symbolic.end())
         {
-            return this->skipEA(dgPtr->content);
+            auto* sym = get<gtirb::SymAddrConst>(foundSymbolic->second);
+            if(sym)
+            {
+                return this->skipEA(sym->symbol->getEA());
+            }
         }
     }
 
     // Or if we just have a pointer...
-    auto dgPtr = dynamic_cast<const gtirb::DataPointer*>(dg);
-    if(dgPtr != nullptr)
+    auto foundSymbolic = symbolic.find(dg->getEA());
+    if(foundSymbolic != symbolic.end())
     {
-        return this->skipEA(dgPtr->content);
+        auto* sym = get<gtirb::SymAddrConst>(foundSymbolic->second);
+        if(sym)
+        {
+            return this->skipEA(sym->symbol->getEA());
+        }
     }
 
     return false;
