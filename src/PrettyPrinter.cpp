@@ -8,7 +8,6 @@
 #include <gtirb/Instruction.hpp>
 #include <gtirb/Module.hpp>
 #include <gtirb/Symbol.hpp>
-#include <gtirb/SymbolSet.hpp>
 #include <gtirb/SymbolicOperand.hpp>
 #include <iomanip>
 #include <iostream>
@@ -599,7 +598,7 @@ void PrettyPrinter::printDataGroups()
         boost::get<gtirb::Table::InnerMapType>(dataTable->contents["pltDataReferences"]);
     const auto& stringEAs = boost::get<std::vector<gtirb::EA>>(dataTable->contents["stringEAs"]);
     const auto& symbolic = this->disasm->ir.getMainModule()->getSymbolicOperands();
-    const auto symbolSet = this->disasm->ir.getMainModule()->getSymbolSet();
+    const auto& symbolSet = this->disasm->ir.getMainModule()->getSymbolSet();
 
     for(gtirb::Table::InnerMapType& ds : this->disasm->getDataSections())
     {
@@ -623,7 +622,7 @@ void PrettyPrinter::printDataGroups()
         {
             bool exclude = false;
             auto data = dynamic_cast<const gtirb::Data*>(*dg);
-            auto foundSymbol = symbolSet->getSymbols(data->getEA());
+            auto foundSymbol = gtirb::findSymbols(symbolSet, data->getEA());
 
             if(sectionPtr->name == ".init_array" || sectionPtr->name == ".fini_array")
             {
@@ -844,7 +843,8 @@ bool PrettyPrinter::skipEA(const uint64_t x) const
         }
 
         std::string xFunctionName{};
-        for(const auto& sym : this->disasm->getSymbolSet()->getSymbols(gtirb::EA(xFunctionAddress)))
+        for(const auto& sym :
+            gtirb::findSymbols(this->disasm->getSymbolSet(), gtirb::EA(xFunctionAddress)))
         {
             if(sym->getDeclarationKind() == gtirb::Symbol::DeclarationKind::Func)
             {

@@ -12,6 +12,7 @@
 #include <gtirb/Section.hpp>
 #include <gtirb/Symbol.hpp>
 #include <gtirb/SymbolSet.hpp>
+#include <gtirb/SymbolicOperand.hpp>
 #include <iostream>
 
 void DisasmData::parseDirectory(std::string x)
@@ -442,7 +443,7 @@ static bool isFunction(const gtirb::Symbol& sym)
 // function_complete_name
 std::string DisasmData::getFunctionName(gtirb::EA x) const
 {
-    for(auto& s : this->getSymbolSet()->getSymbols(x))
+    for(auto& s : gtirb::findSymbols(this->getSymbolSet(), x))
     {
         if(isFunction(*s))
         {
@@ -483,7 +484,7 @@ std::string DisasmData::getFunctionName(gtirb::EA x) const
 
 std::string DisasmData::getGlobalSymbolReference(uint64_t ea) const
 {
-    for(const auto& sym : getSymbolSet()->getSymbols())
+    for(const auto& sym : getSymbolSet())
     {
         /// \todo This will need looked at again to cover the logic
         if(sym.getEA().get() <= ea
@@ -533,7 +534,7 @@ std::string DisasmData::getGlobalSymbolReference(uint64_t ea) const
 
 std::string DisasmData::getGlobalSymbolName(uint64_t ea) const
 {
-    for(const auto& sym : getSymbolSet()->getSymbols())
+    for(const auto& sym : getSymbolSet())
     {
         if(sym.getEA().get() == ea)
         {
@@ -571,7 +572,7 @@ const gtirb::Relocation* const DisasmData::getRelocation(const std::string& x) c
     return nullptr;
 }
 
-gtirb::SymbolSet* DisasmData::getSymbolSet() const
+const gtirb::SymbolSet& DisasmData::getSymbolSet() const
 {
     return this->ir.getMainModule()->getSymbolSet();
 }

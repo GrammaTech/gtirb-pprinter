@@ -40,7 +40,7 @@ public:
     // FIXME: IR should replace DisasmData entirely.
     gtirb::IR ir;
 
-    gtirb::SymbolSet* getSymbolSet() const;
+    const gtirb::SymbolSet& getSymbolSet() const;
     const std::vector<gtirb::Section>& getSections() const;
     std::vector<DecodedInstruction>* getDecodedInstruction();
     std::vector<OpRegdirect>* getOPRegdirect();

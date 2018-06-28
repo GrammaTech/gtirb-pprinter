@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include <gtirb/SymbolicOperand.hpp>
+#include <gtirb/SymbolicOperandSet.hpp>
 #include <iosfwd>
 #include <list>
 #include <map>
