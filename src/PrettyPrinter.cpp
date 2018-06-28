@@ -82,7 +82,7 @@ std::string PrettyPrinter::prettyPrint(DisasmData* x)
     this->printHeader();
 
     // Note: making a copy due to AdjustPadding below.
-    auto blocks = *this->disasm->getCodeBlocks();
+    auto blocks = *this->disasm->ir.getMainModule()->getBlocks();
 
     if(this->getDebug() == true)
     {
@@ -589,23 +589,6 @@ std::string PrettyPrinter::buildOpIndirect(const gtirb::SymbolicOperand* symboli
     std::string term = adapted1 + "+" + adapted2 + "*" + std::to_string(op->Multiplier)
                        + std::string{offsetAndSign.second} + offsetAndSign.first;
     return sizeName + " " + putSegmentRegister(term);
-}
-
-std::string PrettyPrinter::buildAdjustMovedDataLabel(uint64_t ea, uint64_t value)
-{
-    std::stringstream ss;
-    ss << ".L_" << std::hex << value;
-
-    auto moved = this->disasm->getMovedDataLabel(ea);
-    if(moved != nullptr)
-    {
-        Expects(value == moved->Old);
-
-        auto diff = value - moved->New;
-        ss << "+" << diff << std::dec;
-    }
-
-    return ss.str();
 }
 
 void PrettyPrinter::printDataGroups()

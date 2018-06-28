@@ -19,91 +19,37 @@ void DisasmData::parseDirectory(std::string x)
     boost::trim(x);
 
     boost::filesystem::path irPath(x + "/gtirb");
-    if(boost::filesystem::is_regular_file(irPath))
-    {
-        this->loadIRFromFile(irPath.string());
+    this->loadIRFromFile(irPath.string());
 
-        // These things aren't stored in gtirb yet.
-        this->parseDecodedInstruction(x + "/instruction.facts");
-        this->parseOpRegdirect(x + "/op_regdirect.facts");
-        this->parseOpImmediate(x + "/op_immediate.facts");
-        this->parseOpIndirect(x + "/op_indirect.facts");
+    // These things aren't stored in gtirb yet.
+    this->parseDecodedInstruction(x + "/instruction.facts");
+    this->parseOpRegdirect(x + "/op_regdirect.facts");
+    this->parseOpImmediate(x + "/op_immediate.facts");
+    this->parseOpIndirect(x + "/op_indirect.facts");
 
-        this->parseRemainingEA(x + "/phase2-remaining_ea.csv");
-        this->parseMainFunction(x + "/main_function.csv");
-        this->parseStartFunction(x + "/start_function.csv");
-        this->parseFunctionEntry(x + "/function_entry2.csv");
-        this->parseAmbiguousSymbol(x + "/ambiguous_symbol.csv");
+    this->parseRemainingEA(x + "/phase2-remaining_ea.csv");
+    this->parseMainFunction(x + "/main_function.csv");
+    this->parseStartFunction(x + "/start_function.csv");
+    this->parseFunctionEntry(x + "/function_entry2.csv");
+    this->parseAmbiguousSymbol(x + "/ambiguous_symbol.csv");
 
-        this->parseStackOperand(x + "/stack_operand.csv");
-        this->parsePreferredDataAccess(x + "/preferred_data_access.csv");
-        this->parseDataAccessPattern(x + "/data_access_pattern.csv");
+    this->parseStackOperand(x + "/stack_operand.csv");
+    this->parsePreferredDataAccess(x + "/preferred_data_access.csv");
+    this->parseDataAccessPattern(x + "/data_access_pattern.csv");
 
-        this->parseDiscardedBlock(x + "/discarded_block.csv");
-        this->parseDirectJump(x + "/direct_jump.csv");
-        this->parsePCRelativeJump(x + "/pc_relative_jump.csv");
-        this->parsePCRelativeCall(x + "/pc_relative_call.csv");
-        this->parseBlockOverlap(x + "/block_still_overlap.csv");
-        this->parseDefUsed(x + "/def_used.csv");
+    this->parseDiscardedBlock(x + "/discarded_block.csv");
+    this->parseDirectJump(x + "/direct_jump.csv");
+    this->parsePCRelativeJump(x + "/pc_relative_jump.csv");
+    this->parsePCRelativeCall(x + "/pc_relative_call.csv");
+    this->parseBlockOverlap(x + "/block_still_overlap.csv");
+    this->parseDefUsed(x + "/def_used.csv");
 
-        this->parsePairedDataAccess(x + "/paired_data_access.csv");
-        this->parseValueReg(x + "/value_reg.csv");
-        this->parseIncompleteCFG(x + "/incomplete_cfg.csv");
-        this->parseNoReturn(x + "/no_return.csv");
-        this->parseInFunction(x + "/in_function.csv");
-        this->parseBSSData(x + "/bss_data.csv");
-    }
-    else
-    {
-        this->parseSymbol(x + "/symbol.facts");
-        this->parseSection(x + "/section.facts");
-        this->parseRelocation(x + "/relocation.facts");
-        this->parseDecodedInstruction(x + "/instruction.facts");
-        this->parseOpRegdirect(x + "/op_regdirect.facts");
-        this->parseOpImmediate(x + "/op_immediate.facts");
-        this->parseOpIndirect(x + "/op_indirect.facts");
-        this->parseDataByte(x + "/data_byte.facts");
-
-        this->parseBlock(x + "/block.csv");
-        this->parseCodeInblock(x + "/code_in_block.csv");
-        this->parseRemainingEA(x + "/phase2-remaining_ea.csv");
-        this->parseMainFunction(x + "/main_function.csv");
-        this->parseStartFunction(x + "/start_function.csv");
-        this->parseFunctionEntry(x + "/function_entry2.csv");
-        this->parseAmbiguousSymbol(x + "/ambiguous_symbol.csv");
-        this->parseDirectCall(x + "/direct_call.csv");
-        this->parsePLTCodeReference(x + "/plt_code_reference.csv");
-        this->parsePLTDataReference(x + "/plt_data_reference.csv");
-        this->parseSymbolicOperand(x + "/symbolic_operand.csv");
-        this->parseMovedLabel(x + "/moved_label.csv");
-        this->parseLabeledData(x + "/labeled_data.csv");
-        this->parseSymbolicData(x + "/symbolic_data.csv");
-        this->parseSymbolMinusSymbol(x + "/symbol_minus_symbol.csv");
-        this->parseMovedDataLabel(x + "/moved_data_label.csv");
-        this->parseString(x + "/string.csv");
-        this->parseBSSData(x + "/bss_data.csv");
-
-        this->parseStackOperand(x + "/stack_operand.csv");
-        this->parsePreferredDataAccess(x + "/preferred_data_access.csv");
-        this->parseDataAccessPattern(x + "/data_access_pattern.csv");
-
-        this->parseDiscardedBlock(x + "/discarded_block.csv");
-        this->parseDirectJump(x + "/direct_jump.csv");
-        this->parsePCRelativeJump(x + "/pc_relative_jump.csv");
-        this->parsePCRelativeCall(x + "/pc_relative_call.csv");
-        this->parseBlockOverlap(x + "/block_still_overlap.csv");
-        this->parseDefUsed(x + "/def_used.csv");
-
-        this->parsePairedDataAccess(x + "/paired_data_access.csv");
-        this->parseValueReg(x + "/value_reg.csv");
-        this->parseIncompleteCFG(x + "/incomplete_cfg.csv");
-        this->parseNoReturn(x + "/no_return.csv");
-        this->parseInFunction(x + "/in_function.csv");
-
-        // Build IR for blocks from parsed data
-        this->createCodeBlocks();
-        this->buildDataGroups();
-    }
+    this->parsePairedDataAccess(x + "/paired_data_access.csv");
+    this->parseValueReg(x + "/value_reg.csv");
+    this->parseIncompleteCFG(x + "/incomplete_cfg.csv");
+    this->parseNoReturn(x + "/no_return.csv");
+    this->parseInFunction(x + "/in_function.csv");
+    this->parseBSSData(x + "/bss_data.csv");
 }
 
 void DisasmData::loadIRFromFile(std::string path)
@@ -120,115 +66,6 @@ void DisasmData::saveIRToFile(std::string path)
     boost::archive::polymorphic_text_oarchive oa{out};
     oa << this->ir;
     out.close();
-}
-
-void DisasmData::createCodeBlocks()
-{
-    std::vector<gtirb::Block> blocks;
-
-    for(auto& blockAddress : this->block)
-    {
-        std::vector<gtirb::Instruction> instructions;
-
-        for(auto& cib : this->code_in_block)
-        {
-            // The instruction's block address == the block's addres.
-            if(cib.BlockAddress == blockAddress)
-            {
-                instructions.emplace_back(gtirb::EA(cib.EA));
-            }
-        }
-
-        std::sort(instructions.begin(), instructions.end(),
-                  [](const auto& left, const auto& right) { return left.getEA() < right.getEA(); });
-
-        gtirb::EA end;
-        if(!instructions.empty())
-        {
-            auto address = instructions.back().getEA();
-            end = gtirb::EA(address.get() + this->getDecodedInstruction(address)->Size);
-        }
-        else
-        {
-            end = gtirb::EA(blockAddress);
-        }
-
-        blocks.emplace_back(gtirb::Block(gtirb::EA(blockAddress), end, instructions));
-    }
-
-    std::sort(blocks.begin(), blocks.end(), [](const auto& left, const auto& right) {
-        return left.getStartingAddress() < right.getStartingAddress();
-    });
-
-    this->ir.getMainModule()->setBlocks(blocks);
-}
-
-void DisasmData::parseSymbol(const std::string& x)
-{
-    Table fromFile{5};
-    fromFile.parseFile(x);
-
-    int count = 0;
-    for(const auto& ff : fromFile)
-    {
-        count++;
-
-        assert(ff.size() == 5);
-
-        gtirb::EA base{boost::lexical_cast<uint64_t>(ff[0])};
-        uint64_t size = boost::lexical_cast<uint64_t>(ff[1]);
-        std::string type = ff[2];
-        std::string scope = ff[3];
-        std::string name = ff[4];
-
-        auto& new_sym = getSymbolSet()->addSymbol(gtirb::Symbol(gtirb::EA(base)));
-        new_sym.setElementSize(size);
-        new_sym.setName(name);
-        // NOTE: don't seem to care about OBJECT or NOTYPE, and not clear how
-        // to represent them in gtirb.
-        if(type == "FUNC")
-        {
-            new_sym.setDeclarationKind(gtirb::Symbol::DeclarationKind::Func);
-        }
-        // NOTE: don't seem to care about LOCAL or WEAK, and not clear how to
-        // represent them in gtirb.
-        new_sym.setIsGlobal(scope == "GLOBAL");
-    }
-
-    std::cerr << " # Number of symbol: " << count << std::endl;
-}
-
-void DisasmData::parseSection(const std::string& x)
-{
-    Table fromFile{3};
-    fromFile.parseFile(x);
-
-    auto& sections = this->ir.getMainModule()->getSections();
-    for(const auto& ff : fromFile)
-    {
-        sections.emplace_back(ff[0], boost::lexical_cast<uint64_t>(ff[1]),
-                              gtirb::EA(boost::lexical_cast<uint64_t>(ff[2])));
-    }
-
-    std::cerr << " # Number of section: " << this->getSections().size() << std::endl;
-}
-
-void DisasmData::parseRelocation(const std::string& x)
-{
-    Table fromFile{4};
-    fromFile.parseFile(x);
-    std::vector<gtirb::Relocation> relocations;
-
-    for(const auto& ff : fromFile)
-    {
-        relocations.push_back(gtirb::Relocation{gtirb::EA(boost::lexical_cast<uint64_t>(ff[0])),
-                                                ff[1], ff[2],
-                                                boost::lexical_cast<uint64_t>(ff[3])});
-    }
-    this->ir.getMainModule()->setRelocations(relocations);
-
-    std::cerr << " # Number of relocation: " << this->ir.getMainModule()->getRelocations()->size()
-              << std::endl;
 }
 
 void DisasmData::parseDecodedInstruction(const std::string& x)
@@ -281,66 +118,6 @@ void DisasmData::parseOpIndirect(const std::string& x)
     }
 
     std::cerr << " # Number of op_indirect: " << this->op_indirect.size() << std::endl;
-}
-
-void DisasmData::parseDataByte(const std::string& x)
-{
-    Table fromFile{2};
-    fromFile.parseFile(x);
-
-    int count = 0;
-    for(const auto& ff : fromFile)
-    {
-        gtirb::EA ea(boost::lexical_cast<uint64_t>(ff[0]));
-
-        // A lexical cast directly to uint8_t failed on double-digit numbers.
-        const auto byte = boost::lexical_cast<int>(ff[1]);
-        assert(byte >= 0);
-        assert(byte < 256);
-
-        auto byteMap = this->ir.getMainModule()->getImageByteMap();
-        auto minMax = byteMap->getEAMinMax();
-        if(minMax.first == gtirb::constants::BadAddress
-           && minMax.second == gtirb::constants::BadAddress)
-        {
-            byteMap->setEAMinMax({ea, ea});
-        }
-        else
-        {
-            byteMap->setEAMinMax({std::min(minMax.first, ea), std::max(minMax.second, ea)});
-        }
-
-        byteMap->setData(ea, static_cast<uint8_t>(byte));
-        count++;
-    }
-
-    std::cerr << " # Number of data_byte: " << count << std::endl;
-}
-
-void DisasmData::parseBlock(const std::string& x)
-{
-    Table fromFile{1};
-    fromFile.parseFile(x);
-
-    for(const auto& ff : fromFile)
-    {
-        this->block.push_back(boost::lexical_cast<uint64_t>(ff[0]));
-    }
-
-    std::cerr << " # Number of block: " << this->block.size() << std::endl;
-}
-
-void DisasmData::parseCodeInblock(const std::string& x)
-{
-    Table fromFile{2};
-    fromFile.parseFile(x);
-
-    for(const auto& ff : fromFile)
-    {
-        this->code_in_block.push_back(CodeInBlock(ff));
-    }
-
-    std::cerr << " # Number of code_in_block: " << this->code_in_block.size() << std::endl;
 }
 
 void DisasmData::parseRemainingEA(const std::string& x)
@@ -408,138 +185,6 @@ void DisasmData::parseAmbiguousSymbol(const std::string& x)
     }
 
     std::cerr << " # Number of ambiguous_symbol: " << this->ambiguous_symbol.size() << std::endl;
-}
-
-void DisasmData::parseDirectCall(const std::string& x)
-{
-    Table fromFile{2};
-    fromFile.parseFile(x);
-
-    for(const auto& ff : fromFile)
-    {
-        this->direct_call.push_back(DirectCall(ff));
-    }
-
-    std::cerr << " # Number of direct_call: " << this->direct_call.size() << std::endl;
-}
-
-void DisasmData::parsePLTCodeReference(const std::string& x)
-{
-    Table fromFile{2};
-    fromFile.parseFile(x);
-
-    for(const auto& ff : fromFile)
-    {
-        this->plt_code_reference.push_back(PLTReference(ff));
-    }
-
-    std::cerr << " # Number of plt_code_reference: " << this->plt_code_reference.size()
-              << std::endl;
-}
-void DisasmData::parsePLTDataReference(const std::string& x)
-{
-    Table fromFile{2};
-    fromFile.parseFile(x);
-
-    for(const auto& ff : fromFile)
-    {
-        this->plt_data_reference.push_back(PLTReference(ff));
-    }
-
-    std::cerr << " # Number of plt_data_reference: " << this->plt_data_reference.size()
-              << std::endl;
-}
-
-void DisasmData::parseSymbolicOperand(const std::string& x)
-{
-    Table fromFile{2};
-    fromFile.parseFile(x);
-
-    for(const auto& ff : fromFile)
-    {
-        this->symbolic_operand.push_back(SymbolicOperand(ff));
-    }
-
-    std::cerr << " # Number of symbolic_operand: " << this->symbolic_operand.size() << std::endl;
-}
-
-void DisasmData::parseMovedLabel(const std::string& x)
-{
-    Table fromFile{4};
-    fromFile.parseFile(x);
-
-    for(const auto& ff : fromFile)
-    {
-        this->moved_label.push_back(MovedLabel(ff));
-    }
-
-    std::cerr << " # Number of moved_label: " << this->moved_label.size() << std::endl;
-}
-
-void DisasmData::parseLabeledData(const std::string& x)
-{
-    Table fromFile{1};
-    fromFile.parseFile(x);
-
-    for(const auto& ff : fromFile)
-    {
-        this->labeled_data.push_back(boost::lexical_cast<uint64_t>(ff[0]));
-    }
-
-    std::cerr << " # Number of labeled_data: " << this->labeled_data.size() << std::endl;
-}
-
-void DisasmData::parseSymbolicData(const std::string& x)
-{
-    Table fromFile{2};
-    fromFile.parseFile(x);
-
-    for(const auto& ff : fromFile)
-    {
-        this->symbolic_data.push_back(SymbolicData(ff));
-    }
-
-    std::cerr << " # Number of symbolic_data: " << this->symbolic_data.size() << std::endl;
-}
-
-void DisasmData::parseSymbolMinusSymbol(const std::string& x)
-{
-    Table fromFile{3};
-    fromFile.parseFile(x);
-
-    for(const auto& ff : fromFile)
-    {
-        this->symbol_minus_symbol.push_back(SymbolMinusSymbol(ff));
-    }
-
-    std::cerr << " # Number of symbol_minus_symbol: " << this->symbol_minus_symbol.size()
-              << std::endl;
-}
-
-void DisasmData::parseMovedDataLabel(const std::string& x)
-{
-    Table fromFile{3};
-    fromFile.parseFile(x);
-
-    for(const auto& ff : fromFile)
-    {
-        this->moved_data_label.push_back(MovedDataLabel(ff));
-    }
-
-    std::cerr << " # Number of moved_data_label: " << this->moved_data_label.size() << std::endl;
-}
-
-void DisasmData::parseString(const std::string& x)
-{
-    Table fromFile{2};
-    fromFile.parseFile(x);
-
-    for(const auto& ff : fromFile)
-    {
-        this->string.push_back(String(ff));
-    }
-
-    std::cerr << " # Number of string: " << this->string.size() << std::endl;
 }
 
 void DisasmData::parseBSSData(const std::string& x)
@@ -694,56 +339,6 @@ std::vector<std::string>* DisasmData::getAmbiguousSymbol()
     return &this->ambiguous_symbol;
 }
 
-std::vector<DirectCall>* DisasmData::getDirectCall()
-{
-    return &this->direct_call;
-}
-
-std::vector<PLTReference>* DisasmData::getPLTCodeReference()
-{
-    return &this->plt_code_reference;
-}
-
-std::vector<PLTReference>* DisasmData::getPLTDataReference()
-{
-    return &this->plt_data_reference;
-}
-
-std::vector<SymbolicOperand>* DisasmData::getSymbolicOperand()
-{
-    return &this->symbolic_operand;
-}
-
-std::vector<MovedLabel>* DisasmData::getMovedLabel()
-{
-    return &this->moved_label;
-}
-
-std::vector<uint64_t>* DisasmData::getLabeledData()
-{
-    return &this->labeled_data;
-}
-
-std::vector<SymbolicData>* DisasmData::getSymbolicData()
-{
-    return &this->symbolic_data;
-}
-
-std::vector<SymbolMinusSymbol>* DisasmData::getSymbolMinusSymbol()
-{
-    return &this->symbol_minus_symbol;
-}
-
-std::vector<MovedDataLabel>* DisasmData::getMovedDataLabel()
-{
-    return &this->moved_data_label;
-}
-
-std::vector<String>* DisasmData::getString()
-{
-    return &this->string;
-}
-
 std::vector<uint64_t>* DisasmData::getBSSData()
 {
     return &this->bss_data;
@@ -823,15 +418,6 @@ Table* DisasmData::getNoReturn()
 Table* DisasmData::getInFunction()
 {
     return &this->in_function;
-}
-
-void DisasmData::buildDataGroups()
-{
-}
-
-const std::vector<gtirb::Block>* DisasmData::getCodeBlocks() const
-{
-    return this->ir.getMainModule()->getBlocks();
 }
 
 std::string DisasmData::getSectionName(uint64_t x) const
@@ -969,131 +555,6 @@ std::string DisasmData::getGlobalSymbolName(uint64_t ea) const
     }
 
     return std::string{};
-}
-
-const PLTReference* const DisasmData::getPLTCodeReference(uint64_t ea) const
-{
-    const auto found =
-        std::find_if(std::begin(this->plt_code_reference), std::end(this->plt_code_reference),
-                     [ea](const auto& element) { return element.EA == ea; });
-
-    if(found != std::end(this->plt_code_reference))
-    {
-        return &(*found);
-    }
-
-    return nullptr;
-}
-
-const PLTReference* const DisasmData::getPLTDataReference(uint64_t ea) const
-{
-    const auto found =
-        std::find_if(std::begin(this->plt_data_reference), std::end(this->plt_data_reference),
-                     [ea](const auto& element) { return element.EA == ea; });
-
-    if(found != std::end(this->plt_data_reference))
-    {
-        return &(*found);
-    }
-
-    return nullptr;
-}
-
-const SymbolicData* const DisasmData::getSymbolicData(uint64_t ea) const
-{
-    const auto found = std::find_if(std::begin(this->symbolic_data), std::end(this->symbolic_data),
-                                    [ea](const auto& element) { return element.EA == ea; });
-
-    if(found != std::end(this->symbolic_data))
-    {
-        return &(*found);
-    }
-
-    return nullptr;
-}
-
-const SymbolMinusSymbol* const DisasmData::getSymbolMinusSymbol(uint64_t ea) const
-{
-    const auto found =
-        std::find_if(std::begin(this->symbol_minus_symbol), std::end(this->symbol_minus_symbol),
-                     [ea](const auto& element) { return element.EA == ea; });
-
-    if(found != std::end(this->symbol_minus_symbol))
-    {
-        return &(*found);
-    }
-
-    return nullptr;
-}
-
-const String* const DisasmData::getString(uint64_t ea) const
-{
-    const auto found = std::find_if(std::begin(this->string), std::end(this->string),
-                                    [ea](const auto& element) { return element.EA == ea; });
-
-    if(found != std::end(this->string))
-    {
-        return &(*found);
-    }
-
-    return nullptr;
-}
-
-const DirectCall* const DisasmData::getDirectCall(uint64_t ea) const
-{
-    const auto found = std::find_if(std::begin(this->direct_call), std::end(this->direct_call),
-                                    [ea](const auto& element) { return element.EA == ea; });
-
-    if(found != std::end(this->direct_call))
-    {
-        return &(*found);
-    }
-
-    return nullptr;
-}
-
-const MovedLabel* const DisasmData::getMovedLabel(uint64_t ea, uint64_t index) const
-{
-    const auto found = std::find_if(
-        std::begin(this->moved_label), std::end(this->moved_label),
-        [ea, index](const auto& element) { return element.EA == ea && element.N == index; });
-
-    if(found != std::end(this->moved_label))
-    {
-        return &(*found);
-    }
-
-    return nullptr;
-}
-
-const MovedDataLabel* const DisasmData::getMovedDataLabel(uint64_t ea) const
-{
-    const auto found =
-        std::find_if(std::begin(this->moved_data_label), std::end(this->moved_data_label),
-                     [ea](const auto& element) { return element.EA == ea; });
-
-    if(found != std::end(this->moved_data_label))
-    {
-        return &(*found);
-    }
-
-    return nullptr;
-}
-
-const SymbolicOperand* const DisasmData::getSymbolicOperand(uint64_t ea, uint64_t opNum) const
-{
-    const auto found =
-        std::find_if(std::begin(this->symbolic_operand), std::end(this->symbolic_operand),
-                     [ea, opNum](const auto& element) {
-                         return (element.EA == ea) && (element.OpNum == opNum);
-                     });
-
-    if(found != std::end(this->symbolic_operand))
-    {
-        return &(*found);
-    }
-
-    return nullptr;
 }
 
 const gtirb::Relocation* const DisasmData::getRelocation(const std::string& x) const

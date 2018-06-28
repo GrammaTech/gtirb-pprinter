@@ -68,21 +68,15 @@ public:
     Table* getNoReturn();
     Table* getInFunction();
 
-    const std::vector<gtirb::Block>* getCodeBlocks() const;
     std::string getSectionName(uint64_t x) const;
     std::string getFunctionName(gtirb::EA x) const;
     std::string getGlobalSymbolReference(uint64_t ea) const;
     std::string getGlobalSymbolName(uint64_t ea) const;
-    const PLTReference* const getPLTDataReference(uint64_t ea) const;
-    const SymbolicData* const getSymbolicData(uint64_t ea) const;
-    const SymbolMinusSymbol* const getSymbolMinusSymbol(uint64_t ea) const;
-    const String* const getString(uint64_t ea) const;
     const DecodedInstruction* const getDecodedInstruction(uint64_t ea) const;
     const OpIndirect* const getOpIndirect(uint64_t x) const;
     const OpRegdirect* const getOpRegdirect(uint64_t x) const;
     uint64_t getOpRegdirectCode(std::string name) const;
     const OpImmediate* const getOpImmediate(uint64_t x) const;
-    const MovedDataLabel* const getMovedDataLabel(uint64_t x) const;
     const gtirb::Relocation* const getRelocation(const std::string& x) const;
     const gtirb::Section* const getSection(const std::string& x) const;
 
@@ -101,53 +95,19 @@ public:
     static std::string AvoidRegNameConflicts(const std::string& x);
 
 private:
-    std::vector<DirectCall>* getDirectCall();
-    std::vector<MovedLabel>* getMovedLabel();
-    std::vector<PLTReference>* getPLTCodeReference();
-    std::vector<SymbolicOperand>* getSymbolicOperand();
-    const PLTReference* const getPLTCodeReference(uint64_t ea) const;
-    const DirectCall* const getDirectCall(uint64_t ea) const;
-    const MovedLabel* const getMovedLabel(uint64_t x, uint64_t index) const;
-    const SymbolicOperand* const getSymbolicOperand(uint64_t x, uint64_t opNum) const;
-    std::vector<PLTReference>* getPLTDataReference();
-    std::vector<uint64_t>* getLabeledData();
-    std::vector<SymbolicData>* getSymbolicData();
-    std::vector<SymbolMinusSymbol>* getSymbolMinusSymbol();
-    std::vector<MovedDataLabel>* getMovedDataLabel();
-    std::vector<String>* getString();
-
-    void createCodeBlocks();
-    void buildDataGroups();
-
     ///
     /// Parse the statistics facts file.
     ///
-    void parseSymbol(const std::string& x);
-    void parseSection(const std::string& x);
-    void parseRelocation(const std::string& x);
     void parseDecodedInstruction(const std::string& x);
     void parseOpRegdirect(const std::string& x);
     void parseOpImmediate(const std::string& x);
     void parseOpIndirect(const std::string& x);
-    void parseDataByte(const std::string& x);
 
-    void parseBlock(const std::string& x);
-    void parseCodeInblock(const std::string& x);
     void parseRemainingEA(const std::string& x);
     void parseMainFunction(const std::string& x);
     void parseStartFunction(const std::string& x);
     void parseFunctionEntry(const std::string& x);
     void parseAmbiguousSymbol(const std::string& x);
-    void parseDirectCall(const std::string& x);
-    void parsePLTCodeReference(const std::string& x);
-    void parsePLTDataReference(const std::string& x);
-    void parseSymbolicOperand(const std::string& x);
-    void parseMovedLabel(const std::string& x);
-    void parseLabeledData(const std::string& x);
-    void parseSymbolicData(const std::string& x);
-    void parseSymbolMinusSymbol(const std::string& x);
-    void parseMovedDataLabel(const std::string& x);
-    void parseString(const std::string& x);
     void parseBSSData(const std::string& x);
     void parseStackOperand(const std::string& x);
     void parsePreferredDataAccess(const std::string& x);
@@ -171,22 +131,11 @@ private:
 
     // these facts are necessary for printing the asm
     std::vector<uint64_t> block;
-    std::vector<CodeInBlock> code_in_block;
     std::vector<uint64_t> remaining_ea;
     std::vector<uint64_t> main_function;
     std::vector<uint64_t> start_function;
     std::vector<uint64_t> function_entry;
     std::vector<std::string> ambiguous_symbol;
-    std::vector<DirectCall> direct_call;
-    std::vector<PLTReference> plt_code_reference;
-    std::vector<PLTReference> plt_data_reference;
-    std::vector<SymbolicOperand> symbolic_operand;
-    std::vector<MovedLabel> moved_label;
-    std::vector<uint64_t> labeled_data;
-    std::vector<SymbolicData> symbolic_data;
-    std::vector<SymbolMinusSymbol> symbol_minus_symbol;
-    std::vector<MovedDataLabel> moved_data_label;
-    std::vector<String> string;
     std::vector<uint64_t> bss_data;
 
     // these facts are only used for generating hints

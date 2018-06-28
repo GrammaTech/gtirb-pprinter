@@ -71,7 +71,6 @@ protected:
                                  const OpImmediate* const op, uint64_t ea, uint64_t index);
     std::string buildOpIndirect(const gtirb::SymbolicOperand* symbolic, const OpIndirect* const op,
                                 uint64_t ea, uint64_t index);
-    std::string buildAdjustMovedDataLabel(uint64_t ea, uint64_t value);
 
     void condPrintGlobalSymbol(uint64_t ea);
     void condPrintSectionHeader(const gtirb::Block& x);
