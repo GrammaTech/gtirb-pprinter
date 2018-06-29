@@ -81,7 +81,7 @@ std::string PrettyPrinter::prettyPrint(DisasmData* x)
     this->printHeader();
 
     // Note: making a copy due to AdjustPadding below.
-    auto blocks = *this->disasm->ir.getMainModule()->getBlocks();
+    auto blocks = *this->disasm->ir.getMainModule().getBlocks();
 
     if(this->getDebug() == true)
     {
@@ -343,7 +343,7 @@ void PrettyPrinter::printOperandList(const std::string& opcode,
     std::string str_operands[4];
     auto ea = instruction.getEA();
 
-    const auto& symbolic = this->disasm->ir.getMainModule()->getSymbolicOperands();
+    const auto& symbolic = this->disasm->ir.getMainModule().getSymbolicOperands();
     auto findSymbolic = [symbolic, ea](int index) {
         // FIXME: we're faking the operand offset here, assuming it's equal
         // to index. This works as long as the disassembler does the same
@@ -597,15 +597,15 @@ void PrettyPrinter::printDataGroups()
     const auto& pltReferences =
         boost::get<gtirb::Table::InnerMapType>(dataTable->contents["pltDataReferences"]);
     const auto& stringEAs = boost::get<std::vector<gtirb::EA>>(dataTable->contents["stringEAs"]);
-    const auto& symbolic = this->disasm->ir.getMainModule()->getSymbolicOperands();
-    const auto& symbolSet = this->disasm->ir.getMainModule()->getSymbolSet();
+    const auto& symbolic = this->disasm->ir.getMainModule().getSymbolicOperands();
+    const auto& symbolSet = this->disasm->ir.getMainModule().getSymbolSet();
 
     for(gtirb::Table::InnerMapType& ds : this->disasm->getDataSections())
     {
         auto sectionPtr = this->disasm->getSection(boost::get<std::string>(ds["name"]));
 
         std::vector<const gtirb::Data*> dataGroups;
-        const auto& moduleData = this->disasm->ir.getMainModule()->getData();
+        const auto& moduleData = this->disasm->ir.getMainModule().getData();
         for(auto i : boost::get<std::vector<uint64_t>>(ds["dataGroups"]))
         {
             dataGroups.push_back(&moduleData[i]);
@@ -707,7 +707,7 @@ void PrettyPrinter::printDataGroups()
                 }
                 else
                 {
-                    for(auto byte : data->getBytes(*this->disasm->ir.getMainModule()))
+                    for(auto byte : data->getBytes(this->disasm->ir.getMainModule()))
                     {
                         printTab();
                         this->ofs << ".byte 0x" << std::hex << static_cast<uint32_t>(byte)
@@ -751,7 +751,7 @@ void PrettyPrinter::printString(const gtirb::Data& x)
 
     this->ofs << ".string \"";
 
-    for(auto& b : x.getBytes(*this->disasm->ir.getMainModule()))
+    for(auto& b : x.getBytes(this->disasm->ir.getMainModule()))
     {
         if(b != 0)
         {

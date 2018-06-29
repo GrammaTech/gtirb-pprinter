@@ -292,7 +292,7 @@ void DisasmData::parseInFunction(const std::string& x)
 
 const std::vector<gtirb::Section>& DisasmData::getSections() const
 {
-    return this->ir.getMainModule()->getSections();
+    return this->ir.getMainModule().getSections();
 }
 
 std::vector<DecodedInstruction>* DisasmData::getDecodedInstruction()
@@ -519,7 +519,7 @@ std::string DisasmData::getGlobalSymbolReference(uint64_t ea) const
     }
 
     // check the relocation table
-    for(const auto& r : *this->ir.getMainModule()->getRelocations())
+    for(const auto& r : *this->ir.getMainModule().getRelocations())
     {
         if(r.ea == ea)
         {
@@ -560,7 +560,7 @@ std::string DisasmData::getGlobalSymbolName(uint64_t ea) const
 
 const gtirb::Relocation* const DisasmData::getRelocation(const std::string& x) const
 {
-    auto relocations = this->ir.getMainModule()->getRelocations();
+    auto relocations = this->ir.getMainModule().getRelocations();
     const auto found = std::find_if(std::begin(*relocations), std::end(*relocations),
                                     [x](const auto& element) { return element.name == x; });
 
@@ -574,7 +574,7 @@ const gtirb::Relocation* const DisasmData::getRelocation(const std::string& x) c
 
 const gtirb::SymbolSet& DisasmData::getSymbolSet() const
 {
-    return this->ir.getMainModule()->getSymbolSet();
+    return this->ir.getMainModule().getSymbolSet();
 }
 
 const gtirb::Section* const DisasmData::getSection(const std::string& x) const
