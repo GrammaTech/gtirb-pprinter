@@ -81,7 +81,7 @@ std::string PrettyPrinter::prettyPrint(DisasmData* x)
     this->printHeader();
 
     // Note: making a copy due to AdjustPadding below.
-    auto blocks = *this->disasm->ir.getMainModule().getBlocks();
+    auto blocks = this->disasm->ir.getMainModule().getBlocks();
 
     if(this->getDebug() == true)
     {
@@ -421,8 +421,8 @@ std::string PrettyPrinter::buildOpImmediate(const std::string& opcode,
 {
     if(symbolic)
     {
-        const auto& pltReferences = boost::get<gtirb::Table::InnerMapType>(
-            this->disasm->ir.getTable("DisasmData")->contents["pltCodeReferences"]);
+        const auto& pltReferences = boost::get<std::map<gtirb::EA, gtirb::table::ValueType>>(
+            *this->disasm->ir.getTable("pltCodeReferences"));
         const auto p = pltReferences.find(gtirb::EA(ea));
         if(p != pltReferences.end())
         {
@@ -592,21 +592,21 @@ std::string PrettyPrinter::buildOpIndirect(const gtirb::SymbolicOperand* symboli
 
 void PrettyPrinter::printDataGroups()
 {
-    auto* dataTable = this->disasm->ir.getTable("DisasmData");
+    auto& ir = this->disasm->ir;
 
     const auto& pltReferences =
-        boost::get<gtirb::Table::InnerMapType>(dataTable->contents["pltDataReferences"]);
-    const auto& stringEAs = boost::get<std::vector<gtirb::EA>>(dataTable->contents["stringEAs"]);
-    const auto& symbolic = this->disasm->ir.getMainModule().getSymbolicOperands();
-    const auto& symbolSet = this->disasm->ir.getMainModule().getSymbolSet();
+        boost::get<std::map<gtirb::EA, gtirb::table::ValueType>>(*ir.getTable("pltDataReferences"));
+    const auto& stringEAs = boost::get<std::vector<gtirb::EA>>(*ir.getTable("stringEAs"));
+    const auto& symbolic = ir.getMainModule().getSymbolicOperands();
+    const auto& symbolSet = ir.getMainModule().getSymbolSet();
 
-    for(gtirb::Table::InnerMapType& ds : this->disasm->getDataSections())
+    for(auto& ds : this->disasm->getDataSections())
     {
         auto sectionPtr = this->disasm->getSection(boost::get<std::string>(ds["name"]));
 
         std::vector<const gtirb::Data*> dataGroups;
         const auto& moduleData = this->disasm->ir.getMainModule().getData();
-        for(auto i : boost::get<std::vector<uint64_t>>(ds["dataGroups"]))
+        for(auto i : boost::get<std::vector<int64_t>>(ds["dataGroups"]))
         {
             dataGroups.push_back(&moduleData[i]);
         }
@@ -615,7 +615,7 @@ void PrettyPrinter::printDataGroups()
             continue;
 
         // Print section header...
-        this->printSectionHeader(sectionPtr->name, boost::get<uint64_t>(ds["alignment"]));
+        this->printSectionHeader(sectionPtr->name, boost::get<int64_t>(ds["alignment"]));
 
         // Print data for this section...
         for(auto dg = std::begin(dataGroups); dg != std::end(dataGroups); ++dg)
@@ -669,7 +669,7 @@ void PrettyPrinter::printDataGroups()
                 if(p != pltReferences.end())
                 {
                     printTab();
-                    this->printEA(boost::get<gtirb::EA>(p->first));
+                    this->printEA(p->first);
                     this->ofs << ".quad " << boost::get<std::string>(p->second);
                     this->ofs << std::endl;
                 }

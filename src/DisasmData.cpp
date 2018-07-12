@@ -56,17 +56,13 @@ void DisasmData::parseDirectory(std::string x)
 void DisasmData::loadIRFromFile(std::string path)
 {
     std::ifstream in(path);
-    boost::archive::polymorphic_text_iarchive ia(in);
-    ia >> this->ir;
-    in.close();
+    this->ir.load(in);
 }
 
 void DisasmData::saveIRToFile(std::string path)
 {
     std::ofstream out(path);
-    boost::archive::polymorphic_text_oarchive oa{out};
-    oa << this->ir;
-    out.close();
+    this->ir.save(out);
 }
 
 void DisasmData::parseDecodedInstruction(const std::string& x)
@@ -345,10 +341,9 @@ std::vector<uint64_t>* DisasmData::getBSSData()
     return &this->bss_data;
 }
 
-std::vector<gtirb::Table::InnerMapType>& DisasmData::getDataSections()
+std::vector<gtirb::table::InnerMapType>& DisasmData::getDataSections()
 {
-    auto& v = this->ir.getTable("DisasmData")->contents["dataSections"];
-    return boost::get<std::vector<gtirb::Table::InnerMapType>>(v);
+    return boost::get<std::vector<gtirb::table::InnerMapType>>(*this->ir.getTable("dataSections"));
 }
 
 Table* DisasmData::getStackOperand()
@@ -519,7 +514,7 @@ std::string DisasmData::getGlobalSymbolReference(uint64_t ea) const
     }
 
     // check the relocation table
-    for(const auto& r : *this->ir.getMainModule().getRelocations())
+    for(const auto& r : this->ir.getMainModule().getRelocations())
     {
         if(r.ea == ea)
         {
@@ -560,11 +555,11 @@ std::string DisasmData::getGlobalSymbolName(uint64_t ea) const
 
 const gtirb::Relocation* const DisasmData::getRelocation(const std::string& x) const
 {
-    auto relocations = this->ir.getMainModule().getRelocations();
-    const auto found = std::find_if(std::begin(*relocations), std::end(*relocations),
+    auto& relocations = this->ir.getMainModule().getRelocations();
+    const auto found = std::find_if(std::begin(relocations), std::end(relocations),
                                     [x](const auto& element) { return element.name == x; });
 
-    if(found != std::end(*relocations))
+    if(found != std::end(relocations))
     {
         return &(*found);
     }

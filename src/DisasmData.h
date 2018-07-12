@@ -52,7 +52,7 @@ public:
     std::vector<uint64_t>* getFunctionEntry();
     std::vector<std::string>* getAmbiguousSymbol();
     std::vector<uint64_t>* getBSSData();
-    std::vector<gtirb::Table::InnerMapType>& getDataSections();
+    std::vector<gtirb::table::InnerMapType>& getDataSections();
     Table* getStackOperand();
     Table* getPreferredDataAccess();
     Table* getDataAccessPattern();

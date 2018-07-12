@@ -44,6 +44,16 @@ RUN cd /usr/local/src \
     && make \
     && make install
 
+# Install protobuf
+RUN cd /usr/local/src \
+    && wget https://github.com/google/protobuf/releases/download/v3.6.0/protobuf-cpp-3.6.0.tar.gz \
+    && tar xf protobuf-cpp-3.6.0.tar.gz \
+    && cd protobuf-3.6.0 \
+    && ./configure \
+    && make \
+    && make install
+RUN ldconfig
+
 COPY . /gt/pretty-printer/
 
 # Install gtirb
@@ -51,7 +61,7 @@ RUN rm -rf /gt/pretty-printer/gtirb/build /gt/pretty-printer/gtirb/CMakeCache.tx
 RUN cd /gt/pretty-printer/gtirb/ && cmake ./ -Bbuild  && cd build &&  make && make install
 
 # Build datalog disassembler.
-RUN apt-get -y install gcc-multilib g++-multilib libc++1 libc++abi1
+RUN apt-get -y update && apt-get -y install gcc-multilib g++-multilib libc++1 libc++abi1
 RUN ln -s libc++.so.1 /usr/lib/x86_64-linux-gnu/libc++.so
 RUN ln -s libc++abi.so.1 /usr/lib/x86_64-linux-gnu/libc++abi.so
 RUN cd /gt/pretty-printer/datalog_disasm && make clean && make
