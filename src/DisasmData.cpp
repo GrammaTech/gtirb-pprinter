@@ -420,11 +420,11 @@ std::string DisasmData::getSectionName(uint64_t x) const
 {
     const auto& sections = this->getSections();
     const auto& match = find_if(sections.begin(), sections.end(),
-                                [x](const auto& s) { return s.startingAddress == x; });
+                                [x](const auto& s) { return s.getStartingAddress() == x; });
 
     if(match != sections.end())
     {
-        return match->name;
+        return match->getName();
     }
 
     return std::string{};
@@ -529,14 +529,14 @@ std::string DisasmData::getGlobalSymbolReference(uint64_t ea) const
 
 std::string DisasmData::getGlobalSymbolName(uint64_t ea) const
 {
-    for(const auto& sym : getSymbolSet())
+    for(const auto sym : findSymbols(getSymbolSet(), gtirb::EA(ea)))
     {
-        if(sym.getEA().get() == ea)
+        if(sym->getEA().get() == ea)
         {
-            if(sym.getIsGlobal())
+            if(sym->getIsGlobal())
             {
                 // %do not print labels for symbols that have to be relocated
-                const auto name = DisasmData::CleanSymbolNameSuffix(sym.getName());
+                const auto name = DisasmData::CleanSymbolNameSuffix(sym->getName());
 
                 // if it is not relocated...
                 if(this->getRelocation(name) == nullptr)
@@ -575,7 +575,7 @@ const gtirb::SymbolSet& DisasmData::getSymbolSet() const
 const gtirb::Section* const DisasmData::getSection(const std::string& x) const
 {
     const auto found = std::find_if(getSections().begin(), getSections().end(),
-                                    [x](const auto& element) { return element.name == x; });
+                                    [x](const auto& element) { return element.getName() == x; });
 
     if(found != getSections().end())
     {

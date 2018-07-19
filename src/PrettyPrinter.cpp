@@ -611,11 +611,11 @@ void PrettyPrinter::printDataGroups()
             dataGroups.push_back(&moduleData[i]);
         }
 
-        if(isSectionSkipped(sectionPtr->name) && !this->debug)
+        if(isSectionSkipped(sectionPtr->getName()) && !this->debug)
             continue;
 
         // Print section header...
-        this->printSectionHeader(sectionPtr->name, boost::get<int64_t>(ds["alignment"]));
+        this->printSectionHeader(sectionPtr->getName(), boost::get<int64_t>(ds["alignment"]));
 
         // Print data for this section...
         for(auto dg = std::begin(dataGroups); dg != std::end(dataGroups); ++dg)
@@ -624,7 +624,7 @@ void PrettyPrinter::printDataGroups()
             auto data = dynamic_cast<const gtirb::Data*>(*dg);
             auto foundSymbol = gtirb::findSymbols(symbolSet, data->getEA());
 
-            if(sectionPtr->name == ".init_array" || sectionPtr->name == ".fini_array")
+            if(sectionPtr->getName() == ".init_array" || sectionPtr->getName() == ".fini_array")
             {
                 auto dgNext = dg;
                 dgNext++;
@@ -772,9 +772,9 @@ void PrettyPrinter::printBSS()
         auto bssData = this->disasm->getBSSData();
 
         // Special case.
-        if(bssData->empty() == false && bssData->at(0) != bssSection->startingAddress)
+        if(bssData->empty() == false && bssData->at(0) != bssSection->getStartingAddress())
         {
-            const auto current = bssSection->startingAddress;
+            const auto current = bssSection->getStartingAddress();
             const auto next = bssData->at(0);
             const auto delta = next - current;
 
@@ -819,7 +819,7 @@ bool PrettyPrinter::skipEA(const uint64_t x) const
         for(const auto& s : this->disasm->getSections())
         {
             const auto found = std::find(std::begin(PrettyPrinter::AsmSkipSection),
-                                         std::end(PrettyPrinter::AsmSkipSection), s.name);
+                                         std::end(PrettyPrinter::AsmSkipSection), s.getName());
 
             if(found != std::end(PrettyPrinter::AsmSkipSection) && s.contains(gtirb::EA(x)))
             {
