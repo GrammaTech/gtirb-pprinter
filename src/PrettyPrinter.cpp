@@ -344,7 +344,7 @@ void PrettyPrinter::printOperandList(const std::string& opcode,
     auto ea = instruction.getEA();
 
     const auto& symbolic = this->disasm->ir.getMainModule().getSymbolicOperands();
-    auto findSymbolic = [symbolic, ea](int index) {
+    auto findSymbolic = [&symbolic, ea](int index) {
         // FIXME: we're faking the operand offset here, assuming it's equal
         // to index. This works as long as the disassembler does the same
         // thing, but it isn't right.

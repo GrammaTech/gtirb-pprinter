@@ -72,7 +72,8 @@ void DisasmData::parseDecodedInstruction(const std::string& x)
 
     for(const auto& ff : fromFile)
     {
-        this->instruction.push_back(DecodedInstruction(ff));
+        DecodedInstruction inst(ff);
+        this->instruction.emplace(inst.EA, std::move(inst));
     }
 
     std::cerr << " # Number of instruction: " << this->instruction.size() << std::endl;
@@ -98,7 +99,8 @@ void DisasmData::parseOpImmediate(const std::string& x)
 
     for(const auto& ff : fromFile)
     {
-        this->op_immediate.push_back(OpImmediate(ff));
+        OpImmediate op(ff);
+        this->op_immediate.emplace(op.N, std::move(op));
     }
 
     std::cerr << " # Number of op_immediate: " << this->op_immediate.size() << std::endl;
@@ -111,7 +113,8 @@ void DisasmData::parseOpIndirect(const std::string& x)
 
     for(const auto& ff : fromFile)
     {
-        this->op_indirect.push_back(OpIndirect(ff));
+        OpIndirect op(ff);
+        this->op_indirect.emplace(op.N, std::move(op));
     }
 
     std::cerr << " # Number of op_indirect: " << this->op_indirect.size() << std::endl;
@@ -291,7 +294,7 @@ const std::vector<gtirb::Section>& DisasmData::getSections() const
     return this->ir.getMainModule().getSections();
 }
 
-std::vector<DecodedInstruction>* DisasmData::getDecodedInstruction()
+std::map<gtirb::EA, DecodedInstruction>* DisasmData::getDecodedInstruction()
 {
     return &this->instruction;
 }
@@ -301,12 +304,12 @@ std::vector<OpRegdirect>* DisasmData::getOPRegdirect()
     return &this->op_regdirect;
 }
 
-std::vector<OpImmediate>* DisasmData::getOPImmediate()
+std::map<uint64_t, OpImmediate>* DisasmData::getOPImmediate()
 {
     return &this->op_immediate;
 }
 
-std::vector<OpIndirect>* DisasmData::getOPIndirect()
+std::map<uint64_t, OpIndirect>* DisasmData::getOPIndirect()
 {
     return &this->op_indirect;
 }
@@ -479,8 +482,12 @@ std::string DisasmData::getFunctionName(gtirb::EA x) const
 
 std::string DisasmData::getGlobalSymbolReference(uint64_t ea) const
 {
-    for(const auto& sym : getSymbolSet())
+    auto end = getSymbolSet().rend();
+    for(auto it = std::reverse_iterator<gtirb::SymbolSet::const_iterator>(
+            getSymbolSet().upper_bound(gtirb::EA(ea))); //
+        it != end && it->second.getEA() <= ea; it++)
     {
+        const auto& sym = it->second;
         /// \todo This will need looked at again to cover the logic
         if(sym.getEA().get() <= ea
            && sym.getEA().get() + sym.getElementSize() > ea) // fall within the symbol
@@ -587,12 +594,11 @@ const gtirb::Section* const DisasmData::getSection(const std::string& x) const
 
 const DecodedInstruction* const DisasmData::getDecodedInstruction(uint64_t ea) const
 {
-    const auto inst = std::find_if(std::begin(this->instruction), std::end(this->instruction),
-                                   [ea](const auto& x) { return x.EA == ea; });
+    const auto inst = this->instruction.find(gtirb::EA(ea));
 
-    if(inst != std::end(this->instruction))
+    if(inst != this->instruction.end())
     {
-        return &(*inst);
+        return &(inst->second);
     }
 
     return nullptr;
@@ -600,12 +606,11 @@ const DecodedInstruction* const DisasmData::getDecodedInstruction(uint64_t ea) c
 
 const OpIndirect* const DisasmData::getOpIndirect(uint64_t x) const
 {
-    const auto found = std::find_if(std::begin(this->op_indirect), std::end(this->op_indirect),
-                                    [x](const auto& element) { return element.N == x; });
+    const auto found = this->op_indirect.find(x);
 
     if(found != std::end(this->op_indirect))
     {
-        return &(*found);
+        return &found->second;
     }
 
     return nullptr;
@@ -639,12 +644,11 @@ uint64_t DisasmData::getOpRegdirectCode(std::string x) const
 
 const OpImmediate* const DisasmData::getOpImmediate(uint64_t x) const
 {
-    const auto found = std::find_if(std::begin(this->op_immediate), std::end(this->op_immediate),
-                                    [x](const auto& element) { return element.N == x; });
+    const auto found = this->op_immediate.find(x);
 
     if(found != std::end(this->op_immediate))
     {
-        return &(*found);
+        return &found->second;
     }
 
     return nullptr;
