@@ -13,6 +13,7 @@
 #include <gtirb/Symbol.hpp>
 #include <gtirb/SymbolSet.hpp>
 #include <gtirb/SymbolicOperand.hpp>
+#include <gtirb/Utilities.hpp>
 #include <iostream>
 
 void DisasmData::parseDirectory(std::string x)
@@ -57,6 +58,7 @@ void DisasmData::loadIRFromFile(std::string path)
 {
     std::ifstream in(path);
     this->ir.load(in);
+    this->functionEAs = boost::get<std::vector<gtirb::EA>>(*this->ir.getTable("functionEAs"));
 }
 
 void DisasmData::saveIRToFile(std::string path)
@@ -433,9 +435,9 @@ std::string DisasmData::getSectionName(uint64_t x) const
     return std::string{};
 }
 
-static bool isFunction(const gtirb::Symbol& sym)
+bool DisasmData::isFunction(const gtirb::Symbol& sym) const
 {
-    return sym.getDeclarationKind() == gtirb::Symbol::DeclarationKind::Func;
+    return std::binary_search(this->functionEAs.begin(), this->functionEAs.end(), sym.getEA());
 }
 
 // function_complete_name
@@ -488,9 +490,10 @@ std::string DisasmData::getGlobalSymbolReference(uint64_t ea) const
         it != end && it->second.getEA() <= ea; it++)
     {
         const auto& sym = it->second;
+        gtirb::Data* data = sym.getDataReferent();
+
         /// \todo This will need looked at again to cover the logic
-        if(sym.getEA().get() <= ea
-           && sym.getEA().get() + sym.getElementSize() > ea) // fall within the symbol
+        if(data && gtirb::utilities::containsEA(*data, gtirb::EA(ea)))
         {
             uint64_t displacement = ea - sym.getEA().get();
 
@@ -499,7 +502,7 @@ std::string DisasmData::getGlobalSymbolReference(uint64_t ea) const
             {
                 return std::string{};
             }
-            if(sym.getIsGlobal())
+            if(sym.getStorageKind() != gtirb::Symbol::StorageKind::Local)
             {
                 // %do not print labels for symbols that have to be relocated
                 const auto name = DisasmData::CleanSymbolNameSuffix(sym.getName());
@@ -540,7 +543,7 @@ std::string DisasmData::getGlobalSymbolName(uint64_t ea) const
     {
         if(sym->getEA().get() == ea)
         {
-            if(sym->getIsGlobal())
+            if((sym->getStorageKind() != gtirb::Symbol::StorageKind::Local))
             {
                 // %do not print labels for symbols that have to be relocated
                 const auto name = DisasmData::CleanSymbolNameSuffix(sym->getName());

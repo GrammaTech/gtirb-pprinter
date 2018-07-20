@@ -846,7 +846,7 @@ bool PrettyPrinter::skipEA(const uint64_t x) const
         for(const auto& sym :
             gtirb::findSymbols(this->disasm->getSymbolSet(), gtirb::EA(xFunctionAddress)))
         {
-            if(sym->getDeclarationKind() == gtirb::Symbol::DeclarationKind::Func)
+            if(this->disasm->isFunction(*sym))
             {
                 xFunctionName = sym->getName();
                 break;
