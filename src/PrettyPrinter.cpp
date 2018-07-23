@@ -81,7 +81,10 @@ std::string PrettyPrinter::prettyPrint(DisasmData* x)
     this->printHeader();
 
     // Note: making a copy due to AdjustPadding below.
-    auto blocks = this->disasm->ir.getMainModule().getBlocks();
+    auto blockRange = gtirb::blocks(this->disasm->ir.getMainModule().getCFG());
+    std::vector<gtirb::Block> blocks;
+    blocks.reserve(blockRange.size());
+    std::copy(blockRange.begin(), blockRange.end(), std::back_inserter(blocks));
 
     if(this->getDebug() == true)
     {
