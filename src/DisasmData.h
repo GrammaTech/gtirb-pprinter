@@ -1,14 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include <gtirb/Block.hpp>
-#include <gtirb/Data.hpp>
-#include <gtirb/IR.hpp>
-#include <gtirb/Instruction.hpp>
-#include <gtirb/Relocation.hpp>
-#include <gtirb/Symbol.hpp>
-#include <gtirb/SymbolSet.hpp>
-#include <gtirb/Table.hpp>
+#include <gtirb/gtirb.hpp>
 #include <iosfwd>
 #include <list>
 #include <map>
@@ -40,7 +33,7 @@ public:
     // FIXME: IR should replace DisasmData entirely.
     gtirb::IR ir;
 
-    const gtirb::SymbolSet& getSymbolSet() const;
+    const gtirb::SymbolSet& getSymbols() const;
     const std::vector<gtirb::Section>& getSections() const;
     std::map<gtirb::EA, DecodedInstruction>* getDecodedInstruction();
     std::vector<OpRegdirect>* getOPRegdirect();

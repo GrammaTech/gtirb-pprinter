@@ -5,15 +5,7 @@
 #include <boost/lexical_cast.hpp>
 #include <fstream>
 #include <gsl/gsl>
-#include <gtirb/Block.hpp>
-#include <gtirb/ImageByteMap.hpp>
-#include <gtirb/Instruction.hpp>
-#include <gtirb/Module.hpp>
-#include <gtirb/Section.hpp>
-#include <gtirb/Symbol.hpp>
-#include <gtirb/SymbolSet.hpp>
-#include <gtirb/SymbolicOperand.hpp>
-#include <gtirb/Utilities.hpp>
+#include <gtirb/gtirb.hpp>
 #include <iostream>
 
 void DisasmData::parseDirectory(std::string x)
@@ -443,7 +435,7 @@ bool DisasmData::isFunction(const gtirb::Symbol& sym) const
 // function_complete_name
 std::string DisasmData::getFunctionName(gtirb::EA x) const
 {
-    for(auto& s : gtirb::findSymbols(this->getSymbolSet(), x))
+    for(auto& s : gtirb::findSymbols(this->getSymbols(), x))
     {
         if(isFunction(*s))
         {
@@ -484,9 +476,9 @@ std::string DisasmData::getFunctionName(gtirb::EA x) const
 
 std::string DisasmData::getGlobalSymbolReference(uint64_t ea) const
 {
-    auto end = getSymbolSet().rend();
+    auto end = getSymbols().rend();
     for(auto it = std::reverse_iterator<gtirb::SymbolSet::const_iterator>(
-            getSymbolSet().upper_bound(gtirb::EA(ea))); //
+            getSymbols().upper_bound(gtirb::EA(ea))); //
         it != end && it->second.getEA() <= ea; it++)
     {
         const auto& sym = it->second;
@@ -539,7 +531,7 @@ std::string DisasmData::getGlobalSymbolReference(uint64_t ea) const
 
 std::string DisasmData::getGlobalSymbolName(uint64_t ea) const
 {
-    for(const auto sym : findSymbols(getSymbolSet(), gtirb::EA(ea)))
+    for(const auto sym : findSymbols(getSymbols(), gtirb::EA(ea)))
     {
         if(sym->getEA().get() == ea)
         {
@@ -577,9 +569,9 @@ const gtirb::Relocation* const DisasmData::getRelocation(const std::string& x) c
     return nullptr;
 }
 
-const gtirb::SymbolSet& DisasmData::getSymbolSet() const
+const gtirb::SymbolSet& DisasmData::getSymbols() const
 {
-    return this->ir.getMainModule().getSymbolSet();
+    return this->ir.getMainModule().getSymbols();
 }
 
 const gtirb::Section* const DisasmData::getSection(const std::string& x) const

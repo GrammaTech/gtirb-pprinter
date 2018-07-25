@@ -4,11 +4,7 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/lexical_cast.hpp>
 #include <gsl/gsl>
-#include <gtirb/ImageByteMap.hpp>
-#include <gtirb/Instruction.hpp>
-#include <gtirb/Module.hpp>
-#include <gtirb/Symbol.hpp>
-#include <gtirb/SymbolicOperand.hpp>
+#include <gtirb/gtirb.hpp>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -601,7 +597,7 @@ void PrettyPrinter::printDataGroups()
         boost::get<std::map<gtirb::EA, gtirb::table::ValueType>>(*ir.getTable("pltDataReferences"));
     const auto& stringEAs = boost::get<std::vector<gtirb::EA>>(*ir.getTable("stringEAs"));
     const auto& symbolic = ir.getMainModule().getSymbolicOperands();
-    const auto& symbolSet = ir.getMainModule().getSymbolSet();
+    const auto& symbolSet = ir.getMainModule().getSymbols();
 
     for(auto& ds : this->disasm->getDataSections())
     {
@@ -847,7 +843,7 @@ bool PrettyPrinter::skipEA(const uint64_t x) const
 
         std::string xFunctionName{};
         for(const auto& sym :
-            gtirb::findSymbols(this->disasm->getSymbolSet(), gtirb::EA(xFunctionAddress)))
+            gtirb::findSymbols(this->disasm->getSymbols(), gtirb::EA(xFunctionAddress)))
         {
             if(this->disasm->isFunction(*sym))
             {
