@@ -70,12 +70,12 @@ public:
   const OpRegdirect* const getOpRegdirect(uint64_t x) const;
   uint64_t getOpRegdirectCode(std::string name) const;
   const OpImmediate* const getOpImmediate(uint64_t x) const;
-  const gtirb::Relocation* const getRelocation(const std::string& x) const;
+  bool isRelocated(const std::string& x) const;
   const gtirb::Section* const getSection(const std::string& x) const;
 
   bool getIsAmbiguousSymbol(const std::string& ea) const;
 
-  static void AdjustPadding(std::vector<gtirb::Block>& blocks);
+  static void AdjustPadding(std::vector<gtirb::Block*>& blocks);
   static std::string CleanSymbolNameSuffix(std::string x);
   static std::string AdaptOpcode(const std::string& x);
   static std::string AdaptRegister(const std::string& x);

@@ -246,7 +246,7 @@ void DisasmData::parseInFunction(const std::string& x) {
 }
 
 const std::vector<gtirb::Section>& DisasmData::getSections() const {
-  return this->ir.getMainModule().getSections();
+  return this->ir.getModules()[0].getSections();
 }
 
 std::map<gtirb::EA, DecodedInstruction>* DisasmData::getDecodedInstruction() {
@@ -305,8 +305,8 @@ Table* DisasmData::getInFunction() { return &this->in_function; }
 
 std::string DisasmData::getSectionName(uint64_t x) const {
   const auto& sections = this->getSections();
-  const auto& match = find_if(sections.begin(), sections.end(),
-                              [x](const auto& s) { return s.getStartingAddress() == x; });
+  const auto& match =
+      find_if(sections.begin(), sections.end(), [x](const auto& s) { return s.getAddress() == x; });
 
   if (match != sections.end()) {
     return match->getName();
@@ -358,10 +358,10 @@ std::string DisasmData::getGlobalSymbolReference(uint64_t ea) const {
            getSymbols().upper_bound(gtirb::EA(ea))); //
        it != end && it->second.getEA() <= ea; it++) {
     const auto& sym = it->second;
-    gtirb::Data* data = sym.getDataReferent();
+    auto data = sym.getDataReferent();
 
     /// \todo This will need looked at again to cover the logic
-    if (data && gtirb::utilities::containsEA(*data, gtirb::EA(ea))) {
+    if (data && containsEA(*data, gtirb::EA(ea))) {
       uint64_t displacement = ea - sym.getEA().get();
 
       // in a function with non-zero displacement we do not use the relative addressing
@@ -383,30 +383,33 @@ std::string DisasmData::getGlobalSymbolReference(uint64_t ea) const {
     }
   }
 
-  // check the relocation table
-  for (const auto& r : this->ir.getMainModule().getRelocations()) {
-    if (r.ea == ea) {
-      if (r.type == std::string{"R_X86_64_GLOB_DAT"})
-        return DisasmData::AvoidRegNameConflicts(r.name) + "@GOTPCREL";
-      else
-        return DisasmData::AvoidRegNameConflicts(r.name);
+  const auto& relocations =
+      boost::get<std::map<gtirb::EA, gtirb::table::ValueType>>(*ir.getTable("relocations"));
+  auto found = relocations.find(gtirb::EA(ea));
+  if (found != relocations.end()) {
+    const auto& r = boost::get<const gtirb::table::InnerMapType>(found->second);
+    const auto& name = boost::get<std::string>(r.at("name"));
+
+    if (boost::get<std::string>(r.at("type")) == std::string{"R_X86_64_GLOB_DAT"}) {
+      return DisasmData::AvoidRegNameConflicts(name) + "@GOTPCREL";
+    } else {
+      return DisasmData::AvoidRegNameConflicts(name);
     }
   }
+
   return std::string{};
 }
 
 std::string DisasmData::getGlobalSymbolName(uint64_t ea) const {
   for (const auto sym : findSymbols(getSymbols(), gtirb::EA(ea))) {
-    if (sym->getEA().get() == ea) {
+    if (sym->getEA() == ea) {
       if ((sym->getStorageKind() != gtirb::Symbol::StorageKind::Local)) {
         // %do not print labels for symbols that have to be relocated
         const auto name = DisasmData::CleanSymbolNameSuffix(sym->getName());
 
         // if it is not relocated...
-        if (this->getRelocation(name) == nullptr) {
-          if (DisasmData::GetIsReservedSymbol(name) == false) {
-            return std::string{DisasmData::AvoidRegNameConflicts(name)};
-          }
+        if (!this->isRelocated(name) && !DisasmData::GetIsReservedSymbol(name)) {
+          return std::string{DisasmData::AvoidRegNameConflicts(name)};
         }
       }
     }
@@ -415,20 +418,20 @@ std::string DisasmData::getGlobalSymbolName(uint64_t ea) const {
   return std::string{};
 }
 
-const gtirb::Relocation* const DisasmData::getRelocation(const std::string& x) const {
-  auto& relocations = this->ir.getMainModule().getRelocations();
-  const auto found = std::find_if(std::begin(relocations), std::end(relocations),
-                                  [x](const auto& element) { return element.name == x; });
+bool DisasmData::isRelocated(const std::string& x) const {
+  const auto& relocations =
+      boost::get<std::map<gtirb::EA, gtirb::table::ValueType>>(*ir.getTable("relocations"));
+  const auto found =
+      std::find_if(std::begin(relocations), std::end(relocations), [x](const auto& element) {
+        const auto& r = boost::get<const gtirb::table::InnerMapType>(element.second);
+        return boost::get<std::string>(r.at("name")) == x;
+      });
 
-  if (found != std::end(relocations)) {
-    return &(*found);
-  }
-
-  return nullptr;
+  return found != std::end(relocations);
 }
 
 const gtirb::SymbolSet& DisasmData::getSymbols() const {
-  return this->ir.getMainModule().getSymbols();
+  return this->ir.getModules()[0].getSymbols();
 }
 
 const gtirb::Section* const DisasmData::getSection(const std::string& x) const {
@@ -500,20 +503,23 @@ bool DisasmData::getIsAmbiguousSymbol(const std::string& name) const {
   return found != std::end(this->ambiguous_symbol);
 }
 
-void DisasmData::AdjustPadding(std::vector<gtirb::Block>& blocks) {
+void DisasmData::AdjustPadding(std::vector<gtirb::Block*>& blocks) {
   for (auto i = std::begin(blocks); i != std::end(blocks); ++i) {
     auto next = i;
     ++next;
     if (next != std::end(blocks)) {
-      const auto gap = next->getStartingAddress() - i->getEndingAddress();
+      const auto gap = (*next)->getAddress() - addressLimit(**i);
 
       // If we have overlap, erase the next element in the list.
-      if (i->getEndingAddress() > next->getStartingAddress()) {
+      if (addressLimit(**i) > (*next)->getAddress()) {
         blocks.erase(next);
       } else if (gap > 0) {
         // insert a block with no instructions.
         // This should be interpreted as nop's.
-        blocks.insert(next, gtirb::Block{i->getEndingAddress(), next->getStartingAddress()});
+
+        // FIXME: this will leak. We should insert the new Block into the CFG
+        // instead so it has an owner.
+        blocks.insert(next, new gtirb::Block{addressLimit(**i), (*next)->getAddress()});
       }
     }
   }

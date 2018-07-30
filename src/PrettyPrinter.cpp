@@ -45,7 +45,7 @@ public:
 std::string str_tolower(std::string s) {
   std::transform(s.begin(), s.end(), s.begin(),
                  [](unsigned char c) { return std::tolower(c); } // correct
-                 );
+  );
   return s;
 }
 
@@ -61,18 +61,19 @@ std::string PrettyPrinter::prettyPrint(DisasmData* x) {
 
   this->printHeader();
 
-  // Note: making a copy due to AdjustPadding below.
-  auto blockRange = gtirb::blocks(this->disasm->ir.getMainModule().getCFG());
-  std::vector<gtirb::Block> blocks;
-  blocks.reserve(blockRange.size());
-  std::copy(blockRange.begin(), blockRange.end(), std::back_inserter(blocks));
+  // Make a vector of block pointers so we can modify it in AdjustPadding
+  // below. It would probably be better for AdjustPadding to modify the CFG.
+  auto blockRange = gtirb::blocks(this->disasm->ir.getModules()[0].getCFG());
+  std::vector<gtirb::Block*> blocks;
+  std::transform(blockRange.begin(), blockRange.end(), std::back_inserter(blocks),
+                 [](auto& b) { return &b; });
 
   if (this->getDebug() == true) {
     DisasmData::AdjustPadding(blocks);
   }
 
-  for (const auto& b : blocks) {
-    this->printBlock(b);
+  for (const auto* b : blocks) {
+    this->printBlock(*b);
   }
 
   this->printDataGroups();
@@ -94,18 +95,25 @@ void PrettyPrinter::printHeader() {
 }
 
 void PrettyPrinter::printBlock(const gtirb::Block& x) {
-  if (this->skipEA(x.getStartingAddress()) == false) {
-    if (x.getInstructions().empty() == false) {
+  if (this->skipEA(x.getAddress()) == false) {
+    const auto& table = boost::get<std::map<gtirb::UUID, gtirb::table::ValueType>>(
+        *this->disasm->ir.getTable("blockInstructions"));
+    auto blockInfo = table.find(x.getUUID());
+    if (blockInfo != table.end()) {
       this->condPrintSectionHeader(x);
-      this->printFunctionHeader(x.getStartingAddress());
-      this->printLabel(x.getStartingAddress());
+      this->printFunctionHeader(x.getAddress());
+      this->printLabel(x.getAddress());
       this->ofs << std::endl;
 
-      for (const auto& inst : x.getInstructions()) {
+      // Reconstruct a vector of EAs from raw bytes stored in the table.
+      auto bytes = boost::get<std::string>(blockInfo->second);
+      std::vector<gtirb::EA> instructions(bytes.size() / sizeof(gtirb::EA));
+      memcpy(instructions.data(), bytes.data(), bytes.size());
+      for (const auto& inst : instructions) {
         this->printInstruction(inst);
       }
     } else {
-      const auto nopCount = x.getEndingAddress() - x.getStartingAddress();
+      const auto nopCount = addressLimit(x);
       this->ofs << std::endl;
 
       const auto bac = BlockAreaComment(this->ofs, "No instruciton padding.");
@@ -119,7 +127,7 @@ void PrettyPrinter::printBlock(const gtirb::Block& x) {
 }
 
 void PrettyPrinter::condPrintSectionHeader(const gtirb::Block& x) {
-  const auto name = this->disasm->getSectionName(gtirb::EA{x.getStartingAddress()});
+  const auto name = this->disasm->getSectionName(gtirb::EA{x.getAddress()});
 
   if (!name.empty()) {
     this->printSectionHeader(name);
@@ -189,10 +197,7 @@ void PrettyPrinter::condPrintGlobalSymbol(uint64_t ea) {
   }
 }
 
-void PrettyPrinter::printInstruction(const gtirb::Instruction& instruction) {
-  // TODO // Maybe print random nop's.
-  auto ea = instruction.getEA();
-
+void PrettyPrinter::printInstruction(gtirb::EA ea) {
   this->printEA(ea);
   auto inst = this->disasm->getDecodedInstruction(ea);
   auto prefix = inst->Prefix;
@@ -245,7 +250,7 @@ void PrettyPrinter::printInstruction(const gtirb::Instruction& instruction) {
   //////////////////////////////////////////////////////////////////////
   opcode = DisasmData::AdaptOpcode(opcode);
   this->ofs << " " << prefix << " " << opcode << " ";
-  this->printOperandList(opcode, instruction, operands);
+  this->printOperandList(opcode, ea, operands);
 
   /// TAKE THIS OUT ///
   this->ofs << std::endl;
@@ -261,7 +266,7 @@ void PrettyPrinter::printEA(uint64_t ea) {
   }
 }
 
-template <typename T> static const T* get(const gtirb::SymbolicOperand& symbolic) {
+template <typename T> static const T* get(const gtirb::SymbolicExpression& symbolic) {
   try {
     return &boost::get<T>(symbolic);
   } catch (boost::bad_get) {
@@ -269,13 +274,11 @@ template <typename T> static const T* get(const gtirb::SymbolicOperand& symbolic
   }
 }
 
-void PrettyPrinter::printOperandList(const std::string& opcode,
-                                     const gtirb::Instruction& instruction,
+void PrettyPrinter::printOperandList(const std::string& opcode, const gtirb::EA ea,
                                      const uint64_t* const operands) {
   std::string str_operands[4];
-  auto ea = instruction.getEA();
 
-  const auto& symbolic = this->disasm->ir.getMainModule().getSymbolicOperands();
+  const auto& symbolic = this->disasm->ir.getModules()[0].getSymbolicExpressions();
   auto findSymbolic = [&symbolic, ea](int index) {
     // FIXME: we're faking the operand offset here, assuming it's equal
     // to index. This works as long as the disassembler does the same
@@ -285,7 +288,7 @@ void PrettyPrinter::printOperandList(const std::string& opcode,
     if (found != symbolic.end()) {
       return &found->second;
     } else {
-      return static_cast<const gtirb::SymbolicOperand*>(nullptr);
+      return static_cast<const gtirb::SymbolicExpression*>(nullptr);
     }
   };
 
@@ -311,7 +314,7 @@ void PrettyPrinter::printOperandList(const std::string& opcode,
 }
 
 std::string PrettyPrinter::buildOperand(const std::string& opcode,
-                                        const gtirb::SymbolicOperand* symbolic, uint64_t operand,
+                                        const gtirb::SymbolicExpression* symbolic, uint64_t operand,
                                         uint64_t ea, uint64_t index) {
   auto opReg = this->disasm->getOpRegdirect(operand);
   if (opReg != nullptr) {
@@ -337,7 +340,7 @@ std::string PrettyPrinter::buildOpRegdirect(const OpRegdirect* const op, uint64_
 }
 
 std::string PrettyPrinter::buildOpImmediate(const std::string& opcode,
-                                            const gtirb::SymbolicOperand* symbolic,
+                                            const gtirb::SymbolicExpression* symbolic,
                                             const OpImmediate* const op, uint64_t ea,
                                             uint64_t index) {
   if (symbolic) {
@@ -382,7 +385,7 @@ std::string PrettyPrinter::buildOpImmediate(const std::string& opcode,
   return std::to_string(op->Immediate);
 }
 
-std::string PrettyPrinter::buildOpIndirect(const gtirb::SymbolicOperand* symbolic,
+std::string PrettyPrinter::buildOpIndirect(const gtirb::SymbolicExpression* symbolic,
                                            const OpIndirect* const op, uint64_t ea,
                                            uint64_t index) {
   const auto sizeName = DisasmData::GetSizeName(op->Size);
@@ -483,16 +486,16 @@ void PrettyPrinter::printDataGroups() {
   const auto& pltReferences =
       boost::get<std::map<gtirb::EA, gtirb::table::ValueType>>(*ir.getTable("pltDataReferences"));
   const auto& stringEAs = boost::get<std::vector<gtirb::EA>>(*ir.getTable("stringEAs"));
-  const auto& symbolic = ir.getMainModule().getSymbolicOperands();
-  const auto& symbolSet = ir.getMainModule().getSymbols();
+  const auto& symbolic = ir.getModules()[0].getSymbolicExpressions();
+  const auto& symbolSet = ir.getModules()[0].getSymbols();
 
   for (auto& ds : this->disasm->getDataSections()) {
     auto sectionPtr = this->disasm->getSection(boost::get<std::string>(ds["name"]));
 
-    std::vector<const gtirb::Data*> dataGroups;
-    const auto& moduleData = this->disasm->ir.getMainModule().getData();
-    for (auto i : boost::get<std::vector<int64_t>>(ds["dataGroups"])) {
-      dataGroups.push_back(&moduleData[i]);
+    std::vector<const gtirb::DataObject*> dataGroups;
+    for (auto i : boost::get<std::vector<gtirb::UUID>>(ds["dataGroups"])) {
+      gtirb::DataObject* d = gtirb::NodeRef<gtirb::DataObject>(i);
+      dataGroups.push_back(d);
     }
 
     if (isSectionSkipped(sectionPtr->getName()) && !this->debug)
@@ -504,8 +507,8 @@ void PrettyPrinter::printDataGroups() {
     // Print data for this section...
     for (auto dg = std::begin(dataGroups); dg != std::end(dataGroups); ++dg) {
       bool exclude = false;
-      auto data = dynamic_cast<const gtirb::Data*>(*dg);
-      auto foundSymbol = gtirb::findSymbols(symbolSet, data->getEA());
+      auto data = dynamic_cast<const gtirb::DataObject*>(*dg);
+      auto foundSymbol = gtirb::findSymbols(symbolSet, data->getAddress());
 
       if (sectionPtr->getName() == ".init_array" || sectionPtr->getName() == ".fini_array") {
         auto dgNext = dg;
@@ -523,7 +526,7 @@ void PrettyPrinter::printDataGroups() {
           this->ofs << PrettyPrinter::StrTab;
 
           if (this->debug == true) {
-            this->ofs << std::hex << data->getEA() << std::dec << ":";
+            this->ofs << std::hex << data->getAddress() << std::dec << ":";
           }
         };
 
@@ -534,17 +537,17 @@ void PrettyPrinter::printDataGroups() {
         // Also print local label just in case. There is still some code that makes up
         // ".L_<ea>" references without having a corresponding symbol.
         if (!foundSymbol.empty()) {
-          this->ofs << ".L_" << std::hex << data->getEA() << ":\n" << std::dec;
+          this->ofs << ".L_" << std::hex << data->getAddress().get() << ":\n" << std::dec;
         }
 
-        const auto& foundSymbolic = symbolic.find(data->getEA());
-        const auto p = pltReferences.find(data->getEA());
+        const auto& foundSymbolic = symbolic.find(data->getAddress());
+        const auto p = pltReferences.find(data->getAddress());
         if (p != pltReferences.end()) {
           printTab();
           this->printEA(p->first);
           this->ofs << ".quad " << boost::get<std::string>(p->second);
           this->ofs << std::endl;
-        } else if (std::find(stringEAs.begin(), stringEAs.end(), data->getEA()) !=
+        } else if (std::find(stringEAs.begin(), stringEAs.end(), data->getAddress()) !=
                    stringEAs.end()) {
           printTab();
           this->printString(*data);
@@ -559,14 +562,14 @@ void PrettyPrinter::printDataGroups() {
             try {
               auto s = boost::get<gtirb::SymAddrAddr>(foundSymbolic->second);
               printTab();
-              this->printEA(data->getEA());
+              this->printEA(data->getAddress());
               this->ofs << ".long " << s.symbol1->getName() << "-" << s.symbol2->getName();
               this->ofs << std::endl;
             } catch (boost::bad_get) {
             }
           }
         } else {
-          for (auto byte : data->getBytes(this->disasm->ir.getMainModule())) {
+          for (auto byte : getBytes(this->disasm->ir.getModules()[0].getImageByteMap(), *data)) {
             printTab();
             this->ofs << ".byte 0x" << std::hex << static_cast<uint32_t>(byte) << std::dec;
             this->ofs << std::endl;
@@ -576,7 +579,7 @@ void PrettyPrinter::printDataGroups() {
     }
 
     // End label
-    const auto endAddress = sectionPtr->addressLimit();
+    const auto endAddress = addressLimit(*sectionPtr);
     std::string next_section = this->disasm->getSectionName(endAddress);
     if (next_section.empty() == true ||
         (next_section != StrSectionBSS && getDataSectionDescriptor(next_section) == nullptr)) {
@@ -587,7 +590,7 @@ void PrettyPrinter::printDataGroups() {
   }
 }
 
-void PrettyPrinter::printString(const gtirb::Data& x) {
+void PrettyPrinter::printString(const gtirb::DataObject& x) {
   auto cleanByte = [](uint8_t b) {
     std::string cleaned;
     cleaned += b;
@@ -606,9 +609,9 @@ void PrettyPrinter::printString(const gtirb::Data& x) {
 
   this->ofs << ".string \"";
 
-  for (auto& b : x.getBytes(this->disasm->ir.getMainModule())) {
-    if (b != 0) {
-      this->ofs << cleanByte(b);
+  for (auto& b : getBytes(this->disasm->ir.getModules()[0].getImageByteMap(), x)) {
+    if (b != gsl::byte(0)) {
+      this->ofs << cleanByte(uint8_t(b));
     }
   }
 
@@ -623,8 +626,8 @@ void PrettyPrinter::printBSS() {
     auto bssData = this->disasm->getBSSData();
 
     // Special case.
-    if (bssData->empty() == false && bssData->at(0) != bssSection->getStartingAddress()) {
-      const auto current = bssSection->getStartingAddress();
+    if (bssData->empty() == false && bssData->at(0) != bssSection->getAddress()) {
+      const auto current = bssSection->getAddress();
       const auto next = bssData->at(0);
       const auto delta = next - current;
 
@@ -644,7 +647,7 @@ void PrettyPrinter::printBSS() {
         this->ofs << " .zero " << delta;
       } else {
         // Print to the end of the section.
-        const auto next = bssSection->addressLimit().get();
+        const auto next = addressLimit(*bssSection);
         const auto delta = next - current;
         if (delta > 0)
           this->ofs << " .zero " << delta;
@@ -653,7 +656,7 @@ void PrettyPrinter::printBSS() {
       this->ofs << std::endl;
     }
 
-    this->printLabel(bssSection->addressLimit());
+    this->printLabel(addressLimit(*bssSection));
     this->ofs << std::endl;
   }
 }
@@ -664,7 +667,7 @@ bool PrettyPrinter::skipEA(const uint64_t x) const {
       const auto found = std::find(std::begin(PrettyPrinter::AsmSkipSection),
                                    std::end(PrettyPrinter::AsmSkipSection), s.getName());
 
-      if (found != std::end(PrettyPrinter::AsmSkipSection) && s.contains(gtirb::EA(x))) {
+      if (found != std::end(PrettyPrinter::AsmSkipSection) && containsEA(s, gtirb::EA(x))) {
         return true;
       }
     }
@@ -711,9 +714,9 @@ void PrettyPrinter::printZeros(uint64_t x) {
   }
 }
 
-std::pair<std::string, char> PrettyPrinter::getOffsetAndSign(const gtirb::SymbolicOperand* symbolic,
-                                                             int64_t offset, uint64_t ea,
-                                                             uint64_t index) const {
+std::pair<std::string, char>
+PrettyPrinter::getOffsetAndSign(const gtirb::SymbolicExpression* symbolic, int64_t offset,
+                                uint64_t ea, uint64_t index) const {
   if (symbolic) {
     try {
       const gtirb::SymAddrConst s = boost::get<gtirb::SymAddrConst>(*symbolic);
@@ -736,11 +739,12 @@ std::pair<std::string, char> PrettyPrinter::getOffsetAndSign(const gtirb::Symbol
 }
 
 bool PrettyPrinter::getIsPointerToExcludedCode(bool hasLabel,
-                                               const gtirb::SymbolicOperandSet& symbolic,
-                                               const gtirb::Data* dg, const gtirb::Data* dgNext) {
+                                               const gtirb::SymbolicExpressionSet& symbolic,
+                                               const gtirb::DataObject* dg,
+                                               const gtirb::DataObject* dgNext) {
   // If we have a label followed by a pointer.
   if (hasLabel && dgNext) {
-    auto foundSymbolic = symbolic.find(dgNext->getEA());
+    auto foundSymbolic = symbolic.find(dgNext->getAddress());
     if (foundSymbolic != symbolic.end()) {
       auto* sym = get<gtirb::SymAddrConst>(foundSymbolic->second);
       if (sym) {
@@ -750,7 +754,7 @@ bool PrettyPrinter::getIsPointerToExcludedCode(bool hasLabel,
   }
 
   // Or if we just have a pointer...
-  auto foundSymbolic = symbolic.find(dg->getEA());
+  auto foundSymbolic = symbolic.find(dg->getAddress());
   if (foundSymbolic != symbolic.end()) {
     auto* sym = get<gtirb::SymAddrConst>(foundSymbolic->second);
     if (sym) {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include <gtirb/SymbolicOperandSet.hpp>
+#include <gtirb/SymbolicExpressionSet.hpp>
 #include <iosfwd>
 #include <list>
 #include <map>
@@ -51,24 +51,24 @@ protected:
   void printEA(uint64_t ea);
   void printFunctionHeader(uint64_t ea);
   void printHeader();
-  void printInstruction(const gtirb::Instruction& instruction);
+  void printInstruction(const gtirb::EA ea);
   void printInstructionNop();
   void printLabel(uint64_t ea);
   void printSectionHeader(const std::string& x, uint64_t alignment = 0);
-  void printOperandList(const std::string& opcode, const gtirb::Instruction& instruction,
+  void printOperandList(const std::string& opcode, const gtirb::EA ea,
                         const uint64_t* const operands);
 
   void printDataGroups();
-  void printString(const gtirb::Data& x);
+  void printString(const gtirb::DataObject& x);
 
   void printBSS();
 
-  std::string buildOperand(const std::string& opcode, const gtirb::SymbolicOperand* symbolic,
+  std::string buildOperand(const std::string& opcode, const gtirb::SymbolicExpression* symbolic,
                            uint64_t operand, uint64_t ea, uint64_t index);
   std::string buildOpRegdirect(const OpRegdirect* const op, uint64_t ea, uint64_t index);
-  std::string buildOpImmediate(const std::string& opcode, const gtirb::SymbolicOperand* symbolic,
+  std::string buildOpImmediate(const std::string& opcode, const gtirb::SymbolicExpression* symbolic,
                                const OpImmediate* const op, uint64_t ea, uint64_t index);
-  std::string buildOpIndirect(const gtirb::SymbolicOperand* symbolic, const OpIndirect* const op,
+  std::string buildOpIndirect(const gtirb::SymbolicExpression* symbolic, const OpIndirect* const op,
                               uint64_t ea, uint64_t index);
 
   void condPrintGlobalSymbol(uint64_t ea);
@@ -80,10 +80,10 @@ protected:
   std::string avoidRegNameConflicts(const std::string& x);
   void printZeros(uint64_t x);
 
-  std::pair<std::string, char> getOffsetAndSign(const gtirb::SymbolicOperand* symbolic,
+  std::pair<std::string, char> getOffsetAndSign(const gtirb::SymbolicExpression* symbolic,
                                                 int64_t offset, uint64_t ea, uint64_t index) const;
-  bool getIsPointerToExcludedCode(bool hasLabel, const gtirb::SymbolicOperandSet& symbolic,
-                                  const gtirb::Data* dg, const gtirb::Data* dgNext);
+  bool getIsPointerToExcludedCode(bool hasLabel, const gtirb::SymbolicExpressionSet& symbolic,
+                                  const gtirb::DataObject* dg, const gtirb::DataObject* dgNext);
 
   // Static utility functions.
 
