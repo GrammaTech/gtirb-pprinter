@@ -1,4 +1,5 @@
 #include "PrettyPrinter.h"
+#include <capstone/capstone.h>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/trim.hpp>
@@ -53,7 +54,18 @@ std::string str_tolower(std::string s) {
   return s;
 }
 
-PrettyPrinter::PrettyPrinter() {}
+std::string str_toupper(std::string s) {
+  std::transform(s.begin(), s.end(), s.begin(),
+                 [](unsigned char c) { return std::toupper(c); } // correct
+  );
+  return s;
+}
+
+PrettyPrinter::PrettyPrinter() {
+  assert(cs_open(CS_ARCH_X86, CS_MODE_64, &this->csHandle) == CS_ERR_OK);
+}
+
+PrettyPrinter::~PrettyPrinter() { cs_close(&this->csHandle); }
 
 void PrettyPrinter::setDebug(bool x) { this->debug = x; }
 
@@ -99,34 +111,28 @@ void PrettyPrinter::printHeader() {
 }
 
 void PrettyPrinter::printBlock(const gtirb::Block& x) {
-  if (this->skipEA(x.getAddress()) == false) {
-    const auto& table = std::get<std::map<gtirb::UUID, gtirb::table::ValueType>>(
-        *this->disasm->ir.getTable("blockInstructions"));
-    auto blockInfo = table.find(x.getUUID());
-    if (blockInfo != table.end()) {
-      this->condPrintSectionHeader(x);
-      this->printFunctionHeader(x.getAddress());
-      this->printLabel(x.getAddress());
-      this->ofs << std::endl;
+  if (this->skipEA(x.getAddress())) {
+    return;
+  }
 
-      // Reconstruct a vector of EAs from raw bytes stored in the table.
-      auto bytes = std::get<std::string>(blockInfo->second);
-      std::vector<gtirb::Addr> instructions(bytes.size() / sizeof(gtirb::Addr));
-      memcpy(instructions.data(), bytes.data(), bytes.size());
-      for (const auto& inst : instructions) {
-        this->printInstruction(inst);
-      }
-    } else {
-      const auto nopCount = x.getSize();
-      this->ofs << std::endl;
+  this->condPrintSectionHeader(x);
+  this->printFunctionHeader(x.getAddress());
+  this->printLabel(x.getAddress());
+  this->ofs << std::endl;
 
-      const auto bac = BlockAreaComment(this->ofs, "No instruciton padding.");
+  cs_insn* insn;
+  cs_option(this->csHandle, CS_OPT_DETAIL, CS_OPT_ON);
 
-      // Fill in the correct number of nops.
-      for (uint64_t i = 0; i < nopCount; ++i) {
-        this->printInstructionNop();
-      }
-    }
+  auto bytes2 = getBytes(this->disasm->ir.getModules()[0].getImageByteMap(), x);
+  size_t count = cs_disasm(this->csHandle, reinterpret_cast<uint8_t*>(bytes2.data()), bytes2.size(),
+                           uint64_t(x.getAddress()), 0, &insn);
+
+  // Exception-safe cleanup of instructions
+  std::unique_ptr<cs_insn, std::function<void(cs_insn*)>> freeInsn(
+      insn, [count](cs_insn* i) { cs_free(i, count); });
+
+  for (size_t i = 0; i < count; i++) {
+    this->printInstruction(insn[i]);
   }
 }
 
@@ -202,60 +208,58 @@ void PrettyPrinter::condPrintGlobalSymbol(gtirb::Addr ea) {
   }
 }
 
-void PrettyPrinter::printInstruction(gtirb::Addr ea) {
+void PrettyPrinter::printInstruction(const cs_insn& inst) {
+  gtirb::Addr ea(inst.address);
   this->printEA(ea);
-  auto inst = this->disasm->getDecodedInstruction(ea);
-  auto prefix = inst->Prefix;
-  auto opcode = str_tolower(inst->Opcode);
-  uint64_t operands[4] = {inst->Op1, inst->Op2, inst->Op3, inst->Op4};
+  auto opcode = str_tolower(inst.mnemonic);
 
   ////////////////////////////////////////////////////////////////////
   // special cases
 
   if (opcode == std::string{"nop"}) {
-    for (uint64_t i = 0; i < inst->Size; ++i)
+    for (uint64_t i = 0; i < inst.size; ++i)
       this->ofs << " " << opcode << std::endl;
     return;
   }
 
-  // MOVS and CMPS have the operand implicit but size suffix
-  if ((boost::algorithm::ends_with(opcode, std::string{"movs"}) ||
-       boost::algorithm::ends_with(opcode, std::string{"cmps"})) &&
-      operands[1] == 0 && operands[2] == 0) {
-    auto opInd = this->disasm->getOpIndirect(operands[0]);
+  // // MOVS and CMPS have the operand implicit but size suffix
+  // if ((boost::algorithm::ends_with(opcode, std::string{"movs"}) ||
+  //      boost::algorithm::ends_with(opcode, std::string{"cmps"})) &&
+  //     operands[1] == 0 && operands[2] == 0) {
+  //   auto opInd = this->disasm->getOpIndirect(operands[0]);
 
-    if (opInd != nullptr) {
-      // do not print the first operand
-      operands[0] = 0;
-      opcode = opcode + disasm->GetSizeSuffix(*opInd);
-    }
-  }
+  //   if (opInd != nullptr) {
+  //     // do not print the first operand
+  //     operands[0] = 0;
+  //     opcode = opcode + disasm->GetSizeSuffix(*opInd);
+  //   }
+  // }
 
-  // FDIV_TO, FMUL_TO, FSUBR_TO, etc.
-  if (boost::algorithm::ends_with(opcode, std::string{"_to"})) {
-    opcode = boost::replace_all_copy(opcode, "_to", "");
-    operands[1] = operands[0];
-    operands[0] = disasm->getOpRegdirectCode("ST");
-  }
-  if (boost::algorithm::starts_with(opcode, std::string{"fcmov"})) {
-    operands[1] = operands[0];
-    operands[0] = disasm->getOpRegdirectCode("ST");
-  }
-  // for 'loop' with rcx, the operand is implicit
-  if (boost::algorithm::starts_with(opcode, std::string{"loop"})) {
-    auto reg = disasm->getOpRegdirect(operands[0]);
-    if (reg != nullptr && reg->Register == std::string{"RCX"}) {
-      operands[0] = 0;
-    }
-  }
-  // print a new line if there is a lock prefix
-  if (prefix == std::string{"lock"}) {
-    prefix = "lock\n";
-  }
+  // // FDIV_TO, FMUL_TO, FSUBR_TO, etc.
+  // if (boost::algorithm::ends_with(opcode, std::string{"_to"})) {
+  //   opcode = boost::replace_all_copy(opcode, "_to", "");
+  //   operands[1] = operands[0];
+  //   operands[0] = disasm->getOpRegdirectCode("ST");
+  //   assert(false);
+  // }
+  // if (boost::algorithm::starts_with(opcode, std::string{"fcmov"})) {
+  //   operands[1] = operands[0];
+  //   operands[0] = disasm->getOpRegdirectCode("ST");
+  //   assert(false);
+  // }
+  // // for 'loop' with rcx, the operand is implicit
+  // if (boost::algorithm::starts_with(opcode, std::string{"loop"})) {
+  //   auto reg = disasm->getOpRegdirect(operands[0]);
+  //   if (reg != nullptr && reg->Register == std::string{"RCX"}) {
+  //     operands[0] = 0;
+  //     assert(false);
+  //   }
+  // }
+
   //////////////////////////////////////////////////////////////////////
   opcode = DisasmData::AdaptOpcode(opcode);
-  this->ofs << " " << prefix << " " << opcode << " ";
-  this->printOperandList(opcode, ea, operands);
+  this->ofs << "  " << opcode << " ";
+  this->printOperandList(opcode, ea, inst);
 
   /// TAKE THIS OUT ///
   this->ofs << std::endl;
@@ -272,14 +276,26 @@ void PrettyPrinter::printEA(gtirb::Addr ea) {
 }
 
 void PrettyPrinter::printOperandList(const std::string& opcode, const gtirb::Addr ea,
-                                     const uint64_t* const operands) {
+                                     const cs_insn& inst) {
   std::string str_operands[4];
 
+  auto& detail = inst.detail->x86;
   const auto& symbolic = this->disasm->ir.getModules()[0].getSymbolicExpressions();
-  auto findSymbolic = [&symbolic, ea](int index) {
+  auto findSymbolic = [&symbolic, &detail, ea](int index) {
     // FIXME: we're faking the operand offset here, assuming it's equal
     // to index. This works as long as the disassembler does the same
     // thing, but it isn't right.
+
+    // Note: disassembler currently puts the dest operand last and uses
+    // 1-based operand indices. Capstone puts the dest first and uses
+    // zero-based indices. Translate here.
+    if (index == 0) {
+      index = detail.op_count - 1;
+    } else {
+      index--;
+    }
+    index++;
+
     if (auto found = symbolic.find(ea + index); found != symbolic.end()) {
       return &found->second;
     } else {
@@ -287,57 +303,49 @@ void PrettyPrinter::printOperandList(const std::string& opcode, const gtirb::Add
     }
   };
 
-  str_operands[0] = this->buildOperand(opcode, findSymbolic(1), operands[0], ea, 1);
-  str_operands[1] = this->buildOperand(opcode, findSymbolic(2), operands[1], ea, 2);
-  str_operands[2] = this->buildOperand(opcode, findSymbolic(3), operands[2], ea, 3);
-  str_operands[3] = this->buildOperand(opcode, findSymbolic(4), operands[3], ea, 4);
-
-  uint dest_op_idx = 0;
-  for (int i = 3; i >= 0; --i) {
-    if (str_operands[i].empty() == false) {
-      dest_op_idx = i;
-      break;
+  for (int i = 0; i < detail.op_count; i++) {
+    if (i != 0) {
+      this->ofs << ",";
     }
+    this->ofs << this->buildOperand(opcode, findSymbolic(i), inst, ea, i);
   }
-  // print destination operand
-  if (str_operands[dest_op_idx].empty() == false)
-    this->ofs << str_operands[dest_op_idx];
-  // print source operands
-  for (uint i = 0; i < dest_op_idx; ++i)
-    if (str_operands[i].empty() == false)
-      this->ofs << "," << str_operands[i];
 }
 
 std::string PrettyPrinter::buildOperand(const std::string& opcode,
-                                        const gtirb::SymbolicExpression* symbolic, uint64_t operand,
-                                        gtirb::Addr ea, uint64_t index) {
-  auto opReg = this->disasm->getOpRegdirect(operand);
-  if (opReg != nullptr) {
-    return this->buildOpRegdirect(opReg, ea, index);
+                                        const gtirb::SymbolicExpression* symbolic,
+                                        const cs_insn& inst, gtirb::Addr ea, uint64_t index) {
+  const auto& op = inst.detail->x86.operands[index];
+  switch (op.type) {
+  case X86_OP_REG:
+    return this->buildOpRegdirect(op);
+  case X86_OP_IMM:
+    return this->buildOpImmediate(opcode, symbolic, inst, ea, index);
+    break;
+  case X86_OP_MEM:
+    return this->buildOpIndirect(symbolic, inst, ea, index);
+  case X86_OP_FP:
+    std::cerr << "floating point operations not implemented\n";
+    exit(1);
+  case X86_OP_INVALID:
+    std::cerr << "invalid operand\n";
+    exit(1);
   }
 
-  auto opImm = this->disasm->getOpImmediate(operand);
-  if (opImm != nullptr) {
-    return this->buildOpImmediate(opcode, symbolic, opImm, ea, index);
-  }
-
-  auto opInd = this->disasm->getOpIndirect(operand);
-  if (opInd != nullptr) {
-    return this->buildOpIndirect(symbolic, opInd, ea);
-  }
-
-  return std::string{};
+  return {};
 }
 
-std::string PrettyPrinter::buildOpRegdirect(const OpRegdirect* const op, gtirb::Addr /*ea*/,
-                                            uint64_t /*index*/) {
-  return DisasmData::AdaptRegister(op->Register);
+std::string PrettyPrinter::buildOpRegdirect(const cs_x86_op& op) {
+  assert(op.type == X86_OP_REG);
+  return DisasmData::AdaptRegister(str_toupper(cs_reg_name(this->csHandle, op.reg)));
 }
 
 std::string PrettyPrinter::buildOpImmediate(const std::string& opcode,
                                             const gtirb::SymbolicExpression* symbolic,
-                                            const OpImmediate* const op, gtirb::Addr ea,
-                                            uint64_t index) {
+                                            const cs_insn& inst, gtirb::Addr ea, uint64_t index) {
+  const auto& detail = inst.detail->x86;
+  const auto& op = detail.operands[index];
+
+  assert(op.type == X86_OP_IMM);
   if (symbolic) {
     const auto& pltReferences = std::get<std::map<gtirb::Addr, gtirb::table::ValueType>>(
         *this->disasm->ir.getTable("pltCodeReferences"));
@@ -349,24 +357,24 @@ std::string PrettyPrinter::buildOpImmediate(const std::string& opcode,
     if (auto* s = std::get_if<gtirb::SymAddrConst>(symbolic); s != nullptr) {
       if (opcode == "call") {
         assert(s->Displacement == 0);
-        if (this->skipEA(gtirb::Addr(op->Immediate))) {
-          return std::to_string(op->Immediate);
+        if (this->skipEA(gtirb::Addr(op.imm))) {
+          return std::to_string(op.imm);
         } else {
           return s->Sym->getName();
         }
       }
 
       if (s->Displacement == 0) {
-        if (index == 1) {
-          auto ref = this->disasm->getGlobalSymbolReference(gtirb::Addr(op->Immediate));
+        if (detail.op_count == 1 || index == 1) {
+          auto ref = this->disasm->getGlobalSymbolReference(gtirb::Addr(op.imm));
           if (ref.empty() == false) {
             return PrettyPrinter::StrOffset + " " + ref;
           } else {
-            return PrettyPrinter::StrOffset + " " + GetSymbolToPrint(gtirb::Addr(op->Immediate));
+            return PrettyPrinter::StrOffset + " " + GetSymbolToPrint(gtirb::Addr(op.imm));
           }
         }
 
-        return GetSymbolToPrint(gtirb::Addr(op->Immediate));
+        return GetSymbolToPrint(gtirb::Addr(op.imm));
       } else {
         std::stringstream ss;
         ss << PrettyPrinter::StrOffset << " " << s->Sym->getName() << "+" << s->Displacement;
@@ -375,35 +383,42 @@ std::string PrettyPrinter::buildOpImmediate(const std::string& opcode,
     }
   }
 
-  return std::to_string(op->Immediate);
+  return std::to_string(op.imm);
 }
 
 std::string PrettyPrinter::buildOpIndirect(const gtirb::SymbolicExpression* symbolic,
-                                           const OpIndirect* const op, gtirb::Addr ea) {
-  const auto sizeName = DisasmData::GetSizeName(op->Size);
+                                           const cs_insn& inst, gtirb::Addr ea, uint64_t index) {
+  const auto& detail = inst.detail->x86;
+  const auto& op = detail.operands[index];
+  assert(op.type == X86_OP_MEM);
+  const auto sizeName = DisasmData::GetSizeName(op.size * 8);
 
-  auto putSegmentRegister = [op](const std::string& term) {
-    if (PrettyPrinter::GetIsNullReg(op->SReg) == false) {
-      return op->SReg + ":[" + term + "]";
+  auto baseReg =
+      str_toupper(op.mem.base == X86_REG_INVALID ? "" : cs_reg_name(this->csHandle, op.mem.base));
+  auto indexReg =
+      str_toupper(op.mem.index == X86_REG_INVALID ? "" : cs_reg_name(this->csHandle, op.mem.index));
+
+  auto putSegmentRegister = [this, op](const std::string& term) {
+    if (op.mem.segment != X86_REG_INVALID) {
+      return str_toupper(cs_reg_name(this->csHandle, op.mem.segment)) + ":[" + term + "]";
     }
 
     return "[" + term + "]";
   };
 
   // Case 1
-  if (op->Offset == 0) {
-    if (PrettyPrinter::GetIsNullReg(op->SReg) && PrettyPrinter::GetIsNullReg(op->Reg1) &&
-        PrettyPrinter::GetIsNullReg(op->Reg2)) {
+  if (op.mem.disp == 0) {
+    if (op.mem.segment == X86_REG_INVALID && op.mem.base == X86_REG_INVALID &&
+        op.mem.index == X86_REG_INVALID) {
       return sizeName + std::string{" [0]"};
     }
   }
 
   // Case 2
-  if (op->Reg1 == std::string{"RIP"} && op->Multiplier == 1) {
-    if (PrettyPrinter::GetIsNullReg(op->SReg) && PrettyPrinter::GetIsNullReg(op->Reg2)) {
+  if (baseReg == std::string{"RIP"} && op.mem.scale == 1) {
+    if (op.mem.segment == X86_REG_INVALID && op.mem.index == X86_REG_INVALID) {
       if (std::get_if<gtirb::SymAddrConst>(symbolic) != nullptr) {
-        auto instruction = this->disasm->getDecodedInstruction(ea);
-        auto address = ea + op->Offset + instruction->Size;
+        auto address = ea + op.mem.disp + inst.size;
         auto symbol = this->disasm->getGlobalSymbolReference(address);
 
         if (!symbol.empty()) {
@@ -417,55 +432,53 @@ std::string PrettyPrinter::buildOpIndirect(const gtirb::SymbolicExpression* symb
   }
 
   // Case 3
-  if (PrettyPrinter::GetIsNullReg(op->Reg1) == false &&
-      PrettyPrinter::GetIsNullReg(op->Reg2) == true && op->Offset == 0) {
-    auto adapted = DisasmData::AdaptRegister(op->Reg1);
+  if (op.mem.base != X86_REG_INVALID && op.mem.index == X86_REG_INVALID && op.mem.disp == 0) {
+    auto adapted = DisasmData::AdaptRegister(baseReg);
     return sizeName + " " + putSegmentRegister(adapted);
   }
 
   // Case 4
-  if (PrettyPrinter::GetIsNullReg(op->Reg1) == true &&
-      PrettyPrinter::GetIsNullReg(op->Reg2) == true) {
-    auto symbol = this->disasm->getGlobalSymbolReference(gtirb::Addr(op->Offset));
+  if (op.mem.base == X86_REG_INVALID && op.mem.index == X86_REG_INVALID) {
+    auto symbol = this->disasm->getGlobalSymbolReference(gtirb::Addr(op.mem.disp));
     if (symbol.empty() == false) {
       return sizeName + putSegmentRegister(symbol);
     }
 
-    auto [offset, sign] = this->getOffsetAndSign(symbolic, op->Offset);
+    auto [offset, sign] = this->getOffsetAndSign(symbolic, op.mem.disp);
     std::string term = std::string{sign} + offset;
     return sizeName + " " + putSegmentRegister(term);
   }
 
   // Case 5
-  if (PrettyPrinter::GetIsNullReg(op->Reg2) == true) {
-    auto adapted = DisasmData::AdaptRegister(op->Reg1);
-    auto [offset, sign] = this->getOffsetAndSign(symbolic, op->Offset);
+  if (op.mem.index == X86_REG_INVALID) {
+    auto adapted = DisasmData::AdaptRegister(baseReg);
+    auto [offset, sign] = this->getOffsetAndSign(symbolic, op.mem.disp);
     std::string term = adapted + std::string{sign} + offset;
     return sizeName + " " + putSegmentRegister(term);
   }
 
   // Case 6
-  if (PrettyPrinter::GetIsNullReg(op->Reg1) == true) {
-    auto adapted = DisasmData::AdaptRegister(op->Reg2);
-    auto [offset, sign] = this->getOffsetAndSign(symbolic, op->Offset);
-    std::string term = adapted + "*" + std::to_string(op->Multiplier) + std::string{sign} + offset;
+  if (op.mem.base == X86_REG_INVALID) {
+    auto adapted = DisasmData::AdaptRegister(indexReg);
+    auto [offset, sign] = this->getOffsetAndSign(symbolic, op.mem.disp);
+    std::string term = adapted + "*" + std::to_string(op.mem.scale) + std::string{sign} + offset;
     return sizeName + " " + putSegmentRegister(term);
   }
 
   // Case 7
-  if (op->Offset == 0) {
-    auto adapted1 = DisasmData::AdaptRegister(op->Reg1);
-    auto adapted2 = DisasmData::AdaptRegister(op->Reg2);
-    std::string term = adapted1 + "+" + adapted2 + "*" + std::to_string(op->Multiplier);
+  if (op.mem.disp == 0) {
+    auto adapted1 = DisasmData::AdaptRegister(baseReg);
+    auto adapted2 = DisasmData::AdaptRegister(indexReg);
+    std::string term = adapted1 + "+" + adapted2 + "*" + std::to_string(op.mem.scale);
     return sizeName + " " + putSegmentRegister(term);
   }
 
   // Case 8
-  auto adapted1 = DisasmData::AdaptRegister(op->Reg1);
-  auto adapted2 = DisasmData::AdaptRegister(op->Reg2);
-  auto [offset, sign] = this->getOffsetAndSign(symbolic, op->Offset);
+  auto adapted1 = DisasmData::AdaptRegister(baseReg);
+  auto adapted2 = DisasmData::AdaptRegister(indexReg);
+  auto [offset, sign] = this->getOffsetAndSign(symbolic, op.mem.disp);
   std::string term =
-      adapted1 + "+" + adapted2 + "*" + std::to_string(op->Multiplier) + std::string{sign} + offset;
+      adapted1 + "+" + adapted2 + "*" + std::to_string(op.mem.scale) + std::string{sign} + offset;
   return sizeName + " " + putSegmentRegister(term);
 }
 
@@ -545,9 +558,9 @@ void PrettyPrinter::printDataGroups() {
           if (auto* s = std::get_if<gtirb::SymAddrConst>(&foundSymbolic->second); s != nullptr) {
             printTab();
             if (s->Displacement != 0)
-                this->ofs << ".quad " << s->Sym->getName()<< "+"<< s->Displacement;
+              this->ofs << ".quad " << s->Sym->getName() << "+" << s->Displacement;
             else
-                this->ofs << ".quad " << s->Sym->getName();
+              this->ofs << ".quad " << s->Sym->getName();
             this->ofs << std::endl;
           } else if (auto* sa = std::get_if<gtirb::SymAddrAddr>(&foundSymbolic->second);
                      sa != nullptr) {

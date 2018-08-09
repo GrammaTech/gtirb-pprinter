@@ -16,7 +16,6 @@ endif()
 set(${PROJECT_NAME}_H
 	DataGroup.h
 	DisasmData.h
-	DisasmTypes.h
 	Export.h
 	PrettyPrinter.h
 	Table.h
@@ -53,6 +52,7 @@ target_link_libraries(
 	${SYSLIBS}
 	${Boost_LIBRARIES}
         gtirb
+        ${CAPSTONE}
 )
 
 add_subdirectory(test)

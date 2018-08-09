@@ -14,14 +14,7 @@ using namespace std::rel_ops;
 
 void DisasmData::parseDirectory(std::string x) {
   boost::trim(x);
-
   this->loadIRFromFile(x + "/gtirb");
-
-  // These things aren't stored in gtirb yet.
-  this->parseDecodedInstruction(x + "/instruction.facts");
-  this->parseOpRegdirect(x + "/op_regdirect.facts");
-  this->parseOpImmediate(x + "/op_immediate.facts");
-  this->parseOpIndirect(x + "/op_indirect.facts");
 }
 
 void DisasmData::loadIRFromFile(std::string path) {
@@ -39,66 +32,9 @@ void DisasmData::saveIRToFile(std::string path) {
   this->ir.save(out);
 }
 
-void DisasmData::parseDecodedInstruction(const std::string& x) {
-  Table fromFile{8};
-  fromFile.parseFile(x);
-
-  for (const auto& ff : fromFile) {
-    DecodedInstruction inst(ff);
-    this->instruction.emplace(inst.EA, std::move(inst));
-  }
-
-  std::cerr << " # Number of instruction: " << this->instruction.size() << std::endl;
-}
-
-void DisasmData::parseOpRegdirect(const std::string& x) {
-  Table fromFile{2};
-  fromFile.parseFile(x);
-
-  for (const auto& ff : fromFile) {
-    this->op_regdirect.push_back(OpRegdirect(ff));
-  }
-
-  std::cerr << " # Number of op_regdirect: " << this->op_regdirect.size() << std::endl;
-}
-
-void DisasmData::parseOpImmediate(const std::string& x) {
-  Table fromFile{2};
-  fromFile.parseFile(x);
-
-  for (const auto& ff : fromFile) {
-    OpImmediate op(ff);
-    this->op_immediate.emplace(op.N, std::move(op));
-  }
-
-  std::cerr << " # Number of op_immediate: " << this->op_immediate.size() << std::endl;
-}
-
-void DisasmData::parseOpIndirect(const std::string& x) {
-  Table fromFile{7};
-  fromFile.parseFile(x);
-
-  for (const auto& ff : fromFile) {
-    OpIndirect op(ff);
-    this->op_indirect.emplace(op.N, std::move(op));
-  }
-
-  std::cerr << " # Number of op_indirect: " << this->op_indirect.size() << std::endl;
-}
-
 const std::vector<gtirb::Section>& DisasmData::getSections() const {
   return this->ir.getModules()[0].getSections();
 }
-
-std::map<gtirb::Addr, DecodedInstruction>* DisasmData::getDecodedInstruction() {
-  return &this->instruction;
-}
-
-std::vector<OpRegdirect>* DisasmData::getOPRegdirect() { return &this->op_regdirect; }
-
-std::map<uint64_t, OpImmediate>* DisasmData::getOPImmediate() { return &this->op_immediate; }
-
-std::map<uint64_t, OpIndirect>* DisasmData::getOPIndirect() { return &this->op_indirect; }
 
 std::vector<gtirb::table::InnerMapType>& DisasmData::getDataSections() {
   return std::get<std::vector<gtirb::table::InnerMapType>>(*this->ir.getTable("dataSections"));
@@ -245,54 +181,6 @@ const gtirb::Section* DisasmData::getSection(const std::string& x) const {
   return nullptr;
 }
 
-const DecodedInstruction* DisasmData::getDecodedInstruction(gtirb::Addr ea) const {
-  const auto inst = this->instruction.find(gtirb::Addr(ea));
-
-  if (inst != this->instruction.end()) {
-    return &(inst->second);
-  }
-
-  return nullptr;
-}
-
-const OpIndirect* DisasmData::getOpIndirect(uint64_t x) const {
-  if (const auto found = this->op_indirect.find(x); found != std::end(this->op_indirect)) {
-    return &found->second;
-  }
-
-  return nullptr;
-}
-
-const OpRegdirect* DisasmData::getOpRegdirect(uint64_t x) const {
-  const auto found = std::find_if(std::begin(this->op_regdirect), std::end(this->op_regdirect),
-                                  [x](const auto& element) { return element.N == x; });
-
-  if (found != std::end(this->op_regdirect)) {
-    return &(*found);
-  }
-
-  return nullptr;
-}
-
-uint64_t DisasmData::getOpRegdirectCode(std::string x) const {
-  const auto found = std::find_if(std::begin(this->op_regdirect), std::end(this->op_regdirect),
-                                  [x](const auto& element) { return element.Register == x; });
-
-  if (found != std::end(this->op_regdirect)) {
-    return found->N;
-  }
-
-  return 0;
-}
-
-const OpImmediate* DisasmData::getOpImmediate(uint64_t x) const {
-  if (const auto found = this->op_immediate.find(x); found != std::end(this->op_immediate)) {
-    return &found->second;
-  }
-
-  return nullptr;
-}
-
 bool DisasmData::getIsAmbiguousSymbol(const std::string& name) const {
   const auto found =
       std::find(std::begin(this->ambiguous_symbol), std::end(this->ambiguous_symbol), name);
@@ -368,10 +256,6 @@ std::string DisasmData::GetSizeName(const std::string& x) {
   assert("Unknown Size");
 
   return x;
-}
-
-std::string DisasmData::GetSizeSuffix(const OpIndirect& x) {
-  return DisasmData::GetSizeSuffix(x.Size);
 }
 
 std::string DisasmData::GetSizeSuffix(uint64_t x) {

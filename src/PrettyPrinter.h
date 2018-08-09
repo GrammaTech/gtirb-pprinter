@@ -1,5 +1,6 @@
 #pragma once
 
+#include <capstone/capstone.h>
 #include <cstdint>
 #include <gtirb/SymbolicExpressionSet.hpp>
 #include <iosfwd>
@@ -17,6 +18,7 @@
 class PrettyPrinter {
 public:
   PrettyPrinter();
+  ~PrettyPrinter();
 
   void setDebug(bool x);
   bool getDebug() const;
@@ -51,12 +53,11 @@ protected:
   void printEA(gtirb::Addr ea);
   void printFunctionHeader(gtirb::Addr ea);
   void printHeader();
-  void printInstruction(const gtirb::Addr ea);
+  void printInstruction(const cs_insn& inst);
   void printInstructionNop();
   void printLabel(gtirb::Addr ea);
   void printSectionHeader(const std::string& x, uint64_t alignment = 0);
-  void printOperandList(const std::string& opcode, const gtirb::Addr ea,
-                        const uint64_t* const operands);
+  void printOperandList(const std::string& opcode, const gtirb::Addr ea, const cs_insn& inst);
 
   void printDataGroups();
   void printString(const gtirb::DataObject& x);
@@ -64,12 +65,12 @@ protected:
   void printBSS();
 
   std::string buildOperand(const std::string& opcode, const gtirb::SymbolicExpression* symbolic,
-                           uint64_t operand, gtirb::Addr ea, uint64_t index);
-  std::string buildOpRegdirect(const OpRegdirect* const op, gtirb::Addr ea, uint64_t index);
+                           const cs_insn& inst, gtirb::Addr ea, uint64_t index);
+  std::string buildOpRegdirect(const cs_x86_op& op);
   std::string buildOpImmediate(const std::string& opcode, const gtirb::SymbolicExpression* symbolic,
-                               const OpImmediate* const op, gtirb::Addr ea, uint64_t index);
-  std::string buildOpIndirect(const gtirb::SymbolicExpression* symbolic, const OpIndirect* const op,
-                              gtirb::Addr ea);
+                               const cs_insn& inst, gtirb::Addr ea, uint64_t index);
+  std::string buildOpIndirect(const gtirb::SymbolicExpression* symbolic, const cs_insn& inst,
+                              gtirb::Addr ea, uint64_t index);
 
   void condPrintGlobalSymbol(gtirb::Addr ea);
   void condPrintSectionHeader(const gtirb::Block& x);
@@ -93,6 +94,7 @@ protected:
   static bool GetIsNullReg(const std::string& x);
 
 private:
+  csh csHandle;
   std::stringstream ofs;
   DisasmData* disasm{nullptr};
   bool debug{false};

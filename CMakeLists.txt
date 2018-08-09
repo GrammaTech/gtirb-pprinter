@@ -203,5 +203,13 @@ add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
 
 include_directories("${gtest_SOURCE_DIR}/include")
 
+# ---------------------------------------------------------------------------
+# capstone
+# ---------------------------------------------------------------------------
+find_library(CAPSTONE NAMES capstone)
+if(NOT CAPSTONE)
+  message(FATAL_ERROR "capstone library not found")
+endif()
+
 add_subdirectory(driver)
 add_subdirectory(src)
