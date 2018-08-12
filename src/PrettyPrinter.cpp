@@ -623,37 +623,29 @@ void PrettyPrinter::printBSS() {
 
   if (bssSection != nullptr) {
     this->printSectionHeader(PrettyPrinter::StrSectionBSS, 16);
-    auto bssData = this->disasm->getBSSData();
+    const auto& bssData =
+        boost::get<std::vector<gtirb::UUID>>(*this->disasm->ir.getTable("bssData"));
 
     // Special case.
-    if (bssData->empty() == false && bssData->at(0) != bssSection->getAddress()) {
+    if (!bssData.empty() && gtirb::NodeRef<gtirb::DataObject>(bssData.at(0))->getAddress() !=
+                                bssSection->getAddress()) {
       const auto current = bssSection->getAddress();
-      const auto next = bssData->at(0);
-      const auto delta = next - current;
+      const auto next = gtirb::NodeRef<gtirb::DataObject>(bssData.at(0))->getAddress();
 
       this->printLabel(current);
-      this->ofs << " .zero " << delta;
-      this->ofs << std::endl;
+      this->ofs << " .zero " << next - current;
     }
+    this->ofs << std::endl;
 
-    for (size_t i = 0; i < bssData->size(); ++i) {
-      const auto current = bssData->at(i);
-      this->printLabel(current);
+    for (size_t i = 0; i < bssData.size(); ++i) {
+      const auto& current = *gtirb::NodeRef<gtirb::DataObject>(bssData.at(i));
+      this->printLabel(current.getAddress());
 
-      if (i != bssData->size() - 1) {
-        const auto next = bssData->at(i + 1);
-        const auto delta = next - current;
-
-        this->ofs << " .zero " << delta;
+      if (current.getSize() == 0) {
+        this->ofs << "\n";
       } else {
-        // Print to the end of the section.
-        const auto next = addressLimit(*bssSection);
-        const auto delta = next - current;
-        if (delta > 0)
-          this->ofs << " .zero " << delta;
+        this->ofs << " .zero " << current.getSize() << "\n";
       }
-
-      this->ofs << std::endl;
     }
 
     this->printLabel(addressLimit(*bssSection));
@@ -673,9 +665,10 @@ bool PrettyPrinter::skipEA(const uint64_t x) const {
     }
 
     uint64_t xFunctionAddress{0};
-    const auto functionEntries = this->disasm->getFunctionEntry();
+    const auto functionEntries =
+        boost::get<std::vector<gtirb::EA>>(*this->disasm->ir.getTable("functionEntry"));
 
-    for (auto fe = std::begin(*functionEntries); fe != std::end(*functionEntries); ++fe) {
+    for (auto fe = std::begin(functionEntries); fe != std::end(functionEntries); ++fe) {
       auto feNext = fe;
       feNext++;
 
