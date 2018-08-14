@@ -354,15 +354,15 @@ std::string PrettyPrinter::buildOpImmediate(const std::string& opcode,
     try {
       const gtirb::SymAddrConst s = boost::get<gtirb::SymAddrConst>(*symbolic);
       if (opcode == "call") {
-        assert(s.displacement == 0);
+        assert(s.Displacement == 0);
         if (this->skipEA(op->Immediate)) {
           return std::to_string(op->Immediate);
         } else {
-          return s.symbol->getName();
+          return s.Sym->getName();
         }
       }
 
-      if (s.displacement == 0) {
+      if (s.Displacement == 0) {
         if (index == 1) {
           auto ref = this->disasm->getGlobalSymbolReference(op->Immediate);
           if (ref.empty() == false) {
@@ -375,7 +375,7 @@ std::string PrettyPrinter::buildOpImmediate(const std::string& opcode,
         return GetSymbolToPrint(op->Immediate);
       } else {
         std::stringstream ss;
-        ss << PrettyPrinter::StrOffset << " " << s.symbol->getName() << "+" << s.displacement;
+        ss << PrettyPrinter::StrOffset << " " << s.Sym->getName() << "+" << s.Displacement;
         return ss.str();
       }
     } catch (boost::bad_get&) {
@@ -556,14 +556,14 @@ void PrettyPrinter::printDataGroups() {
           try {
             auto s = boost::get<gtirb::SymAddrConst>(foundSymbolic->second);
             printTab();
-            this->ofs << ".quad " << s.symbol->getName();
+            this->ofs << ".quad " << s.Sym->getName();
             this->ofs << std::endl;
           } catch (boost::bad_get) {
             try {
               auto s = boost::get<gtirb::SymAddrAddr>(foundSymbolic->second);
               printTab();
               this->printEA(data->getAddress());
-              this->ofs << ".long " << s.symbol1->getName() << "-" << s.symbol2->getName();
+              this->ofs << ".long " << s.Sym1->getName() << "-" << s.Sym2->getName();
               this->ofs << std::endl;
             } catch (boost::bad_get) {
             }
@@ -714,12 +714,12 @@ PrettyPrinter::getOffsetAndSign(const gtirb::SymbolicExpression* symbolic, int64
     try {
       const gtirb::SymAddrConst s = boost::get<gtirb::SymAddrConst>(*symbolic);
 
-      if (s.displacement == 0) {
-        return {s.symbol->getName(), '+'};
-      } else if (s.displacement > 0) {
-        return {s.symbol->getName() + "+" + std::to_string(s.displacement), '+'};
+      if (s.Displacement == 0) {
+        return {s.Sym->getName(), '+'};
+      } else if (s.Displacement > 0) {
+        return {s.Sym->getName() + "+" + std::to_string(s.Displacement), '+'};
       } else {
-        return {s.symbol->getName() + std::to_string(s.displacement), '+'};
+        return {s.Sym->getName() + std::to_string(s.Displacement), '+'};
       }
     } catch (boost::bad_get&) {
     }
@@ -741,7 +741,7 @@ bool PrettyPrinter::getIsPointerToExcludedCode(bool hasLabel,
     if (foundSymbolic != symbolic.end()) {
       auto* sym = get<gtirb::SymAddrConst>(foundSymbolic->second);
       if (sym) {
-        return this->skipEA(sym->symbol->getEA());
+        return this->skipEA(sym->Sym->getEA());
       }
     }
   }
@@ -751,7 +751,7 @@ bool PrettyPrinter::getIsPointerToExcludedCode(bool hasLabel,
   if (foundSymbolic != symbolic.end()) {
     auto* sym = get<gtirb::SymAddrConst>(foundSymbolic->second);
     if (sym) {
-      return this->skipEA(sym->symbol->getEA());
+      return this->skipEA(sym->Sym->getEA());
     }
   }
 
