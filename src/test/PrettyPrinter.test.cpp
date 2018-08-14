@@ -73,8 +73,8 @@ public:
     int result = EXIT_FAILURE;
 
     std::stringstream cmd;
-    cmd << BOOST_PP_STRINGIZE(DEBLOAT_FOUND_SOUFFLE_DISASM) << " -F " << disasmPath << " -D "
-        << disasmPath;
+    cmd << BOOST_PP_STRINGIZE(DEBLOAT_FOUND_SOUFFLE_DISASM) << " " << this->exe << " -F "
+        << disasmPath << " -D " << disasmPath;
 
     EXPECT_NO_THROW(result = boost::process::system(cmd.str()))
         << "Make sure that \"datalog_decoder\" is in your PATH.";
