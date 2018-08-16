@@ -231,7 +231,7 @@ const gtirb::SymbolSet& DisasmData::getSymbols() const {
   return this->ir.getModules()[0].getSymbols();
 }
 
-const gtirb::Section* const DisasmData::getSection(const std::string& x) const {
+const gtirb::Section* DisasmData::getSection(const std::string& x) const {
   const auto found = std::find_if(getSections().begin(), getSections().end(),
                                   [x](const auto& element) { return element.getName() == x; });
 
@@ -242,7 +242,7 @@ const gtirb::Section* const DisasmData::getSection(const std::string& x) const {
   return nullptr;
 }
 
-const DecodedInstruction* const DisasmData::getDecodedInstruction(uint64_t ea) const {
+const DecodedInstruction* DisasmData::getDecodedInstruction(uint64_t ea) const {
   const auto inst = this->instruction.find(gtirb::EA(ea));
 
   if (inst != this->instruction.end()) {
@@ -252,7 +252,7 @@ const DecodedInstruction* const DisasmData::getDecodedInstruction(uint64_t ea) c
   return nullptr;
 }
 
-const OpIndirect* const DisasmData::getOpIndirect(uint64_t x) const {
+const OpIndirect* DisasmData::getOpIndirect(uint64_t x) const {
   if (const auto found = this->op_indirect.find(x); found != std::end(this->op_indirect)) {
     return &found->second;
   }
@@ -260,7 +260,7 @@ const OpIndirect* const DisasmData::getOpIndirect(uint64_t x) const {
   return nullptr;
 }
 
-const OpRegdirect* const DisasmData::getOpRegdirect(uint64_t x) const {
+const OpRegdirect* DisasmData::getOpRegdirect(uint64_t x) const {
   const auto found = std::find_if(std::begin(this->op_regdirect), std::end(this->op_regdirect),
                                   [x](const auto& element) { return element.N == x; });
 
@@ -282,7 +282,7 @@ uint64_t DisasmData::getOpRegdirectCode(std::string x) const {
   return 0;
 }
 
-const OpImmediate* const DisasmData::getOpImmediate(uint64_t x) const {
+const OpImmediate* DisasmData::getOpImmediate(uint64_t x) const {
   if (const auto found = this->op_immediate.find(x); found != std::end(this->op_immediate)) {
     return &found->second;
   }

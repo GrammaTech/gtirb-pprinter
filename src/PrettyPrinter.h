@@ -69,7 +69,7 @@ protected:
   std::string buildOpImmediate(const std::string& opcode, const gtirb::SymbolicExpression* symbolic,
                                const OpImmediate* const op, uint64_t ea, uint64_t index);
   std::string buildOpIndirect(const gtirb::SymbolicExpression* symbolic, const OpIndirect* const op,
-                              uint64_t ea, uint64_t index);
+                              uint64_t ea);
 
   void condPrintGlobalSymbol(uint64_t ea);
   void condPrintSectionHeader(const gtirb::Block& x);
@@ -81,7 +81,7 @@ protected:
   void printZeros(uint64_t x);
 
   std::pair<std::string, char> getOffsetAndSign(const gtirb::SymbolicExpression* symbolic,
-                                                int64_t offset, uint64_t ea, uint64_t index) const;
+                                                int64_t offset) const;
   bool getIsPointerToExcludedCode(bool hasLabel, const gtirb::SymbolicExpressionSet& symbolic,
                                   const gtirb::DataObject* dg, const gtirb::DataObject* dgNext);
 

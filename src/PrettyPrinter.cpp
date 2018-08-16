@@ -319,7 +319,7 @@ std::string PrettyPrinter::buildOperand(const std::string& opcode,
 
   auto opInd = this->disasm->getOpIndirect(operand);
   if (opInd != nullptr) {
-    return this->buildOpIndirect(symbolic, opInd, ea, index);
+    return this->buildOpIndirect(symbolic, opInd, ea);
   }
 
   return std::string{};
@@ -375,8 +375,7 @@ std::string PrettyPrinter::buildOpImmediate(const std::string& opcode,
 }
 
 std::string PrettyPrinter::buildOpIndirect(const gtirb::SymbolicExpression* symbolic,
-                                           const OpIndirect* const op, uint64_t ea,
-                                           uint64_t index) {
+                                           const OpIndirect* const op, uint64_t ea) {
   const auto sizeName = DisasmData::GetSizeName(op->Size);
 
   auto putSegmentRegister = [op](const std::string& term) {
@@ -428,7 +427,7 @@ std::string PrettyPrinter::buildOpIndirect(const gtirb::SymbolicExpression* symb
       return sizeName + putSegmentRegister(symbol);
     }
 
-    auto [offset, sign] = this->getOffsetAndSign(symbolic, op->Offset, ea, index);
+    auto [offset, sign] = this->getOffsetAndSign(symbolic, op->Offset);
     std::string term = std::string{sign} + offset;
     return sizeName + " " + putSegmentRegister(term);
   }
@@ -436,7 +435,7 @@ std::string PrettyPrinter::buildOpIndirect(const gtirb::SymbolicExpression* symb
   // Case 5
   if (PrettyPrinter::GetIsNullReg(op->Reg2) == true) {
     auto adapted = DisasmData::AdaptRegister(op->Reg1);
-    auto [offset, sign] = this->getOffsetAndSign(symbolic, op->Offset, ea, index);
+    auto [offset, sign] = this->getOffsetAndSign(symbolic, op->Offset);
     std::string term = adapted + std::string{sign} + offset;
     return sizeName + " " + putSegmentRegister(term);
   }
@@ -444,7 +443,7 @@ std::string PrettyPrinter::buildOpIndirect(const gtirb::SymbolicExpression* symb
   // Case 6
   if (PrettyPrinter::GetIsNullReg(op->Reg1) == true) {
     auto adapted = DisasmData::AdaptRegister(op->Reg2);
-    auto [offset, sign] = this->getOffsetAndSign(symbolic, op->Offset, ea, index);
+    auto [offset, sign] = this->getOffsetAndSign(symbolic, op->Offset);
     std::string term = adapted + "*" + std::to_string(op->Multiplier) + std::string{sign} + offset;
     return sizeName + " " + putSegmentRegister(term);
   }
@@ -460,7 +459,7 @@ std::string PrettyPrinter::buildOpIndirect(const gtirb::SymbolicExpression* symb
   // Case 8
   auto adapted1 = DisasmData::AdaptRegister(op->Reg1);
   auto adapted2 = DisasmData::AdaptRegister(op->Reg2);
-  auto [offset, sign] = this->getOffsetAndSign(symbolic, op->Offset, ea, index);
+  auto [offset, sign] = this->getOffsetAndSign(symbolic, op->Offset);
   std::string term =
       adapted1 + "+" + adapted2 + "*" + std::to_string(op->Multiplier) + std::string{sign} + offset;
   return sizeName + " " + putSegmentRegister(term);
@@ -689,8 +688,7 @@ void PrettyPrinter::printZeros(uint64_t x) {
 }
 
 std::pair<std::string, char>
-PrettyPrinter::getOffsetAndSign(const gtirb::SymbolicExpression* symbolic, int64_t offset,
-                                uint64_t ea, uint64_t index) const {
+PrettyPrinter::getOffsetAndSign(const gtirb::SymbolicExpression* symbolic, int64_t offset) const {
   if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic); s != nullptr) {
     if (s->Displacement == 0) {
       return {s->Sym->getName(), '+'};

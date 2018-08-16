@@ -46,13 +46,13 @@ public:
   std::string getFunctionName(gtirb::EA x) const;
   std::string getGlobalSymbolReference(uint64_t ea) const;
   std::string getGlobalSymbolName(uint64_t ea) const;
-  const DecodedInstruction* const getDecodedInstruction(uint64_t ea) const;
-  const OpIndirect* const getOpIndirect(uint64_t x) const;
-  const OpRegdirect* const getOpRegdirect(uint64_t x) const;
+  const DecodedInstruction* getDecodedInstruction(uint64_t ea) const;
+  const OpIndirect* getOpIndirect(uint64_t x) const;
+  const OpRegdirect* getOpRegdirect(uint64_t x) const;
   uint64_t getOpRegdirectCode(std::string name) const;
-  const OpImmediate* const getOpImmediate(uint64_t x) const;
+  const OpImmediate* getOpImmediate(uint64_t x) const;
   bool isRelocated(const std::string& x) const;
-  const gtirb::Section* const getSection(const std::string& x) const;
+  const gtirb::Section* getSection(const std::string& x) const;
 
   bool getIsAmbiguousSymbol(const std::string& ea) const;
 
