@@ -276,9 +276,7 @@ void PrettyPrinter::printOperandList(const std::string& opcode, const gtirb::EA 
     // FIXME: we're faking the operand offset here, assuming it's equal
     // to index. This works as long as the disassembler does the same
     // thing, but it isn't right.
-    auto found = symbolic.find(gtirb::EA(ea.get() + index));
-
-    if (found != symbolic.end()) {
+    if (auto found = symbolic.find(gtirb::EA(ea.get() + index)); found != symbolic.end()) {
       return &found->second;
     } else {
       return static_cast<const gtirb::SymbolicExpression*>(nullptr);
@@ -430,25 +428,24 @@ std::string PrettyPrinter::buildOpIndirect(const gtirb::SymbolicExpression* symb
       return sizeName + putSegmentRegister(symbol);
     }
 
-    auto offsetAndSign = this->getOffsetAndSign(symbolic, op->Offset, ea, index);
-    std::string term = std::string{offsetAndSign.second} + offsetAndSign.first;
+    auto [offset, sign] = this->getOffsetAndSign(symbolic, op->Offset, ea, index);
+    std::string term = std::string{sign} + offset;
     return sizeName + " " + putSegmentRegister(term);
   }
 
   // Case 5
   if (PrettyPrinter::GetIsNullReg(op->Reg2) == true) {
     auto adapted = DisasmData::AdaptRegister(op->Reg1);
-    auto offsetAndSign = this->getOffsetAndSign(symbolic, op->Offset, ea, index);
-    std::string term = adapted + std::string{offsetAndSign.second} + offsetAndSign.first;
+    auto [offset, sign] = this->getOffsetAndSign(symbolic, op->Offset, ea, index);
+    std::string term = adapted + std::string{sign} + offset;
     return sizeName + " " + putSegmentRegister(term);
   }
 
   // Case 6
   if (PrettyPrinter::GetIsNullReg(op->Reg1) == true) {
     auto adapted = DisasmData::AdaptRegister(op->Reg2);
-    auto offsetAndSign = this->getOffsetAndSign(symbolic, op->Offset, ea, index);
-    std::string term = adapted + "*" + std::to_string(op->Multiplier) +
-                       std::string{offsetAndSign.second} + offsetAndSign.first;
+    auto [offset, sign] = this->getOffsetAndSign(symbolic, op->Offset, ea, index);
+    std::string term = adapted + "*" + std::to_string(op->Multiplier) + std::string{sign} + offset;
     return sizeName + " " + putSegmentRegister(term);
   }
 
@@ -463,9 +460,9 @@ std::string PrettyPrinter::buildOpIndirect(const gtirb::SymbolicExpression* symb
   // Case 8
   auto adapted1 = DisasmData::AdaptRegister(op->Reg1);
   auto adapted2 = DisasmData::AdaptRegister(op->Reg2);
-  auto offsetAndSign = this->getOffsetAndSign(symbolic, op->Offset, ea, index);
-  std::string term = adapted1 + "+" + adapted2 + "*" + std::to_string(op->Multiplier) +
-                     std::string{offsetAndSign.second} + offsetAndSign.first;
+  auto [offset, sign] = this->getOffsetAndSign(symbolic, op->Offset, ea, index);
+  std::string term =
+      adapted1 + "+" + adapted2 + "*" + std::to_string(op->Multiplier) + std::string{sign} + offset;
   return sizeName + " " + putSegmentRegister(term);
 }
 
@@ -716,8 +713,7 @@ bool PrettyPrinter::getIsPointerToExcludedCode(bool hasLabel,
                                                const gtirb::DataObject* dgNext) {
   // If we have a label followed by a pointer.
   if (hasLabel && dgNext) {
-    auto foundSymbolic = symbolic.find(dgNext->getAddress());
-    if (foundSymbolic != symbolic.end()) {
+    if (auto foundSymbolic = symbolic.find(dgNext->getAddress()); foundSymbolic != symbolic.end()) {
       if (auto* sym = std::get_if<gtirb::SymAddrConst>(&foundSymbolic->second); sym != nullptr) {
         return this->skipEA(sym->Sym->getEA());
       }
@@ -725,8 +721,7 @@ bool PrettyPrinter::getIsPointerToExcludedCode(bool hasLabel,
   }
 
   // Or if we just have a pointer...
-  auto foundSymbolic = symbolic.find(dg->getAddress());
-  if (foundSymbolic != symbolic.end()) {
+  if (auto foundSymbolic = symbolic.find(dg->getAddress()); foundSymbolic != symbolic.end()) {
     if (auto* sym = std::get_if<gtirb::SymAddrConst>(&foundSymbolic->second)) {
       return this->skipEA(sym->Sym->getEA());
     }

@@ -183,8 +183,7 @@ std::string DisasmData::getGlobalSymbolReference(uint64_t ea) const {
 
   const auto& relocations =
       std::get<std::map<gtirb::EA, gtirb::table::ValueType>>(*ir.getTable("relocations"));
-  auto found = relocations.find(gtirb::EA(ea));
-  if (found != relocations.end()) {
+  if (auto found = relocations.find(gtirb::EA(ea)); found != relocations.end()) {
     const auto& r = std::get<gtirb::table::InnerMapType>(found->second);
     const auto& name = std::get<std::string>(r.at("name"));
 
@@ -254,9 +253,7 @@ const DecodedInstruction* const DisasmData::getDecodedInstruction(uint64_t ea) c
 }
 
 const OpIndirect* const DisasmData::getOpIndirect(uint64_t x) const {
-  const auto found = this->op_indirect.find(x);
-
-  if (found != std::end(this->op_indirect)) {
+  if (const auto found = this->op_indirect.find(x); found != std::end(this->op_indirect)) {
     return &found->second;
   }
 
@@ -286,9 +283,7 @@ uint64_t DisasmData::getOpRegdirectCode(std::string x) const {
 }
 
 const OpImmediate* const DisasmData::getOpImmediate(uint64_t x) const {
-  const auto found = this->op_immediate.find(x);
-
-  if (found != std::end(this->op_immediate)) {
+  if (const auto found = this->op_immediate.find(x); found != std::end(this->op_immediate)) {
     return &found->second;
   }
 
@@ -332,8 +327,7 @@ std::string DisasmData::AdaptOpcode(const std::string& x) {
                                                  {"imul3", "imul"},   {"imul1", "imul"},
                                                  {"cmpsd3", "cmpsd"}, {"out_i", "out"}};
 
-  const auto found = adapt.find(x);
-  if (found != std::end(adapt)) {
+  if (const auto found = adapt.find(x); found != std::end(adapt)) {
     return found->second;
   }
 
@@ -347,8 +341,7 @@ std::string DisasmData::AdaptRegister(const std::string& x) {
       {"ST0", "ST(0)"}, {"ST1", "ST(1)"}, {"ST2", "ST(2)"}, {"ST3", "ST(3)"}, {"ST4", "ST(4)"},
       {"ST5", "ST(5)"}, {"ST6", "ST(6)"}, {"ST7", "ST(7)"}};
 
-  const auto found = adapt.find(x);
-  if (found != std::end(adapt)) {
+  if (const auto found = adapt.find(x); found != std::end(adapt)) {
     return found->second;
   }
 
@@ -364,8 +357,7 @@ std::string DisasmData::GetSizeName(const std::string& x) {
       {"128", ""},         {"0", ""},          {"80", "TBYTE PTR"}, {"64", "QWORD PTR"},
       {"32", "DWORD PTR"}, {"16", "WORD PTR"}, {"8", "BYTE PTR"}};
 
-  const auto found = adapt.find(x);
-  if (found != std::end(adapt)) {
+  if (const auto found = adapt.find(x); found != std::end(adapt)) {
     return found->second;
   }
 
@@ -386,8 +378,7 @@ std::string DisasmData::GetSizeSuffix(const std::string& x) {
   const std::map<std::string, std::string> adapt{{"128", ""}, {"0", ""},   {"80", "t"}, {"64", "q"},
                                                  {"32", "d"}, {"16", "w"}, {"8", "b"}};
 
-  const auto found = adapt.find(x);
-  if (found != std::end(adapt)) {
+  if (const auto found = adapt.find(x); found != std::end(adapt)) {
     return found->second;
   }
 
@@ -407,8 +398,8 @@ bool DisasmData::GetIsReservedSymbol(const std::string& x) {
 std::string DisasmData::AvoidRegNameConflicts(const std::string& x) {
   const std::vector<std::string> adapt{"FS", "MOD", "DIV", "NOT", "mod", "div", "not", "and", "or"};
 
-  const auto found = std::find(std::begin(adapt), std::end(adapt), x);
-  if (found != std::end(adapt)) {
+  if (const auto found = std::find(std::begin(adapt), std::end(adapt), x);
+      found != std::end(adapt)) {
     return x + "_renamed";
   }
 
