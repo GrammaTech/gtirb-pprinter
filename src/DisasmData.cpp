@@ -7,12 +7,12 @@
 #include <gsl/gsl>
 #include <gtirb/gtirb.hpp>
 #include <iostream>
+#include <variant>
 
 void DisasmData::parseDirectory(std::string x) {
   boost::trim(x);
 
-  boost::filesystem::path irPath(x + "/gtirb");
-  this->loadIRFromFile(irPath.string());
+  this->loadIRFromFile(x + "/gtirb");
 
   // These things aren't stored in gtirb yet.
   this->parseDecodedInstruction(x + "/instruction.facts");
@@ -24,11 +24,11 @@ void DisasmData::parseDirectory(std::string x) {
 void DisasmData::loadIRFromFile(std::string path) {
   std::ifstream in(path);
   this->ir.load(in);
-  this->functionEAs = boost::get<std::vector<gtirb::EA>>(*this->ir.getTable("functionEAs"));
-  this->main_function = boost::get<std::vector<gtirb::EA>>(*this->ir.getTable("mainFunction"));
-  this->start_function = boost::get<std::vector<gtirb::EA>>(*this->ir.getTable("mainFunction"));
+  this->functionEAs = std::get<std::vector<gtirb::EA>>(*this->ir.getTable("functionEAs"));
+  this->main_function = std::get<std::vector<gtirb::EA>>(*this->ir.getTable("mainFunction"));
+  this->start_function = std::get<std::vector<gtirb::EA>>(*this->ir.getTable("mainFunction"));
   this->ambiguous_symbol =
-      boost::get<std::vector<std::string>>(*this->ir.getTable("ambiguousSymbol"));
+      std::get<std::vector<std::string>>(*this->ir.getTable("ambiguousSymbol"));
 }
 
 void DisasmData::saveIRToFile(std::string path) {
@@ -98,7 +98,7 @@ std::map<uint64_t, OpImmediate>* DisasmData::getOPImmediate() { return &this->op
 std::map<uint64_t, OpIndirect>* DisasmData::getOPIndirect() { return &this->op_indirect; }
 
 std::vector<gtirb::table::InnerMapType>& DisasmData::getDataSections() {
-  return boost::get<std::vector<gtirb::table::InnerMapType>>(*this->ir.getTable("dataSections"));
+  return std::get<std::vector<gtirb::table::InnerMapType>>(*this->ir.getTable("dataSections"));
 }
 
 std::string DisasmData::getSectionName(uint64_t x) const {
@@ -182,13 +182,13 @@ std::string DisasmData::getGlobalSymbolReference(uint64_t ea) const {
   }
 
   const auto& relocations =
-      boost::get<std::map<gtirb::EA, gtirb::table::ValueType>>(*ir.getTable("relocations"));
+      std::get<std::map<gtirb::EA, gtirb::table::ValueType>>(*ir.getTable("relocations"));
   auto found = relocations.find(gtirb::EA(ea));
   if (found != relocations.end()) {
-    const auto& r = boost::get<const gtirb::table::InnerMapType>(found->second);
-    const auto& name = boost::get<std::string>(r.at("name"));
+    const auto& r = std::get<gtirb::table::InnerMapType>(found->second);
+    const auto& name = std::get<std::string>(r.at("name"));
 
-    if (boost::get<std::string>(r.at("type")) == std::string{"R_X86_64_GLOB_DAT"}) {
+    if (std::get<std::string>(r.at("type")) == std::string{"R_X86_64_GLOB_DAT"}) {
       return DisasmData::AvoidRegNameConflicts(name) + "@GOTPCREL";
     } else {
       return DisasmData::AvoidRegNameConflicts(name);
@@ -218,11 +218,11 @@ std::string DisasmData::getGlobalSymbolName(uint64_t ea) const {
 
 bool DisasmData::isRelocated(const std::string& x) const {
   const auto& relocations =
-      boost::get<std::map<gtirb::EA, gtirb::table::ValueType>>(*ir.getTable("relocations"));
+      std::get<std::map<gtirb::EA, gtirb::table::ValueType>>(*ir.getTable("relocations"));
   const auto found =
       std::find_if(std::begin(relocations), std::end(relocations), [x](const auto& element) {
-        const auto& r = boost::get<const gtirb::table::InnerMapType>(element.second);
-        return boost::get<std::string>(r.at("name")) == x;
+        const auto& r = std::get<gtirb::table::InnerMapType>(element.second);
+        return std::get<std::string>(r.at("name")) == x;
       });
 
   return found != std::end(relocations);
