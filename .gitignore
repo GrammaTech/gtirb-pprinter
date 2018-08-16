@@ -13,3 +13,6 @@ cmake_install.cmake
 install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
+/gtirb/
+/datalog_disasm/
+/include/gsl/*
