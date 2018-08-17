@@ -187,28 +187,6 @@ bool DisasmData::getIsAmbiguousSymbol(const std::string& name) const {
   return found != std::end(this->ambiguous_symbol);
 }
 
-void DisasmData::AdjustPadding(std::vector<gtirb::Block*>& blocks) {
-  for (auto i = std::begin(blocks); i != std::end(blocks); ++i) {
-    auto next = i;
-    ++next;
-    if (next != std::end(blocks)) {
-      const auto gap = (*next)->getAddress() - addressLimit(**i);
-
-      // If we have overlap, erase the next element in the list.
-      if (addressLimit(**i) > (*next)->getAddress()) {
-        blocks.erase(next);
-      } else if (gap > 0) {
-        // insert a block with no instructions.
-        // This should be interpreted as nop's.
-
-        // FIXME: this will leak. We should insert the new Block into the CFG
-        // instead so it has an owner.
-        blocks.insert(
-            next, new gtirb::Block(addressLimit(**i), addressLimit(**next) - addressLimit(**i)));
-      }
-    }
-  }
-}
 
 std::string DisasmData::CleanSymbolNameSuffix(std::string x) {
   return x.substr(0, x.find_first_of('@'));

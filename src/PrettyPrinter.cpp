@@ -77,19 +77,8 @@ std::string PrettyPrinter::prettyPrint(DisasmData* x) {
 
   this->printHeader();
 
-  // Make a vector of block pointers so we can modify it in AdjustPadding
-  // below. It would probably be better for AdjustPadding to modify the CFG.
-  auto blockRange = gtirb::blocks(this->disasm->ir.getModules()[0].getCFG());
-  std::vector<gtirb::Block*> blocks;
-  std::transform(blockRange.begin(), blockRange.end(), std::back_inserter(blocks),
-                 [](auto& b) { return &b; });
-
-  if (this->getDebug() == true) {
-    DisasmData::AdjustPadding(blocks);
-  }
-
-  for (const auto* b : blocks) {
-    this->printBlock(*b);
+  for (const auto& b : gtirb::blocks(this->disasm->ir.getModules()[0].getCFG())) {
+    this->printBlock(b);
   }
 
   this->printDataGroups();

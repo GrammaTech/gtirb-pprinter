@@ -46,7 +46,6 @@ public:
 
   bool getIsAmbiguousSymbol(const std::string& ea) const;
 
-  static void AdjustPadding(std::vector<gtirb::Block*>& blocks);
   static std::string CleanSymbolNameSuffix(std::string x);
   static std::string AdaptOpcode(const std::string& x);
   static std::string AdaptRegister(const std::string& x);
