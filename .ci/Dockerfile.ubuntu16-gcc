@@ -64,7 +64,7 @@ RUN cd /gt/pretty-printer/gtirb/ && cmake ./ -Bbuild  && cd build &&  make && ma
 RUN apt-get -y update && apt-get -y install gcc-multilib g++-multilib libc++1 libc++abi1
 RUN ln -s libc++.so.1 /usr/lib/x86_64-linux-gnu/libc++.so
 RUN ln -s libc++abi.so.1 /usr/lib/x86_64-linux-gnu/libc++abi.so
-RUN cd /gt/pretty-printer/datalog_disasm && make clean && make
+RUN cd /gt/pretty-printer/datalog_disasm && make clean && make CC=g++-7
 
 # Build pretty-printer
 RUN rm -rf /gt/pretty-printer/build /gt/pretty-printer/CMakeCache.txt /gt/pretty-printer/CMakeFiles /gt/pretty-printer/CMakeScripts
