@@ -591,7 +591,7 @@ void PrettyPrinter::printString(const gtirb::DataObject& x) {
   this->ofs << ".string \"";
 
   for (auto& b : getBytes(this->disasm->ir.getModules()[0].getImageByteMap(), x)) {
-    if (b != gsl::byte(0)) {
+    if (b != std::byte(0)) {
       this->ofs << cleanByte(uint8_t(b));
     }
   }
