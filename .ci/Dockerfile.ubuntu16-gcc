@@ -6,11 +6,10 @@ ARG CMAKE_VERSION=3.10
 
 RUN apt-get -y update && \
     apt-get -y install software-properties-common && \
-    add-apt-repository ppa:jonathonf/gcc-7.1 && \
-    apt-get -y update
-RUN apt-get -y install gcc-7 g++-7 make cmake git 
-RUN apt-get -y install build-essential binutils 
-RUN apt-get -y install doxygen graphviz wget curl unzip
+    add-apt-repository ppa:jonathonf/gcc-7.1
+
+RUN apt-get -y update && apt-get -y install gcc-7 g++-7 make git \
+    build-essential binutils doxygen graphviz wget curl unzip libcapstone-dev
 RUN update-alternatives --install /usr/bin/cc cc /usr/bin/gcc-7 60
 RUN update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-7 60
 
