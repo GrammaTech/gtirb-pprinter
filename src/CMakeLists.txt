@@ -52,7 +52,7 @@ target_link_libraries(
 	${PROJECT_NAME} 
 	${SYSLIBS}
 	${Boost_LIBRARIES}
-        ${GTIRB}
+        gtirb
 )
 
 add_subdirectory(test)

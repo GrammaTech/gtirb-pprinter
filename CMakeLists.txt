@@ -46,9 +46,8 @@ endif()
 
 option(DEBLOAT_ENABLE_TESTS "Enable building and running unit tests." ON)
 
-# Base include path for the GT-IRB library.
+# Base include path for the pretty-printer.
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/utilities)
 
 #
 # Global Options (Compile / Link)
@@ -119,12 +118,18 @@ if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
 elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
     add_compile_options(-Wall -Wextra -Wpointer-arith -Wshadow)
     add_compile_options(-Werror)
-	add_compile_options(-fPIC)
+    add_compile_options(-fPIC)
 elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL Clang)
     add_compile_options(-Wall -Wextra -Wpointer-arith -Wshadow)
     add_compile_options(-Werror)
 	add_compile_options(-fPIC)
 endif()
+
+# ---------------------------------------------------------------------------
+# gtirb
+# ---------------------------------------------------------------------------
+
+find_package(gtirb REQUIRED)
 
 # ---------------------------------------------------------------------------
 # Boost
@@ -197,20 +202,6 @@ add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
 				 EXCLUDE_FROM_ALL)
 
 include_directories("${gtest_SOURCE_DIR}/include")
-
-# ---------------------------------------------------------------------------
-# gtirb
-# ---------------------------------------------------------------------------
-# FIXME: there's probably a more flexible way to do this
-find_library(GTIRB
-  NAMES gtirb
-  PATHS ${PROJECT_SOURCE_DIR}/gtirb/bin/)
-if(NOT GTIRB)
-  message(FATAL_ERROR "gtirb library not found")
-endif()
-
-include_directories(${PROJECT_SOURCE_DIR}/gtirb/include)
-
 
 add_subdirectory(driver)
 add_subdirectory(src)
