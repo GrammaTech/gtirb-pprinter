@@ -7,7 +7,10 @@
 #include <gsl/gsl>
 #include <gtirb/gtirb.hpp>
 #include <iostream>
+#include <utility>
 #include <variant>
+
+using namespace std::rel_ops;
 
 void DisasmData::parseDirectory(std::string x) {
   boost::trim(x);
@@ -24,9 +27,9 @@ void DisasmData::parseDirectory(std::string x) {
 void DisasmData::loadIRFromFile(std::string path) {
   std::ifstream in(path);
   this->ir.load(in);
-  this->functionEAs = std::get<std::vector<gtirb::EA>>(*this->ir.getTable("functionEAs"));
-  this->main_function = std::get<std::vector<gtirb::EA>>(*this->ir.getTable("mainFunction"));
-  this->start_function = std::get<std::vector<gtirb::EA>>(*this->ir.getTable("mainFunction"));
+  this->functionEAs = std::get<std::vector<gtirb::Addr>>(*this->ir.getTable("functionEAs"));
+  this->main_function = std::get<std::vector<gtirb::Addr>>(*this->ir.getTable("mainFunction"));
+  this->start_function = std::get<std::vector<gtirb::Addr>>(*this->ir.getTable("mainFunction"));
   this->ambiguous_symbol =
       std::get<std::vector<std::string>>(*this->ir.getTable("ambiguousSymbol"));
 }
@@ -87,7 +90,7 @@ const std::vector<gtirb::Section>& DisasmData::getSections() const {
   return this->ir.getModules()[0].getSections();
 }
 
-std::map<gtirb::EA, DecodedInstruction>* DisasmData::getDecodedInstruction() {
+std::map<gtirb::Addr, DecodedInstruction>* DisasmData::getDecodedInstruction() {
   return &this->instruction;
 }
 
@@ -101,7 +104,7 @@ std::vector<gtirb::table::InnerMapType>& DisasmData::getDataSections() {
   return std::get<std::vector<gtirb::table::InnerMapType>>(*this->ir.getTable("dataSections"));
 }
 
-std::string DisasmData::getSectionName(uint64_t x) const {
+std::string DisasmData::getSectionName(gtirb::Addr x) const {
   const auto& sections = this->getSections();
   const auto& match =
       find_if(sections.begin(), sections.end(), [x](const auto& s) { return s.getAddress() == x; });
@@ -114,18 +117,18 @@ std::string DisasmData::getSectionName(uint64_t x) const {
 }
 
 bool DisasmData::isFunction(const gtirb::Symbol& sym) const {
-  return std::binary_search(this->functionEAs.begin(), this->functionEAs.end(), sym.getEA());
+  return std::binary_search(this->functionEAs.begin(), this->functionEAs.end(), sym.getAddress());
 }
 
 // function_complete_name
-std::string DisasmData::getFunctionName(gtirb::EA x) const {
+std::string DisasmData::getFunctionName(gtirb::Addr x) const {
   for (auto& s : gtirb::findSymbols(this->getSymbols(), x)) {
     if (isFunction(*s)) {
       std::stringstream name;
       name << s->getName();
 
       if (this->getIsAmbiguousSymbol(s->getName()) == true) {
-        name << "_" << std::hex << x;
+        name << "_" << std::hex << uint64_t(x);
       }
 
       return name.str();
@@ -142,7 +145,7 @@ std::string DisasmData::getFunctionName(gtirb::EA x) const {
   for (auto f : this->function_entry) {
     if (x == f) {
       std::stringstream ss;
-      ss << "unknown_function_" << std::hex << x;
+      ss << "unknown_function_" << std::hex << uint64_t(x);
       return ss.str();
     }
   }
@@ -150,17 +153,17 @@ std::string DisasmData::getFunctionName(gtirb::EA x) const {
   return std::string{};
 }
 
-std::string DisasmData::getGlobalSymbolReference(uint64_t ea) const {
+std::string DisasmData::getGlobalSymbolReference(gtirb::Addr ea) const {
   auto end = getSymbols().rend();
   for (auto it = std::reverse_iterator<gtirb::SymbolSet::const_iterator>(
-           getSymbols().upper_bound(gtirb::EA(ea))); //
-       it != end && it->second.getEA() <= ea; it++) {
+           getSymbols().upper_bound(gtirb::Addr(ea))); //
+       it != end && it->second.getAddress() <= ea; it++) {
     const auto& sym = it->second;
     auto data = sym.getDataReferent();
 
     /// \todo This will need looked at again to cover the logic
-    if (data && containsEA(*data, gtirb::EA(ea))) {
-      uint64_t displacement = ea - sym.getEA().get();
+    if (data && containsAddr(*data, gtirb::Addr(ea))) {
+      auto displacement = ea - sym.getAddress();
 
       // in a function with non-zero displacement we do not use the relative addressing
       if (displacement > 0 && isFunction(sym)) {
@@ -182,8 +185,8 @@ std::string DisasmData::getGlobalSymbolReference(uint64_t ea) const {
   }
 
   const auto& relocations =
-      std::get<std::map<gtirb::EA, gtirb::table::ValueType>>(*ir.getTable("relocations"));
-  if (auto found = relocations.find(gtirb::EA(ea)); found != relocations.end()) {
+      std::get<std::map<gtirb::Addr, gtirb::table::ValueType>>(*ir.getTable("relocations"));
+  if (auto found = relocations.find(gtirb::Addr(ea)); found != relocations.end()) {
     const auto& r = std::get<gtirb::table::InnerMapType>(found->second);
     const auto& name = std::get<std::string>(r.at("name"));
 
@@ -197,9 +200,9 @@ std::string DisasmData::getGlobalSymbolReference(uint64_t ea) const {
   return std::string{};
 }
 
-std::string DisasmData::getGlobalSymbolName(uint64_t ea) const {
-  for (const auto sym : findSymbols(getSymbols(), gtirb::EA(ea))) {
-    if (sym->getEA() == ea) {
+std::string DisasmData::getGlobalSymbolName(gtirb::Addr ea) const {
+  for (const auto sym : findSymbols(getSymbols(), gtirb::Addr(ea))) {
+    if (sym->getAddress() == ea) {
       if ((sym->getStorageKind() != gtirb::Symbol::StorageKind::Local)) {
         // %do not print labels for symbols that have to be relocated
         const auto name = DisasmData::CleanSymbolNameSuffix(sym->getName());
@@ -217,7 +220,7 @@ std::string DisasmData::getGlobalSymbolName(uint64_t ea) const {
 
 bool DisasmData::isRelocated(const std::string& x) const {
   const auto& relocations =
-      std::get<std::map<gtirb::EA, gtirb::table::ValueType>>(*ir.getTable("relocations"));
+      std::get<std::map<gtirb::Addr, gtirb::table::ValueType>>(*ir.getTable("relocations"));
   const auto found =
       std::find_if(std::begin(relocations), std::end(relocations), [x](const auto& element) {
         const auto& r = std::get<gtirb::table::InnerMapType>(element.second);
@@ -242,8 +245,8 @@ const gtirb::Section* DisasmData::getSection(const std::string& x) const {
   return nullptr;
 }
 
-const DecodedInstruction* DisasmData::getDecodedInstruction(uint64_t ea) const {
-  const auto inst = this->instruction.find(gtirb::EA(ea));
+const DecodedInstruction* DisasmData::getDecodedInstruction(gtirb::Addr ea) const {
+  const auto inst = this->instruction.find(gtirb::Addr(ea));
 
   if (inst != this->instruction.end()) {
     return &(inst->second);
@@ -312,7 +315,8 @@ void DisasmData::AdjustPadding(std::vector<gtirb::Block*>& blocks) {
 
         // FIXME: this will leak. We should insert the new Block into the CFG
         // instead so it has an owner.
-        blocks.insert(next, new gtirb::Block{addressLimit(**i), (*next)->getAddress()});
+        blocks.insert(
+            next, new gtirb::Block(addressLimit(**i), addressLimit(**next) - addressLimit(**i)));
       }
     }
   }

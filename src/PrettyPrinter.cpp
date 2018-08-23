@@ -8,8 +8,11 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <utility>
 #include <variant>
 #include "DisasmData.h"
+
+using namespace std::rel_ops;
 
 ///
 /// Pring a comment that automatically scopes.
@@ -108,13 +111,13 @@ void PrettyPrinter::printBlock(const gtirb::Block& x) {
 
       // Reconstruct a vector of EAs from raw bytes stored in the table.
       auto bytes = std::get<std::string>(blockInfo->second);
-      std::vector<gtirb::EA> instructions(bytes.size() / sizeof(gtirb::EA));
+      std::vector<gtirb::Addr> instructions(bytes.size() / sizeof(gtirb::Addr));
       memcpy(instructions.data(), bytes.data(), bytes.size());
       for (const auto& inst : instructions) {
         this->printInstruction(inst);
       }
     } else {
-      const auto nopCount = addressLimit(x);
+      const auto nopCount = x.getSize();
       this->ofs << std::endl;
 
       const auto bac = BlockAreaComment(this->ofs, "No instruciton padding.");
@@ -128,7 +131,7 @@ void PrettyPrinter::printBlock(const gtirb::Block& x) {
 }
 
 void PrettyPrinter::condPrintSectionHeader(const gtirb::Block& x) {
-  const auto name = this->disasm->getSectionName(gtirb::EA{x.getAddress()});
+  const auto name = this->disasm->getSectionName(x.getAddress());
 
   if (!name.empty()) {
     this->printSectionHeader(name);
@@ -165,17 +168,18 @@ void PrettyPrinter::printBar(bool heavy) {
   }
 }
 
-void PrettyPrinter::printFunctionHeader(uint64_t ea) {
-  const auto name = this->disasm->getFunctionName(gtirb::EA{ea});
+void PrettyPrinter::printFunctionHeader(gtirb::Addr ea) {
+  const auto name = this->disasm->getFunctionName(ea);
 
   if (name.empty() == false) {
     const auto bac =
         BlockAreaComment(this->ofs, "Function Header", [this]() { this->printBar(false); });
 
     // enforce maximum alignment
-    if (ea % 8 == 0) {
+    auto x = uint64_t(ea);
+    if (x % 8 == 0) {
       this->ofs << ".align 8" << std::endl;
-    } else if (ea % 2 == 0) {
+    } else if (x % 2 == 0) {
       this->ofs << ".align 2" << std::endl;
     }
 
@@ -185,12 +189,12 @@ void PrettyPrinter::printFunctionHeader(uint64_t ea) {
   }
 }
 
-void PrettyPrinter::printLabel(uint64_t ea) {
+void PrettyPrinter::printLabel(gtirb::Addr ea) {
   this->condPrintGlobalSymbol(ea);
-  this->ofs << ".L_" << std::hex << ea << ":" << std::dec;
+  this->ofs << ".L_" << std::hex << uint64_t(ea) << ":" << std::dec;
 }
 
-void PrettyPrinter::condPrintGlobalSymbol(uint64_t ea) {
+void PrettyPrinter::condPrintGlobalSymbol(gtirb::Addr ea) {
   auto name = this->disasm->getGlobalSymbolName(ea);
 
   if (name.empty() == false) {
@@ -198,7 +202,7 @@ void PrettyPrinter::condPrintGlobalSymbol(uint64_t ea) {
   }
 }
 
-void PrettyPrinter::printInstruction(gtirb::EA ea) {
+void PrettyPrinter::printInstruction(gtirb::Addr ea) {
   this->printEA(ea);
   auto inst = this->disasm->getDecodedInstruction(ea);
   auto prefix = inst->Prefix;
@@ -259,15 +263,15 @@ void PrettyPrinter::printInstruction(gtirb::EA ea) {
 
 void PrettyPrinter::printInstructionNop() { this->ofs << PrettyPrinter::StrNOP << std::endl; }
 
-void PrettyPrinter::printEA(uint64_t ea) {
+void PrettyPrinter::printEA(gtirb::Addr ea) {
   this->ofs << "          ";
 
   if (this->getDebug() == true) {
-    this->ofs << std::hex << ea << ": " << std::dec;
+    this->ofs << std::hex << uint64_t(ea) << ": " << std::dec;
   }
 }
 
-void PrettyPrinter::printOperandList(const std::string& opcode, const gtirb::EA ea,
+void PrettyPrinter::printOperandList(const std::string& opcode, const gtirb::Addr ea,
                                      const uint64_t* const operands) {
   std::string str_operands[4];
 
@@ -276,7 +280,7 @@ void PrettyPrinter::printOperandList(const std::string& opcode, const gtirb::EA 
     // FIXME: we're faking the operand offset here, assuming it's equal
     // to index. This works as long as the disassembler does the same
     // thing, but it isn't right.
-    if (auto found = symbolic.find(gtirb::EA(ea.get() + index)); found != symbolic.end()) {
+    if (auto found = symbolic.find(ea + index); found != symbolic.end()) {
       return &found->second;
     } else {
       return static_cast<const gtirb::SymbolicExpression*>(nullptr);
@@ -306,7 +310,7 @@ void PrettyPrinter::printOperandList(const std::string& opcode, const gtirb::EA 
 
 std::string PrettyPrinter::buildOperand(const std::string& opcode,
                                         const gtirb::SymbolicExpression* symbolic, uint64_t operand,
-                                        uint64_t ea, uint64_t index) {
+                                        gtirb::Addr ea, uint64_t index) {
   auto opReg = this->disasm->getOpRegdirect(operand);
   if (opReg != nullptr) {
     return this->buildOpRegdirect(opReg, ea, index);
@@ -325,19 +329,19 @@ std::string PrettyPrinter::buildOperand(const std::string& opcode,
   return std::string{};
 }
 
-std::string PrettyPrinter::buildOpRegdirect(const OpRegdirect* const op, uint64_t /*ea*/,
+std::string PrettyPrinter::buildOpRegdirect(const OpRegdirect* const op, gtirb::Addr /*ea*/,
                                             uint64_t /*index*/) {
   return DisasmData::AdaptRegister(op->Register);
 }
 
 std::string PrettyPrinter::buildOpImmediate(const std::string& opcode,
                                             const gtirb::SymbolicExpression* symbolic,
-                                            const OpImmediate* const op, uint64_t ea,
+                                            const OpImmediate* const op, gtirb::Addr ea,
                                             uint64_t index) {
   if (symbolic) {
-    const auto& pltReferences = std::get<std::map<gtirb::EA, gtirb::table::ValueType>>(
+    const auto& pltReferences = std::get<std::map<gtirb::Addr, gtirb::table::ValueType>>(
         *this->disasm->ir.getTable("pltCodeReferences"));
-    const auto p = pltReferences.find(gtirb::EA(ea));
+    const auto p = pltReferences.find(gtirb::Addr(ea));
     if (p != pltReferences.end()) {
       return PrettyPrinter::StrOffset + " " + std::get<std::string>(p->second);
     }
@@ -345,7 +349,7 @@ std::string PrettyPrinter::buildOpImmediate(const std::string& opcode,
     if (auto* s = std::get_if<gtirb::SymAddrConst>(symbolic); s != nullptr) {
       if (opcode == "call") {
         assert(s->Displacement == 0);
-        if (this->skipEA(op->Immediate)) {
+        if (this->skipEA(gtirb::Addr(op->Immediate))) {
           return std::to_string(op->Immediate);
         } else {
           return s->Sym->getName();
@@ -354,15 +358,15 @@ std::string PrettyPrinter::buildOpImmediate(const std::string& opcode,
 
       if (s->Displacement == 0) {
         if (index == 1) {
-          auto ref = this->disasm->getGlobalSymbolReference(op->Immediate);
+          auto ref = this->disasm->getGlobalSymbolReference(gtirb::Addr(op->Immediate));
           if (ref.empty() == false) {
             return PrettyPrinter::StrOffset + " " + ref;
           } else {
-            return PrettyPrinter::StrOffset + " " + GetSymbolToPrint(op->Immediate);
+            return PrettyPrinter::StrOffset + " " + GetSymbolToPrint(gtirb::Addr(op->Immediate));
           }
         }
 
-        return GetSymbolToPrint(op->Immediate);
+        return GetSymbolToPrint(gtirb::Addr(op->Immediate));
       } else {
         std::stringstream ss;
         ss << PrettyPrinter::StrOffset << " " << s->Sym->getName() << "+" << s->Displacement;
@@ -375,7 +379,7 @@ std::string PrettyPrinter::buildOpImmediate(const std::string& opcode,
 }
 
 std::string PrettyPrinter::buildOpIndirect(const gtirb::SymbolicExpression* symbolic,
-                                           const OpIndirect* const op, uint64_t ea) {
+                                           const OpIndirect* const op, gtirb::Addr ea) {
   const auto sizeName = DisasmData::GetSizeName(op->Size);
 
   auto putSegmentRegister = [op](const std::string& term) {
@@ -422,7 +426,7 @@ std::string PrettyPrinter::buildOpIndirect(const gtirb::SymbolicExpression* symb
   // Case 4
   if (PrettyPrinter::GetIsNullReg(op->Reg1) == true &&
       PrettyPrinter::GetIsNullReg(op->Reg2) == true) {
-    auto symbol = this->disasm->getGlobalSymbolReference(op->Offset);
+    auto symbol = this->disasm->getGlobalSymbolReference(gtirb::Addr(op->Offset));
     if (symbol.empty() == false) {
       return sizeName + putSegmentRegister(symbol);
     }
@@ -469,8 +473,8 @@ void PrettyPrinter::printDataGroups() {
   auto& ir = this->disasm->ir;
 
   const auto& pltReferences =
-      std::get<std::map<gtirb::EA, gtirb::table::ValueType>>(*ir.getTable("pltDataReferences"));
-  const auto& stringEAs = std::get<std::vector<gtirb::EA>>(*ir.getTable("stringEAs"));
+      std::get<std::map<gtirb::Addr, gtirb::table::ValueType>>(*ir.getTable("pltDataReferences"));
+  const auto& stringEAs = std::get<std::vector<gtirb::Addr>>(*ir.getTable("stringEAs"));
   const auto& symbolic = ir.getModules()[0].getSymbolicExpressions();
   const auto& symbolSet = ir.getModules()[0].getSymbols();
 
@@ -511,7 +515,7 @@ void PrettyPrinter::printDataGroups() {
           this->ofs << PrettyPrinter::StrTab;
 
           if (this->debug == true) {
-            this->ofs << std::hex << data->getAddress() << std::dec << ":";
+            this->ofs << std::hex << uint64_t(data->getAddress()) << std::dec << ":";
           }
         };
 
@@ -522,7 +526,7 @@ void PrettyPrinter::printDataGroups() {
         // Also print local label just in case. There is still some code that makes up
         // ".L_<ea>" references without having a corresponding symbol.
         if (!foundSymbol.empty()) {
-          this->ofs << ".L_" << std::hex << data->getAddress().get() << ":\n" << std::dec;
+          this->ofs << ".L_" << std::hex << uint64_t(data->getAddress()) << ":\n" << std::dec;
         }
 
         const auto& foundSymbolic = symbolic.find(data->getAddress());
@@ -636,20 +640,20 @@ void PrettyPrinter::printBSS() {
   }
 }
 
-bool PrettyPrinter::skipEA(const uint64_t x) const {
+bool PrettyPrinter::skipEA(const gtirb::Addr x) const {
   if (this->debug == false) {
     for (const auto& s : this->disasm->getSections()) {
       const auto found = std::find(std::begin(PrettyPrinter::AsmSkipSection),
                                    std::end(PrettyPrinter::AsmSkipSection), s.getName());
 
-      if (found != std::end(PrettyPrinter::AsmSkipSection) && containsEA(s, gtirb::EA(x))) {
+      if (found != std::end(PrettyPrinter::AsmSkipSection) && containsAddr(s, gtirb::Addr(x))) {
         return true;
       }
     }
 
-    uint64_t xFunctionAddress{0};
+    gtirb::Addr xFunctionAddress{0};
     const auto functionEntries =
-        std::get<std::vector<gtirb::EA>>(*this->disasm->ir.getTable("functionEntry"));
+        std::get<std::vector<gtirb::Addr>>(*this->disasm->ir.getTable("functionEntry"));
 
     for (auto fe = std::begin(functionEntries); fe != std::end(functionEntries); ++fe) {
       auto feNext = fe;
@@ -663,7 +667,7 @@ bool PrettyPrinter::skipEA(const uint64_t x) const {
 
     std::string xFunctionName{};
     for (const auto& sym :
-         gtirb::findSymbols(this->disasm->getSymbols(), gtirb::EA(xFunctionAddress))) {
+         gtirb::findSymbols(this->disasm->getSymbols(), gtirb::Addr(xFunctionAddress))) {
       if (this->disasm->isFunction(*sym)) {
         xFunctionName = sym->getName();
         break;
@@ -716,7 +720,7 @@ bool PrettyPrinter::getIsPointerToExcludedCode(bool hasLabel,
   if (hasLabel && dgNext) {
     if (auto foundSymbolic = symbolic.find(dgNext->getAddress()); foundSymbolic != symbolic.end()) {
       if (auto* sym = std::get_if<gtirb::SymAddrConst>(&foundSymbolic->second); sym != nullptr) {
-        return this->skipEA(sym->Sym->getEA());
+        return this->skipEA(sym->Sym->getAddress());
       }
     }
   }
@@ -724,16 +728,16 @@ bool PrettyPrinter::getIsPointerToExcludedCode(bool hasLabel,
   // Or if we just have a pointer...
   if (auto foundSymbolic = symbolic.find(dg->getAddress()); foundSymbolic != symbolic.end()) {
     if (auto* sym = std::get_if<gtirb::SymAddrConst>(&foundSymbolic->second)) {
-      return this->skipEA(sym->Sym->getEA());
+      return this->skipEA(sym->Sym->getAddress());
     }
   }
 
   return false;
 }
 
-std::string PrettyPrinter::GetSymbolToPrint(uint64_t x) {
+std::string PrettyPrinter::GetSymbolToPrint(gtirb::Addr x) {
   std::stringstream ss;
-  ss << ".L_" << std::hex << x << std::dec;
+  ss << ".L_" << std::hex << uint64_t(x) << std::dec;
   return ss.str();
 }
 

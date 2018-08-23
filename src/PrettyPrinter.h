@@ -48,14 +48,14 @@ protected:
 
   void printBar(bool heavy = true);
   void printBlock(const gtirb::Block& x);
-  void printEA(uint64_t ea);
-  void printFunctionHeader(uint64_t ea);
+  void printEA(gtirb::Addr ea);
+  void printFunctionHeader(gtirb::Addr ea);
   void printHeader();
-  void printInstruction(const gtirb::EA ea);
+  void printInstruction(const gtirb::Addr ea);
   void printInstructionNop();
-  void printLabel(uint64_t ea);
+  void printLabel(gtirb::Addr ea);
   void printSectionHeader(const std::string& x, uint64_t alignment = 0);
-  void printOperandList(const std::string& opcode, const gtirb::EA ea,
+  void printOperandList(const std::string& opcode, const gtirb::Addr ea,
                         const uint64_t* const operands);
 
   void printDataGroups();
@@ -64,17 +64,17 @@ protected:
   void printBSS();
 
   std::string buildOperand(const std::string& opcode, const gtirb::SymbolicExpression* symbolic,
-                           uint64_t operand, uint64_t ea, uint64_t index);
-  std::string buildOpRegdirect(const OpRegdirect* const op, uint64_t ea, uint64_t index);
+                           uint64_t operand, gtirb::Addr ea, uint64_t index);
+  std::string buildOpRegdirect(const OpRegdirect* const op, gtirb::Addr ea, uint64_t index);
   std::string buildOpImmediate(const std::string& opcode, const gtirb::SymbolicExpression* symbolic,
-                               const OpImmediate* const op, uint64_t ea, uint64_t index);
+                               const OpImmediate* const op, gtirb::Addr ea, uint64_t index);
   std::string buildOpIndirect(const gtirb::SymbolicExpression* symbolic, const OpIndirect* const op,
-                              uint64_t ea);
+                              gtirb::Addr ea);
 
-  void condPrintGlobalSymbol(uint64_t ea);
+  void condPrintGlobalSymbol(gtirb::Addr ea);
   void condPrintSectionHeader(const gtirb::Block& x);
 
-  bool skipEA(const uint64_t x) const;
+  bool skipEA(const gtirb::Addr x) const;
   bool isSectionSkipped(const std::string& name);
   // % avoid_reg_name_conflics
   std::string avoidRegNameConflicts(const std::string& x);
@@ -89,7 +89,7 @@ protected:
 
   static int64_t GetNeededPadding(int64_t alignment, int64_t currentAlignment,
                                   int64_t requiredAlignment);
-  static std::string GetSymbolToPrint(uint64_t x);
+  static std::string GetSymbolToPrint(gtirb::Addr x);
   static bool GetIsNullReg(const std::string& x);
 
 private:

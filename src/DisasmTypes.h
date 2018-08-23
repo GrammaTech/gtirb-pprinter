@@ -3,7 +3,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/serialization/string.hpp>
 #include <cstdint>
-#include <gtirb/EA.hpp>
+#include <gtirb/Addr.hpp>
 #include <gtirb/Section.hpp>
 #include <string>
 #include <vector>
