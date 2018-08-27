@@ -102,7 +102,7 @@ int main(int argc, char** argv)
             // Step 2: Call souffle
             {
                 std::stringstream cmd;
-                cmd << "souffle_disasm  -F " << disasmPath << " -D " << disasmPath;
+                cmd << "souffle_disasm  " << exe << " -F " << disasmPath << " -D " << disasmPath;
 
                 LOG_DEBUG << cmd.str() << std::endl;
                 LOG_DEBUG << std::endl;
