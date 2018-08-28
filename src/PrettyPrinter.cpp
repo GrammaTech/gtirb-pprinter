@@ -334,6 +334,27 @@ std::string PrettyPrinter::buildOpImmediate(const std::string& opcode,
   const auto& detail = inst.detail->x86;
   const auto& op = detail.operands[index];
 
+  // Correct sign of the immediate.
+  // Capstone seems to take the original bytes and pad them with zeroes to
+  // fill an int64_t. But that doesn't preserve the sign, so e.g. -1 (1 byte)
+  // becomes 255 (2 bytes).
+  // Casting to the correct type and then storing back into an int64_t yields
+  // the correct result.
+  int64_t imm;
+  switch (op.size) {
+  case 1:
+    imm = int8_t(op.imm);
+    break;
+  case 2:
+    imm = int16_t(op.imm);
+    break;
+  case 4:
+    imm = int32_t(op.imm);
+    break;
+  default:
+    imm = op.imm;
+  }
+
   assert(op.type == X86_OP_IMM);
   if (symbolic) {
     const auto& pltReferences = std::get<std::map<gtirb::Addr, gtirb::table::ValueType>>(
@@ -346,8 +367,8 @@ std::string PrettyPrinter::buildOpImmediate(const std::string& opcode,
     if (auto* s = std::get_if<gtirb::SymAddrConst>(symbolic); s != nullptr) {
       if (opcode == "call") {
         assert(s->Displacement == 0);
-        if (this->skipEA(gtirb::Addr(op.imm))) {
-          return std::to_string(op.imm);
+        if (this->skipEA(gtirb::Addr(imm))) {
+          return std::to_string(imm);
         } else {
           return s->Sym->getName();
         }
@@ -355,15 +376,15 @@ std::string PrettyPrinter::buildOpImmediate(const std::string& opcode,
 
       if (s->Displacement == 0) {
         if (detail.op_count == 1 || index == 1) {
-          auto ref = this->disasm->getGlobalSymbolReference(gtirb::Addr(op.imm));
+          auto ref = this->disasm->getGlobalSymbolReference(gtirb::Addr(imm));
           if (ref.empty() == false) {
             return PrettyPrinter::StrOffset + " " + ref;
           } else {
-            return PrettyPrinter::StrOffset + " " + GetSymbolToPrint(gtirb::Addr(op.imm));
+            return PrettyPrinter::StrOffset + " " + GetSymbolToPrint(gtirb::Addr(imm));
           }
         }
 
-        return GetSymbolToPrint(gtirb::Addr(op.imm));
+        return GetSymbolToPrint(gtirb::Addr(imm));
       } else {
         std::stringstream ss;
         ss << PrettyPrinter::StrOffset << " " << s->Sym->getName() << "+" << s->Displacement;
@@ -372,7 +393,7 @@ std::string PrettyPrinter::buildOpImmediate(const std::string& opcode,
     }
   }
 
-  return std::to_string(op.imm);
+  return std::to_string(imm);
 }
 
 std::string PrettyPrinter::buildOpIndirect(const gtirb::SymbolicExpression* symbolic,
