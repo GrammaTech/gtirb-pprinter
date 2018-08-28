@@ -292,7 +292,16 @@ void PrettyPrinter::printOperandList(const std::string& opcode, const gtirb::Add
     }
   };
 
-  for (int i = 0; i < detail.op_count; i++) {
+  auto opCount = detail.op_count;
+  // Operands are implicit for various MOVS* instructions. But there is also
+  // an SSE2 instruction named MOVSD which has explicit operands.
+  if ((inst.id == X86_INS_MOVSB || inst.id == X86_INS_MOVSW || inst.id == X86_INS_MOVSD ||
+       inst.id == X86_INS_MOVSQ) &&
+      inst.detail->groups[0] != X86_GRP_SSE2) {
+    opCount = 0;
+  }
+
+  for (int i = 0; i < opCount; i++) {
     if (i != 0) {
       this->ofs << ",";
     }
