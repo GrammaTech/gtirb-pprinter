@@ -540,7 +540,10 @@ void PrettyPrinter::printDataGroups() {
         } else if (foundSymbolic != symbolic.end()) {
           if (auto* s = std::get_if<gtirb::SymAddrConst>(&foundSymbolic->second); s != nullptr) {
             printTab();
-            this->ofs << ".quad " << s->Sym->getName();
+            if (s->Displacement != 0)
+                this->ofs << ".quad " << s->Sym->getName()<< "+"<< s->Displacement;
+            else
+                this->ofs << ".quad " << s->Sym->getName();
             this->ofs << std::endl;
           } else if (auto* sa = std::get_if<gtirb::SymAddrAddr>(&foundSymbolic->second);
                      sa != nullptr) {
