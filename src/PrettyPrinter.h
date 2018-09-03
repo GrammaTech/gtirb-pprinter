@@ -2,7 +2,6 @@
 
 #include <capstone/capstone.h>
 #include <cstdint>
-#include <gtirb/SymbolicExpressionSet.hpp>
 #include <iosfwd>
 #include <list>
 #include <map>
@@ -26,7 +25,7 @@ public:
   ///
   /// Pretty print to a string
   ///
-  std::string prettyPrint(gtirb::IR& ir);
+  std::string prettyPrint(gtirb::Context& context, gtirb::IR* ir);
 
 protected:
   /// Constants to reduce (eliminate) magical strings inside the printer.
@@ -83,7 +82,7 @@ protected:
 
   std::pair<std::string, char> getOffsetAndSign(const gtirb::SymbolicExpression* symbolic,
                                                 int64_t offset) const;
-  bool getIsPointerToExcludedCode(bool hasLabel, const gtirb::SymbolicExpressionSet& symbolic,
+  bool getIsPointerToExcludedCode(bool hasLabel, const gtirb::Module& module,
                                   const gtirb::DataObject* dg, const gtirb::DataObject* dgNext);
 
   // Static utility functions.

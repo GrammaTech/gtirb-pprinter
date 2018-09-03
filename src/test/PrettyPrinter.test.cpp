@@ -86,13 +86,13 @@ public:
   void disassemble() {
     const auto suppress = DisableConsoleOutput();
     std::ifstream in(this->gtirbPath.string());
-    EXPECT_NO_THROW(this->ir.load(in));
+    EXPECT_NO_THROW(this->ir = gtirb::IR::load(this->ctx, in));
   }
 
   void print() {
     const auto suppress = DisableConsoleOutput();
     PrettyPrinter pp;
-    EXPECT_NO_THROW(this->assembly = pp.prettyPrint(this->ir));
+    EXPECT_NO_THROW(this->assembly = pp.prettyPrint(this->ctx, this->ir));
 
     // This must be a ".s" extension for GCC / Clang.
     this->asmPath = this->disasmPath.string() + GetParam().Name + ".s";
@@ -140,7 +140,8 @@ public:
     return result;
   }
 
-  gtirb::IR ir;
+  gtirb::Context ctx;
+  gtirb::IR* ir;
   boost::filesystem::path exe;
   boost::filesystem::path disasmPath;
   boost::filesystem::path gtirbPath;

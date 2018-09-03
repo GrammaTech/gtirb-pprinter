@@ -116,18 +116,17 @@ int main(int argc, char** argv) {
   }
 
   if (boost::filesystem::exists(irPath) == true) {
-    gtirb::IR ir;
+    gtirb::Context ctx;
 
     LOG_INFO << std::setw(24) << std::left << "Reading IR: " << irPath << std::endl;
-    {
-      std::ifstream in(irPath.string());
-      ir.load(in);
-    }
+    std::ifstream in(irPath.string());
+    auto* ir = gtirb::IR::load(ctx, in);
+    in.close();
 
     // Perform the Pretty Printing step.
     PrettyPrinter pp;
     pp.setDebug(vm["debug"].as<bool>());
-    const auto assembly = pp.prettyPrint(ir);
+    const auto assembly = pp.prettyPrint(ctx, ir);
 
     // Do we write it to a file?
     if (vm.count("asm") != 0) {

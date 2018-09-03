@@ -17,12 +17,12 @@
 ///
 class DEBLOAT_PRETTYPRINTER_EXPORT_API DisasmData {
 public:
-  DisasmData(gtirb::IR& ir_);
+  DisasmData(gtirb::Context& context, gtirb::IR* ir);
 
+  gtirb::Context& context;
   gtirb::IR& ir;
 
-  const gtirb::SymbolSet& getSymbols() const;
-  const std::vector<gtirb::Section>& getSections() const;
+  const gtirb::Module::section_range getSections() const;
   std::vector<std::string>* getAmbiguousSymbol();
   std::vector<gtirb::table::InnerMapType>& getDataSections();
 

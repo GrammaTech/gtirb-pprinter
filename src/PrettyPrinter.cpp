@@ -71,13 +71,13 @@ void PrettyPrinter::setDebug(bool x) { this->debug = x; }
 
 bool PrettyPrinter::getDebug() const { return this->debug; }
 
-std::string PrettyPrinter::prettyPrint(gtirb::IR& ir) {
-  this->disasm = std::make_unique<DisasmData>(ir);
+std::string PrettyPrinter::prettyPrint(gtirb::Context& context, gtirb::IR* ir) {
+  this->disasm = std::make_unique<DisasmData>(context, ir);
   this->ofs.clear();
 
   this->printHeader();
 
-  for (const auto& b : gtirb::blocks(this->disasm->ir.getModules()[0].getCFG())) {
+  for (const auto& b : gtirb::blocks(this->disasm->ir.modules()[0].getCFG())) {
     this->printBlock(b);
   }
 
@@ -114,9 +114,9 @@ void PrettyPrinter::printBlock(const gtirb::Block& x) {
   cs_insn* insn;
   cs_option(this->csHandle, CS_OPT_DETAIL, CS_OPT_ON);
 
-  auto bytes2 = getBytes(this->disasm->ir.getModules()[0].getImageByteMap(), x);
-  size_t count = cs_disasm(this->csHandle, reinterpret_cast<uint8_t*>(bytes2.data()), bytes2.size(),
-                           uint64_t(x.getAddress()), 0, &insn);
+  auto bytes2 = getBytes(this->disasm->ir.modules()[0].getImageByteMap(), x);
+  size_t count = cs_disasm(this->csHandle, reinterpret_cast<const uint8_t*>(&bytes2[0]),
+                           bytes2.size(), uint64_t(x.getAddress()), 0, &insn);
 
   // Exception-safe cleanup of instructions
   std::unique_ptr<cs_insn, std::function<void(cs_insn*)>> freeInsn(
@@ -271,8 +271,8 @@ void PrettyPrinter::printOperandList(const std::string& opcode, const gtirb::Add
   std::string str_operands[4];
 
   auto& detail = inst.detail->x86;
-  const auto& symbolic = this->disasm->ir.getModules()[0].getSymbolicExpressions();
-  auto findSymbolic = [&symbolic, &detail, ea](int index) {
+  const auto& module = this->disasm->ir.modules()[0];
+  auto findSymbolic = [&module, &detail, ea](int index) {
     // FIXME: we're faking the operand offset here, assuming it's equal
     // to index. This works as long as the disassembler does the same
     // thing, but it isn't right.
@@ -287,8 +287,9 @@ void PrettyPrinter::printOperandList(const std::string& opcode, const gtirb::Add
     }
     index++;
 
-    if (auto found = symbolic.find(ea + index); found != symbolic.end()) {
-      return &found->second;
+    if (auto found = module.findSymbolicExpression(ea + index);
+        found != module.symbolic_expr_end()) {
+      return &*found;
     } else {
       return static_cast<const gtirb::SymbolicExpression*>(nullptr);
     }
@@ -376,12 +377,13 @@ std::string PrettyPrinter::buildOpImmediate(const std::string& opcode,
     }
 
     if (auto* s = std::get_if<gtirb::SymAddrConst>(symbolic); s != nullptr) {
+      auto* sym = s->Sym.get(this->disasm->context);
       if (opcode == "call") {
         assert(s->Displacement == 0);
         if (this->skipEA(gtirb::Addr(imm))) {
           return std::to_string(imm);
         } else {
-          return s->Sym->getName();
+          return sym->getName();
         }
       }
 
@@ -398,7 +400,7 @@ std::string PrettyPrinter::buildOpImmediate(const std::string& opcode,
         return GetSymbolToPrint(gtirb::Addr(imm));
       } else {
         std::stringstream ss;
-        ss << PrettyPrinter::StrOffset << " " << s->Sym->getName() << "+" << s->Displacement;
+        ss << PrettyPrinter::StrOffset << " " << sym->getName() << "+" << s->Displacement;
         return ss.str();
       }
     }
@@ -505,19 +507,18 @@ std::string PrettyPrinter::buildOpIndirect(const gtirb::SymbolicExpression* symb
 
 void PrettyPrinter::printDataGroups() {
   auto& ir = this->disasm->ir;
+  const auto& module = ir.modules()[0];
 
   const auto& pltReferences =
       std::get<std::map<gtirb::Addr, gtirb::table::ValueType>>(*ir.getTable("pltDataReferences"));
   const auto& stringEAs = std::get<std::vector<gtirb::Addr>>(*ir.getTable("stringEAs"));
-  const auto& symbolic = ir.getModules()[0].getSymbolicExpressions();
-  const auto& symbolSet = ir.getModules()[0].getSymbols();
 
   for (auto& ds : this->disasm->getDataSections()) {
     auto sectionPtr = this->disasm->getSection(std::get<std::string>(ds["name"]));
 
     std::vector<const gtirb::DataObject*> dataGroups;
     for (auto i : std::get<std::vector<gtirb::UUID>>(ds["dataGroups"])) {
-      gtirb::DataObject* d = gtirb::NodeRef<gtirb::DataObject>(i);
+      auto* d = gtirb::NodeRef<gtirb::DataObject>(i).get(this->disasm->context);
       dataGroups.push_back(d);
     }
 
@@ -530,17 +531,17 @@ void PrettyPrinter::printDataGroups() {
     // Print data for this section...
     for (auto dg = std::begin(dataGroups); dg != std::end(dataGroups); ++dg) {
       bool exclude = false;
-      auto data = dynamic_cast<const gtirb::DataObject*>(*dg);
-      auto foundSymbol = gtirb::findSymbols(symbolSet, data->getAddress());
+      auto* data = *dg;
+      auto foundSymbol = module.findSymbols(data->getAddress());
 
       if (sectionPtr->getName() == ".init_array" || sectionPtr->getName() == ".fini_array") {
         auto dgNext = dg;
         dgNext++;
 
         if (dgNext != std::end(dataGroups)) {
-          exclude = this->getIsPointerToExcludedCode(foundSymbol.empty(), symbolic, *dg, *dgNext);
+          exclude = this->getIsPointerToExcludedCode(foundSymbol.empty(), module, *dg, *dgNext);
         } else {
-          exclude = this->getIsPointerToExcludedCode(foundSymbol.empty(), symbolic, *dg, nullptr);
+          exclude = this->getIsPointerToExcludedCode(foundSymbol.empty(), module, *dg, nullptr);
         }
       }
 
@@ -554,8 +555,8 @@ void PrettyPrinter::printDataGroups() {
         };
 
         // Print all symbols
-        for (const auto s : foundSymbol) {
-          this->ofs << s->getName() << ":\n";
+        for (const auto& s : foundSymbol) {
+          this->ofs << s.getName() << ":\n";
         }
         // Also print local label just in case. There is still some code that makes up
         // ".L_<ea>" references without having a corresponding symbol.
@@ -563,7 +564,7 @@ void PrettyPrinter::printDataGroups() {
           this->ofs << ".L_" << std::hex << uint64_t(data->getAddress()) << ":\n" << std::dec;
         }
 
-        const auto& foundSymbolic = symbolic.find(data->getAddress());
+        const auto& foundSymbolic = module.findSymbolicExpression(data->getAddress());
         const auto p = pltReferences.find(data->getAddress());
         if (p != pltReferences.end()) {
           printTab();
@@ -575,23 +576,25 @@ void PrettyPrinter::printDataGroups() {
           printTab();
           this->printString(*data);
           this->ofs << std::endl;
-        } else if (foundSymbolic != symbolic.end()) {
-          if (auto* s = std::get_if<gtirb::SymAddrConst>(&foundSymbolic->second); s != nullptr) {
+        } else if (foundSymbolic != module.symbolic_expr_end()) {
+          if (auto* s = std::get_if<gtirb::SymAddrConst>(&*foundSymbolic); s != nullptr) {
+            auto* sym = s->Sym.get(this->disasm->context);
             printTab();
             if (s->Displacement != 0)
-              this->ofs << ".quad " << s->Sym->getName() << "+" << s->Displacement;
+              this->ofs << ".quad " << sym->getName() << "+" << s->Displacement;
             else
-              this->ofs << ".quad " << s->Sym->getName();
+              this->ofs << ".quad " << sym->getName();
             this->ofs << std::endl;
-          } else if (auto* sa = std::get_if<gtirb::SymAddrAddr>(&foundSymbolic->second);
-                     sa != nullptr) {
+          } else if (auto* sa = std::get_if<gtirb::SymAddrAddr>(&*foundSymbolic); sa != nullptr) {
+            auto* sym1 = sa->Sym1.get(this->disasm->context);
+            auto* sym2 = sa->Sym2.get(this->disasm->context);
             printTab();
             this->printEA(data->getAddress());
-            this->ofs << ".long " << sa->Sym1->getName() << "-" << sa->Sym2->getName();
+            this->ofs << ".long " << sym1->getName() << "-" << sym2->getName();
             this->ofs << std::endl;
           }
         } else {
-          for (auto byte : getBytes(this->disasm->ir.getModules()[0].getImageByteMap(), *data)) {
+          for (auto byte : getBytes(this->disasm->ir.modules()[0].getImageByteMap(), *data)) {
             printTab();
             this->ofs << ".byte 0x" << std::hex << static_cast<uint32_t>(byte) << std::dec;
             this->ofs << std::endl;
@@ -631,7 +634,7 @@ void PrettyPrinter::printString(const gtirb::DataObject& x) {
 
   this->ofs << ".string \"";
 
-  for (auto& b : getBytes(this->disasm->ir.getModules()[0].getImageByteMap(), x)) {
+  for (auto& b : getBytes(this->disasm->ir.modules()[0].getImageByteMap(), x)) {
     if (b != std::byte(0)) {
       this->ofs << cleanByte(uint8_t(b));
     }
@@ -648,10 +651,12 @@ void PrettyPrinter::printBSS() {
     const auto& bssData = std::get<std::vector<gtirb::UUID>>(*this->disasm->ir.getTable("bssData"));
 
     // Special case.
-    if (!bssData.empty() && gtirb::NodeRef<gtirb::DataObject>(bssData.at(0))->getAddress() !=
-                                bssSection->getAddress()) {
+    if (!bssData.empty() &&
+        gtirb::NodeRef<gtirb::DataObject>(bssData.at(0)).get(this->disasm->context)->getAddress() !=
+            bssSection->getAddress()) {
       const auto current = bssSection->getAddress();
-      const auto next = gtirb::NodeRef<gtirb::DataObject>(bssData.at(0))->getAddress();
+      const auto next =
+          gtirb::NodeRef<gtirb::DataObject>(bssData.at(0)).get(this->disasm->context)->getAddress();
 
       this->printLabel(current);
       this->ofs << " .zero " << next - current;
@@ -659,7 +664,8 @@ void PrettyPrinter::printBSS() {
     this->ofs << std::endl;
 
     for (size_t i = 0; i < bssData.size(); ++i) {
-      const auto& current = *gtirb::NodeRef<gtirb::DataObject>(bssData.at(i));
+      const auto& current =
+          *gtirb::NodeRef<gtirb::DataObject>(bssData.at(i)).get(this->disasm->context);
       this->printLabel(current.getAddress());
 
       if (current.getSize() == 0) {
@@ -701,9 +707,9 @@ bool PrettyPrinter::skipEA(const gtirb::Addr x) const {
 
     std::string xFunctionName{};
     for (const auto& sym :
-         gtirb::findSymbols(this->disasm->getSymbols(), gtirb::Addr(xFunctionAddress))) {
-      if (this->disasm->isFunction(*sym)) {
-        xFunctionName = sym->getName();
+         this->disasm->ir.modules()[0].findSymbols(gtirb::Addr(xFunctionAddress))) {
+      if (this->disasm->isFunction(sym)) {
+        xFunctionName = sym.getName();
         break;
       }
     }
@@ -731,12 +737,13 @@ void PrettyPrinter::printZeros(uint64_t x) {
 std::pair<std::string, char>
 PrettyPrinter::getOffsetAndSign(const gtirb::SymbolicExpression* symbolic, int64_t offset) const {
   if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic); s != nullptr) {
+    auto* sym = s->Sym.get(this->disasm->context);
     if (s->Displacement == 0) {
-      return {s->Sym->getName(), '+'};
+      return {sym->getName(), '+'};
     } else if (s->Displacement > 0) {
-      return {s->Sym->getName() + "+" + std::to_string(s->Displacement), '+'};
+      return {sym->getName() + "+" + std::to_string(s->Displacement), '+'};
     } else {
-      return {s->Sym->getName() + std::to_string(s->Displacement), '+'};
+      return {sym->getName() + std::to_string(s->Displacement), '+'};
     }
   }
 
@@ -746,23 +753,26 @@ PrettyPrinter::getOffsetAndSign(const gtirb::SymbolicExpression* symbolic, int64
   return {std::to_string(offset), '+'};
 }
 
-bool PrettyPrinter::getIsPointerToExcludedCode(bool hasLabel,
-                                               const gtirb::SymbolicExpressionSet& symbolic,
+bool PrettyPrinter::getIsPointerToExcludedCode(bool hasLabel, const gtirb::Module& module,
                                                const gtirb::DataObject* dg,
                                                const gtirb::DataObject* dgNext) {
   // If we have a label followed by a pointer.
   if (hasLabel && dgNext) {
-    if (auto foundSymbolic = symbolic.find(dgNext->getAddress()); foundSymbolic != symbolic.end()) {
-      if (auto* sym = std::get_if<gtirb::SymAddrConst>(&foundSymbolic->second); sym != nullptr) {
-        return this->skipEA(sym->Sym->getAddress());
+    if (auto foundSymbolic = module.findSymbolicExpression(dgNext->getAddress());
+        foundSymbolic != module.symbolic_expr_end()) {
+      if (auto* s = std::get_if<gtirb::SymAddrConst>(&*foundSymbolic); s != nullptr) {
+        auto* sym = s->Sym.get(this->disasm->context);
+        return this->skipEA(sym->getAddress());
       }
     }
   }
 
   // Or if we just have a pointer...
-  if (auto foundSymbolic = symbolic.find(dg->getAddress()); foundSymbolic != symbolic.end()) {
-    if (auto* sym = std::get_if<gtirb::SymAddrConst>(&foundSymbolic->second)) {
-      return this->skipEA(sym->Sym->getAddress());
+  if (auto foundSymbolic = module.findSymbolicExpression(dg->getAddress());
+      foundSymbolic != module.symbolic_expr_end()) {
+    if (auto* s = std::get_if<gtirb::SymAddrConst>(&*foundSymbolic)) {
+      auto* sym = s->Sym.get(this->disasm->context);
+      return this->skipEA(sym->getAddress());
     }
   }
 

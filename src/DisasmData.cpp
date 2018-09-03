@@ -12,14 +12,15 @@
 
 using namespace std::rel_ops;
 
-DisasmData::DisasmData(gtirb::IR& ir_)
-    : ir(ir_), functionEAs(std::get<std::vector<gtirb::Addr>>(*ir_.getTable("functionEAs"))),
-      ambiguous_symbol(std::get<std::vector<std::string>>(*ir_.getTable("ambiguousSymbol"))),
-      start_function(std::get<std::vector<gtirb::Addr>>(*ir_.getTable("mainFunction"))),
-      main_function(std::get<std::vector<gtirb::Addr>>(*ir_.getTable("mainFunction"))) {}
+DisasmData::DisasmData(gtirb::Context& context_, gtirb::IR* ir_)
+    : context(context_), ir(*ir_),
+      functionEAs(std::get<std::vector<gtirb::Addr>>(*ir_->getTable("functionEAs"))),
+      ambiguous_symbol(std::get<std::vector<std::string>>(*ir_->getTable("ambiguousSymbol"))),
+      start_function(std::get<std::vector<gtirb::Addr>>(*ir_->getTable("mainFunction"))),
+      main_function(std::get<std::vector<gtirb::Addr>>(*ir_->getTable("mainFunction"))) {}
 
-const std::vector<gtirb::Section>& DisasmData::getSections() const {
-  return this->ir.getModules()[0].getSections();
+const gtirb::Module::section_range DisasmData::getSections() const {
+  return this->ir.modules()[0].sections();
 }
 
 std::vector<gtirb::table::InnerMapType>& DisasmData::getDataSections() {
@@ -44,12 +45,12 @@ bool DisasmData::isFunction(const gtirb::Symbol& sym) const {
 
 // function_complete_name
 std::string DisasmData::getFunctionName(gtirb::Addr x) const {
-  for (auto& s : gtirb::findSymbols(this->getSymbols(), x)) {
-    if (isFunction(*s)) {
+  for (auto& s : this->ir.modules()[0].findSymbols(x)) {
+    if (isFunction(s)) {
       std::stringstream name;
-      name << s->getName();
+      name << s.getName();
 
-      if (this->getIsAmbiguousSymbol(s->getName()) == true) {
+      if (this->getIsAmbiguousSymbol(s.getName()) == true) {
         name << "_" << std::hex << uint64_t(x);
       }
 
@@ -76,12 +77,20 @@ std::string DisasmData::getFunctionName(gtirb::Addr x) const {
 }
 
 std::string DisasmData::getGlobalSymbolReference(gtirb::Addr ea) const {
-  auto end = getSymbols().rend();
-  for (auto it = std::reverse_iterator<gtirb::SymbolSet::const_iterator>(
-           getSymbols().upper_bound(gtirb::Addr(ea))); //
-       it != end && it->second.getAddress() <= ea; it++) {
-    const auto& sym = it->second;
-    auto data = sym.getDataReferent();
+  // FIXME: when reworking gtirb data structures, make it possible to do
+  // "containsAddr" queries directly and efficiently.
+  using SymbolMap = std::multimap<gtirb::Addr, const gtirb::Symbol*>;
+  SymbolMap symbols;
+  for (const auto& s : this->ir.modules()[0].symbols()) {
+    symbols.emplace(s.getAddress(), &s);
+  }
+
+  auto end = symbols.rend();
+  for (auto it = std::reverse_iterator<SymbolMap::const_iterator>(
+           symbols.upper_bound(gtirb::Addr(ea))); //
+       it != end && it->second->getAddress() <= ea; it++) {
+    const auto& sym = *it->second;
+    auto* data = sym.getDataReferent().get(this->context);
 
     /// \todo This will need looked at again to cover the logic
     if (data && containsAddr(*data, gtirb::Addr(ea))) {
@@ -123,11 +132,11 @@ std::string DisasmData::getGlobalSymbolReference(gtirb::Addr ea) const {
 }
 
 std::string DisasmData::getGlobalSymbolName(gtirb::Addr ea) const {
-  for (const auto sym : findSymbols(getSymbols(), gtirb::Addr(ea))) {
-    if (sym->getAddress() == ea) {
-      if ((sym->getStorageKind() != gtirb::Symbol::StorageKind::Local)) {
+  for (const auto& sym : this->ir.modules()[0].findSymbols(gtirb::Addr(ea))) {
+    if (sym.getAddress() == ea) {
+      if ((sym.getStorageKind() != gtirb::Symbol::StorageKind::Local)) {
         // %do not print labels for symbols that have to be relocated
-        const auto name = DisasmData::CleanSymbolNameSuffix(sym->getName());
+        const auto name = DisasmData::CleanSymbolNameSuffix(sym.getName());
 
         // if it is not relocated...
         if (!this->isRelocated(name) && !DisasmData::GetIsReservedSymbol(name)) {
@@ -150,10 +159,6 @@ bool DisasmData::isRelocated(const std::string& x) const {
       });
 
   return found != std::end(relocations);
-}
-
-const gtirb::SymbolSet& DisasmData::getSymbols() const {
-  return this->ir.getModules()[0].getSymbols();
 }
 
 const gtirb::Section* DisasmData::getSection(const std::string& x) const {
