@@ -24,9 +24,9 @@ public:
   bool getDebug() const;
 
   ///
-  /// Pretty print to the given file name.
+  /// Pretty print to a string
   ///
-  std::string prettyPrint(DisasmData* x);
+  std::string prettyPrint(gtirb::IR& ir);
 
 protected:
   /// Constants to reduce (eliminate) magical strings inside the printer.
@@ -96,6 +96,6 @@ protected:
 private:
   csh csHandle;
   std::stringstream ofs;
-  DisasmData* disasm{nullptr};
+  std::unique_ptr<DisasmData> disasm{nullptr};
   bool debug{false};
 };

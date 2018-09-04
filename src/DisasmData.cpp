@@ -12,25 +12,11 @@
 
 using namespace std::rel_ops;
 
-void DisasmData::parseDirectory(std::string x) {
-  boost::trim(x);
-  this->loadIRFromFile(x + "/gtirb");
-}
-
-void DisasmData::loadIRFromFile(std::string path) {
-  std::ifstream in(path);
-  this->ir.load(in);
-  this->functionEAs = std::get<std::vector<gtirb::Addr>>(*this->ir.getTable("functionEAs"));
-  this->main_function = std::get<std::vector<gtirb::Addr>>(*this->ir.getTable("mainFunction"));
-  this->start_function = std::get<std::vector<gtirb::Addr>>(*this->ir.getTable("mainFunction"));
-  this->ambiguous_symbol =
-      std::get<std::vector<std::string>>(*this->ir.getTable("ambiguousSymbol"));
-}
-
-void DisasmData::saveIRToFile(std::string path) {
-  std::ofstream out(path);
-  this->ir.save(out);
-}
+DisasmData::DisasmData(gtirb::IR& ir_)
+    : ir(ir_), functionEAs(std::get<std::vector<gtirb::Addr>>(*ir_.getTable("functionEAs"))),
+      ambiguous_symbol(std::get<std::vector<std::string>>(*ir_.getTable("ambiguousSymbol"))),
+      start_function(std::get<std::vector<gtirb::Addr>>(*ir_.getTable("mainFunction"))),
+      main_function(std::get<std::vector<gtirb::Addr>>(*ir_.getTable("mainFunction"))) {}
 
 const std::vector<gtirb::Section>& DisasmData::getSections() const {
   return this->ir.getModules()[0].getSections();
@@ -186,7 +172,6 @@ bool DisasmData::getIsAmbiguousSymbol(const std::string& name) const {
       std::find(std::begin(this->ambiguous_symbol), std::end(this->ambiguous_symbol), name);
   return found != std::end(this->ambiguous_symbol);
 }
-
 
 std::string DisasmData::CleanSymbolNameSuffix(std::string x) {
   return x.substr(0, x.find_first_of('@'));

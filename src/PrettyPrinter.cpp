@@ -71,8 +71,8 @@ void PrettyPrinter::setDebug(bool x) { this->debug = x; }
 
 bool PrettyPrinter::getDebug() const { return this->debug; }
 
-std::string PrettyPrinter::prettyPrint(DisasmData* x) {
-  this->disasm = x;
+std::string PrettyPrinter::prettyPrint(gtirb::IR& ir) {
+  this->disasm = std::make_unique<DisasmData>(ir);
   this->ofs.clear();
 
   this->printHeader();
@@ -84,6 +84,8 @@ std::string PrettyPrinter::prettyPrint(DisasmData* x) {
   this->printDataGroups();
 
   this->printBSS();
+
+  this->disasm.release();
 
   return this->ofs.str();
 }

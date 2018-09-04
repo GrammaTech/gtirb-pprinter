@@ -17,19 +17,9 @@
 ///
 class DEBLOAT_PRETTYPRINTER_EXPORT_API DisasmData {
 public:
-  ///
-  /// Read all of the expected file types out of a directory.
-  ///
-  /// This calls all of the individual "parse" functions for the known file names in the given
-  /// directory.
-  ///
-  void parseDirectory(std::string x);
+  DisasmData(gtirb::IR& ir_);
 
-  void saveIRToFile(std::string path);
-  void loadIRFromFile(std::string path);
-
-  // FIXME: IR should replace DisasmData entirely.
-  gtirb::IR ir;
+  gtirb::IR& ir;
 
   const gtirb::SymbolSet& getSymbols() const;
   const std::vector<gtirb::Section>& getSections() const;

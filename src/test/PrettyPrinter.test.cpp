@@ -34,6 +34,7 @@ public:
   virtual void SetUp() override {
     // this->disasmPath = boost::filesystem::temp_directory_path();
     this->disasmPath = boost::filesystem::path("./temp/");
+    this->gtirbPath = boost::filesystem::path("./temp/gtirb");
 
     if (boost::filesystem::is_directory(this->disasmPath) == false) {
       EXPECT_TRUE(boost::filesystem::create_directory(this->disasmPath))
@@ -84,13 +85,14 @@ public:
 
   void disassemble() {
     const auto suppress = DisableConsoleOutput();
-    EXPECT_NO_THROW(this->disasm.parseDirectory(this->disasmPath.string()));
+    std::ifstream in(this->gtirbPath.string());
+    EXPECT_NO_THROW(this->ir.load(in));
   }
 
   void print() {
     const auto suppress = DisableConsoleOutput();
     PrettyPrinter pp;
-    EXPECT_NO_THROW(this->assembly = pp.prettyPrint(&this->disasm));
+    EXPECT_NO_THROW(this->assembly = pp.prettyPrint(this->ir));
 
     // This must be a ".s" extension for GCC / Clang.
     this->asmPath = this->disasmPath.string() + GetParam().Name + ".s";
@@ -138,9 +140,10 @@ public:
     return result;
   }
 
-  DisasmData disasm;
+  gtirb::IR ir;
   boost::filesystem::path exe;
   boost::filesystem::path disasmPath;
+  boost::filesystem::path gtirbPath;
   boost::filesystem::path asmPath;
   boost::filesystem::path reasmPath;
   std::string assembly;
