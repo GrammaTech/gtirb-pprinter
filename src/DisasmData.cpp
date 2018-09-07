@@ -194,13 +194,9 @@ std::string DisasmData::AdaptOpcode(const std::string& x) {
   return x;
 }
 
+//FIXME: get rid of this function once capstone returns the right name for all registers
 std::string DisasmData::AdaptRegister(const std::string& x) {
-  const std::map<std::string, std::string> adapt{
-      {"R8L", "R8B"},   {"R9L", "R9B"},   {"R10L", "R10B"}, {"R11L", "R11B"}, {"R12L", "R12B"},
-      {"R13L", "R13B"}, {"R14L", "R14B"}, {"R15L", "R15B"}, {"R12L", "R12B"}, {"R13L", "R13B"},
-      {"ST0", "ST(0)"}, {"ST1", "ST(1)"}, {"ST2", "ST(2)"}, {"ST3", "ST(3)"}, {"ST4", "ST(4)"},
-      {"ST5", "ST(5)"}, {"ST6", "ST(6)"}, {"ST7", "ST(7)"}};
-
+  const std::map<std::string, std::string> adapt{{"ST(0", "ST(0)"}};
   if (const auto found = adapt.find(x); found != std::end(adapt)) {
     return found->second;
   }
