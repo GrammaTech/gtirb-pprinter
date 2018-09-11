@@ -9,7 +9,7 @@ RUN apt-get -y update && \
     add-apt-repository ppa:jonathonf/gcc-7.1
 
 RUN apt-get -y update && apt-get -y install gcc-7 g++-7 make git \
-    build-essential binutils doxygen graphviz wget curl unzip libcapstone-dev
+    build-essential binutils doxygen graphviz wget curl unzip
 RUN update-alternatives --install /usr/bin/cc cc /usr/bin/gcc-7 60
 RUN update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-7 60
 
@@ -55,6 +55,14 @@ RUN ldconfig
 
 COPY . /gt/pretty-printer/
 
+# Install capstone
+RUN cd /usr/local/src \
+    && wget https://github.com/aquynh/capstone/archive/3.0.5.tar.gz \
+    && tar xf 3.0.5.tar.gz \
+    && cd capstone-3.0.5 \
+    && CAPSTONE_ARCHS=x86 ./make.sh \
+    && CAPSTONE_ARCHS=x86 ./make.sh install
+
 # Install gtirb
 RUN rm -rf /gt/pretty-printer/gtirb/build /gt/pretty-printer/gtirb/CMakeCache.txt /gt/pretty-printer/gtirb/CMakeFiles /gt/pretty-printer/gtirb/CMakeScripts
 RUN cd /gt/pretty-printer/gtirb/ && cmake ./ -Bbuild  && cd build &&  make && make install
@@ -70,7 +78,7 @@ RUN rm -rf /gt/pretty-printer/build /gt/pretty-printer/CMakeCache.txt /gt/pretty
 RUN mkdir -p /gt/pretty-printer/build
 WORKDIR /gt/pretty-printer/build
 RUN cmake ../  -DDEBLOAT_FOUND_DATALOG_DECODER=/gt/pretty-printer/datalog_disasm/bin/datalog_decoder -DDEBLOAT_FOUND_SOUFFLE_DISASM=/gt/pretty-printer/datalog_disasm/bin/souffle_disasm
-RUN make -j 
+RUN make -j
 WORKDIR /gt/pretty-printer/
 ENV PATH=/gt/pretty-printer/bin:/gt/pretty-printer/datalog_disasm/bin/:$PATH
 ENV LD_LIBRARY_PATH /gt/pretty-printer/gtirb/build/lib
