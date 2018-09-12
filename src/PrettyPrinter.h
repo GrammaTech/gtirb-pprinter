@@ -44,7 +44,6 @@ public:
 protected:
   /// Constants to reduce (eliminate) magical strings inside the printer.
   const std::string StrOffset{"OFFSET"};
-  const std::string StrRIP{"[RIP]"};
   const std::string StrZeroByte{".byte 0x00"};
   const std::string StrNOP{"nop"};
   const std::string StrSection{".section"};
@@ -82,8 +81,7 @@ protected:
   std::string buildOpRegdirect(const cs_x86_op& op);
   std::string buildOpImmediate(const std::string& opcode, const gtirb::SymbolicExpression* symbolic,
                                const cs_insn& inst, gtirb::Addr ea, uint64_t index);
-  std::string buildOpIndirect(const gtirb::SymbolicExpression* symbolic, const cs_insn& inst,
-                              gtirb::Addr ea, uint64_t index);
+  std::string buildOpIndirect(const gtirb::SymbolicExpression* symbolic, const cs_insn& inst, uint64_t index);
 
   void condPrintGlobalSymbol(gtirb::Addr ea);
   void condPrintSectionHeader(const gtirb::Block& x);
@@ -99,12 +97,13 @@ protected:
   bool getIsPointerToExcludedCode(bool hasLabel, const gtirb::Module& module,
                                   const gtirb::DataObject* dg, const gtirb::DataObject* dgNext);
 
+  std::string getRegisterName(unsigned int reg);
+  std::string getAddendString(int64_t number);
   // Static utility functions.
 
   static int64_t GetNeededPadding(int64_t alignment, int64_t currentAlignment,
                                   int64_t requiredAlignment);
   static std::string GetSymbolToPrint(gtirb::Addr x);
-  static bool GetIsNullReg(const std::string& x);
 
 private:
   csh csHandle;
