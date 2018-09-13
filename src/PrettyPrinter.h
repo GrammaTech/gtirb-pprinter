@@ -72,7 +72,6 @@ protected:
   void printOperandList(const std::string& opcode, const gtirb::Addr ea, const cs_insn& inst);
 
   void printDataGroups();
-  void printString(const gtirb::DataObject& x);
 
   void printBSS();
 
@@ -81,22 +80,29 @@ protected:
   std::string buildOpRegdirect(const cs_x86_op& op);
   std::string buildOpImmediate(const std::string& opcode, const gtirb::SymbolicExpression* symbolic,
                                const cs_insn& inst, gtirb::Addr ea, uint64_t index);
-  std::string buildOpIndirect(const gtirb::SymbolicExpression* symbolic, const cs_insn& inst, uint64_t index);
+  std::string buildOpIndirect(const gtirb::SymbolicExpression* symbolic, const cs_insn& inst,
+                              uint64_t index);
 
+  void printDataObject(const gtirb::DataObject& dataGroup);
+  void printString(const gtirb::DataObject& x);
+  void printSymbolicData(const gtirb::Addr addr, const gtirb::SymbolicExpression* symbolic);
+  void printSymbolicExpression(const gtirb::SymAddrConst* sexpr, std::stringstream& stream);
+  void printSymbolicExpression(const gtirb::SymAddrAddr* sexpr, std::stringstream& stream);
   void condPrintGlobalSymbol(gtirb::Addr ea);
   void condPrintSectionHeader(const gtirb::Block& x);
+
+  bool shouldExcludeDataElement(const std::string& sectionName, const gtirb::DataObject& dataGroup);
+  bool isPointerToExcludedCode(const gtirb::DataObject& dataGroup);
 
   bool skipEA(const gtirb::Addr x) const;
   bool isInSkippedSection(const gtirb::Addr x) const;
   bool isInSkippedFunction(const gtirb::Addr x) const;
   std::string getContainerFunctionName(const gtirb::Addr x) const;
   bool isSectionSkipped(const std::string& name);
-  bool getIsPointerToExcludedCode(bool hasLabel, const gtirb::Module& module,
-                                  const gtirb::DataObject* dg, const gtirb::DataObject* dgNext);
 
   std::string getRegisterName(unsigned int reg);
   std::string avoidRegNameConflicts(const std::string& x);
-  std::string getAddendString(int64_t number, bool first=false);
+  std::string getAddendString(int64_t number, bool first = false);
 
 private:
   csh csHandle;

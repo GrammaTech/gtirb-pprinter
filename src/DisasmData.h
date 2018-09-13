@@ -51,7 +51,6 @@ public:
 
   bool isAmbiguousSymbol(const std::string& ea) const;
 
-
   static std::string GetSymbolToPrint(gtirb::Addr x);
   static std::string CleanSymbolNameSuffix(std::string x);
   static std::string AdaptRegister(const std::string& x);
