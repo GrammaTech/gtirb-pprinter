@@ -575,7 +575,10 @@ void PrettyPrinter::printBSS() {
 }
 
 bool PrettyPrinter::skipEA(const gtirb::Addr x) const {
-  if (this->debug == false) {
+  return !this->debug && (isInSkippedSection(x) || isInSkippedFunction(x));
+}
+
+bool PrettyPrinter::isInSkippedSection(const gtirb::Addr x) const {
     for (const auto &s : this->disasm->getSections()) {
       const auto found =
           std::find(std::begin(PrettyPrinter::AsmSkipSection),
@@ -586,44 +589,46 @@ bool PrettyPrinter::skipEA(const gtirb::Addr x) const {
         return true;
       }
     }
+    return false;
+}
 
+bool PrettyPrinter::isInSkippedFunction(const gtirb::Addr x) const {
+    std::string xFunctionName=getContainerFunctionName(x);
+    if(xFunctionName.empty())
+        return false;
+
+    const auto found =
+            std::find(std::begin(PrettyPrinter::AsmSkipFunction),
+                      std::end(PrettyPrinter::AsmSkipFunction), xFunctionName);
+    return found != std::end(PrettyPrinter::AsmSkipFunction);
+
+}
+
+std::string PrettyPrinter::getContainerFunctionName(const gtirb::Addr x) const{
     gtirb::Addr xFunctionAddress{0};
     const auto functionEntries = std::get<std::vector<gtirb::Addr>>(
-        *this->disasm->ir.getTable("functionEntry"));
+            *this->disasm->ir.getTable("functionEntry"));
 
     for (auto fe = std::begin(functionEntries); fe != std::end(functionEntries);
-         ++fe) {
-      auto feNext = fe;
-      feNext++;
+            ++fe) {
+        auto feNext = fe;
+        feNext++;
 
-      if (x >= *fe && x < *feNext) {
-        xFunctionAddress = *fe;
-        continue;
-      }
+        if (x >= *fe && x < *feNext) {
+            xFunctionAddress = *fe;
+            continue;
+        }
     }
 
     std::string xFunctionName{};
     for (const auto &sym : this->disasm->ir.modules()[0].findSymbols(
-             gtirb::Addr(xFunctionAddress))) {
-      if (this->disasm->isFunction(sym)) {
-        xFunctionName = sym.getName();
-        break;
-      }
+            gtirb::Addr(xFunctionAddress))) {
+        if (this->disasm->isFunction(sym)) {
+            xFunctionName = sym.getName();
+            break;
+        }
     }
-
-    // if we have a function address.
-    // and that function address has a name.
-    // is that name in our skip list?
-
-    if (xFunctionName.empty() == false) {
-      const auto found =
-          std::find(std::begin(PrettyPrinter::AsmSkipFunction),
-                    std::end(PrettyPrinter::AsmSkipFunction), xFunctionName);
-      return found != std::end(PrettyPrinter::AsmSkipFunction);
-    }
-  }
-
-  return false;
+    return xFunctionName;
 }
 
 std::string PrettyPrinter::getRegisterName(unsigned int reg) {

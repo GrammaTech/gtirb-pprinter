@@ -87,6 +87,9 @@ protected:
   void condPrintSectionHeader(const gtirb::Block& x);
 
   bool skipEA(const gtirb::Addr x) const;
+  bool isInSkippedSection(const gtirb::Addr x) const;
+  bool isInSkippedFunction(const gtirb::Addr x) const;
+  std::string getContainerFunctionName(const gtirb::Addr x) const;
   bool isSectionSkipped(const std::string& name);
   bool getIsPointerToExcludedCode(bool hasLabel, const gtirb::Module& module,
                                   const gtirb::DataObject* dg, const gtirb::DataObject* dgNext);
