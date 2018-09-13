@@ -639,12 +639,6 @@ std::string PrettyPrinter::getAddendString(int64_t number,bool first) {
   return "+" + std::to_string(number);
 }
 
-void PrettyPrinter::printZeros(uint64_t x) {
-  for (uint64_t i = 0; i < x; i++) {
-    this->ofs << PrettyPrinter::StrZeroByte << std::endl;
-  }
-}
-
 bool PrettyPrinter::getIsPointerToExcludedCode(
     bool hasLabel, const gtirb::Module &module, const gtirb::DataObject *dg,
     const gtirb::DataObject *dgNext) {
@@ -671,16 +665,6 @@ bool PrettyPrinter::getIsPointerToExcludedCode(
   }
 
   return false;
-}
-
-int64_t PrettyPrinter::GetNeededPadding(int64_t alignment,
-                                        int64_t currentAlignment,
-                                        int64_t requiredAlignment) {
-  if (alignment >= currentAlignment) {
-    return alignment - currentAlignment;
-  }
-
-  return (alignment + requiredAlignment) - currentAlignment;
 }
 
 bool PrettyPrinter::isSectionSkipped(const std::string &name) {

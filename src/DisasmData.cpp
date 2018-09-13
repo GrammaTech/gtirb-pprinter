@@ -57,14 +57,13 @@ bool DisasmData::isFunction(const gtirb::Symbol& sym) const {
   return std::binary_search(this->functionEAs.begin(), this->functionEAs.end(), sym.getAddress());
 }
 
-// function_complete_name
 std::string DisasmData::getFunctionName(gtirb::Addr x) const {
   for (auto& s : this->ir.modules()[0].findSymbols(x)) {
     if (isFunction(s)) {
       std::stringstream name;
       name << s.getName();
 
-      if (this->getIsAmbiguousSymbol(s.getName()) == true) {
+      if (this->isAmbiguousSymbol(s.getName()) == true) {
         name << "_" << std::hex << uint64_t(x);
       }
 
@@ -90,21 +89,23 @@ std::string DisasmData::getFunctionName(gtirb::Addr x) const {
   return std::string{};
 }
 
-std::string DisasmData::getAdaptedSymbolNameDefault(const gtirb::Symbol* symbol) const{
-    if (getIsAmbiguousSymbol(symbol->getName()))
-            return DisasmData::GetSymbolToPrint(symbol->getAddress());
+// If the symbol is ambiguous print return a label with the address
+// This is used for printing a symbolic expression
+std::string DisasmData::getAdaptedSymbolNameDefault(const gtirb::Symbol* symbol) const {
+  if (isAmbiguousSymbol(symbol->getName()))
+    return DisasmData::GetSymbolToPrint(symbol->getAddress());
 
-    return DisasmData::AvoidRegNameConflicts(
-            DisasmData::CleanSymbolNameSuffix(
-                    symbol->getName()));
-
+  return DisasmData::AvoidRegNameConflicts(DisasmData::CleanSymbolNameSuffix(symbol->getName()));
 }
 
-std::string DisasmData::getAdaptedSymbolName(const gtirb::Symbol* symbol) const{
-    auto name=DisasmData::CleanSymbolNameSuffix(symbol->getName());
-    if (!getIsAmbiguousSymbol(symbol->getName())&&  !this->isRelocated(name))  // &&   !DisasmData::GetIsReservedSymbol(name)
-        return DisasmData::AvoidRegNameConflicts(name);
-    return std::string{};
+// If the symbol is ambiguous or relocated return an empty string
+// This is used for printing the label
+std::string DisasmData::getAdaptedSymbolName(const gtirb::Symbol* symbol) const {
+  auto name = DisasmData::CleanSymbolNameSuffix(symbol->getName());
+  if (!isAmbiguousSymbol(symbol->getName()) &&
+      !this->isRelocated(name)) // &&   !DisasmData::GetIsReservedSymbol(name)
+    return DisasmData::AvoidRegNameConflicts(name);
+  return std::string{};
 }
 
 std::string DisasmData::GetSymbolToPrint(gtirb::Addr x) {
@@ -136,7 +137,7 @@ const gtirb::Section* DisasmData::getSection(const std::string& x) const {
   return nullptr;
 }
 
-bool DisasmData::getIsAmbiguousSymbol(const std::string& name) const {
+bool DisasmData::isAmbiguousSymbol(const std::string& name) const {
   const auto found =
       std::find(std::begin(this->ambiguous_symbol), std::end(this->ambiguous_symbol), name);
   return found != std::end(this->ambiguous_symbol);
@@ -146,8 +147,7 @@ std::string DisasmData::CleanSymbolNameSuffix(std::string x) {
   return x.substr(0, x.find_first_of('@'));
 }
 
-
-//FIXME: get rid of this function once capstone returns the right name for all registers
+// FIXME: get rid of this function once capstone returns the right name for all registers
 std::string DisasmData::AdaptRegister(const std::string& x) {
   const std::map<std::string, std::string> adapt{{"ST(0", "ST(0)"}};
   if (const auto found = adapt.find(x); found != std::end(adapt)) {
@@ -190,14 +190,6 @@ std::string DisasmData::GetSizeSuffix(const std::string& x) {
   assert("Unknown Size");
 
   return x;
-}
-
-bool DisasmData::GetIsReservedSymbol(const std::string& x) {
-  if (x.length() > 2) {
-    return ((x[0] == '_') && (x[1] == '_'));
-  }
-
-  return false;
 }
 
 std::string DisasmData::AvoidRegNameConflicts(const std::string& x) {

@@ -49,7 +49,7 @@ public:
   bool isRelocated(const std::string& x) const;
   const gtirb::Section* getSection(const std::string& x) const;
 
-  bool getIsAmbiguousSymbol(const std::string& ea) const;
+  bool isAmbiguousSymbol(const std::string& ea) const;
 
 
   static std::string GetSymbolToPrint(gtirb::Addr x);
@@ -59,7 +59,6 @@ public:
   static std::string GetSizeName(const std::string& x);
   static std::string GetSizeSuffix(uint64_t x);
   static std::string GetSizeSuffix(const std::string& x);
-  static bool GetIsReservedSymbol(const std::string& x);
   static std::string AvoidRegNameConflicts(const std::string& x);
 
 private:

@@ -88,21 +88,12 @@ protected:
 
   bool skipEA(const gtirb::Addr x) const;
   bool isSectionSkipped(const std::string& name);
-
-
-  void printZeros(uint64_t x);
-
   bool getIsPointerToExcludedCode(bool hasLabel, const gtirb::Module& module,
                                   const gtirb::DataObject* dg, const gtirb::DataObject* dgNext);
 
   std::string getRegisterName(unsigned int reg);
   std::string avoidRegNameConflicts(const std::string& x);
   std::string getAddendString(int64_t number, bool first=false);
-
-  // Static utility functions.
-  static int64_t GetNeededPadding(int64_t alignment, int64_t currentAlignment,
-                                  int64_t requiredAlignment);
-  //static std::string GetSymbolToPrint(gtirb::Addr x);
 
 private:
   csh csHandle;
