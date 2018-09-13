@@ -43,15 +43,17 @@ public:
   bool isFunction(const gtirb::Symbol& sym) const;
   std::string getSectionName(gtirb::Addr x) const;
   std::string getFunctionName(gtirb::Addr x) const;
-  std::string getGlobalSymbolReference(gtirb::Addr ea) const;
-  std::string getGlobalSymbolName(gtirb::Addr ea) const;
+
+  std::string getAdaptedSymbolName(const gtirb::Symbol* symbol) const;
+  std::string getAdaptedSymbolNameDefault(const gtirb::Symbol* symbol) const;
   bool isRelocated(const std::string& x) const;
   const gtirb::Section* getSection(const std::string& x) const;
 
   bool getIsAmbiguousSymbol(const std::string& ea) const;
 
+
+  static std::string GetSymbolToPrint(gtirb::Addr x);
   static std::string CleanSymbolNameSuffix(std::string x);
-  static std::string AdaptOpcode(const std::string& x);
   static std::string AdaptRegister(const std::string& x);
   static std::string GetSizeName(uint64_t x);
   static std::string GetSizeName(const std::string& x);

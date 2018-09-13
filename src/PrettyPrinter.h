@@ -88,22 +88,21 @@ protected:
 
   bool skipEA(const gtirb::Addr x) const;
   bool isSectionSkipped(const std::string& name);
-  // % avoid_reg_name_conflics
-  std::string avoidRegNameConflicts(const std::string& x);
+
+
   void printZeros(uint64_t x);
 
-  std::pair<std::string, char> getOffsetAndSign(const gtirb::SymbolicExpression* symbolic,
-                                                int64_t offset) const;
   bool getIsPointerToExcludedCode(bool hasLabel, const gtirb::Module& module,
                                   const gtirb::DataObject* dg, const gtirb::DataObject* dgNext);
 
   std::string getRegisterName(unsigned int reg);
-  std::string getAddendString(int64_t number);
-  // Static utility functions.
+  std::string avoidRegNameConflicts(const std::string& x);
+  std::string getAddendString(int64_t number, bool first=false);
 
+  // Static utility functions.
   static int64_t GetNeededPadding(int64_t alignment, int64_t currentAlignment,
                                   int64_t requiredAlignment);
-  static std::string GetSymbolToPrint(gtirb::Addr x);
+  //static std::string GetSymbolToPrint(gtirb::Addr x);
 
 private:
   csh csHandle;

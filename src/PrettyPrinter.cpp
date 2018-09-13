@@ -29,7 +29,7 @@
 using namespace std::rel_ops;
 
 ///
-/// Pring a comment that automatically scopes.
+/// Print a comment that automatically scopes.
 ///
 class BlockAreaComment {
 public:
@@ -208,11 +208,11 @@ void PrettyPrinter::printLabel(gtirb::Addr ea) {
 }
 
 void PrettyPrinter::condPrintGlobalSymbol(gtirb::Addr ea) {
-  auto name = this->disasm->getGlobalSymbolName(ea);
-
-  if (name.empty() == false) {
-    this->ofs << name << ":" << std::endl;
-  }
+    for (const auto& sym : this->disasm->ir.modules()[0].findSymbols(ea)) {
+        auto name=this->disasm->getAdaptedSymbolName(&sym);
+        if (!name.empty())
+            this->ofs << name << ":" << std::endl;
+    }
 }
 
 void PrettyPrinter::printInstruction(const cs_insn &inst) {
@@ -228,43 +228,6 @@ void PrettyPrinter::printInstruction(const cs_insn &inst) {
       this->ofs << " " << opcode << std::endl;
     return;
   }
-
-  // // MOVS and CMPS have the operand implicit but size suffix
-  // if ((boost::algorithm::ends_with(opcode, std::string{"movs"}) ||
-  //      boost::algorithm::ends_with(opcode, std::string{"cmps"})) &&
-  //     operands[1] == 0 && operands[2] == 0) {
-  //   auto opInd = this->disasm->getOpIndirect(operands[0]);
-
-  //   if (opInd != nullptr) {
-  //     // do not print the first operand
-  //     operands[0] = 0;
-  //     opcode = opcode + disasm->GetSizeSuffix(*opInd);
-  //   }
-  // }
-
-  // // FDIV_TO, FMUL_TO, FSUBR_TO, etc.
-  // if (boost::algorithm::ends_with(opcode, std::string{"_to"})) {
-  //   opcode = boost::replace_all_copy(opcode, "_to", "");
-  //   operands[1] = operands[0];
-  //   operands[0] = disasm->getOpRegdirectCode("ST");
-  //   assert(false);
-  // }
-  // if (boost::algorithm::starts_with(opcode, std::string{"fcmov"})) {
-  //   operands[1] = operands[0];
-  //   operands[0] = disasm->getOpRegdirectCode("ST");
-  //   assert(false);
-  // }
-  // // for 'loop' with rcx, the operand is implicit
-  // if (boost::algorithm::starts_with(opcode, std::string{"loop"})) {
-  //   auto reg = disasm->getOpRegdirect(operands[0]);
-  //   if (reg != nullptr && reg->Register == std::string{"RCX"}) {
-  //     operands[0] = 0;
-  //     assert(false);
-  //   }
-  // }
-
-  //////////////////////////////////////////////////////////////////////
-  opcode = DisasmData::AdaptOpcode(opcode);
   this->ofs << "  " << opcode << " ";
   this->printOperandList(opcode, ea, inst);
 
@@ -272,13 +235,8 @@ void PrettyPrinter::printInstruction(const cs_insn &inst) {
   this->ofs << std::endl;
 }
 
-void PrettyPrinter::printInstructionNop() {
-  this->ofs << PrettyPrinter::StrNOP << std::endl;
-}
-
 void PrettyPrinter::printEA(gtirb::Addr ea) {
   this->ofs << "          ";
-
   if (this->getDebug() == true) {
     this->ofs << std::hex << uint64_t(ea) << ": " << std::dec;
   }
@@ -288,7 +246,6 @@ void PrettyPrinter::printOperandList(const std::string &opcode,
                                      const gtirb::Addr ea,
                                      const cs_insn &inst) {
   std::string str_operands[4];
-
   auto &detail = inst.detail->x86;
   const auto &module = this->disasm->ir.modules()[0];
   auto findSymbolic = [&module, &detail, ea](int index) {
@@ -364,7 +321,6 @@ std::string PrettyPrinter::buildOpImmediate(
     const cs_insn &inst, gtirb::Addr ea, uint64_t index) {
   const auto &detail = inst.detail->x86;
   const auto &op = detail.operands[index];
-
   assert(op.type == X86_OP_IMM);
 
   // plt reference
@@ -385,7 +341,7 @@ std::string PrettyPrinter::buildOpImmediate(
   auto offsetLabel = opcode == "call" ? "" : PrettyPrinter::StrOffset;
   auto *sym = s->Sym.get(this->disasm->context);
   std::stringstream ss;
-  ss << offsetLabel << " " << sym->getName()
+  ss << offsetLabel << " " << this->disasm->getAdaptedSymbolNameDefault(sym)
      << getAddendString(s->Displacement);
   return ss.str();
 }
@@ -397,21 +353,25 @@ PrettyPrinter::buildOpIndirect(const gtirb::SymbolicExpression *symbolic,
   const auto &op = detail.operands[index];
   assert(op.type == X86_OP_MEM);
   std::stringstream operandStream;
-
+  bool first=true;
   const auto sizeName = DisasmData::GetSizeName(op.size * 8);
   operandStream << sizeName << " ";
 
   if (op.mem.segment != X86_REG_INVALID)
     operandStream << getRegisterName(op.mem.segment) << ":";
 
+
   operandStream << "[";
 
-  if (op.mem.base != X86_REG_INVALID)
+  if (op.mem.base != X86_REG_INVALID){
+    first=false;
     operandStream << getRegisterName(op.mem.base);
+  }
 
   if (op.mem.index != X86_REG_INVALID) {
-    if (op.mem.base != X86_REG_INVALID)
-      operandStream << "+";
+
+    if(!first) operandStream << "+";
+    first=false;
     operandStream << getRegisterName(op.mem.index) << "*"
                   << std::to_string(op.mem.scale);
   }
@@ -419,10 +379,10 @@ PrettyPrinter::buildOpIndirect(const gtirb::SymbolicExpression *symbolic,
   if (const auto *s = std::get_if<gtirb::SymAddrConst>(symbolic);
       s != nullptr) {
     auto *sym = s->Sym.get(this->disasm->context);
-    operandStream << "+" << sym->getName();
+    operandStream << "+" << this->disasm->getAdaptedSymbolNameDefault(sym);
     operandStream << getAddendString(s->Displacement);
   } else {
-    operandStream << getAddendString(op.mem.disp);
+    operandStream << getAddendString(op.mem.disp,first);
   }
   operandStream << "]";
   return operandStream.str();
@@ -486,17 +446,7 @@ void PrettyPrinter::printDataGroups() {
         };
 
         // Print all symbols
-        for (const auto &s : foundSymbol) {
-          this->ofs << s.getName() << ":\n";
-        }
-        // Also print local label just in case. There is still some code that
-        // makes up
-        // ".L_<ea>" references without having a corresponding symbol.
-        if (!foundSymbol.empty()) {
-          this->ofs << ".L_" << std::hex << uint64_t(data->getAddress())
-                    << ":\n"
-                    << std::dec;
-        }
+        printLabel(data->getAddress());
 
         const auto &foundSymbolic =
             module.findSymbolicExpression(data->getAddress());
@@ -517,9 +467,9 @@ void PrettyPrinter::printDataGroups() {
             auto *sym = s->Sym.get(this->disasm->context);
             printTab();
             if (s->Displacement != 0)
-              this->ofs << ".quad " << sym->getName() << "+" << s->Displacement;
+              this->ofs << ".quad " << this->disasm->getAdaptedSymbolNameDefault(sym) << "+" << s->Displacement;
             else
-              this->ofs << ".quad " << sym->getName();
+              this->ofs << ".quad " << this->disasm->getAdaptedSymbolNameDefault(sym);
             this->ofs << std::endl;
           } else if (auto *sa =
                          std::get_if<gtirb::SymAddrAddr>(&*foundSymbolic);
@@ -681,11 +631,11 @@ std::string PrettyPrinter::getRegisterName(unsigned int reg) {
       reg == X86_REG_INVALID ? "" : cs_reg_name(this->csHandle, reg)));
 }
 
-std::string PrettyPrinter::getAddendString(int64_t number) {
+std::string PrettyPrinter::getAddendString(int64_t number,bool first) {
+  if (number < 0 || first)
+      return std::to_string(number);
   if (number == 0)
-    return std::string("");
-  if (number < 0)
-    return std::to_string(number);
+      return std::string("");
   return "+" + std::to_string(number);
 }
 
@@ -721,12 +671,6 @@ bool PrettyPrinter::getIsPointerToExcludedCode(
   }
 
   return false;
-}
-
-std::string PrettyPrinter::GetSymbolToPrint(gtirb::Addr x) {
-  std::stringstream ss;
-  ss << ".L_" << std::hex << uint64_t(x) << std::dec;
-  return ss.str();
 }
 
 int64_t PrettyPrinter::GetNeededPadding(int64_t alignment,

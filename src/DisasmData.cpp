@@ -90,77 +90,27 @@ std::string DisasmData::getFunctionName(gtirb::Addr x) const {
   return std::string{};
 }
 
-std::string DisasmData::getGlobalSymbolReference(gtirb::Addr ea) const {
-  // FIXME: when reworking gtirb data structures, make it possible to do
-  // "containsAddr" queries directly and efficiently.
-  using SymbolMap = std::multimap<gtirb::Addr, const gtirb::Symbol*>;
-  SymbolMap symbols;
-  for (const auto& s : this->ir.modules()[0].symbols()) {
-    symbols.emplace(s.getAddress(), &s);
-  }
+std::string DisasmData::getAdaptedSymbolNameDefault(const gtirb::Symbol* symbol) const{
+    if (getIsAmbiguousSymbol(symbol->getName()))
+            return DisasmData::GetSymbolToPrint(symbol->getAddress());
 
-  auto end = symbols.rend();
-  for (auto it = std::reverse_iterator<SymbolMap::const_iterator>(
-           symbols.upper_bound(gtirb::Addr(ea))); //
-       it != end && it->second->getAddress() <= ea; it++) {
-    const auto& sym = *it->second;
-    auto* data = sym.getReferent<gtirb::DataObject>();
+    return DisasmData::AvoidRegNameConflicts(
+            DisasmData::CleanSymbolNameSuffix(
+                    symbol->getName()));
 
-    /// \todo This will need looked at again to cover the logic
-    if (data && containsAddr(*data, gtirb::Addr(ea))) {
-      auto displacement = ea - sym.getAddress();
-
-      // in a function with non-zero displacement we do not use the relative addressing
-      if (displacement > 0 && isFunction(sym)) {
-        return std::string{};
-      }
-      if (sym.getStorageKind() != gtirb::Symbol::StorageKind::Local) {
-        // %do not print labels for symbols that have to be relocated
-        const auto name = DisasmData::CleanSymbolNameSuffix(sym.getName());
-
-        if (DisasmData::GetIsReservedSymbol(name) == false) {
-          if (displacement > 0) {
-            return DisasmData::AvoidRegNameConflicts(name) + "+" + std::to_string(displacement);
-          } else {
-            return DisasmData::AvoidRegNameConflicts(name);
-          }
-        }
-      }
-    }
-  }
-
-  const auto& relocations =
-      std::get<std::map<gtirb::Addr, gtirb::table::ValueType>>(*ir.getTable("relocations"));
-  if (auto found = relocations.find(gtirb::Addr(ea)); found != relocations.end()) {
-    const auto& r = std::get<gtirb::table::InnerMapType>(found->second);
-    const auto& name = std::get<std::string>(r.at("name"));
-
-    if (std::get<std::string>(r.at("type")) == std::string{"R_X86_64_GLOB_DAT"}) {
-      return DisasmData::AvoidRegNameConflicts(name) + "@GOTPCREL";
-    } else {
-      return DisasmData::AvoidRegNameConflicts(name);
-    }
-  }
-
-  return std::string{};
 }
 
-std::string DisasmData::getGlobalSymbolName(gtirb::Addr ea) const {
-  for (const auto& sym : this->ir.modules()[0].findSymbols(gtirb::Addr(ea))) {
-    if (sym.getAddress() == ea) {
-      if ((sym.getStorageKind() != gtirb::Symbol::StorageKind::Local)) {
-        // %do not print labels for symbols that have to be relocated
-        const auto name = DisasmData::CleanSymbolNameSuffix(sym.getName());
+std::string DisasmData::getAdaptedSymbolName(const gtirb::Symbol* symbol) const{
+    auto name=DisasmData::CleanSymbolNameSuffix(symbol->getName());
+    if (!getIsAmbiguousSymbol(symbol->getName())&&  !this->isRelocated(name))  // &&   !DisasmData::GetIsReservedSymbol(name)
+        return DisasmData::AvoidRegNameConflicts(name);
+    return std::string{};
+}
 
-        // if it is not relocated...
-        if (!this->isRelocated(name) && !DisasmData::GetIsReservedSymbol(name)) {
-          return std::string{DisasmData::AvoidRegNameConflicts(name)};
-        }
-      }
-    }
-  }
-
-  return std::string{};
+std::string DisasmData::GetSymbolToPrint(gtirb::Addr x) {
+  std::stringstream ss;
+  ss << ".L_" << std::hex << uint64_t(x) << std::dec;
+  return ss.str();
 }
 
 bool DisasmData::isRelocated(const std::string& x) const {
@@ -196,17 +146,6 @@ std::string DisasmData::CleanSymbolNameSuffix(std::string x) {
   return x.substr(0, x.find_first_of('@'));
 }
 
-std::string DisasmData::AdaptOpcode(const std::string& x) {
-  const std::map<std::string, std::string> adapt{{"movsd2", "movsd"}, {"imul2", "imul"},
-                                                 {"imul3", "imul"},   {"imul1", "imul"},
-                                                 {"cmpsd3", "cmpsd"}, {"out_i", "out"}};
-
-  if (const auto found = adapt.find(x); found != std::end(adapt)) {
-    return found->second;
-  }
-
-  return x;
-}
 
 //FIXME: get rid of this function once capstone returns the right name for all registers
 std::string DisasmData::AdaptRegister(const std::string& x) {
