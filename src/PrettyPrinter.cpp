@@ -27,6 +27,10 @@
 
 using namespace std::rel_ops;
 
+template <class T> T* nodeFromUUID(gtirb::Context& C, gtirb::UUID id) {
+  return dyn_cast_or_null<T>(gtirb::Node::getByUUID(C, id));
+}
+
 ///
 /// Print a comment that automatically scopes.
 ///
@@ -319,11 +323,11 @@ std::string PrettyPrinter::buildOpImmediate(const std::string& opcode,
   assert(op.type == X86_OP_IMM);
 
   // plt reference
-  const auto& pltReferences = std::get<std::map<gtirb::Addr, gtirb::table::ValueType>>(
-      *this->disasm->ir.getTable("pltCodeReferences"));
+  const auto& pltReferences =
+      *this->disasm->ir.getTable("pltCodeReferences")->get<std::map<gtirb::Addr, std::string>>();
   const auto p = pltReferences.find(gtirb::Addr(ea));
   if (p != pltReferences.end()) {
-    return PrettyPrinter::StrOffset + " " + std::get<std::string>(p->second);
+    return PrettyPrinter::StrOffset + " " + p->second;
   }
   // not symbolic or destination is skipped
   if (!symbolic || this->skipEA(gtirb::Addr(op.imm)))
@@ -333,9 +337,8 @@ std::string PrettyPrinter::buildOpImmediate(const std::string& opcode,
   auto* s = std::get_if<gtirb::SymAddrConst>(symbolic);
   assert(s != nullptr);
   auto offsetLabel = opcode == "call" ? "" : PrettyPrinter::StrOffset;
-  auto* sym = s->Sym.get(this->disasm->context);
   std::stringstream ss;
-  ss << offsetLabel << " " << this->disasm->getAdaptedSymbolNameDefault(sym)
+  ss << offsetLabel << " " << this->disasm->getAdaptedSymbolNameDefault(s->Sym)
      << getAddendString(s->Displacement);
   return ss.str();
 }
@@ -379,20 +382,19 @@ std::string PrettyPrinter::buildOpIndirect(const gtirb::SymbolicExpression* symb
 }
 
 void PrettyPrinter::printDataGroups() {
-  for (auto& ds : this->disasm->getDataSections()) {
-    auto sectionPtr = this->disasm->getSection(std::get<std::string>(ds["name"]));
+  for (const auto& [name, alignment, dataIDs] : this->disasm->getDataSections()) {
+    auto sectionPtr = this->disasm->getSection(name);
 
     std::vector<const gtirb::DataObject*> dataGroups;
-    for (auto i : std::get<std::vector<gtirb::UUID>>(ds["dataGroups"])) {
-      auto* d = gtirb::NodeRef<gtirb::DataObject>(i).get(this->disasm->context);
-      dataGroups.push_back(d);
+    for (auto i : dataIDs) {
+      dataGroups.push_back(nodeFromUUID<gtirb::DataObject>(this->disasm->context, i));
     }
 
     if (isSectionSkipped(sectionPtr->getName()))
       continue;
 
     // print header
-    this->printSectionHeader(sectionPtr->getName(), std::get<int64_t>(ds["alignment"]));
+    this->printSectionHeader(sectionPtr->getName(), alignment);
     // Print data for this section
     for (auto& dataGroup : dataGroups) {
       if (shouldExcludeDataElement(sectionPtr->getName(), *dataGroup))
@@ -424,8 +426,7 @@ bool PrettyPrinter::isPointerToExcludedCode(const gtirb::DataObject& dataGroup) 
   if (auto foundSymbolic = module.findSymbolicExpression(dataGroup.getAddress());
       foundSymbolic != module.symbolic_expr_end()) {
     if (auto* s = std::get_if<gtirb::SymAddrConst>(&*foundSymbolic)) {
-      auto* sym = s->Sym.get(this->disasm->context);
-      return this->skipEA(sym->getAddress());
+      return this->skipEA(s->Sym->getAddress().value());
     }
   }
   return false;
@@ -434,7 +435,7 @@ bool PrettyPrinter::isPointerToExcludedCode(const gtirb::DataObject& dataGroup) 
 void PrettyPrinter::printDataObject(const gtirb::DataObject& dataGroup) {
   auto& ir = this->disasm->ir;
   const auto& module = ir.modules()[0];
-  const auto& stringEAs = std::get<std::vector<gtirb::Addr>>(*ir.getTable("stringEAs"));
+  const auto& stringEAs = *ir.getTable("stringEAs")->get<std::vector<gtirb::Addr>>();
 
   printLabel(dataGroup.getAddress());
   this->ofs << PrettyPrinter::StrTab;
@@ -460,12 +461,12 @@ void PrettyPrinter::printDataObject(const gtirb::DataObject& dataGroup) {
 
 void PrettyPrinter::printSymbolicData(const gtirb::Addr addr,
                                       const gtirb::SymbolicExpression* symbolic) {
-  auto& ir = this->disasm->ir;
   const auto& pltReferences =
-      std::get<std::map<gtirb::Addr, gtirb::table::ValueType>>(*ir.getTable("pltDataReferences"));
+      *this->disasm->ir.getTable("pltDataReferences")->get<std::map<gtirb::Addr, std::string>>();
+
   const auto p = pltReferences.find(addr);
   if (p != pltReferences.end()) {
-    this->ofs << ".quad " << std::get<std::string>(p->second);
+    this->ofs << ".quad " << p->second;
 
   } else if (auto* s = std::get_if<gtirb::SymAddrConst>(symbolic); s != nullptr) {
 
@@ -479,16 +480,13 @@ void PrettyPrinter::printSymbolicData(const gtirb::Addr addr,
 
 void PrettyPrinter::printSymbolicExpression(const gtirb::SymAddrConst* sexpr,
                                             std::stringstream& stream) {
-  auto* sym = sexpr->Sym.get(this->disasm->context);
-  stream << this->disasm->getAdaptedSymbolNameDefault(sym);
+  stream << this->disasm->getAdaptedSymbolNameDefault(sexpr->Sym);
   stream << getAddendString(sexpr->Displacement);
 }
 
 void PrettyPrinter::printSymbolicExpression(const gtirb::SymAddrAddr* sexpr,
                                             std::stringstream& stream) {
-  auto* sym1 = sexpr->Sym1.get(this->disasm->context);
-  auto* sym2 = sexpr->Sym2.get(this->disasm->context);
-  stream << sym1->getName() << "-" << sym2->getName();
+  stream << sexpr->Sym1->getName() << "-" << sexpr->Sym2->getName();
 }
 
 void PrettyPrinter::printString(const gtirb::DataObject& x) {
@@ -524,24 +522,22 @@ void PrettyPrinter::printBSS() {
 
   if (bssSection != nullptr) {
     this->printSectionHeader(PrettyPrinter::StrSectionBSS, 16);
-    const auto& bssData = std::get<std::vector<gtirb::UUID>>(*this->disasm->ir.getTable("bssData"));
+    const auto& bssData = *this->disasm->ir.getTable("bssData")->get<std::vector<gtirb::UUID>>();
 
     // Special case.
     if (!bssData.empty() &&
-        gtirb::NodeRef<gtirb::DataObject>(bssData.at(0)).get(this->disasm->context)->getAddress() !=
+        nodeFromUUID<gtirb::DataObject>(this->disasm->context, bssData.at(0))->getAddress() !=
             bssSection->getAddress()) {
       const auto current = bssSection->getAddress();
       const auto next =
-          gtirb::NodeRef<gtirb::DataObject>(bssData.at(0)).get(this->disasm->context)->getAddress();
-
+          nodeFromUUID<gtirb::DataObject>(this->disasm->context, bssData.at(0))->getAddress();
       this->printLabel(current);
       this->ofs << " .zero " << next - current;
     }
     this->ofs << std::endl;
 
     for (size_t i = 0; i < bssData.size(); ++i) {
-      const auto& current =
-          *gtirb::NodeRef<gtirb::DataObject>(bssData.at(i)).get(this->disasm->context);
+      const auto& current = *nodeFromUUID<gtirb::DataObject>(this->disasm->context, bssData.at(i));
       this->printLabel(current.getAddress());
 
       if (current.getSize() == 0) {
@@ -585,7 +581,7 @@ bool PrettyPrinter::isInSkippedFunction(const gtirb::Addr x) const {
 std::string PrettyPrinter::getContainerFunctionName(const gtirb::Addr x) const {
   gtirb::Addr xFunctionAddress{0};
   const auto functionEntries =
-      std::get<std::vector<gtirb::Addr>>(*this->disasm->ir.getTable("functionEntry"));
+      *this->disasm->ir.getTable("functionEntry")->get<std::vector<gtirb::Addr>>();
 
   for (auto fe = std::begin(functionEntries); fe != std::end(functionEntries); ++fe) {
     auto feNext = fe;

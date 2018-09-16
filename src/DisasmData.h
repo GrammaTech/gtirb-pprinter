@@ -37,7 +37,7 @@ public:
 
   const gtirb::Module::section_range getSections() const;
   std::vector<std::string>* getAmbiguousSymbol();
-  std::vector<gtirb::table::InnerMapType>& getDataSections();
+  std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>& getDataSections();
 
   bool isFunction(const gtirb::Symbol& sym) const;
   std::string getSectionName(gtirb::Addr x) const;

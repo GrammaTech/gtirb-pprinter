@@ -24,17 +24,18 @@ using namespace std::rel_ops;
 
 DisasmData::DisasmData(gtirb::Context& context_, gtirb::IR* ir_)
     : context(context_), ir(*ir_),
-      functionEAs(std::get<std::vector<gtirb::Addr>>(*ir_->getTable("functionEAs"))),
-      ambiguous_symbol(std::get<std::vector<std::string>>(*ir_->getTable("ambiguousSymbol"))),
-      start_function(std::get<std::vector<gtirb::Addr>>(*ir_->getTable("mainFunction"))),
-      main_function(std::get<std::vector<gtirb::Addr>>(*ir_->getTable("mainFunction"))) {}
+      functionEAs(*ir_->getTable("functionEAs")->get<std::vector<gtirb::Addr>>()),
+      ambiguous_symbol(*ir_->getTable("ambiguousSymbol")->get<std::vector<std::string>>()),
+      start_function(*ir_->getTable("mainFunction")->get<std::vector<gtirb::Addr>>()),
+      main_function(*ir_->getTable("mainFunction")->get<std::vector<gtirb::Addr>>()) {}
 
 const gtirb::Module::section_range DisasmData::getSections() const {
   return this->ir.modules()[0].sections();
 }
 
-std::vector<gtirb::table::InnerMapType>& DisasmData::getDataSections() {
-  return std::get<std::vector<gtirb::table::InnerMapType>>(*this->ir.getTable("dataSections"));
+std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>& DisasmData::getDataSections() {
+  return *this->ir.getTable("dataSections")
+              ->get<std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>>();
 }
 
 std::string DisasmData::getSectionName(gtirb::Addr x) const {
@@ -89,7 +90,7 @@ std::string DisasmData::getFunctionName(gtirb::Addr x) const {
 // This is used for printing a symbolic expression
 std::string DisasmData::getAdaptedSymbolNameDefault(const gtirb::Symbol* symbol) const {
   if (isAmbiguousSymbol(symbol->getName()))
-    return DisasmData::GetSymbolToPrint(symbol->getAddress());
+    return DisasmData::GetSymbolToPrint(symbol->getAddress().value());
 
   return DisasmData::AvoidRegNameConflicts(DisasmData::CleanSymbolNameSuffix(symbol->getName()));
 }
@@ -112,12 +113,10 @@ std::string DisasmData::GetSymbolToPrint(gtirb::Addr x) {
 
 bool DisasmData::isRelocated(const std::string& x) const {
   const auto& relocations =
-      std::get<std::map<gtirb::Addr, gtirb::table::ValueType>>(*ir.getTable("relocations"));
-  const auto found =
-      std::find_if(std::begin(relocations), std::end(relocations), [x](const auto& element) {
-        const auto& r = std::get<gtirb::table::InnerMapType>(element.second);
-        return std::get<std::string>(r.at("name")) == x;
-      });
+      *ir.getTable("relocations")
+           ->get<std::map<gtirb::Addr, std::tuple<std::string, std::string>>>();
+  const auto found = std::find_if(std::begin(relocations), std::end(relocations),
+                                  [x](const auto& element) { return get<1>(element.second) == x; });
 
   return found != std::end(relocations);
 }
