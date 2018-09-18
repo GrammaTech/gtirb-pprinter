@@ -129,8 +129,8 @@ int main(int argc, char** argv) {
     const auto assembly = pp.prettyPrint(ctx, ir);
 
     // Do we write it to a file?
-    if (vm.count("asm") != 0) {
-      const auto asmPath = boost::filesystem::path(vm["asm"].as<std::string>());
+    if (vm.count("out") != 0) {
+      const auto asmPath = boost::filesystem::path(vm["out"].as<std::string>());
       std::ofstream ofs;
       ofs.open(asmPath.string());
 
