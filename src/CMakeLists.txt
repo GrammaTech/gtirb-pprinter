@@ -14,7 +14,6 @@ elseif(${CMAKE_CXX_COMPILEUR_ID} STREQUAL Clang)
 endif()
 
 set(${PROJECT_NAME}_H
-	DataGroup.h
 	DisasmData.h
 	Export.h
 	PrettyPrinter.h
