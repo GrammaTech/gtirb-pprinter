@@ -15,7 +15,7 @@ int main(int argc, char** argv) {
   desc.add_options()("ir,i", boost::program_options::value<std::string>(),
                      "gtirb file to print.  Automatically set (or overwritten) "
                      "by the --decode optoin.");
-  desc.add_options()("asm,a",
+  desc.add_options()("out,o",
                      boost::program_options::value<std::string>()->default_value("out.asm"),
                      "The name of the assembly output file.");
   desc.add_options()("debug,D", boost::program_options::value<bool>()->default_value(false),
