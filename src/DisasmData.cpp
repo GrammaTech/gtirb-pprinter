@@ -104,7 +104,7 @@ std::string DisasmData::getGlobalSymbolReference(gtirb::Addr ea) const {
            symbols.upper_bound(gtirb::Addr(ea))); //
        it != end && it->second->getAddress() <= ea; it++) {
     const auto& sym = *it->second;
-    auto* data = sym.getDataReferent().get(this->context);
+    auto* data = sym.getReferent<gtirb::DataObject>();
 
     /// \todo This will need looked at again to cover the logic
     if (data && containsAddr(*data, gtirb::Addr(ea))) {
