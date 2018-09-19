@@ -13,10 +13,6 @@
 //
 //===----------------------------------------------------------------------===//
 #include "DisasmData.h"
-#include <boost/algorithm/string/trim.hpp>
-#include <boost/archive/polymorphic_text_iarchive.hpp>
-#include <boost/archive/polymorphic_text_oarchive.hpp>
-#include <boost/lexical_cast.hpp>
 #include <fstream>
 #include <gsl/gsl>
 #include <gtirb/gtirb.hpp>

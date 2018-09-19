@@ -17,13 +17,11 @@ set(${PROJECT_NAME}_H
 	DisasmData.h
 	Export.h
 	PrettyPrinter.h
-	Table.h
 )
 
 set(${PROJECT_NAME}_SRC
 	DisasmData.cpp
 	PrettyPrinter.cpp
-	Table.cpp
 )
 
 # Unix, but not Cygwin.

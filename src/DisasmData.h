@@ -22,7 +22,6 @@
 #include <string>
 #include <vector>
 #include "Export.h"
-#include "Table.h"
 
 ///
 /// \class DisasmData

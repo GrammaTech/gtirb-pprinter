@@ -14,9 +14,7 @@
 //===----------------------------------------------------------------------===//
 #include "PrettyPrinter.h"
 #include <capstone/capstone.h>
-#include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
-#include <boost/algorithm/string/trim.hpp>
 #include <boost/lexical_cast.hpp>
 #include <gsl/gsl>
 #include <gtirb/gtirb.hpp>
