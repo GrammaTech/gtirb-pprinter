@@ -46,6 +46,7 @@ public:
   std::string getAdaptedSymbolName(const gtirb::Symbol* symbol) const;
   std::string getAdaptedSymbolNameDefault(const gtirb::Symbol* symbol) const;
   bool isRelocated(const std::string& x) const;
+  std::string getRelocatedDestination(const gtirb::Addr& addr) const;
   const gtirb::Section* getSection(const std::string& x) const;
 
   bool isAmbiguousSymbol(const std::string& ea) const;

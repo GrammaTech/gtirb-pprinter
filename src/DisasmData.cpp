@@ -89,10 +89,15 @@ std::string DisasmData::getFunctionName(gtirb::Addr x) const {
 // If the symbol is ambiguous print return a label with the address
 // This is used for printing a symbolic expression
 std::string DisasmData::getAdaptedSymbolNameDefault(const gtirb::Symbol* symbol) const {
-  if (isAmbiguousSymbol(symbol->getName()))
-    return DisasmData::GetSymbolToPrint(symbol->getAddress().value());
+    if(symbol->getAddress().has_value()){
+        std::string destName=getRelocatedDestination(symbol->getAddress().value());
+        if(!destName.empty())
+            return destName;
+    }
+    if (isAmbiguousSymbol(symbol->getName()))
+        return DisasmData::GetSymbolToPrint(symbol->getAddress().value());
 
-  return DisasmData::AvoidRegNameConflicts(DisasmData::CleanSymbolNameSuffix(symbol->getName()));
+    return DisasmData::AvoidRegNameConflicts(DisasmData::CleanSymbolNameSuffix(symbol->getName()));
 }
 
 // If the symbol is ambiguous or relocated return an empty string
@@ -109,6 +114,19 @@ std::string DisasmData::GetSymbolToPrint(gtirb::Addr x) {
   std::stringstream ss;
   ss << ".L_" << std::hex << uint64_t(x) << std::dec;
   return ss.str();
+}
+
+std::string  DisasmData::getRelocatedDestination(const gtirb::Addr& addr) const {
+    const auto& relocations =
+            *ir.getTable("relocations")
+            ->get<std::map<gtirb::Addr, std::tuple<std::string, std::string>>>();
+    const auto found = std::find_if(std::begin(relocations), std::end(relocations),
+                                    [addr](const auto& element) {
+        return element.first== addr;
+    });
+    if(found!=std::end(relocations) && std::get<0>(found->second)=="R_X86_64_GLOB_DAT")
+        return std::get<1>(found->second)+"@GOTPCREL";
+    return std::string{};
 }
 
 bool DisasmData::isRelocated(const std::string& x) const {
