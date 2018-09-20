@@ -20,9 +20,6 @@ stages:
     - git clone https://git.grammatech.com/debloat/gtirb.git
     - (cd datalog_disasm && tar xf /u4/TARBALLS/datalog_disasm/standalone_compilation.tar.bz2)
     - docker build -f .ci/Dockerfile.$OS-$COMPILER -t ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} .
-    - docker tag ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} $DOCKER_REGISTRY/$CI_PROJECT_PATH/${OS}-${COMPILER}
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
-    - docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH/${OS}-${COMPILER}
 
 build-ubuntu16-gcc:
   stage: build-ubuntu16-gcc
@@ -38,7 +35,7 @@ run-ubuntu16-gcc:
     COMPILER: 'gcc'
   script:
     - docker run ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} /bin/bash -c "cd /gt/pretty-printer/build && make check";
-    - if [ "$CI_BUILD_REF_NAME" = "master" && "$OS" = "ubuntu16" ];
+    - if [ "$CI_BUILD_REF_NAME" == "master" ] && [ "$OS" == "ubuntu16" ];
       then
         docker tag ${LOCAL_IMAGE_NAME}-${OS} $DOCKER_REGISTRY/$CI_PROJECT_PATH:latest;
         docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY;
