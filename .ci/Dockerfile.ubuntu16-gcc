@@ -65,7 +65,7 @@ RUN cd /usr/local/src \
 
 # Install gtirb
 RUN rm -rf /gt/pretty-printer/gtirb/build /gt/pretty-printer/gtirb/CMakeCache.txt /gt/pretty-printer/gtirb/CMakeFiles /gt/pretty-printer/gtirb/CMakeScripts
-RUN cd /gt/pretty-printer/gtirb/ && cmake ./ -Bbuild  && cd build &&  make && make install
+RUN cd /gt/pretty-printer/gtirb/ && cmake ./ -Bbuild -DCMAKE_CXX_COMPILER=g++-7 && cd build &&  make && make install
 
 # Build datalog disassembler.
 RUN apt-get -y update && apt-get -y install gcc-multilib g++-multilib libc++1 libc++abi1
@@ -77,7 +77,7 @@ RUN cd /gt/pretty-printer/datalog_disasm && make clean && make CXX=g++-7
 RUN rm -rf /gt/pretty-printer/build /gt/pretty-printer/CMakeCache.txt /gt/pretty-printer/CMakeFiles /gt/pretty-printer/CMakeScripts
 RUN mkdir -p /gt/pretty-printer/build
 WORKDIR /gt/pretty-printer/build
-RUN cmake ../  -DDEBLOAT_FOUND_DATALOG_DECODER=/gt/pretty-printer/datalog_disasm/bin/datalog_decoder -DDEBLOAT_FOUND_SOUFFLE_DISASM=/gt/pretty-printer/datalog_disasm/bin/souffle_disasm
+RUN cmake ../  -DDEBLOAT_FOUND_DATALOG_DECODER=/gt/pretty-printer/datalog_disasm/bin/datalog_decoder -DDEBLOAT_FOUND_SOUFFLE_DISASM=/gt/pretty-printer/datalog_disasm/bin/souffle_disasm -DCMAKE_CXX_COMPILER=g++-7
 RUN make -j
 WORKDIR /gt/pretty-printer/
 ENV PATH=/gt/pretty-printer/bin:/gt/pretty-printer/datalog_disasm/bin/:$PATH
