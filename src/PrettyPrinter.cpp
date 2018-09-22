@@ -339,7 +339,7 @@ std::string PrettyPrinter::buildOpImmediate(const std::string& opcode,
   auto offsetLabel = opcode == "call" ? "" : PrettyPrinter::StrOffset;
   std::stringstream ss;
   ss << offsetLabel << " " << this->disasm->getAdaptedSymbolNameDefault(s->Sym)
-     << getAddendString(s->Displacement);
+     << getAddendString(s->Offset);
   return ss.str();
 }
 
@@ -481,7 +481,7 @@ void PrettyPrinter::printSymbolicData(const gtirb::Addr addr,
 void PrettyPrinter::printSymbolicExpression(const gtirb::SymAddrConst* sexpr,
                                             std::stringstream& stream) {
   stream << this->disasm->getAdaptedSymbolNameDefault(sexpr->Sym);
-  stream << getAddendString(sexpr->Displacement);
+  stream << getAddendString(sexpr->Offset);
 }
 
 void PrettyPrinter::printSymbolicExpression(const gtirb::SymAddrAddr* sexpr,
