@@ -19,7 +19,7 @@ Use the following options to configure cmake:
 - Normally CMake will find GTIRB automatically, but if it does not you
   can pass `-Dgtirb_DIR=<path-to-gtirb-build>`.
 
-Once the dependencies are installed, you can configure and builds as follows:
+Once the dependencies are installed, you can configure and build as follows:
 
 ```bash
 $ cmake ./ -Bbuild
