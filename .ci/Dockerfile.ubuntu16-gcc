@@ -9,7 +9,9 @@ RUN apt-get -y update && \
     add-apt-repository ppa:jonathonf/gcc-7.1
 
 RUN apt-get -y update && apt-get -y install gcc-7 g++-7 make git \
-    build-essential binutils doxygen graphviz wget curl unzip
+    build-essential binutils doxygen graphviz wget curl unzip \
+    gcc-multilib g++-multilib libc++1 libc++abi1
+
 RUN update-alternatives --install /usr/bin/cc cc /usr/bin/gcc-7 60
 RUN update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-7 60
 
@@ -68,10 +70,11 @@ RUN rm -rf /gt/pretty-printer/gtirb/build /gt/pretty-printer/gtirb/CMakeCache.tx
 RUN cd /gt/pretty-printer/gtirb/ && cmake ./ -Bbuild -DCMAKE_CXX_COMPILER=g++-7 && cd build &&  make && make install
 
 # Build datalog disassembler.
-RUN apt-get -y update && apt-get -y install gcc-multilib g++-multilib libc++1 libc++abi1
 RUN ln -s libc++.so.1 /usr/lib/x86_64-linux-gnu/libc++.so
 RUN ln -s libc++abi.so.1 /usr/lib/x86_64-linux-gnu/libc++abi.so
-RUN cd /gt/pretty-printer/datalog_disasm && make clean && make CXX=g++-7
+RUN rm -rf /gt/pretty-printer/datalog_disasm/build /gt/pretty-printer/datalog_disasm/CMakeCache.txt /gt/pretty-printer/datalog_disasm/CMakeFiles /gt/pretty-printer/datalog_disasm/CMakeScripts
+RUN cd /gt/pretty-printer/datalog_disasm && cmake ./  -Bbuild -DCMAKE_CXX_COMPILER=g++-7 && cd build && make
+
 
 # Build pretty-printer
 RUN rm -rf /gt/pretty-printer/build /gt/pretty-printer/CMakeCache.txt /gt/pretty-printer/CMakeFiles /gt/pretty-printer/CMakeScripts
@@ -80,5 +83,5 @@ WORKDIR /gt/pretty-printer/build
 RUN cmake ../  -DDEBLOAT_FOUND_DATALOG_DECODER=/gt/pretty-printer/datalog_disasm/bin/datalog_decoder -DDEBLOAT_FOUND_SOUFFLE_DISASM=/gt/pretty-printer/datalog_disasm/bin/souffle_disasm -DCMAKE_CXX_COMPILER=g++-7
 RUN make -j
 WORKDIR /gt/pretty-printer/
-ENV PATH=/gt/pretty-printer/bin:/gt/pretty-printer/datalog_disasm/bin/:$PATH
+ENV PATH=/gt/pretty-printer/bin:/gt/pretty-printer/datalog_disasm/build/bin/:$PATH
 ENV LD_LIBRARY_PATH /gt/pretty-printer/gtirb/build/lib
