@@ -88,15 +88,17 @@ std::string DisasmData::getFunctionName(gtirb::Addr x) const {
 // If the symbol is ambiguous print return a label with the address
 // This is used for printing a symbolic expression
 std::string DisasmData::getAdaptedSymbolNameDefault(const gtirb::Symbol* symbol) const {
-    if(symbol->getAddress().has_value()){
-        std::string destName=getRelocatedDestination(symbol->getAddress().value());
-        if(!destName.empty())
-            return destName;
+  if (symbol->getAddress().has_value()) {
+    std::string destName = getRelocatedDestination(symbol->getAddress().value());
+    if (!destName.empty()) {
+      return destName;
     }
-    if (isAmbiguousSymbol(symbol->getName()))
-        return DisasmData::GetSymbolToPrint(symbol->getAddress().value());
+  }
+  if (isAmbiguousSymbol(symbol->getName())) {
+    return DisasmData::GetSymbolToPrint(symbol->getAddress().value());
+  }
 
-    return DisasmData::AvoidRegNameConflicts(DisasmData::CleanSymbolNameSuffix(symbol->getName()));
+  return DisasmData::AvoidRegNameConflicts(DisasmData::CleanSymbolNameSuffix(symbol->getName()));
 }
 
 // If the symbol is ambiguous or relocated return an empty string
