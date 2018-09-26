@@ -324,7 +324,7 @@ std::string PrettyPrinter::buildOpImmediate(const std::string& opcode,
 
   // plt reference
   const auto& pltReferences =
-      *this->disasm->ir.getTable("pltCodeReferences")->get<std::map<gtirb::Addr, std::string>>();
+      *this->disasm->ir.getAuxData("pltCodeReferences")->get<std::map<gtirb::Addr, std::string>>();
   const auto p = pltReferences.find(gtirb::Addr(ea));
   if (p != pltReferences.end()) {
     return PrettyPrinter::StrOffset + " " + p->second;
@@ -435,7 +435,7 @@ bool PrettyPrinter::isPointerToExcludedCode(const gtirb::DataObject& dataGroup) 
 void PrettyPrinter::printDataObject(const gtirb::DataObject& dataGroup) {
   auto& ir = this->disasm->ir;
   const auto& module = ir.modules()[0];
-  const auto& stringEAs = *ir.getTable("stringEAs")->get<std::vector<gtirb::Addr>>();
+  const auto& stringEAs = *ir.getAuxData("stringEAs")->get<std::vector<gtirb::Addr>>();
 
   printLabel(dataGroup.getAddress());
   this->ofs << PrettyPrinter::StrTab;
@@ -462,7 +462,7 @@ void PrettyPrinter::printDataObject(const gtirb::DataObject& dataGroup) {
 void PrettyPrinter::printSymbolicData(const gtirb::Addr addr,
                                       const gtirb::SymbolicExpression* symbolic) {
   const auto& pltReferences =
-      *this->disasm->ir.getTable("pltDataReferences")->get<std::map<gtirb::Addr, std::string>>();
+      *this->disasm->ir.getAuxData("pltDataReferences")->get<std::map<gtirb::Addr, std::string>>();
 
   const auto p = pltReferences.find(addr);
   if (p != pltReferences.end()) {
@@ -522,7 +522,7 @@ void PrettyPrinter::printBSS() {
 
   if (bssSection != nullptr) {
     this->printSectionHeader(PrettyPrinter::StrSectionBSS, 16);
-    const auto& bssData = *this->disasm->ir.getTable("bssData")->get<std::vector<gtirb::UUID>>();
+    const auto& bssData = *this->disasm->ir.getAuxData("bssData")->get<std::vector<gtirb::UUID>>();
 
     // Special case.
     if (!bssData.empty() &&
@@ -581,7 +581,7 @@ bool PrettyPrinter::isInSkippedFunction(const gtirb::Addr x) const {
 std::string PrettyPrinter::getContainerFunctionName(const gtirb::Addr x) const {
   gtirb::Addr xFunctionAddress{0};
   const auto functionEntries =
-      *this->disasm->ir.getTable("functionEntry")->get<std::vector<gtirb::Addr>>();
+      *this->disasm->ir.getAuxData("functionEntry")->get<std::vector<gtirb::Addr>>();
 
   for (auto fe = std::begin(functionEntries); fe != std::end(functionEntries); ++fe) {
     auto feNext = fe;

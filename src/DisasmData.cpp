@@ -24,16 +24,16 @@ using namespace std::rel_ops;
 
 DisasmData::DisasmData(gtirb::Context& context_, gtirb::IR* ir_)
     : context(context_), ir(*ir_),
-      functionEAs(*ir_->getTable("functionEAs")->get<std::vector<gtirb::Addr>>()),
-      start_function(*ir_->getTable("mainFunction")->get<std::vector<gtirb::Addr>>()),
-      main_function(*ir_->getTable("mainFunction")->get<std::vector<gtirb::Addr>>()) {}
+      functionEAs(*ir_->getAuxData("functionEAs")->get<std::vector<gtirb::Addr>>()),
+      start_function(*ir_->getAuxData("mainFunction")->get<std::vector<gtirb::Addr>>()),
+      main_function(*ir_->getAuxData("mainFunction")->get<std::vector<gtirb::Addr>>()) {}
 
 const gtirb::Module::section_range DisasmData::getSections() const {
   return this->ir.modules()[0].sections();
 }
 
 std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>& DisasmData::getDataSections() {
-  return *this->ir.getTable("dataSections")
+  return *this->ir.getAuxData("dataSections")
               ->get<std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>>();
 }
 
@@ -115,22 +115,20 @@ std::string DisasmData::GetSymbolToPrint(gtirb::Addr x) {
   return ss.str();
 }
 
-std::string  DisasmData::getRelocatedDestination(const gtirb::Addr& addr) const {
-    const auto& relocations =
-            *ir.getTable("relocations")
-            ->get<std::map<gtirb::Addr, std::tuple<std::string, std::string>>>();
-    const auto found = std::find_if(std::begin(relocations), std::end(relocations),
-                                    [addr](const auto& element) {
-        return element.first== addr;
-    });
-    if(found!=std::end(relocations) && std::get<0>(found->second)=="R_X86_64_GLOB_DAT")
-        return std::get<1>(found->second)+"@GOTPCREL";
-    return std::string{};
+std::string DisasmData::getRelocatedDestination(const gtirb::Addr& addr) const {
+  const auto& relocations =
+      *ir.getAuxData("relocations")
+           ->get<std::map<gtirb::Addr, std::tuple<std::string, std::string>>>();
+  const auto found = std::find_if(std::begin(relocations), std::end(relocations),
+                                  [addr](const auto& element) { return element.first == addr; });
+  if (found != std::end(relocations) && std::get<0>(found->second) == "R_X86_64_GLOB_DAT")
+    return std::get<1>(found->second) + "@GOTPCREL";
+  return std::string{};
 }
 
 bool DisasmData::isRelocated(const std::string& x) const {
   const auto& relocations =
-      *ir.getTable("relocations")
+      *ir.getAuxData("relocations")
            ->get<std::map<gtirb::Addr, std::tuple<std::string, std::string>>>();
   const auto found = std::find_if(std::begin(relocations), std::end(relocations),
                                   [x](const auto& element) { return get<1>(element.second) == x; });
