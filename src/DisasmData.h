@@ -62,7 +62,6 @@ public:
 
 private:
   std::vector<gtirb::Addr> functionEAs;
-  std::vector<std::string> ambiguous_symbol;
   std::vector<gtirb::Addr> start_function;
   std::vector<gtirb::Addr> main_function;
   std::vector<gtirb::Addr> function_entry;

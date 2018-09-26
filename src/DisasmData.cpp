@@ -25,7 +25,6 @@ using namespace std::rel_ops;
 DisasmData::DisasmData(gtirb::Context& context_, gtirb::IR* ir_)
     : context(context_), ir(*ir_),
       functionEAs(*ir_->getTable("functionEAs")->get<std::vector<gtirb::Addr>>()),
-      ambiguous_symbol(*ir_->getTable("ambiguousSymbol")->get<std::vector<std::string>>()),
       start_function(*ir_->getTable("mainFunction")->get<std::vector<gtirb::Addr>>()),
       main_function(*ir_->getTable("mainFunction")->get<std::vector<gtirb::Addr>>()) {}
 
@@ -151,9 +150,9 @@ const gtirb::Section* DisasmData::getSection(const std::string& x) const {
 }
 
 bool DisasmData::isAmbiguousSymbol(const std::string& name) const {
-  const auto found =
-      std::find(std::begin(this->ambiguous_symbol), std::end(this->ambiguous_symbol), name);
-  return found != std::end(this->ambiguous_symbol);
+  // Are there multiple symbols with this name?
+  auto found = this->ir.modules()[0].findSymbols(name);
+  return distance(begin(found), end(found)) > 1;
 }
 
 std::string DisasmData::CleanSymbolNameSuffix(std::string x) {
