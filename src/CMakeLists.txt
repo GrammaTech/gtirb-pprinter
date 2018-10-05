@@ -62,6 +62,3 @@ add_custom_command(
         COMMAND "${CMAKE_COMMAND}" -E copy
                 ${${PROJECT_NAME}_H}
                 "${CMAKE_BINARY_DIR}/include/")
-
-
-add_subdirectory(test)

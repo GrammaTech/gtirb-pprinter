@@ -16,9 +16,7 @@ stages:
 
 .build-template: &build
   script:
-    - git clone https://git.grammatech.com/debloat/datalog_disasm.git
     - git clone https://git.grammatech.com/debloat/gtirb.git
-    - (cd datalog_disasm && tar xf /u4/TARBALLS/datalog_disasm/standalone_compilation.tar.bz2)
     - docker build -f .ci/Dockerfile.$OS-$COMPILER -t ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} .
 
 build-ubuntu16-gcc:
@@ -34,7 +32,6 @@ run-ubuntu16-gcc:
     OS: 'ubuntu16'
     COMPILER: 'gcc'
   script:
-    - docker run ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} /bin/bash -c "cd /gt/pretty-printer/build && make check";
     - if [ "$CI_BUILD_REF_NAME" == "master" ] && [ "$OS" == "ubuntu16" ];
       then
         docker tag ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} $DOCKER_REGISTRY/$CI_PROJECT_PATH:latest;

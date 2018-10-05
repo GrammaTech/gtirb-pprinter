@@ -70,13 +70,6 @@ RUN cd /usr/local/src \
 RUN rm -rf /gt/pretty-printer/gtirb/build /gt/pretty-printer/gtirb/CMakeCache.txt /gt/pretty-printer/gtirb/CMakeFiles /gt/pretty-printer/gtirb/CMakeScripts
 RUN cd /gt/pretty-printer/gtirb/ && cmake ./ -Bbuild -DCMAKE_CXX_COMPILER=g++-7 && cd build &&  make && make install
 
-# Build datalog disassembler.
-RUN ln -s libc++.so.1 /usr/lib/x86_64-linux-gnu/libc++.so
-RUN ln -s libc++abi.so.1 /usr/lib/x86_64-linux-gnu/libc++abi.so
-RUN rm -rf /gt/pretty-printer/datalog_disasm/build /gt/pretty-printer/datalog_disasm/CMakeCache.txt /gt/pretty-printer/datalog_disasm/CMakeFiles /gt/pretty-printer/datalog_disasm/CMakeScripts
-RUN cd /gt/pretty-printer/datalog_disasm && cmake ./  -Bbuild -DCMAKE_CXX_COMPILER=g++-7 && cd build && make
-
-
 # Build pretty-printer
 ENV PATH=/gt/pretty-printer/bin:/gt/pretty-printer/datalog_disasm/build/bin/:$PATH
 RUN rm -rf /gt/pretty-printer/build /gt/pretty-printer/CMakeCache.txt /gt/pretty-printer/CMakeFiles /gt/pretty-printer/CMakeScripts

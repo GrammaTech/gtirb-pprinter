@@ -167,43 +167,6 @@ add_subdirectory(${CMAKE_BINARY_DIR}/gsl-src
 include_directories("${CMAKE_BINARY_DIR}/gsl-src/include")
 
 # ---------------------------------------------------------------------------
-# Google Test Application
-# ---------------------------------------------------------------------------
-# Pull in Google Test
-# https://github.com/google/googletest/tree/master/googletest#incorporating-into-an-existing-cmake-project
-
-# Download and unpack googletest at configure time
-configure_file(CMakeLists.googletest googletest-download/CMakeLists.txt)
-
-execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
-	RESULT_VARIABLE result
-	WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/googletest-download )
-
-if(result)
-	message(WARNING "CMake step for googletest failed: ${result}")
-endif()
-
-execute_process(COMMAND ${CMAKE_COMMAND} --build .
-	RESULT_VARIABLE result
-	WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/googletest-download )
-
-if(result)
-	message(WARNING "Build step for googletest failed: ${result}")
-endif()
-
-# Prevent overriding the parent project's compiler/linker
-# settings on Windows
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-
-# Add googletest directly to our build. This defines
-# the gtest and gtest_main targets.
-add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
-				 ${CMAKE_BINARY_DIR}/googletest-build
-				 EXCLUDE_FROM_ALL)
-
-include_directories("${gtest_SOURCE_DIR}/include")
-
-# ---------------------------------------------------------------------------
 # capstone
 # ---------------------------------------------------------------------------
 find_library(CAPSTONE NAMES capstone)
