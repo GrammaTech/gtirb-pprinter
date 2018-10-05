@@ -77,7 +77,7 @@ if(DEBLOAT_FOUND_DATALOG_DECODER AND DEBLOAT_FOUND_SOUFFLE_DISASM)
 		${Boost_LIBRARIES}
 		gtest 
 		gtest_main
-		debloatPrettyPrinter
+		gtirb_pprinter
 	)
 
 	add_custom_target(check DEPENDS ${PROJECT_NAME})

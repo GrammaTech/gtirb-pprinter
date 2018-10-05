@@ -5,7 +5,7 @@
 # Need 3.9 to support CXX_STANDARD=17 and protobuf
 CMAKE_MINIMUM_REQUIRED(VERSION 3.9.0)
 
-PROJECT(Debloat_PrettyPrinter)
+PROJECT(gtirb_pprinter)
 
 include(CheckFunctionExists)
 include(CheckCXXSourceCompiles)
@@ -213,3 +213,21 @@ endif()
 
 add_subdirectory(driver)
 add_subdirectory(src)
+
+# ---------------------------------------------------------------------------
+# Export config for use by other CMake projects
+# ---------------------------------------------------------------------------
+file(
+  WRITE "${CMAKE_CURRENT_BINARY_DIR}/gtirb_pprinterConfig.cmake"
+        "
+            include(\"\$\{CMAKE_CURRENT_LIST_DIR\}/gtirb_pprinterTargets.cmake\")
+            set_property(
+                TARGET gtirb_pprinter
+                APPEND PROPERTY
+                    INTERFACE_INCLUDE_DIRECTORIES \"${CMAKE_BINARY_DIR}/include\"
+            )
+        "
+    )
+
+export(TARGETS gtirb_pprinter FILE "${CMAKE_CURRENT_BINARY_DIR}/gtirb_pprinterTargets.cmake")
+export(PACKAGE gtirb_pprinter)

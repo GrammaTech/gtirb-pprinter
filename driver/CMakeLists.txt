@@ -59,5 +59,5 @@ target_link_libraries(
 	${PROJECT_NAME} 
 	${SYSLIBS}
 	${Boost_LIBRARIES}
-	debloatPrettyPrinter
+        gtirb_pprinter
 )

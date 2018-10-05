@@ -1,4 +1,4 @@
-SET(PROJECT_NAME debloatPrettyPrinter)
+SET(PROJECT_NAME gtirb_pprinter)
 
 add_compile_options(-DDEBLOAT_${PROJECT_NAME}_EXPORTS)
 
@@ -41,7 +41,6 @@ add_library(${PROJECT_NAME} SHARED
 	)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-include_directories(${PROJECT_SOURCE_DIR}/../gt-irb/include)
 set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "debloat")
 
 target_link_libraries(
@@ -51,5 +50,18 @@ target_link_libraries(
         gtirb
         ${CAPSTONE}
 )
+
+# Copy headers into build directory
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+  COMMAND "${CMAKE_COMMAND}" -E remove_directory "${CMAKE_BINARY_DIR}/include/")
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_BINARY_DIR}/include/")
+add_custom_command(
+        TARGET ${PROJECT_NAME} POST_BUILD
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMAND "${CMAKE_COMMAND}" -E copy
+                ${${PROJECT_NAME}_H}
+                "${CMAKE_BINARY_DIR}/include/")
+
 
 add_subdirectory(test)
