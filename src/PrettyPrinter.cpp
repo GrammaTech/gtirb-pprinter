@@ -327,7 +327,10 @@ std::string PrettyPrinter::buildOpImmediate(const std::string& opcode,
       *this->disasm->ir.getAuxData("pltCodeReferences")->get<std::map<gtirb::Addr, std::string>>();
   const auto p = pltReferences.find(gtirb::Addr(ea));
   if (p != pltReferences.end()) {
-    return p->second+"@PLT";
+    if(opcode == "call" || opcode == "jmp")
+        return p->second+"@PLT";
+    else
+        return PrettyPrinter::StrOffset +" "+p->second;
   }
   // not symbolic or destination is skipped
   if (!symbolic || this->skipEA(gtirb::Addr(op.imm)))
