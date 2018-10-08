@@ -11,13 +11,15 @@ include(CheckFunctionExists)
 include(CheckCXXSourceCompiles)
 include(CheckIncludeFile)
 
-#
-# Global Options (CMake)
-#
+# ---------------------------------------------------------------------------
+# Global settings
+# ---------------------------------------------------------------------------
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/src)
-set(CMAKE_DEBUG_POSTFIX          "d" CACHE STRING "add a postfix, usually d on windows")
+if (WIN32)
+  set(CMAKE_DEBUG_POSTFIX          "d" CACHE STRING "add a postfix, usually d on windows")
+endif()
 set(CMAKE_RELEASE_POSTFIX        ""  CACHE STRING "add a postfix, usually empty on windows")
 set(CMAKE_RELWITHDEBINFO_POSTFIX ""  CACHE STRING "add a postfix, usually empty on windows")
 set(CMAKE_MINSIZEREL_POSTFIX     ""  CACHE STRING "add a postfix, usually empty on windows")
@@ -40,18 +42,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   endif()
 endif()
 
-#
-# Grammatech Options (CMake)
-#
-
-option(DEBLOAT_ENABLE_TESTS "Enable building and running unit tests." ON)
-
 # Base include path for the pretty-printer.
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-#
-# Global Options (Compile / Link)
-#
 
 add_compile_options(-DBOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE)
 
