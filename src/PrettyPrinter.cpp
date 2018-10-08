@@ -375,10 +375,14 @@ std::string PrettyPrinter::buildOpIndirect(const gtirb::SymbolicExpression* symb
   }
 
   if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic); s != nullptr) {
-    operandStream << "+";
-    printSymbolicExpression(s, operandStream);
+      if(s->Sym->getAddress().has_value() && this->skipEA(s->Sym->getAddress().value())) {
+             operandStream << getAddendString(op.mem.disp, first);
+      } else {
+          operandStream << "+";
+          printSymbolicExpression(s, operandStream);
+      }
   } else {
-    operandStream << getAddendString(op.mem.disp, first);
+      operandStream << getAddendString(op.mem.disp, first);
   }
   operandStream << "]";
   return operandStream.str();
