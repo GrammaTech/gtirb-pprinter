@@ -30,22 +30,6 @@ ELSE()
 	)
 endif()
 
-# Find to warn the user...
-find_program(DEBLOAT_FOUND_DATALOG_DECODER datalog_decoder 
-	HINTS $ENV{PATH}
-	DOC "datalog_decoder is required to be in your PATH for ${PROJECT_NAME} to execute.")
-if(NOT DEBLOAT_FOUND_DATALOG_DECODER)
-	message(WARNING "datalog_decoder was not found in your PATH is required for ${PROJECT_NAME} to properly execute.")
-endif()
-
-# Find to warn the user...
-find_program(DEBLOAT_FOUND_SOUFFLE_DISASM souffle_disasm 
-	HINTS $ENV{PATH}
-	DOC "souffle_disasm is required to be in your PATH for ${PROJECT_NAME} to execute.")
-if(NOT DEBLOAT_FOUND_SOUFFLE_DISASM)
-	message(WARNING "souffle_disasm was not found in your PATH is required for ${PROJECT_NAME} to properly execute.")
-endif()
-
 add_executable(${PROJECT_NAME} 
 		${${PROJECT_NAME}_H}
 		${${PROJECT_NAME}_SRC}

@@ -10,8 +10,6 @@
 int main(int argc, char** argv) {
   boost::program_options::options_description desc("Allowed options");
   desc.add_options()("help", "Produce help message.");
-  desc.add_options()("decode,c", boost::program_options::value<std::string>(),
-                     "Decode a binary and call Souffle.");
   desc.add_options()("ir,i", boost::program_options::value<std::string>(),
                      "gtirb file to print.  Automatically set (or overwritten) "
                      "by the --decode optoin.");
@@ -33,86 +31,8 @@ int main(int argc, char** argv) {
 
   boost::filesystem::path irPath;
 
-  // "dir" can be overwritten by "decode".
   if (vm.count("ir") != 0) {
     irPath = vm["ir"].as<std::string>();
-  }
-
-  if (vm.count("decode") != 0) {
-    boost::filesystem::path exe = vm["decode"].as<std::string>();
-
-    if (boost::filesystem::is_regular_file(exe) == true) {
-      const auto exePath = exe.parent_path();
-      boost::filesystem::path disasmPath = exePath / "dl_files/";
-      irPath = disasmPath;
-      irPath /= "gtirb";
-
-      if (boost::filesystem::is_directory(disasmPath) == false) {
-        if (boost::filesystem::create_directory(disasmPath) == false) {
-          LOG_ERROR << "Could not create directory " << disasmPath << "." << std::endl;
-          return EXIT_FAILURE;
-        } else {
-          LOG_INFO << "Created directory " << disasmPath << std::endl;
-        }
-      }
-
-      // Step 1: Call datalog_decoder.
-      {
-        std::stringstream cmd;
-        cmd << "datalog_decoder --file " << exe << " --dir " << disasmPath
-            << " --sect .plt.got --sect .fini --sect .init --sect .plt --sect .text "
-               "--data_sect "
-               ".data --data_sect .rodata --data_sect .fini_array --data_sect .init_array "
-               "--data_sect .data.rel.ro --data_sect .got.plt --data_sect .got";
-
-        LOG_DEBUG << cmd.str() << std::endl;
-        LOG_DEBUG << std::endl;
-
-        try {
-          const auto datalogDecoderResult = boost::process::system(cmd.str());
-
-          if (datalogDecoderResult == 0) {
-            LOG_INFO << "Datalog Decoder Success." << std::endl;
-          } else {
-            LOG_ERROR << "Datalog Decoder Failure." << std::endl
-                      << "\tCMD: \"" << cmd.str() << "\"" << std::endl;
-            return EXIT_FAILURE;
-          }
-        } catch (const std::exception& e) {
-          LOG_ERROR << e.what() << std::endl;
-          LOG_ERROR << "Make sure that \"datalog_decoder\" is in your PATH." << std::endl;
-          return EXIT_FAILURE;
-        }
-      }
-
-      // Step 2: Call souffle
-      {
-        std::stringstream cmd;
-        cmd << "souffle_disasm  " << exe << " -F " << disasmPath << " -D " << disasmPath;
-
-        LOG_DEBUG << cmd.str() << std::endl;
-        LOG_DEBUG << std::endl;
-
-        try {
-          const auto datalogDecoderResult = boost::process::system(cmd.str());
-
-          if (datalogDecoderResult == 0) {
-            LOG_INFO << "Souffle Success." << std::endl;
-          } else {
-            LOG_ERROR << "Souffle Failure." << std::endl
-                      << "\tCMD: \"" << cmd.str() << "\"" << std::endl;
-            return EXIT_FAILURE;
-          }
-        } catch (const std::exception& e) {
-          LOG_ERROR << e.what() << std::endl;
-          LOG_ERROR << "Make sure that \"souffle_disasm\" is in your PATH." << std::endl;
-          return EXIT_FAILURE;
-        }
-      }
-    } else {
-      LOG_ERROR << "The parameter " << exe << " is not a file." << std::endl;
-      return EXIT_FAILURE;
-    }
   }
 
   if (boost::filesystem::exists(irPath) == true) {
