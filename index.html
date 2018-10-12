@@ -1,9 +1,9 @@
 <h1 id="name">NAME</h1>
-<p>gtirb-pp - GTIRB pretty printer to assembly code</p>
+<p>gtirb-pp - <a href="https://github.com/grammatech/gtirb">GTIRB</a> pretty printer to assembly code</p>
 <h1 id="synopsis">SYNOPSIS</h1>
 <p>gtirb-pp [<em>options</em>...] [<em>filename</em>]</p>
 <h1 id="description">DESCRIPTION</h1>
-<p>Print GTIRB to assembly code. Read a serialized instance of GTIRB from <em>filename</em> (or STDIN if not specified) and pretty print assembler to STDOUT (or the file specified by the <strong>output</strong> option).</p>
+<p>Print <a href="https://github.com/grammatech/gtirb">GTIRB</a> to assembly code. Read a serialized instance of <a href="https://github.com/grammatech/gtirb">GTIRB</a> from <em>filename</em> (or STDIN if not specified) and pretty print assembler to STDOUT (or the file specified by the <strong>output</strong> option).</p>
 <h1 id="options">OPTIONS</h1>
 <dl>
 <dt><strong>help</strong></dt>
@@ -17,12 +17,13 @@
 </dd>
 </dl>
 <h1 id="examples">EXAMPLES</h1>
-<p>Pretty print the GTIRB for a simple hello world executable to an assembly file named <code>hello.S</code>, assemble this file with the GNU assembler to an object file named <code>hello.o</code>, and link this object file into an executable.</p>
+<p>Pretty print the <a href="https://github.com/grammatech/gtirb">GTIRB</a> for a simple hello world executable to an assembly file named <code>hello.S</code>, assemble this file with the GNU assembler to an object file named <code>hello.o</code>, and link this object file into an executable.</p>
 <pre><code>$ gtirb-pp hello.gtirb -o hello.S
 $ as hello.S -o hello.o
 $ ld hello.o -o hello
 $ ./hello
 Hello, world!</code></pre>
 <h1 id="see-also">SEE ALSO</h1>
-<p><code>gtirb</code> (1). GTIRB is the GrammaTech Intermediate Representation for Binaries.</p>
-<p><code>ddisasm</code> (1). The <code>ddisasm</code> disassembler may be used to disassemble a binary executable to GTIRB.</p>
+<p><code>gtirb-pprinter</code> on GitHub. <a href="https://github.com/grammatech/gtirb-pprinter" class="uri">https://github.com/grammatech/gtirb-pprinter</a>.</p>
+<p><code>gtirb</code> (1). <a href="https://github.com/grammatech/gtirb">GTIRB</a> is the GrammaTech Intermediate Representation for Binaries.</p>
+<p><code>ddisasm</code> (1). The <code>ddisasm</code> disassembler may be used to disassemble a binary executable to <a href="https://github.com/grammatech/gtirb">GTIRB</a>.</p>

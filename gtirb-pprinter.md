@@ -4,7 +4,7 @@
 
 # NAME
 
-gtirb-pp - GTIRB pretty printer to assembly code
+gtirb-pp - [GTIRB](https://github.com/grammatech/gtirb) pretty printer to assembly code
 
 # SYNOPSIS
 
@@ -12,9 +12,11 @@ gtirb-pp [*options*...] [*filename*]
 
 # DESCRIPTION
 
-Print GTIRB to assembly code.  Read a serialized instance of GTIRB
-from *filename* (or STDIN if not specified) and pretty print assembler
-to STDOUT (or the file specified by the **output** option).
+Print [GTIRB](https://github.com/grammatech/gtirb) to assembly code.
+Read a serialized instance of
+[GTIRB](https://github.com/grammatech/gtirb) from *filename* (or STDIN
+if not specified) and pretty print assembler to STDOUT (or the file
+specified by the **output** option).
 
 # OPTIONS
 
@@ -29,10 +31,10 @@ to STDOUT (or the file specified by the **output** option).
 
 # EXAMPLES
 
-Pretty print the GTIRB for a simple hello world executable to an
-assembly file named `hello.S`, assemble this file with the GNU
-assembler to an object file named `hello.o`, and link this object file
-into an executable.
+Pretty print the [GTIRB](https://github.com/grammatech/gtirb) for a
+simple hello world executable to an assembly file named `hello.S`,
+assemble this file with the GNU assembler to an object file named
+`hello.o`, and link this object file into an executable.
 
 ```
 $ gtirb-pp hello.gtirb -o hello.S
@@ -44,9 +46,13 @@ Hello, world!
 
 # SEE ALSO
 
+`gtirb-pprinter` on GitHub.
+[https://github.com/grammatech/gtirb-pprinter](https://github.com/grammatech/gtirb-pprinter).
+
 `gtirb` (1).
-GTIRB is the GrammaTech Intermediate Representation for Binaries.
+[GTIRB](https://github.com/grammatech/gtirb) is the GrammaTech
+Intermediate Representation for Binaries.
 
 `ddisasm` (1).
 The `ddisasm` disassembler may be used to disassemble a binary
-executable to GTIRB.
+executable to [GTIRB](https://github.com/grammatech/gtirb).
