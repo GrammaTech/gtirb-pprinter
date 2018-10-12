@@ -20,6 +20,7 @@
 #include <list>
 #include <map>
 #include <string>
+#include <optional>
 #include <vector>
 #include "Export.h"
 
@@ -62,8 +63,8 @@ public:
 
 private:
   std::vector<gtirb::Addr> functionEAs;
-  std::vector<gtirb::Addr> start_function;
-  std::vector<gtirb::Addr> main_function;
+  std::optional<gtirb::Addr> start_function;
+  std::optional<gtirb::Addr> main_function;
   std::vector<gtirb::Addr> function_entry;
 };
 

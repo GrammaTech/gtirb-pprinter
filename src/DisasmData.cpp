@@ -25,8 +25,16 @@ using namespace std::rel_ops;
 DisasmData::DisasmData(gtirb::Context& context_, gtirb::IR* ir_)
     : context(context_), ir(*ir_),
       functionEAs(*ir_->getAuxData("functionEAs")->get<std::vector<gtirb::Addr>>()),
-      start_function(*ir_->getAuxData("mainFunction")->get<std::vector<gtirb::Addr>>()),
-      main_function(*ir_->getAuxData("mainFunction")->get<std::vector<gtirb::Addr>>()) {}
+      start_function(),
+      main_function() {
+    std::vector<gtirb::Addr>* startFunctionTable=ir_->getAuxData("startFunction")->get<std::vector<gtirb::Addr>>();
+    if(startFunctionTable->size()>0)
+        start_function=std::optional<gtirb::Addr>((*startFunctionTable)[0]);
+    std::vector<gtirb::Addr>* mainFunctionTable=ir_->getAuxData("mainFunction")->get<std::vector<gtirb::Addr>>();
+    if(mainFunctionTable->size()>0)
+            main_function=std::optional<gtirb::Addr>((*mainFunctionTable)[0]);
+
+}
 
 const gtirb::Module::section_range DisasmData::getSections() const {
   return this->ir.modules()[0].sections();
@@ -67,9 +75,9 @@ std::string DisasmData::getFunctionName(gtirb::Addr x) const {
     }
   }
 
-  if (x == this->main_function[0]) {
+  if (this->main_function && x == this->main_function.value()) {
     return "main";
-  } else if (x == this->start_function[0]) {
+  } else if (this->start_function && x == this->start_function.value()) {
     return "_start";
   }
 
