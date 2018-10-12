@@ -1,0 +1,17 @@
+<h1 id="gtirb-pretty-printer">GTIRB Pretty Printer</h1>
+<p>A pretty printer from the <a href="https://github.com/grammatech/gtirb">GTIRB</a> intermediate representation for binary analysis and reverse engineering to gas-syntax assembly code.</p>
+<h2 id="building">Building</h2>
+<p>The pretty-printer uses C++17, and requires a compiler which supports that standard such as gcc 7, clang 6, or MSVC 2017.</p>
+<p>Boost (1.59 or later) and <a href="https://github.com/grammatech/gtirb">GTIRB</a> are required.</p>
+<p>Use the following options to configure cmake: - You can tell CMake which compiler to use with <code>-DCMAKE_CXX_COMPILER=&lt;compiler&gt;</code>. - Normally CMake will find GTIRB automatically, but if it does not you can pass <code>-Dgtirb_DIR=&lt;path-to-gtirb-build&gt;</code>.</p>
+<p>Once the dependencies are installed, you can configure and build as follows:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="kw">cmake</span> ./ -Bbuild
+$ <span class="kw">cd</span> build
+$ <span class="kw">make</span></code></pre></div>
+<h2 id="usage">Usage</h2>
+<p>Pretty print the GTIRB for a simple hello world executable to an assembly file named <code>hello.S</code>, assemble this file with the GNU assembler to an object file named <code>hello.o</code>, and link this object file into an executable.</p>
+<pre><code>$ gtirb-pp hello.gtirb -o hello.S
+$ as hello.S -o hello.o
+$ ld hello.o -o hello
+$ ./hello
+Hello, world!</code></pre>
