@@ -599,15 +599,7 @@ std::string PrettyPrinter::getContainerFunctionName(const gtirb::Addr x) const {
       continue;
     }
   }
-
-  std::string xFunctionName{};
-  for (const auto& sym : this->disasm->ir.modules()[0].findSymbols(gtirb::Addr(xFunctionAddress))) {
-    if (this->disasm->isFunction(sym)) {
-      xFunctionName = sym.getName();
-      break;
-    }
-  }
-  return xFunctionName;
+  return this->disasm->getFunctionName(xFunctionAddress);
 }
 
 std::string PrettyPrinter::getRegisterName(unsigned int reg) {
