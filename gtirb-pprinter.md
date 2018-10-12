@@ -20,8 +20,11 @@ specified by the **output** option).
 
 # OPTIONS
 
-**help**
+**--help**
 :   Print help and exit
+
+**-i FILE**, **--ir FILE**
+:   GTIRB file to print.
 
 **-o FILE**, **--output=FILE**
 :   Write assembly output to FILE.  Default to STDOUT.
