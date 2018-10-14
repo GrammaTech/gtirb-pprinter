@@ -1,4 +1,4 @@
-SET(PROJECT_NAME debloatDisasm)
+SET(PROJECT_NAME gtirb-pprinter)
 
 # Required warning suppression (TODO: Remove!)
 if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
