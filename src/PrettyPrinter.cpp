@@ -333,7 +333,7 @@ std::string PrettyPrinter::buildOpImmediate(const std::string& opcode,
         return PrettyPrinter::StrOffset +" "+p->second;
   }
   // not symbolic or destination is skipped
-  if (!symbolic || this->skipEA(gtirb::Addr(op.imm)))
+  if (!symbolic)
     return std::to_string(op.imm);
 
   // symbolic
