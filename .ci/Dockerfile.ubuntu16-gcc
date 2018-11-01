@@ -37,7 +37,7 @@ RUN curl -SL https://cmake.org/files/v$CMAKE_VERSION/cmake-$CMAKE_VERSION.0-Linu
 RUN apt-get -y install bison flex libncurses5-dev libtool libsqlite3-dev mcpp python sqlite zlib1g-dev
 RUN apt-get -y install autoconf automake
 RUN cd /usr/local/src \
-    && git clone https://github.com/souffle-lang/souffle.git \
+    && git clone -b 1.4.0 https://github.com/souffle-lang/souffle.git \
     && cd souffle \
     && pwd \
     && ls -l \
