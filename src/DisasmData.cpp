@@ -26,7 +26,8 @@ DisasmData::DisasmData(gtirb::Context& context_, gtirb::IR* ir_)
     : context(context_), ir(*ir_),
       functionEAs(*ir_->getAuxData("functionEAs")->get<std::vector<gtirb::Addr>>()),
       start_function(),
-      main_function() {
+      main_function(),
+      functionEntry(*ir_->getAuxData("functionEntry")->get<std::vector<gtirb::Addr>>()){
     std::vector<gtirb::Addr>* startFunctionTable=ir_->getAuxData("startFunction")->get<std::vector<gtirb::Addr>>();
     if(startFunctionTable->size()>0)
         start_function=std::optional<gtirb::Addr>((*startFunctionTable)[0]);
@@ -82,7 +83,7 @@ std::string DisasmData::getFunctionName(gtirb::Addr x) const {
   }
 
   // or is this a funciton entry?
-  for (auto f : this->function_entry) {
+  for (auto f : this->functionEntry) {
     if (x == f) {
       std::stringstream ss;
       ss << "unknown_function_" << std::hex << uint64_t(x);
