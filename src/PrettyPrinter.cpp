@@ -332,13 +332,18 @@ std::string PrettyPrinter::buildOpImmediate(const std::string& opcode,
     else
         return PrettyPrinter::StrOffset +" "+p->second;
   }
-  // not symbolic or destination is skipped
+  // not symbolic
   if (!symbolic)
-    return std::to_string(op.imm);
+      return std::to_string(op.imm);
 
   // symbolic
   auto* s = std::get_if<gtirb::SymAddrConst>(symbolic);
   assert(s != nullptr);
+
+  // the symbol points to a skipped destination
+  if (this->skipEA(s->Sym->getAddress().value()))
+      return std::to_string(op.imm);
+
   auto offsetLabel = opcode == "call" ? "" : PrettyPrinter::StrOffset;
   std::stringstream ss;
   ss << offsetLabel << " " << this->disasm->getAdaptedSymbolNameDefault(s->Sym)
