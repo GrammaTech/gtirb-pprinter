@@ -70,7 +70,7 @@ protected:
   void printLabel(gtirb::Addr ea);
   void printSectionHeader(const std::string& x, uint64_t alignment = 0);
   void printOperandList(const std::string& opcode, const gtirb::Addr ea, const cs_insn& inst);
-
+  void printComment(const gtirb::Addr ea);
   void printDataGroups();
 
   void printBSS();

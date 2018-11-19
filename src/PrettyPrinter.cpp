@@ -217,6 +217,7 @@ void PrettyPrinter::condPrintGlobalSymbol(gtirb::Addr ea) {
 
 void PrettyPrinter::printInstruction(const cs_insn& inst) {
   gtirb::Addr ea(inst.address);
+  printComment(ea);
   this->printEA(ea);
   auto opcode = str_tolower(inst.mnemonic);
 
@@ -449,6 +450,7 @@ void PrettyPrinter::printDataObject(const gtirb::DataObject& dataGroup) {
   const auto& module = ir.modules()[0];
   const auto& stringEAs = *ir.getAuxData("stringEAs")->get<std::vector<gtirb::Addr>>();
 
+  printComment(dataGroup.getAddress());
   printLabel(dataGroup.getAddress());
   this->ofs << PrettyPrinter::StrTab;
   if (this->debug)
@@ -469,6 +471,16 @@ void PrettyPrinter::printDataObject(const gtirb::DataObject& dataGroup) {
       this->ofs << ".byte 0x" << std::hex << static_cast<uint32_t>(byte) << std::dec << std::endl;
     }
   }
+}
+
+void PrettyPrinter::printComment(const gtirb::Addr ea){
+    if (!this->debug)
+        return;
+    const auto& comments = *this->disasm->ir.getAuxData("comments")->get<std::map<gtirb::Addr, std::string>>();
+    const auto p = comments.find(ea);
+    if (p != comments.end()) {
+        this->ofs << "# "<< p->second <<std::endl;
+    }
 }
 
 void PrettyPrinter::printSymbolicData(const gtirb::Addr addr,
