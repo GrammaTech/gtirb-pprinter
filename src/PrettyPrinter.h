@@ -88,7 +88,7 @@ protected:
   void printSymbolicData(const gtirb::Addr addr, const gtirb::SymbolicExpression* symbolic);
   void printSymbolicExpression(const gtirb::SymAddrConst* sexpr, std::stringstream& stream);
   void printSymbolicExpression(const gtirb::SymAddrAddr* sexpr, std::stringstream& stream);
-  void condPrintGlobalSymbol(gtirb::Addr ea);
+  bool condPrintGlobalSymbol(gtirb::Addr ea);
   void condPrintSectionHeader(const gtirb::Block& x);
 
   bool shouldExcludeDataElement(const std::string& sectionName, const gtirb::DataObject& dataGroup);

@@ -203,16 +203,20 @@ void PrettyPrinter::printFunctionHeader(gtirb::Addr ea) {
 }
 
 void PrettyPrinter::printLabel(gtirb::Addr ea) {
-  this->condPrintGlobalSymbol(ea);
-  this->ofs << ".L_" << std::hex << uint64_t(ea) << ":" << std::dec;
+  if(!this->condPrintGlobalSymbol(ea))
+      this->ofs << ".L_" << std::hex << uint64_t(ea) << ":" << std::dec;
 }
 
-void PrettyPrinter::condPrintGlobalSymbol(gtirb::Addr ea) {
+bool PrettyPrinter::condPrintGlobalSymbol(gtirb::Addr ea) {
+  bool printed=false;
   for (const auto& sym : this->disasm->ir.modules()[0].findSymbols(ea)) {
     auto name = this->disasm->getAdaptedSymbolName(&sym);
-    if (!name.empty())
+    if (!name.empty()){
       this->ofs << name << ":" << std::endl;
+      printed=true;
+    }
   }
+  return printed;
 }
 
 void PrettyPrinter::printInstruction(const cs_insn& inst) {
