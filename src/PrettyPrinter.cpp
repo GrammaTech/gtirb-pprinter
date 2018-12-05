@@ -86,7 +86,12 @@ PrettyPrinter::~PrettyPrinter() { cs_close(&this->csHandle); }
 void PrettyPrinter::setDebug(bool x) { this->debug = x; }
 
 bool PrettyPrinter::getDebug() const { return this->debug; }
-
+void PrettyPrinter::keepFunction(const std::string functionName){
+    AsmSkipFunction.erase(functionName);
+}
+void PrettyPrinter::skipFunction(const std::string functionName){
+    AsmSkipFunction.insert(functionName);
+}
 std::string PrettyPrinter::prettyPrint(gtirb::Context& context, gtirb::IR* ir) {
   this->disasm = std::make_unique<DisasmData>(context, ir);
   this->ofs.clear();
@@ -586,10 +591,7 @@ bool PrettyPrinter::skipEA(const gtirb::Addr x) const {
 
 bool PrettyPrinter::isInSkippedSection(const gtirb::Addr x) const {
   for (const auto& s : this->disasm->getSections()) {
-    const auto found = std::find(std::begin(PrettyPrinter::AsmSkipSection),
-                                 std::end(PrettyPrinter::AsmSkipSection), s.getName());
-
-    if (found != std::end(PrettyPrinter::AsmSkipSection) && containsAddr(s, gtirb::Addr(x))) {
+    if (AsmSkipSection.count(s.getName()) && containsAddr(s, gtirb::Addr(x))) {
       return true;
     }
   }
@@ -600,10 +602,7 @@ bool PrettyPrinter::isInSkippedFunction(const gtirb::Addr x) const {
   std::string xFunctionName = getContainerFunctionName(x);
   if (xFunctionName.empty())
     return false;
-
-  const auto found = std::find(std::begin(PrettyPrinter::AsmSkipFunction),
-                               std::end(PrettyPrinter::AsmSkipFunction), xFunctionName);
-  return found != std::end(PrettyPrinter::AsmSkipFunction);
+  return AsmSkipFunction.count(xFunctionName);
 }
 
 std::string PrettyPrinter::getContainerFunctionName(const gtirb::Addr x) const {
@@ -639,8 +638,5 @@ std::string PrettyPrinter::getAddendString(int64_t number, bool first) {
 bool PrettyPrinter::isSectionSkipped(const std::string& name) {
   if (this->debug)
     return false;
-
-  const auto foundSkipSection = std::find(std::begin(PrettyPrinter::AsmSkipSection),
-                                          std::end(PrettyPrinter::AsmSkipSection), name);
-  return foundSkipSection != std::end(PrettyPrinter::AsmSkipSection);
+  return AsmSkipSection.count(name);
 }

@@ -7,24 +7,34 @@
 #include "Logger.h"
 #include "PrettyPrinter.h"
 
+namespace po = boost::program_options;
+
 int main(int argc, char** argv) {
-  boost::program_options::options_description desc("Allowed options");
+  po::options_description desc("Allowed options");
   desc.add_options()("help", "Produce help message.");
-  desc.add_options()("ir,i", boost::program_options::value<std::string>(), "gtirb file to print.");
-  desc.add_options()("out,o", boost::program_options::value<std::string>(),
+  desc.add_options()("ir,i", po::value<std::string>(), "gtirb file to print.");
+  desc.add_options()("out,o", po::value<std::string>(),
                      "The name of the assembly output file.");
-  desc.add_options()("debug,D", boost::program_options::value<bool>()->default_value(false),
-                     "Turn on debugging (will break assembly)");
-
-  boost::program_options::variables_map vm;
-  boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
-
-  if (vm.count("help") != 0) {
-    std::cout << desc << "\n";
-    return 1;
+  desc.add_options()("debug,D",
+                       "Turn on debugging (will break assembly)");
+  desc.add_options()("keep-functions,K", po::value<std::vector<std::string>>()->multitoken(),
+                        "Print the given functions even if they are skipped by default (e.g. _start)");
+  po::positional_options_description pd;
+  pd.add("ir", -1);
+  po::variables_map vm;
+  try{
+      po::store(po::command_line_parser(argc, argv).options(desc).positional(pd).run(), vm);
+      if (vm.count("help") != 0) {
+          std::cout << desc << "\n";
+          return 1;
+      }
+  }catch(std::exception &e)
+  {
+      std::cerr << "Error: " << e.what() << "\nTry '" << argv[0]
+                                                              << " --help' for more information.\n";
+      return 1;
   }
-
-  boost::program_options::notify(vm);
+  po::notify(vm);
 
   gtirb::Context ctx;
   gtirb::IR* ir;
@@ -45,8 +55,14 @@ int main(int argc, char** argv) {
 
   // Perform the Pretty Printing step.
   PrettyPrinter pp;
-  pp.setDebug(vm["debug"].as<bool>());
+  pp.setDebug(vm.count("debug"));
+  if(vm.count("keep-functions")!=0){
+    for(auto keep: vm["keep-functions"].as<std::vector<std::string>>()){
+        pp.keepFunction(keep);
+    }
+  }
   const auto assembly = pp.prettyPrint(ctx, ir);
+
 
   // Do we write it to a file?
   if (vm.count("out") != 0) {

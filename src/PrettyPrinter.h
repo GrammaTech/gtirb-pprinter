@@ -20,7 +20,9 @@
 #include <list>
 #include <map>
 #include <string>
+#include <unordered_set>
 #include <vector>
+#include <string>
 #include "DisasmData.h"
 
 ///
@@ -35,6 +37,8 @@ public:
 
   void setDebug(bool x);
   bool getDebug() const;
+  void keepFunction(const std::string functionName);
+  void skipFunction(const std::string functionName);
 
   ///
   /// Pretty print to a string
@@ -53,10 +57,10 @@ protected:
   const std::string StrSectionType{".type"};
   const std::string StrTab{"          "};
 
-  const std::array<std::string, 7> AsmSkipSection{
+  std::unordered_set<std::string> AsmSkipSection{
       {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt"}};
 
-  const std::array<std::string, 8> AsmSkipFunction{
+  std::unordered_set<std::string> AsmSkipFunction{
       {"_start", "deregister_tm_clones", "register_tm_clones", "__do_global_dtors_aux",
        "frame_dummy", "__libc_csu_fini", "__libc_csu_init", "_dl_relocate_static_pie"}};
 
