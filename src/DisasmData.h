@@ -14,20 +14,22 @@
 //===----------------------------------------------------------------------===//
 #pragma once
 
+/// \file DisasmData.h
+
 #include <cstdint>
 #include <gtirb/gtirb.hpp>
 #include <iosfwd>
 #include <list>
 #include <map>
-#include <string>
 #include <optional>
+#include <string>
 #include <vector>
 #include "Export.h"
 
 ///
 /// \class DisasmData
 ///
-/// Port of the prolog disasm.
+/// Interface to collect information from GTIRB for pretty-printing.
 ///
 class DEBLOAT_PRETTYPRINTER_EXPORT_API DisasmData {
 public:
@@ -44,8 +46,6 @@ public:
   std::string getSectionName(gtirb::Addr x) const;
   std::string getFunctionName(gtirb::Addr x) const;
 
-  std::string getAdaptedSymbolName(const gtirb::Symbol* symbol) const;
-  std::string getAdaptedSymbolNameDefault(const gtirb::Symbol* symbol) const;
   bool isRelocated(const std::string& x) const;
   std::string getRelocatedDestination(const gtirb::Addr& addr) const;
   const gtirb::Section* getSection(const std::string& x) const;

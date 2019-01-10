@@ -25,16 +25,16 @@ using namespace std::rel_ops;
 DisasmData::DisasmData(gtirb::Context& context_, gtirb::IR* ir_)
     : context(context_), ir(*ir_),
       functionEAs(*ir_->getAuxData("functionEAs")->get<std::vector<gtirb::Addr>>()),
-      start_function(),
-      main_function(),
-      functionEntry(*ir_->getAuxData("functionEntry")->get<std::vector<gtirb::Addr>>()){
-    std::vector<gtirb::Addr>* startFunctionTable=ir_->getAuxData("startFunction")->get<std::vector<gtirb::Addr>>();
-    if(startFunctionTable->size()>0)
-        start_function=std::optional<gtirb::Addr>((*startFunctionTable)[0]);
-    std::vector<gtirb::Addr>* mainFunctionTable=ir_->getAuxData("mainFunction")->get<std::vector<gtirb::Addr>>();
-    if(mainFunctionTable->size()>0)
-            main_function=std::optional<gtirb::Addr>((*mainFunctionTable)[0]);
-
+      start_function(), main_function(),
+      functionEntry(*ir_->getAuxData("functionEntry")->get<std::vector<gtirb::Addr>>()) {
+  std::vector<gtirb::Addr>* startFunctionTable =
+      ir_->getAuxData("startFunction")->get<std::vector<gtirb::Addr>>();
+  if (startFunctionTable->size() > 0)
+    start_function = std::optional<gtirb::Addr>((*startFunctionTable)[0]);
+  std::vector<gtirb::Addr>* mainFunctionTable =
+      ir_->getAuxData("mainFunction")->get<std::vector<gtirb::Addr>>();
+  if (mainFunctionTable->size() > 0)
+    main_function = std::optional<gtirb::Addr>((*mainFunctionTable)[0]);
 }
 
 const gtirb::Module::section_range DisasmData::getSections() const {
@@ -91,32 +91,6 @@ std::string DisasmData::getFunctionName(gtirb::Addr x) const {
     }
   }
 
-  return std::string{};
-}
-
-// If the symbol is ambiguous print return a label with the address
-// This is used for printing a symbolic expression
-std::string DisasmData::getAdaptedSymbolNameDefault(const gtirb::Symbol* symbol) const {
-  if (symbol->getAddress().has_value()) {
-    std::string destName = getRelocatedDestination(symbol->getAddress().value());
-    if (!destName.empty()) {
-      return destName;
-    }
-  }
-  if (isAmbiguousSymbol(symbol->getName())) {
-    return DisasmData::GetSymbolToPrint(symbol->getAddress().value());
-  }
-
-  return DisasmData::AvoidRegNameConflicts(DisasmData::CleanSymbolNameSuffix(symbol->getName()));
-}
-
-// If the symbol is ambiguous or relocated return an empty string
-// This is used for printing the label
-std::string DisasmData::getAdaptedSymbolName(const gtirb::Symbol* symbol) const {
-  auto name = DisasmData::CleanSymbolNameSuffix(symbol->getName());
-  if (!isAmbiguousSymbol(symbol->getName()) &&
-      !this->isRelocated(name)) // &&   !DisasmData::GetIsReservedSymbol(name)
-    return DisasmData::AvoidRegNameConflicts(name);
   return std::string{};
 }
 
