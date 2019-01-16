@@ -22,17 +22,16 @@ public:
         bool dbg);
 
 protected:
-  virtual int getGtirbOpIndex(int index, int opCount) const override;
-  virtual std::string getRegisterName(unsigned int reg) const override;
+  int getGtirbOpIndex(int index, int opCount) const override;
+  std::string getRegisterName(unsigned int reg) const override;
 
-  virtual void printHeader(std::ostream& os) override;
-  virtual void printOpRegdirect(std::ostream& os, const cs_insn& inst,
-                                const cs_x86_op& op) override;
-  virtual void printOpImmediate(std::ostream& os, const std::string& opcode,
-                                const gtirb::SymbolicExpression* symbolic, const cs_insn& inst,
-                                gtirb::Addr ea, uint64_t index) override;
-  virtual void printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* symbolic,
-                               const cs_insn& inst, uint64_t index) override;
+  void printHeader(std::ostream& os) override;
+  void printOpRegdirect(std::ostream& os, const cs_insn& inst, const cs_x86_op& op) override;
+  void printOpImmediate(std::ostream& os, const std::string& opcode,
+                        const gtirb::SymbolicExpression* symbolic, const cs_insn& inst,
+                        gtirb::Addr ea, uint64_t index) override;
+  void printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* symbolic,
+                       const cs_insn& inst, uint64_t index) override;
 
 private:
   static bool registered;
