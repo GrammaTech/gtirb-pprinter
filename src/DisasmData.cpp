@@ -22,17 +22,17 @@
 
 using namespace std::rel_ops;
 
-DisasmData::DisasmData(gtirb::Context& context_, gtirb::IR* ir_)
-    : context(context_), ir(*ir_),
-      functionEAs(*ir_->getAuxData("functionEAs")->get<std::vector<gtirb::Addr>>()),
+DisasmData::DisasmData(gtirb::Context& context_, gtirb::IR& ir_)
+    : context(context_), ir(ir_),
+      functionEAs(*ir_.getAuxData("functionEAs")->get<std::vector<gtirb::Addr>>()),
       start_function(), main_function(),
-      functionEntry(*ir_->getAuxData("functionEntry")->get<std::vector<gtirb::Addr>>()) {
+      functionEntry(*ir_.getAuxData("functionEntry")->get<std::vector<gtirb::Addr>>()) {
   std::vector<gtirb::Addr>* startFunctionTable =
-      ir_->getAuxData("startFunction")->get<std::vector<gtirb::Addr>>();
+      ir_.getAuxData("startFunction")->get<std::vector<gtirb::Addr>>();
   if (startFunctionTable->size() > 0)
     start_function = std::optional<gtirb::Addr>((*startFunctionTable)[0]);
   std::vector<gtirb::Addr>* mainFunctionTable =
-      ir_->getAuxData("mainFunction")->get<std::vector<gtirb::Addr>>();
+      ir_.getAuxData("mainFunction")->get<std::vector<gtirb::Addr>>();
   if (mainFunctionTable->size() > 0)
     main_function = std::optional<gtirb::Addr>((*mainFunctionTable)[0]);
 }

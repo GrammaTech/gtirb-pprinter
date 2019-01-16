@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
       pp.keepFunction(keep);
     }
   }
-  const auto assembly = pp.prettyPrint(ctx, ir);
+  const auto assembly = pp.prettyPrint(ctx, *ir);
 
   // Do we write it to a file?
   if (vm.count("out") != 0) {

@@ -19,7 +19,7 @@
 
 #include "string_utils.h"
 
-GasPP::GasPP(gtirb::Context& context, gtirb::IR* ir,
+GasPP::GasPP(gtirb::Context& context, gtirb::IR& ir,
              const std::unordered_set<std::string>& skip_funcs, bool dbg)
     : AbstractPP(context, ir, skip_funcs, dbg) {
   cs_option(this->csHandle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
@@ -127,6 +127,6 @@ void GasPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* s
 }
 
 bool GasPP::registered = PrettyPrinter::registerPrinter(
-    {"gas", "gnu"}, [](gtirb::Context& context, gtirb::IR* ir, auto skip_funcs, auto dbg) {
+    {"gas", "gnu"}, [](gtirb::Context& context, gtirb::IR& ir, auto skip_funcs, auto dbg) {
       return std::make_unique<GasPP>(context, ir, skip_funcs, dbg);
     });

@@ -15,7 +15,7 @@
 
 #include "NasmPrinter.h"
 
-NasmPP::NasmPP(gtirb::Context& context, gtirb::IR* ir,
+NasmPP::NasmPP(gtirb::Context& context, gtirb::IR& ir,
                const std::unordered_set<std::string>& skip_funcs, bool dbg)
     : AbstractPP(context, ir, skip_funcs, dbg) {}
 
@@ -124,6 +124,6 @@ void NasmPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* 
 }
 
 bool NasmPP::registered = PrettyPrinter::registerPrinter(
-    {"intel", "nasm"}, [](gtirb::Context& context, gtirb::IR* ir, auto skip_funcs, auto dbg) {
+    {"intel", "nasm"}, [](gtirb::Context& context, gtirb::IR& ir, auto skip_funcs, auto dbg) {
       return std::make_unique<NasmPP>(context, ir, skip_funcs, dbg);
     });

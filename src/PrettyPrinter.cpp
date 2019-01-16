@@ -106,11 +106,11 @@ void PrettyPrinter::skipFunction(const std::string functionName) {
   AsmSkipFunction.insert(functionName);
 }
 
-std::unique_ptr<AbstractPP> PrettyPrinter::prettyPrint(gtirb::Context& context, gtirb::IR* ir) {
+std::unique_ptr<AbstractPP> PrettyPrinter::prettyPrint(gtirb::Context& context, gtirb::IR& ir) {
   return getFactories().at(flavor)(context, ir, AsmSkipFunction, debug);
 }
 
-AbstractPP::AbstractPP(gtirb::Context& context, gtirb::IR* ir,
+AbstractPP::AbstractPP(gtirb::Context& context, gtirb::IR& ir,
                        const std::unordered_set<std::string>& skip_funcs, bool dbg)
     : AsmSkipFunction(skip_funcs), disasm(context, ir), debug(dbg) {
   assert(cs_open(CS_ARCH_X86, CS_MODE_64, &this->csHandle) == CS_ERR_OK);

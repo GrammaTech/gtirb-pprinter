@@ -42,7 +42,7 @@ public:
   /// during printing, and a boolean indicating whether to include debugging output.
   ///
   using factory = std::function<std::unique_ptr<AbstractPP>(
-      gtirb::Context& context, gtirb::IR* ir, const std::unordered_set<std::string>&, bool)>;
+      gtirb::Context& context, gtirb::IR& ir, const std::unordered_set<std::string>&, bool)>;
 
   /// Register a factory for creating pretty printer objects. The factory will be used for the
   /// flavors named in the initialization list. For example,
@@ -96,7 +96,7 @@ public:
   /// std::cout << pp.prettyPrint(context, ir);
   /// \endcode
   ///
-  std::unique_ptr<AbstractPP> prettyPrint(gtirb::Context& context, gtirb::IR* ir);
+  std::unique_ptr<AbstractPP> prettyPrint(gtirb::Context& context, gtirb::IR& ir);
 
 private:
   // To avoid issues with static initialization order, the singleton map of factories is a
@@ -119,7 +119,7 @@ private:
 /// class follows the template method design pattern.
 class AbstractPP {
 public:
-  AbstractPP(gtirb::Context& context, gtirb::IR* ir,
+  AbstractPP(gtirb::Context& context, gtirb::IR& ir,
              const std::unordered_set<std::string>& skip_funcs, bool dbg);
   virtual ~AbstractPP();
 

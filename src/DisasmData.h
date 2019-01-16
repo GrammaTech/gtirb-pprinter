@@ -33,7 +33,7 @@
 ///
 class DEBLOAT_PRETTYPRINTER_EXPORT_API DisasmData {
 public:
-  DisasmData(gtirb::Context& context, gtirb::IR* ir);
+  DisasmData(gtirb::Context& context, gtirb::IR& ir);
 
   gtirb::Context& context;
   gtirb::IR& ir;
