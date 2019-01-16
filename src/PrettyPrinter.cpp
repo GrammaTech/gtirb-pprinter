@@ -71,11 +71,11 @@ std::map<std::string, PrettyPrinter::factory>& PrettyPrinter::getFactories() {
 
 bool PrettyPrinter::registerPrinter(std::initializer_list<const char*> flavor, factory f) {
   if (f) {
-    for (auto& name : flavor)
+    for (const char* name : flavor)
       getFactories()[name] = f;
     return true;
   } else {
-    for (auto& name : flavor)
+    for (const char* name : flavor)
       getFactories().erase(name);
     return false;
   }
@@ -83,7 +83,7 @@ bool PrettyPrinter::registerPrinter(std::initializer_list<const char*> flavor, f
 
 std::set<std::string> PrettyPrinter::getRegisteredFlavors() {
   std::set<std::string> flavors;
-  for (const auto& entry : getFactories())
+  for (const std::pair<std::string, factory>& entry : getFactories())
     flavors.insert(entry.first);
   return flavors;
 }
@@ -132,7 +132,7 @@ std::optional<std::string> AbstractPP::getPltCodeSymName(gtirb::Addr ea) {
 std::ostream& AbstractPP::print(std::ostream& os) {
   this->printHeader(os);
 
-  for (const auto& b : gtirb::blocks(this->disasm.ir.modules()[0].getCFG())) {
+  for (const gtirb::Block& b : gtirb::blocks(this->disasm.ir.modules()[0].getCFG())) {
     this->printBlock(os, b);
   }
 
@@ -171,12 +171,10 @@ void AbstractPP::printBlock(std::ostream& os, const gtirb::Block& x) {
 }
 
 void AbstractPP::condPrintSectionHeader(std::ostream& os, const gtirb::Block& x) {
-  const auto name = this->disasm.getSectionName(x.getAddress());
+  const std::string& name = this->disasm.getSectionName(x.getAddress());
 
-  if (!name.empty()) {
+  if (!name.empty())
     this->printSectionHeader(os, name);
-    return;
-  }
 }
 
 void AbstractPP::printSectionHeader(std::ostream& os, const std::string& x, uint64_t alignment) {
@@ -209,14 +207,13 @@ void AbstractPP::printBar(std::ostream& os, bool heavy) {
 }
 
 void AbstractPP::printFunctionHeader(std::ostream& os, gtirb::Addr ea) {
-  const auto name = this->disasm.getFunctionName(ea);
+  const std::string& name = this->disasm.getFunctionName(ea);
 
   if (name.empty() == false) {
-    const auto bac =
-        BlockAreaComment(os, "Function Header", [this, &os]() { this->printBar(os, false); });
+    const BlockAreaComment bac(os, "Function Header", [this, &os]() { this->printBar(os, false); });
 
     // enforce maximum alignment
-    auto x = uint64_t(ea);
+    uint64_t x(ea);
     if (x % 8 == 0) {
       os << ".align 8" << std::endl;
     } else if (x % 2 == 0) {
@@ -236,7 +233,7 @@ void AbstractPP::printLabel(std::ostream& os, gtirb::Addr ea) {
 
 std::string AbstractPP::getAdaptedSymbolNameDefault(const gtirb::Symbol* symbol) const {
   if (symbol->getAddress().has_value()) {
-    auto destName = this->disasm.getRelocatedDestination(symbol->getAddress().value());
+    std::string destName = this->disasm.getRelocatedDestination(symbol->getAddress().value());
     if (!destName.empty()) {
       return destName;
     }
@@ -249,7 +246,7 @@ std::string AbstractPP::getAdaptedSymbolNameDefault(const gtirb::Symbol* symbol)
 }
 
 std::string AbstractPP::getAdaptedSymbolName(const gtirb::Symbol* symbol) const {
-  auto name = DisasmData::CleanSymbolNameSuffix(symbol->getName());
+  std::string name = DisasmData::CleanSymbolNameSuffix(symbol->getName());
   if (!this->disasm.isAmbiguousSymbol(symbol->getName()) &&
       !this->disasm.isRelocated(name)) // && !DisasmData::GetIsReservedSymbol(name)
     return DisasmData::AvoidRegNameConflicts(name);
@@ -258,8 +255,8 @@ std::string AbstractPP::getAdaptedSymbolName(const gtirb::Symbol* symbol) const 
 
 bool AbstractPP::condPrintGlobalSymbol(std::ostream& os, gtirb::Addr ea) {
   bool printed = false;
-  for (const auto& sym : this->disasm.ir.modules()[0].findSymbols(ea)) {
-    auto name = this->getAdaptedSymbolName(&sym);
+  for (const gtirb::Symbol& sym : this->disasm.ir.modules()[0].findSymbols(ea)) {
+    std::string name = this->getAdaptedSymbolName(&sym);
     if (!name.empty()) {
       os << name << ":" << std::endl;
       printed = true;
@@ -272,7 +269,7 @@ void AbstractPP::printInstruction(std::ostream& os, const cs_insn& inst) {
   gtirb::Addr ea(inst.address);
   printComment(os, ea);
   this->printEA(os, ea);
-  auto opcode = str_tolower(inst.mnemonic);
+  std::string opcode = str_tolower(inst.mnemonic);
 
   ////////////////////////////////////////////////////////////////////
   // special cases
@@ -302,9 +299,9 @@ void AbstractPP::printEA(std::ostream& os, gtirb::Addr ea) {
 void AbstractPP::printOperandList(std::ostream& os, const std::string& opcode, const gtirb::Addr ea,
                                   const cs_insn& inst) {
   std::string str_operands[4];
-  auto& detail = inst.detail->x86;
-  const auto& module = this->disasm.ir.modules()[0];
-  auto opCount = detail.op_count;
+  cs_x86& detail = inst.detail->x86;
+  const gtirb::Module& module = this->disasm.ir.modules()[0];
+  uint8_t opCount = detail.op_count;
 
   // Operands are implicit for various MOVS* instructions. But there is also
   // an SSE2 instruction named MOVSD which has explicit operands.
@@ -330,7 +327,7 @@ void AbstractPP::printOperandList(std::ostream& os, const std::string& opcode, c
 void AbstractPP::printOperand(std::ostream& os, const std::string& opcode,
                               const gtirb::SymbolicExpression* symbolic, const cs_insn& inst,
                               gtirb::Addr ea, uint64_t index) {
-  const auto& op = inst.detail->x86.operands[index];
+  const cs_x86_op& op = inst.detail->x86.operands[index];
   switch (op.type) {
   case X86_OP_REG:
     this->printOpRegdirect(os, inst, op);
@@ -353,10 +350,10 @@ void AbstractPP::printDataGroups(std::ostream& os) {
   if (!dataSections)
     return;
   for (const auto& [name, alignment, dataIDs] : *dataSections) {
-    auto sectionPtr = this->disasm.getSection(name);
+    const gtirb::Section* sectionPtr = this->disasm.getSection(name);
 
     std::vector<const gtirb::DataObject*> dataGroups;
-    for (auto i : dataIDs) {
+    for (gtirb::UUID i : dataIDs) {
       dataGroups.push_back(nodeFromUUID<gtirb::DataObject>(this->disasm.context, i));
     }
 
@@ -366,14 +363,14 @@ void AbstractPP::printDataGroups(std::ostream& os) {
     // print header
     this->printSectionHeader(os, sectionPtr->getName(), alignment);
     // Print data for this section
-    for (auto& dataGroup : dataGroups) {
+    for (const gtirb::DataObject* dataGroup : dataGroups) {
       if (shouldExcludeDataElement(sectionPtr->getName(), *dataGroup))
         continue;
       printDataObject(os, *dataGroup);
     }
 
     // End label
-    const auto endAddress = addressLimit(*sectionPtr);
+    const gtirb::Addr endAddress = addressLimit(*sectionPtr);
     std::string next_section = this->disasm.getSectionName(endAddress);
     if (next_section.empty() == true ||
         (next_section != StrSectionBSS && getDataSectionDescriptor(next_section) == nullptr)) {
@@ -391,11 +388,11 @@ bool AbstractPP::shouldExcludeDataElement(const std::string& sectionName,
 }
 
 bool AbstractPP::isPointerToExcludedCode(const gtirb::DataObject& dataGroup) {
-  auto& ir = this->disasm.ir;
-  const auto& module = ir.modules()[0];
+  gtirb::IR& ir = this->disasm.ir;
+  const gtirb::Module& module = ir.modules()[0];
   if (auto foundSymbolic = module.findSymbolicExpression(dataGroup.getAddress());
       foundSymbolic != module.symbolic_expr_end()) {
-    if (auto* s = std::get_if<gtirb::SymAddrConst>(&*foundSymbolic)) {
+    if (const gtirb::SymAddrConst* s = std::get_if<gtirb::SymAddrConst>(&*foundSymbolic)) {
       return this->skipEA(s->Sym->getAddress().value());
     }
   }
@@ -403,8 +400,8 @@ bool AbstractPP::isPointerToExcludedCode(const gtirb::DataObject& dataGroup) {
 }
 
 void AbstractPP::printDataObject(std::ostream& os, const gtirb::DataObject& dataGroup) {
-  auto& ir = this->disasm.ir;
-  const auto& module = ir.modules()[0];
+  gtirb::IR& ir = this->disasm.ir;
+  const gtirb::Module& module = ir.modules()[0];
   const auto* stringEAs = getAuxData<std::vector<gtirb::Addr>>(ir, "stringEAs");
 
   printComment(os, dataGroup.getAddress());
@@ -424,7 +421,7 @@ void AbstractPP::printDataObject(std::ostream& os, const gtirb::DataObject& data
     os << std::endl;
 
   } else {
-    for (auto byte : getBytes(this->disasm.ir.modules()[0].getImageByteMap(), dataGroup)) {
+    for (std::byte byte : getBytes(this->disasm.ir.modules()[0].getImageByteMap(), dataGroup)) {
       os << ".byte 0x" << std::hex << static_cast<uint32_t>(byte) << std::dec << std::endl;
     }
   }
@@ -455,10 +452,11 @@ void AbstractPP::printSymbolicData(std::ostream& os, const gtirb::Addr addr,
       return;
     }
   }
-  if (auto* s = std::get_if<gtirb::SymAddrConst>(symbolic); s != nullptr) {
+  if (const gtirb::SymAddrConst* s = std::get_if<gtirb::SymAddrConst>(symbolic); s != nullptr) {
     os << ".quad ";
     printSymbolicExpression(os, s);
-  } else if (auto* sa = std::get_if<gtirb::SymAddrAddr>(symbolic); sa != nullptr) {
+  } else if (const gtirb::SymAddrAddr* sa = std::get_if<gtirb::SymAddrAddr>(symbolic);
+             sa != nullptr) {
     os << ".long ";
     printSymbolicExpression(os, sa);
   }
@@ -493,7 +491,7 @@ void AbstractPP::printString(std::ostream& os, const gtirb::DataObject& x) {
 
   os << ".string \"";
 
-  for (auto& b : getBytes(this->disasm.ir.modules()[0].getImageByteMap(), x)) {
+  for (const std::byte& b : getBytes(this->disasm.ir.modules()[0].getImageByteMap(), x)) {
     if (b != std::byte(0)) {
       os << cleanByte(uint8_t(b));
     }
@@ -503,7 +501,7 @@ void AbstractPP::printString(std::ostream& os, const gtirb::DataObject& x) {
 }
 
 void AbstractPP::printBSS(std::ostream& os) {
-  auto bssSection = this->disasm.getSection(AbstractPP::StrSectionBSS);
+  const gtirb::Section* bssSection = this->disasm.getSection(AbstractPP::StrSectionBSS);
 
   if (bssSection) {
     this->printSectionHeader(os, AbstractPP::StrSectionBSS, 16);
@@ -513,8 +511,8 @@ void AbstractPP::printBSS(std::ostream& os) {
     if (bssData && !bssData->empty()) {
       auto* data = nodeFromUUID<gtirb::DataObject>(this->disasm.context, bssData->at(0));
       if (data && data->getAddress() != bssSection->getAddress()) {
-        const auto current = bssSection->getAddress();
-        const auto next = data->getAddress();
+        const gtirb::Addr current = bssSection->getAddress();
+        const gtirb::Addr next = data->getAddress();
         this->printLabel(os, current);
         os << " .zero " << next - current;
       }
@@ -543,7 +541,7 @@ bool AbstractPP::skipEA(const gtirb::Addr x) const {
 }
 
 bool AbstractPP::isInSkippedSection(const gtirb::Addr x) const {
-  for (const auto& s : this->disasm.getSections()) {
+  for (const gtirb::Section& s : this->disasm.getSections()) {
     if (AsmSkipSection.count(s.getName()) && containsAddr(s, gtirb::Addr(x))) {
       return true;
     }

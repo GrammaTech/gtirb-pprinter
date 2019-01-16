@@ -41,8 +41,8 @@ void GasPP::printOpRegdirect(std::ostream& os, const cs_insn& inst, const cs_x86
 void GasPP::printOpImmediate(std::ostream& os, const std::string& /*opcode*/,
                              const gtirb::SymbolicExpression* symbolic, const cs_insn& inst,
                              gtirb::Addr ea, uint64_t index) {
-  const auto& detail = inst.detail->x86;
-  const auto& op = detail.operands[index];
+  const cs_x86& detail = inst.detail->x86;
+  const cs_x86_op& op = detail.operands[index];
   assert(op.type == X86_OP_IMM);
 
   bool is_call = cs_insn_group(this->csHandle, &inst, CS_GRP_CALL);
@@ -52,14 +52,14 @@ void GasPP::printOpImmediate(std::ostream& os, const std::string& /*opcode*/,
     os << '$';
 
   // plt reference
-  const auto plt_name = this->getPltCodeSymName(ea);
+  const std::optional<std::string>& plt_name = this->getPltCodeSymName(ea);
   if (plt_name.has_value()) {
     os << plt_name.value();
     return;
   }
 
   if (symbolic) {
-    auto* s = std::get_if<gtirb::SymAddrConst>(symbolic);
+    const gtirb::SymAddrConst* s = std::get_if<gtirb::SymAddrConst>(symbolic);
     assert(s != nullptr);
     if (this->skipEA(s->Sym->getAddress().value()))
       // the symbol points to a skipped destination: treat as not symbolic
@@ -71,7 +71,7 @@ void GasPP::printOpImmediate(std::ostream& os, const std::string& /*opcode*/,
 
   // skipped or not symbolic
   if (!symbolic) {
-    auto flags = os.flags();
+    std::ios_base::fmtflags flags = os.flags();
     if (is_call || is_jump)
       os << std::setbase(16) << std::showbase;
     os << op.imm;
@@ -81,8 +81,8 @@ void GasPP::printOpImmediate(std::ostream& os, const std::string& /*opcode*/,
 
 void GasPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* symbolic,
                             const cs_insn& inst, uint64_t index) {
-  const auto& detail = inst.detail->x86;
-  const auto& op = detail.operands[index];
+  const cs_x86& detail = inst.detail->x86;
+  const cs_x86_op& op = detail.operands[index];
   assert(op.type == X86_OP_MEM);
 
   bool has_segment = op.mem.segment != X86_REG_INVALID;
@@ -94,7 +94,7 @@ void GasPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* s
   if (has_segment)
     os << getRegisterName(op.mem.segment) << ":";
 
-  const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic);
+  const gtirb::SymAddrConst* s = std::get_if<gtirb::SymAddrConst>(symbolic);
   if (s != nullptr &&
       (!s->Sym->getAddress().has_value() || !this->skipEA(s->Sym->getAddress().value()))) {
     // Symbolic displacement
@@ -102,7 +102,7 @@ void GasPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* s
   } else {
     // Numeric displacement
     if (!has_segment && !has_base && !has_index) {
-      auto flags = os.flags();
+      std::ios_base::fmtflags flags = os.flags();
       os << "0x" << std::hex << op.mem.disp;
       os.flags(flags);
     } else if (op.mem.disp != 0 || has_segment)
@@ -125,6 +125,6 @@ void GasPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* s
 }
 
 bool GasPP::registered = PrettyPrinter::registerPrinter(
-    {"gas", "gnu"}, [](gtirb::Context& context, gtirb::IR& ir, auto skip_funcs, auto dbg) {
+    {"gas", "gnu"}, [](gtirb::Context& context, gtirb::IR& ir, auto skip_funcs, bool dbg) {
       return std::make_unique<GasPP>(context, ir, skip_funcs, dbg);
     });

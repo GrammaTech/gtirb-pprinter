@@ -47,13 +47,13 @@ void NasmPP::printOpRegdirect(std::ostream& os, const cs_insn& /*inst*/, const c
 void NasmPP::printOpImmediate(std::ostream& os, const std::string& opcode,
                               const gtirb::SymbolicExpression* symbolic, const cs_insn& inst,
                               gtirb::Addr ea, uint64_t index) {
-  const auto& detail = inst.detail->x86;
-  const auto& op = detail.operands[index];
+  const cs_x86& detail = inst.detail->x86;
+  const cs_x86_op& op = detail.operands[index];
   assert(op.type == X86_OP_IMM);
 
   // plt reference
-  const auto plt_name = this->getPltCodeSymName(ea);
-  if (plt_name.has_value()) {
+  const std::optional<std::string> plt_name = this->getPltCodeSymName(ea);
+  if (plt_name) {
     if (cs_insn_group(this->csHandle, &inst, CS_GRP_CALL) ||
         cs_insn_group(this->csHandle, &inst, CS_GRP_JUMP))
       os << plt_name.value() << "@PLT";
@@ -69,7 +69,7 @@ void NasmPP::printOpImmediate(std::ostream& os, const std::string& opcode,
   }
 
   // symbolic
-  auto* s = std::get_if<gtirb::SymAddrConst>(symbolic);
+  const gtirb::SymAddrConst* s = std::get_if<gtirb::SymAddrConst>(symbolic);
   assert(s != nullptr);
 
   // the symbol points to a skipped destination
@@ -78,18 +78,18 @@ void NasmPP::printOpImmediate(std::ostream& os, const std::string& opcode,
     return;
   }
 
-  auto offsetLabel = opcode == "call" ? "" : NasmPP::StrOffset;
+  const char* offsetLabel = opcode == "call" ? "" : NasmPP::StrOffset;
   os << offsetLabel << " " << this->getAdaptedSymbolNameDefault(s->Sym)
      << getAddendString(s->Offset);
 }
 
 void NasmPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* symbolic,
                              const cs_insn& inst, uint64_t index) {
-  const auto& detail = inst.detail->x86;
-  const auto& op = detail.operands[index];
+  const cs_x86& detail = inst.detail->x86;
+  const cs_x86_op& op = detail.operands[index];
   assert(op.type == X86_OP_MEM);
   bool first = true;
-  const auto sizeName = DisasmData::GetSizeName(op.size * 8);
+  const std::string sizeName = DisasmData::GetSizeName(op.size * 8);
   os << sizeName << " ";
 
   if (op.mem.segment != X86_REG_INVALID)
@@ -110,7 +110,7 @@ void NasmPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* 
     os << getRegisterName(op.mem.index) << "*" << std::to_string(op.mem.scale);
   }
 
-  if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic); s != nullptr) {
+  if (const gtirb::SymAddrConst* s = std::get_if<gtirb::SymAddrConst>(symbolic); s != nullptr) {
     if (s->Sym->getAddress().has_value() && this->skipEA(s->Sym->getAddress().value())) {
       os << getAddendString(op.mem.disp, first);
     } else {
@@ -124,6 +124,6 @@ void NasmPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* 
 }
 
 bool NasmPP::registered = PrettyPrinter::registerPrinter(
-    {"intel", "nasm"}, [](gtirb::Context& context, gtirb::IR& ir, auto skip_funcs, auto dbg) {
+    {"intel", "nasm"}, [](gtirb::Context& context, gtirb::IR& ir, auto skip_funcs, bool dbg) {
       return std::make_unique<NasmPP>(context, ir, skip_funcs, dbg);
     });

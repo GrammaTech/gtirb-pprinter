@@ -13,6 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 #include "DisasmData.h"
+#include <boost/range/algorithm/find_if.hpp>
 #include <fstream>
 #include <gsl/gsl>
 #include <gtirb/gtirb.hpp>
@@ -52,9 +53,9 @@ std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>* DisasmData:
 }
 
 std::string DisasmData::getSectionName(gtirb::Addr x) const {
-  const auto& sections = this->getSections();
+  const gtirb::Module::section_range& sections = this->getSections();
   const auto& match =
-      find_if(sections.begin(), sections.end(), [x](const auto& s) { return s.getAddress() == x; });
+      find_if(sections, [x](const gtirb::Section& s) { return s.getAddress() == x; });
 
   if (match != sections.end()) {
     return match->getName();
@@ -68,7 +69,7 @@ bool DisasmData::isFunction(const gtirb::Symbol& sym) const {
 }
 
 std::string DisasmData::getFunctionName(gtirb::Addr x) const {
-  for (auto& s : this->ir.modules()[0].findSymbols(x)) {
+  for (gtirb::Symbol& s : this->ir.modules()[0].findSymbols(x)) {
     if (isFunction(s)) {
       std::stringstream name;
       name << s.getName();
@@ -87,8 +88,8 @@ std::string DisasmData::getFunctionName(gtirb::Addr x) const {
     return "_start";
   }
 
-  // or is this a funciton entry?
-  for (auto f : this->functionEntry) {
+  // or is this a function entry?
+  for (gtirb::Addr f : this->functionEntry) {
     if (x == f) {
       std::stringstream ss;
       ss << "unknown_function_" << std::hex << uint64_t(x);
