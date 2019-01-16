@@ -13,6 +13,8 @@
 //
 //===----------------------------------------------------------------------===//
 #include "PrettyPrinter.h"
+#include "DisasmData.h"
+#include "string_utils.h"
 #include <capstone/capstone.h>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/lexical_cast.hpp>
@@ -23,8 +25,6 @@
 #include <sstream>
 #include <utility>
 #include <variant>
-#include "DisasmData.h"
-#include "string_utils.h"
 
 using namespace std::rel_ops;
 

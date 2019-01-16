@@ -14,10 +14,8 @@
 //===----------------------------------------------------------------------===//
 
 #include "GasPrinter.h"
-
-#include <iomanip>
-
 #include "string_utils.h"
+#include <iomanip>
 
 GasPP::GasPP(gtirb::Context& context, gtirb::IR& ir,
              const std::unordered_set<std::string>& skip_funcs, bool dbg)
