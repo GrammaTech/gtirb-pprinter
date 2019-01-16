@@ -16,17 +16,17 @@ endif()
 set(${PROJECT_NAME}_H
 	DisasmData.h
 	Export.h
-	PrettyPrinter.h
-	NasmPrinter.h
 	GasPrinter.h
+	NasmPrinter.h
+	PrettyPrinter.h
 	string_utils.h
 )
 
 set(${PROJECT_NAME}_SRC
 	DisasmData.cpp
-	PrettyPrinter.cpp
-	NasmPrinter.cpp
 	GasPrinter.cpp
+	NasmPrinter.cpp
+	PrettyPrinter.cpp
 	string_utils.cpp
 )
 
