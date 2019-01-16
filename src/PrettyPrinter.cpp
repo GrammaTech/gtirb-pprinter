@@ -119,13 +119,14 @@ AbstractPP::AbstractPP(gtirb::Context& context, gtirb::IR& ir,
 AbstractPP::~AbstractPP() { cs_close(&this->csHandle); }
 
 std::optional<std::string> AbstractPP::getPltCodeSymName(gtirb::Addr ea) {
-  const auto& pltReferences =
-      *this->disasm.ir.getAuxData("pltCodeReferences")->get<std::map<gtirb::Addr, std::string>>();
-  const auto p = pltReferences.find(gtirb::Addr(ea));
-  if (p != pltReferences.end())
-    return p->second;
-  else
-    return std::nullopt;
+  const auto* pltReferences =
+      getAuxData<std::map<gtirb::Addr, std::string>>(this->disasm.ir, "pltCodeReferences");
+  if (pltReferences) {
+    const auto p = pltReferences->find(gtirb::Addr(ea));
+    if (p != pltReferences->end())
+      return p->second;
+  }
+  return std::nullopt;
 }
 
 std::ostream& AbstractPP::print(std::ostream& os) {
@@ -347,7 +348,11 @@ void AbstractPP::printOperand(std::ostream& os, const std::string& opcode,
 }
 
 void AbstractPP::printDataGroups(std::ostream& os) {
-  for (const auto& [name, alignment, dataIDs] : this->disasm.getDataSections()) {
+  std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>* dataSections =
+      this->disasm.getDataSections();
+  if (!dataSections)
+    return;
+  for (const auto& [name, alignment, dataIDs] : *dataSections) {
     auto sectionPtr = this->disasm.getSection(name);
 
     std::vector<const gtirb::DataObject*> dataGroups;
@@ -400,7 +405,7 @@ bool AbstractPP::isPointerToExcludedCode(const gtirb::DataObject& dataGroup) {
 void AbstractPP::printDataObject(std::ostream& os, const gtirb::DataObject& dataGroup) {
   auto& ir = this->disasm.ir;
   const auto& module = ir.modules()[0];
-  const auto& stringEAs = *ir.getAuxData("stringEAs")->get<std::vector<gtirb::Addr>>();
+  const auto* stringEAs = getAuxData<std::vector<gtirb::Addr>>(ir, "stringEAs");
 
   printComment(os, dataGroup.getAddress());
   printLabel(os, dataGroup.getAddress());
@@ -413,8 +418,8 @@ void AbstractPP::printDataObject(std::ostream& os, const gtirb::DataObject& data
     printSymbolicData(os, dataGroup.getAddress(), &*foundSymbolic);
     os << std::endl;
 
-  } else if (std::find(stringEAs.begin(), stringEAs.end(), dataGroup.getAddress()) !=
-             stringEAs.end()) {
+  } else if (stringEAs && std::find(stringEAs->begin(), stringEAs->end(), dataGroup.getAddress()) !=
+                              stringEAs->end()) {
     this->printString(os, dataGroup);
     os << std::endl;
 
@@ -428,25 +433,29 @@ void AbstractPP::printDataObject(std::ostream& os, const gtirb::DataObject& data
 void AbstractPP::printComment(std::ostream& os, const gtirb::Addr ea) {
   if (!this->debug)
     return;
-  const auto& comments =
-      *this->disasm.ir.getAuxData("comments")->get<std::map<gtirb::Addr, std::string>>();
-  const auto p = comments.find(ea);
-  if (p != comments.end()) {
-    os << "# " << p->second << std::endl;
+  const auto* comments =
+      getAuxData<std::map<gtirb::Addr, std::string>>(this->disasm.ir, "comments");
+  if (comments) {
+    const auto p = comments->find(ea);
+    if (p != comments->end()) {
+      os << "# " << p->second << std::endl;
+    }
   }
 }
 
 void AbstractPP::printSymbolicData(std::ostream& os, const gtirb::Addr addr,
                                    const gtirb::SymbolicExpression* symbolic) {
-  const auto& pltReferences =
-      *this->disasm.ir.getAuxData("pltDataReferences")->get<std::map<gtirb::Addr, std::string>>();
+  const auto* pltReferences =
+      getAuxData<std::map<gtirb::Addr, std::string>>(this->disasm.ir, "pltDataReferences");
 
-  const auto p = pltReferences.find(addr);
-  if (p != pltReferences.end()) {
-    os << ".quad " << p->second;
-
-  } else if (auto* s = std::get_if<gtirb::SymAddrConst>(symbolic); s != nullptr) {
-
+  if (pltReferences) {
+    const auto p = pltReferences->find(addr);
+    if (p != pltReferences->end()) {
+      os << ".quad " << p->second;
+      return;
+    }
+  }
+  if (auto* s = std::get_if<gtirb::SymAddrConst>(symbolic); s != nullptr) {
     os << ".quad ";
     printSymbolicExpression(os, s);
   } else if (auto* sa = std::get_if<gtirb::SymAddrAddr>(symbolic); sa != nullptr) {
@@ -496,30 +505,31 @@ void AbstractPP::printString(std::ostream& os, const gtirb::DataObject& x) {
 void AbstractPP::printBSS(std::ostream& os) {
   auto bssSection = this->disasm.getSection(AbstractPP::StrSectionBSS);
 
-  if (bssSection != nullptr) {
+  if (bssSection) {
     this->printSectionHeader(os, AbstractPP::StrSectionBSS, 16);
-    const auto& bssData = *this->disasm.ir.getAuxData("bssData")->get<std::vector<gtirb::UUID>>();
+    const auto* bssData = getAuxData<std::vector<gtirb::UUID>>(this->disasm.ir, "bssData");
 
     // Special case.
-    if (!bssData.empty() &&
-        nodeFromUUID<gtirb::DataObject>(this->disasm.context, bssData.at(0))->getAddress() !=
-            bssSection->getAddress()) {
-      const auto current = bssSection->getAddress();
-      const auto next =
-          nodeFromUUID<gtirb::DataObject>(this->disasm.context, bssData.at(0))->getAddress();
-      this->printLabel(os, current);
-      os << " .zero " << next - current;
-    }
-    os << std::endl;
+    if (bssData && !bssData->empty()) {
+      auto* data = nodeFromUUID<gtirb::DataObject>(this->disasm.context, bssData->at(0));
+      if (data && data->getAddress() != bssSection->getAddress()) {
+        const auto current = bssSection->getAddress();
+        const auto next = data->getAddress();
+        this->printLabel(os, current);
+        os << " .zero " << next - current;
+      }
+      os << std::endl;
 
-    for (size_t i = 0; i < bssData.size(); ++i) {
-      const auto& current = *nodeFromUUID<gtirb::DataObject>(this->disasm.context, bssData.at(i));
-      this->printLabel(os, current.getAddress());
-
-      if (current.getSize() == 0) {
-        os << "\n";
-      } else {
-        os << " .zero " << current.getSize() << "\n";
+      for (size_t i = 0; i < bssData->size(); ++i) {
+        const auto* current = nodeFromUUID<gtirb::DataObject>(this->disasm.context, bssData->at(i));
+        if (!current)
+          continue;
+        this->printLabel(os, current->getAddress());
+        if (current->getSize() == 0) {
+          os << "\n";
+        } else {
+          os << " .zero " << current->getSize() << "\n";
+        }
       }
     }
 
@@ -550,16 +560,16 @@ bool AbstractPP::isInSkippedFunction(const gtirb::Addr x) const {
 
 std::string AbstractPP::getContainerFunctionName(const gtirb::Addr x) const {
   gtirb::Addr xFunctionAddress{0};
-  const auto functionEntries =
-      *this->disasm.ir.getAuxData("functionEntry")->get<std::vector<gtirb::Addr>>();
+  auto* functionEntries = getAuxData<std::vector<gtirb::Addr>>(this->disasm.ir, "functionEntry");
+  if (functionEntries) {
+    for (auto fe = std::begin(*functionEntries); fe != std::end(*functionEntries); ++fe) {
+      auto feNext = fe;
+      feNext++;
 
-  for (auto fe = std::begin(functionEntries); fe != std::end(functionEntries); ++fe) {
-    auto feNext = fe;
-    feNext++;
-
-    if (x >= *fe && x < *feNext) {
-      xFunctionAddress = *fe;
-      continue;
+      if (x >= *fe && x < *feNext) {
+        xFunctionAddress = *fe;
+        continue;
+      }
     }
   }
   return this->disasm.getFunctionName(xFunctionAddress);

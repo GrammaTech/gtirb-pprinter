@@ -26,6 +26,11 @@
 #include <vector>
 #include "Export.h"
 
+template <typename T> T* getAuxData(gtirb::IR& ir, const std::string& name) {
+  gtirb::AuxData* data = ir.getAuxData(name);
+  return data ? data->get<T>() : nullptr;
+}
+
 ///
 /// \class DisasmData
 ///
@@ -40,7 +45,7 @@ public:
 
   const gtirb::Module::section_range getSections() const;
   std::vector<std::string>* getAmbiguousSymbol();
-  std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>& getDataSections();
+  std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>* getDataSections();
 
   bool isFunction(const gtirb::Symbol& sym) const;
   std::string getSectionName(gtirb::Addr x) const;

@@ -23,27 +23,32 @@
 using namespace std::rel_ops;
 
 DisasmData::DisasmData(gtirb::Context& context_, gtirb::IR& ir_)
-    : context(context_), ir(ir_),
-      functionEAs(*ir_.getAuxData("functionEAs")->get<std::vector<gtirb::Addr>>()),
-      start_function(), main_function(),
-      functionEntry(*ir_.getAuxData("functionEntry")->get<std::vector<gtirb::Addr>>()) {
-  std::vector<gtirb::Addr>* startFunctionTable =
-      ir_.getAuxData("startFunction")->get<std::vector<gtirb::Addr>>();
-  if (startFunctionTable->size() > 0)
-    start_function = std::optional<gtirb::Addr>((*startFunctionTable)[0]);
-  std::vector<gtirb::Addr>* mainFunctionTable =
-      ir_.getAuxData("mainFunction")->get<std::vector<gtirb::Addr>>();
-  if (mainFunctionTable->size() > 0)
-    main_function = std::optional<gtirb::Addr>((*mainFunctionTable)[0]);
+    : context(context_), ir(ir_), functionEAs(), start_function(), main_function(),
+      functionEntry() {
+  auto* EAs = getAuxData<std::vector<gtirb::Addr>>(ir, "functionEAs");
+  if (EAs)
+    functionEAs.insert(functionEAs.end(), EAs->begin(), EAs->end());
+
+  auto* entries = getAuxData<std::vector<gtirb::Addr>>(ir, "functionEntry");
+  if (entries)
+    functionEntry.insert(functionEntry.end(), entries->begin(), entries->end());
+
+  auto* start = getAuxData<std::vector<gtirb::Addr>>(ir, "startFunction");
+  if (start && !start->empty())
+    start_function = (*start)[0];
+
+  auto* main = getAuxData<std::vector<gtirb::Addr>>(ir, "mainFunction");
+  if (main && !main->empty())
+    main_function = (*main)[0];
 }
 
 const gtirb::Module::section_range DisasmData::getSections() const {
   return this->ir.modules()[0].sections();
 }
 
-std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>& DisasmData::getDataSections() {
-  return *this->ir.getAuxData("dataSections")
-              ->get<std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>>();
+std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>* DisasmData::getDataSections() {
+  using table_type = std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>;
+  return getAuxData<table_type>(ir, "dataSections");
 }
 
 std::string DisasmData::getSectionName(gtirb::Addr x) const {
@@ -101,24 +106,26 @@ std::string DisasmData::GetSymbolToPrint(gtirb::Addr x) {
 }
 
 std::string DisasmData::getRelocatedDestination(const gtirb::Addr& addr) const {
-  const auto& relocations =
-      *ir.getAuxData("relocations")
-           ->get<std::map<gtirb::Addr, std::tuple<std::string, std::string>>>();
-  const auto found = std::find_if(std::begin(relocations), std::end(relocations),
-                                  [addr](const auto& element) { return element.first == addr; });
-  if (found != std::end(relocations) && std::get<0>(found->second) == "R_X86_64_GLOB_DAT")
-    return std::get<1>(found->second) + "@GOTPCREL";
+  auto* relocations =
+      getAuxData<std::map<gtirb::Addr, std::tuple<std::string, std::string>>>(ir, "relocations");
+  if (relocations) {
+    const auto found = relocations->find(addr);
+    if (found != std::end(*relocations) && std::get<0>(found->second) == "R_X86_64_GLOB_DAT")
+      return std::get<1>(found->second) + "@GOTPCREL";
+  }
   return std::string{};
 }
 
 bool DisasmData::isRelocated(const std::string& x) const {
-  const auto& relocations =
-      *ir.getAuxData("relocations")
-           ->get<std::map<gtirb::Addr, std::tuple<std::string, std::string>>>();
-  const auto found = std::find_if(std::begin(relocations), std::end(relocations),
+  auto relocations =
+      getAuxData<std::map<gtirb::Addr, std::tuple<std::string, std::string>>>(ir, "relocations");
+  if (!relocations)
+    return false;
+
+  const auto found = std::find_if(std::begin(*relocations), std::end(*relocations),
                                   [x](const auto& element) { return get<1>(element.second) == x; });
 
-  return found != std::end(relocations);
+  return found != std::end(*relocations);
 }
 
 const gtirb::Section* DisasmData::getSection(const std::string& x) const {
