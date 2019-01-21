@@ -103,14 +103,13 @@ void NasmPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* 
   }
 
   if (op.mem.index != X86_REG_INVALID) {
-
     if (!first)
       os << '+';
     first = false;
     os << getRegisterName(op.mem.index) << '*' << std::to_string(op.mem.scale);
   }
 
-  if (const gtirb::SymAddrConst* s = std::get_if<gtirb::SymAddrConst>(symbolic); s != nullptr) {
+  if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
     if (s->Sym->getAddress() && this->skipEA(s->Sym->getAddress().value())) {
       os << getAddendString(op.mem.disp, first);
     } else {

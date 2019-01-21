@@ -452,10 +452,10 @@ void AbstractPP::printSymbolicData(std::ostream& os, const gtirb::Addr addr,
       return;
     }
   }
-  if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic); s != nullptr) {
+  if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
     os << ".quad ";
     printSymbolicExpression(os, s);
-  } else if (const auto* sa = std::get_if<gtirb::SymAddrAddr>(symbolic); sa != nullptr) {
+  } else if (const auto* sa = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
     os << ".long ";
     printSymbolicExpression(os, sa);
   }
