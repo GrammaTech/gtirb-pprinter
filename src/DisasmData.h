@@ -12,7 +12,8 @@
 //  endorsement should be inferred.
 //
 //===----------------------------------------------------------------------===//
-#pragma once
+#ifndef GTIRB_PP_DISASM_DATA_H
+#define GTIRB_PP_DISASM_DATA_H
 
 /// \file DisasmData.h
 
@@ -74,3 +75,5 @@ private:
 };
 
 const std::pair<std::string, int>* getDataSectionDescriptor(const std::string& name);
+
+#endif /* GTIRB_PP_DISASM_DATA_H */

@@ -12,9 +12,12 @@
 //  endorsement should be inferred.
 //
 //===----------------------------------------------------------------------===//
-#pragma once
+#ifndef GTIRB_PP_STRING_UTILS_H
+#define GTIRB_PP_STRING_UTILS_H
 
 #include <string>
 
 std::string str_tolower(std::string s);
 std::string str_toupper(std::string s);
+
+#endif /* GTIRB_PP_STRING_UTILS_H */

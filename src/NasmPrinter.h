@@ -12,7 +12,8 @@
 //  endorsement should be inferred.
 //
 //===----------------------------------------------------------------------===//
-#pragma once
+#ifndef GTIRB_PP_NASM_PRINTER_H
+#define GTIRB_PP_NASM_PRINTER_H
 
 #include "PrettyPrinter.h"
 
@@ -37,3 +38,5 @@ protected:
 private:
   static bool registered;
 };
+
+#endif /* GTIRB_PP_NASM_PRINTER_H */

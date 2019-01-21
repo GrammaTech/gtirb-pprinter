@@ -12,7 +12,8 @@
 //  endorsement should be inferred.
 //
 //===----------------------------------------------------------------------===//
-#pragma once
+#ifndef GTIRB_PP_EXPORT_H
+#define GTIRB_PP_EXPORT_H
 
 ///
 /// \define DEBLOAT_PrettyPrinter_EXPORTS
@@ -38,3 +39,5 @@
 #else
 #define DEBLOAT_PRETTYPRINTER_EXPORT_API __attribute__((visibility("default")))
 #endif
+
+#endif /* GTIRB_PP_EXPORT_H */

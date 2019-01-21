@@ -12,7 +12,8 @@
 //  endorsement should be inferred.
 //
 //===----------------------------------------------------------------------===//
-#pragma once
+#ifndef GTIRB_PP_PRETTY_PRINTER_H
+#define GTIRB_PP_PRETTY_PRINTER_H
 
 #include <capstone/capstone.h>
 #include <cstdint>
@@ -219,3 +220,5 @@ protected:
 inline std::ostream& operator<<(std::ostream& out, const std::unique_ptr<AbstractPP>& pp) {
   return pp->print(out);
 }
+
+#endif /* GTIRB_PP_PRETTY_PRINTER_H */
