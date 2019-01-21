@@ -75,7 +75,7 @@ std::string DisasmData::getFunctionName(gtirb::Addr x) const {
       name << s.getName();
 
       if (this->isAmbiguousSymbol(s.getName()) == true) {
-        name << "_" << std::hex << uint64_t(x);
+        name << '_' << std::hex << uint64_t(x);
       }
 
       return name.str();

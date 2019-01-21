@@ -30,12 +30,12 @@ int NasmPP::getGtirbOpIndex(int index, int opCount) const {
 
 void NasmPP::printHeader(std::ostream& os) {
   this->printBar(os);
-  os << ".intel_syntax noprefix" << std::endl;
+  os << ".intel_syntax noprefix\n";
   this->printBar(os);
-  os << "" << std::endl;
+  os << '\n';
 
   for (int i = 0; i < 8; i++) {
-    os << AbstractPP::StrNOP << std::endl;
+    os << AbstractPP::StrNOP << '\n';
   }
 }
 
@@ -58,7 +58,7 @@ void NasmPP::printOpImmediate(std::ostream& os, const std::string& opcode,
         cs_insn_group(this->csHandle, &inst, CS_GRP_JUMP))
       os << plt_name.value() << "@PLT";
     else
-      os << NasmPP::StrOffset << " " << plt_name.value();
+      os << NasmPP::StrOffset << ' ' << plt_name.value();
     return;
   }
 
@@ -79,7 +79,7 @@ void NasmPP::printOpImmediate(std::ostream& os, const std::string& opcode,
   }
 
   const char* offsetLabel = opcode == "call" ? "" : NasmPP::StrOffset;
-  os << offsetLabel << " " << this->getAdaptedSymbolNameDefault(s->Sym)
+  os << offsetLabel << ' ' << this->getAdaptedSymbolNameDefault(s->Sym)
      << getAddendString(s->Offset);
 }
 
@@ -90,12 +90,12 @@ void NasmPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* 
   assert(op.type == X86_OP_MEM && "printOpIndirect called without a memory operand");
   bool first = true;
   const std::string sizeName = DisasmData::GetSizeName(op.size * 8);
-  os << sizeName << " ";
+  os << sizeName << ' ';
 
   if (op.mem.segment != X86_REG_INVALID)
-    os << getRegisterName(op.mem.segment) << ":";
+    os << getRegisterName(op.mem.segment) << ':';
 
-  os << "[";
+  os << '[';
 
   if (op.mem.base != X86_REG_INVALID) {
     first = false;
@@ -105,22 +105,22 @@ void NasmPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* 
   if (op.mem.index != X86_REG_INVALID) {
 
     if (!first)
-      os << "+";
+      os << '+';
     first = false;
-    os << getRegisterName(op.mem.index) << "*" << std::to_string(op.mem.scale);
+    os << getRegisterName(op.mem.index) << '*' << std::to_string(op.mem.scale);
   }
 
   if (const gtirb::SymAddrConst* s = std::get_if<gtirb::SymAddrConst>(symbolic); s != nullptr) {
     if (s->Sym->getAddress() && this->skipEA(s->Sym->getAddress().value())) {
       os << getAddendString(op.mem.disp, first);
     } else {
-      os << "+";
+      os << '+';
       printSymbolicExpression(os, s);
     }
   } else {
     os << getAddendString(op.mem.disp, first);
   }
-  os << "]";
+  os << ']';
 }
 
 bool NasmPP::registered = PrettyPrinter::registerPrinter(

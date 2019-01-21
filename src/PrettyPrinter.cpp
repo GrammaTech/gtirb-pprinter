@@ -40,10 +40,10 @@ public:
   BlockAreaComment(std::ostream& ss, std::string m = std::string{},
                    std::function<void()> f = []() {})
       : ofs{ss}, message{std::move(m)}, func{std::move(f)} {
-    ofs << std::endl;
+    ofs << '\n';
 
     if (message.empty() == false) {
-      ofs << "# BEGIN - " << this->message << std::endl;
+      ofs << "# BEGIN - " << this->message << '\n';
     }
 
     func();
@@ -53,10 +53,10 @@ public:
     func();
 
     if (message.empty() == false) {
-      ofs << "# END   - " << this->message << std::endl;
+      ofs << "# END   - " << this->message << '\n';
     }
 
-    ofs << std::endl;
+    ofs << '\n';
   }
 
   std::ostream& ofs;
@@ -151,7 +151,7 @@ void AbstractPP::printBlock(std::ostream& os, const gtirb::Block& x) {
   this->condPrintSectionHeader(os, x);
   this->printFunctionHeader(os, x.getAddress());
   this->printLabel(os, x.getAddress());
-  os << std::endl;
+  os << '\n';
 
   cs_insn* insn;
   cs_option(this->csHandle, CS_OPT_DETAIL, CS_OPT_ON);
@@ -166,7 +166,7 @@ void AbstractPP::printBlock(std::ostream& os, const gtirb::Block& x) {
 
   for (size_t i = 0; i < count; i++) {
     this->printInstruction(os, insn[i]);
-    os << std::endl;
+    os << '\n';
   }
 }
 
@@ -178,31 +178,31 @@ void AbstractPP::condPrintSectionHeader(std::ostream& os, const gtirb::Block& x)
 }
 
 void AbstractPP::printSectionHeader(std::ostream& os, const std::string& x, uint64_t alignment) {
-  os << std::endl;
+  os << '\n';
   this->printBar(os);
 
   if (x == AbstractPP::StrSectionText) {
-    os << AbstractPP::StrSectionText << std::endl;
+    os << AbstractPP::StrSectionText << '\n';
   } else if (x == AbstractPP::StrSectionBSS) {
-    os << AbstractPP::StrSectionBSS << std::endl;
-    os << ".align " << alignment << std::endl;
+    os << AbstractPP::StrSectionBSS << '\n';
+    os << ".align " << alignment << '\n';
   } else {
-    os << AbstractPP::StrSection << " " << x << std::endl;
+    os << AbstractPP::StrSection << ' ' << x << '\n';
 
     if (alignment != 0) {
-      os << ".align " << alignment << std::endl;
+      os << ".align " << alignment << '\n';
     }
   }
 
   this->printBar(os);
-  os << std::endl;
+  os << '\n';
 }
 
 void AbstractPP::printBar(std::ostream& os, bool heavy) {
   if (heavy == true) {
-    os << "#===================================" << std::endl;
+    os << "#===================================\n";
   } else {
-    os << "#-----------------------------------" << std::endl;
+    os << "#-----------------------------------\n";
   }
 }
 
@@ -215,20 +215,20 @@ void AbstractPP::printFunctionHeader(std::ostream& os, gtirb::Addr ea) {
     // enforce maximum alignment
     uint64_t x(ea);
     if (x % 8 == 0) {
-      os << ".align 8" << std::endl;
+      os << ".align 8\n";
     } else if (x % 2 == 0) {
-      os << ".align 2" << std::endl;
+      os << ".align 2\n";
     }
 
-    os << AbstractPP::StrSectionGlobal << " " << name << std::endl;
-    os << AbstractPP::StrSectionType << " " << name << ", @function" << std::endl;
-    os << name << ":" << std::endl;
+    os << AbstractPP::StrSectionGlobal << ' ' << name << '\n';
+    os << AbstractPP::StrSectionType << ' ' << name << ", @function\n";
+    os << name << ":\n";
   }
 }
 
 void AbstractPP::printLabel(std::ostream& os, gtirb::Addr ea) {
   if (!this->condPrintGlobalSymbol(os, ea))
-    os << ".L_" << std::hex << uint64_t(ea) << ":" << std::dec;
+    os << ".L_" << std::hex << uint64_t(ea) << ':' << std::dec;
 }
 
 std::string AbstractPP::getAdaptedSymbolNameDefault(const gtirb::Symbol* symbol) const {
@@ -258,7 +258,7 @@ bool AbstractPP::condPrintGlobalSymbol(std::ostream& os, gtirb::Addr ea) {
   for (const gtirb::Symbol& sym : this->disasm.ir.modules()[0].findSymbols(ea)) {
     std::string name = this->getAdaptedSymbolName(&sym);
     if (!name.empty()) {
-      os << name << ":" << std::endl;
+      os << name << ":\n";
       printed = true;
     }
   }
@@ -285,7 +285,7 @@ void AbstractPP::printInstruction(std::ostream& os, const cs_insn& inst) {
     }
     return;
   }
-  os << "  " << opcode << " ";
+  os << "  " << opcode << ' ';
   this->printOperandList(os, opcode, ea, inst);
 }
 
@@ -313,7 +313,7 @@ void AbstractPP::printOperandList(std::ostream& os, const std::string& opcode, c
 
   for (int i = 0; i < opCount; i++) {
     if (i != 0) {
-      os << ",";
+      os << ',';
     }
     int index = getGtirbOpIndex(i, opCount);
     const gtirb::SymbolicExpression* symbolic = nullptr;
@@ -376,7 +376,7 @@ void AbstractPP::printDataGroups(std::ostream& os) {
         (next_section != StrSectionBSS && getDataSectionDescriptor(next_section) == nullptr)) {
       // This is no the start of a new section, so print the label.
       this->printLabel(os, endAddress);
-      os << std::endl;
+      os << '\n';
     }
   }
 }
@@ -408,21 +408,21 @@ void AbstractPP::printDataObject(std::ostream& os, const gtirb::DataObject& data
   printLabel(os, dataGroup.getAddress());
   os << AbstractPP::StrTab;
   if (this->debug)
-    os << std::hex << uint64_t(dataGroup.getAddress()) << std::dec << ":";
+    os << std::hex << uint64_t(dataGroup.getAddress()) << std::dec << ':';
 
   const auto& foundSymbolic = module.findSymbolicExpression(dataGroup.getAddress());
   if (foundSymbolic != module.symbolic_expr_end()) {
     printSymbolicData(os, dataGroup.getAddress(), &*foundSymbolic);
-    os << std::endl;
+    os << '\n';
 
   } else if (stringEAs && std::find(stringEAs->begin(), stringEAs->end(), dataGroup.getAddress()) !=
                               stringEAs->end()) {
     this->printString(os, dataGroup);
-    os << std::endl;
+    os << '\n';
 
   } else {
     for (std::byte byte : getBytes(this->disasm.ir.modules()[0].getImageByteMap(), dataGroup)) {
-      os << ".byte 0x" << std::hex << static_cast<uint32_t>(byte) << std::dec << std::endl;
+      os << ".byte 0x" << std::hex << static_cast<uint32_t>(byte) << std::dec << '\n';
     }
   }
 }
@@ -435,7 +435,7 @@ void AbstractPP::printComment(std::ostream& os, const gtirb::Addr ea) {
   if (comments) {
     const auto p = comments->find(ea);
     if (p != comments->end()) {
-      os << "# " << p->second << std::endl;
+      os << "# " << p->second << '\n';
     }
   }
 }
@@ -468,7 +468,7 @@ void AbstractPP::printSymbolicExpression(std::ostream& os, const gtirb::SymAddrC
 
 void AbstractPP::printSymbolicExpression(std::ostream& os, const gtirb::SymAddrAddr* sexpr) {
   // FIXME: why doesn't this use getAdaptedSymbolNameDefault()?
-  os << sexpr->Sym1->getName() << "-" << sexpr->Sym2->getName();
+  os << sexpr->Sym1->getName() << '-' << sexpr->Sym2->getName();
 }
 
 void AbstractPP::printString(std::ostream& os, const gtirb::DataObject& x) {
@@ -496,7 +496,7 @@ void AbstractPP::printString(std::ostream& os, const gtirb::DataObject& x) {
     }
   }
 
-  os << "\"";
+  os << '"';
 }
 
 void AbstractPP::printBSS(std::ostream& os) {
@@ -515,7 +515,7 @@ void AbstractPP::printBSS(std::ostream& os) {
         this->printLabel(os, current);
         os << " .zero " << next - current;
       }
-      os << std::endl;
+      os << '\n';
 
       for (size_t i = 0; i < bssData->size(); ++i) {
         const auto* current = nodeFromUUID<gtirb::DataObject>(this->disasm.context, bssData->at(i));
@@ -523,15 +523,15 @@ void AbstractPP::printBSS(std::ostream& os) {
           continue;
         this->printLabel(os, current->getAddress());
         if (current->getSize() == 0) {
-          os << "\n";
+          os << '\n';
         } else {
-          os << " .zero " << current->getSize() << "\n";
+          os << " .zero " << current->getSize() << '\n';
         }
       }
     }
 
     this->printLabel(os, addressLimit(*bssSection));
-    os << std::endl;
+    os << '\n';
   }
 }
 

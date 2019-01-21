@@ -92,7 +92,7 @@ void GasPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* s
   if (cs_insn_group(this->csHandle, &inst, CS_GRP_CALL))
     os << '*';
   if (has_segment)
-    os << getRegisterName(op.mem.segment) << ":";
+    os << getRegisterName(op.mem.segment) << ':';
 
   const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic);
   if (s != nullptr &&
