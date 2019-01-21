@@ -40,7 +40,7 @@ void NasmPP::printHeader(std::ostream& os) {
 }
 
 void NasmPP::printOpRegdirect(std::ostream& os, const cs_insn& /*inst*/, const cs_x86_op& op) {
-  assert(op.type == X86_OP_REG);
+  assert(op.type == X86_OP_REG && "printOpRegdirect called without a register operand");
   os << getRegisterName(op.reg);
 }
 
@@ -49,7 +49,7 @@ void NasmPP::printOpImmediate(std::ostream& os, const std::string& opcode,
                               gtirb::Addr ea, uint64_t index) {
   const cs_x86& detail = inst.detail->x86;
   const cs_x86_op& op = detail.operands[index];
-  assert(op.type == X86_OP_IMM);
+  assert(op.type == X86_OP_IMM && "printOpImmediate called without an immediate operand");
 
   // plt reference
   const std::optional<std::string> plt_name = this->getPltCodeSymName(ea);
@@ -70,7 +70,7 @@ void NasmPP::printOpImmediate(std::ostream& os, const std::string& opcode,
 
   // symbolic
   const gtirb::SymAddrConst* s = std::get_if<gtirb::SymAddrConst>(symbolic);
-  assert(s != nullptr);
+  assert(s != nullptr && "symbolic operands must be 'address[+offset]'");
 
   // the symbol points to a skipped destination
   if (this->skipEA(s->Sym->getAddress().value())) {
@@ -87,7 +87,7 @@ void NasmPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* 
                              const cs_insn& inst, uint64_t index) {
   const cs_x86& detail = inst.detail->x86;
   const cs_x86_op& op = detail.operands[index];
-  assert(op.type == X86_OP_MEM);
+  assert(op.type == X86_OP_MEM && "printOpIndirect called without a memory operand");
   bool first = true;
   const std::string sizeName = DisasmData::GetSizeName(op.size * 8);
   os << sizeName << " ";

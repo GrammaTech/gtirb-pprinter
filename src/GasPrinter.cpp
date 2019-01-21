@@ -32,7 +32,7 @@ std::string GasPP::getRegisterName(unsigned int reg) const {
 int GasPP::getGtirbOpIndex(int index, int /*opCount*/) const { return index + 1; }
 
 void GasPP::printOpRegdirect(std::ostream& os, const cs_insn& inst, const cs_x86_op& op) {
-  assert(op.type == X86_OP_REG);
+  assert(op.type == X86_OP_REG && "printOpRegdirect called without a register operand");
   if (cs_insn_group(this->csHandle, &inst, CS_GRP_CALL))
     os << '*';
   os << str_tolower(getRegisterName(op.reg));
@@ -43,7 +43,7 @@ void GasPP::printOpImmediate(std::ostream& os, const std::string& /*opcode*/,
                              gtirb::Addr ea, uint64_t index) {
   const cs_x86& detail = inst.detail->x86;
   const cs_x86_op& op = detail.operands[index];
-  assert(op.type == X86_OP_IMM);
+  assert(op.type == X86_OP_IMM && "printOpImmediate called without an immediate operand");
 
   bool is_call = cs_insn_group(this->csHandle, &inst, CS_GRP_CALL);
   bool is_jump = cs_insn_group(this->csHandle, &inst, CS_GRP_JUMP);
@@ -60,7 +60,7 @@ void GasPP::printOpImmediate(std::ostream& os, const std::string& /*opcode*/,
 
   if (symbolic) {
     const gtirb::SymAddrConst* s = std::get_if<gtirb::SymAddrConst>(symbolic);
-    assert(s != nullptr);
+    assert(s != nullptr && "symbolic operands must be 'address[+offset]'");
     if (this->skipEA(s->Sym->getAddress().value()))
       // the symbol points to a skipped destination: treat as not symbolic
       symbolic = nullptr;
@@ -83,7 +83,7 @@ void GasPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* s
                             const cs_insn& inst, uint64_t index) {
   const cs_x86& detail = inst.detail->x86;
   const cs_x86_op& op = detail.operands[index];
-  assert(op.type == X86_OP_MEM);
+  assert(op.type == X86_OP_MEM && "printOpIndirect called without a memory operand");
 
   bool has_segment = op.mem.segment != X86_REG_INVALID;
   bool has_base = op.mem.base != X86_REG_INVALID;

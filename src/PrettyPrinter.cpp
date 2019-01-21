@@ -113,7 +113,7 @@ std::unique_ptr<AbstractPP> PrettyPrinter::prettyPrint(gtirb::Context& context, 
 AbstractPP::AbstractPP(gtirb::Context& context, gtirb::IR& ir,
                        const std::unordered_set<std::string>& skip_funcs, bool dbg)
     : AsmSkipFunction(skip_funcs), disasm(context, ir), debug(dbg) {
-  assert(cs_open(CS_ARCH_X86, CS_MODE_64, &this->csHandle) == CS_ERR_OK);
+  assert(cs_open(CS_ARCH_X86, CS_MODE_64, &this->csHandle) == CS_ERR_OK && "Capstone failure");
 }
 
 AbstractPP::~AbstractPP() { cs_close(&this->csHandle); }
