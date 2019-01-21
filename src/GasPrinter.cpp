@@ -59,7 +59,7 @@ void GasPP::printOpImmediate(std::ostream& os, const std::string& /*opcode*/,
   }
 
   if (symbolic) {
-    const gtirb::SymAddrConst* s = std::get_if<gtirb::SymAddrConst>(symbolic);
+    const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic);
     assert(s != nullptr && "symbolic operands must be 'address[+offset]'");
     if (this->skipEA(s->Sym->getAddress().value()))
       // the symbol points to a skipped destination: treat as not symbolic
@@ -94,7 +94,7 @@ void GasPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* s
   if (has_segment)
     os << getRegisterName(op.mem.segment) << ":";
 
-  const gtirb::SymAddrConst* s = std::get_if<gtirb::SymAddrConst>(symbolic);
+  const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic);
   if (s != nullptr &&
       (!s->Sym->getAddress() || !this->skipEA(s->Sym->getAddress().value()))) {
     // Symbolic displacement

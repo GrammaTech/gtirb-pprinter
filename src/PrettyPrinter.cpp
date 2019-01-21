@@ -392,7 +392,7 @@ bool AbstractPP::isPointerToExcludedCode(const gtirb::DataObject& dataGroup) {
   const gtirb::Module& module = ir.modules()[0];
   if (auto foundSymbolic = module.findSymbolicExpression(dataGroup.getAddress());
       foundSymbolic != module.symbolic_expr_end()) {
-    if (const gtirb::SymAddrConst* s = std::get_if<gtirb::SymAddrConst>(&*foundSymbolic)) {
+    if (const auto* s = std::get_if<gtirb::SymAddrConst>(&*foundSymbolic)) {
       return this->skipEA(s->Sym->getAddress().value());
     }
   }
@@ -452,11 +452,10 @@ void AbstractPP::printSymbolicData(std::ostream& os, const gtirb::Addr addr,
       return;
     }
   }
-  if (const gtirb::SymAddrConst* s = std::get_if<gtirb::SymAddrConst>(symbolic); s != nullptr) {
+  if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic); s != nullptr) {
     os << ".quad ";
     printSymbolicExpression(os, s);
-  } else if (const gtirb::SymAddrAddr* sa = std::get_if<gtirb::SymAddrAddr>(symbolic);
-             sa != nullptr) {
+  } else if (const auto* sa = std::get_if<gtirb::SymAddrAddr>(symbolic); sa != nullptr) {
     os << ".long ";
     printSymbolicExpression(os, sa);
   }

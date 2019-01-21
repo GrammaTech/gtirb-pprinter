@@ -69,7 +69,7 @@ void NasmPP::printOpImmediate(std::ostream& os, const std::string& opcode,
   }
 
   // symbolic
-  const gtirb::SymAddrConst* s = std::get_if<gtirb::SymAddrConst>(symbolic);
+  const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic);
   assert(s != nullptr && "symbolic operands must be 'address[+offset]'");
 
   // the symbol points to a skipped destination
