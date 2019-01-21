@@ -111,7 +111,7 @@ void NasmPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* 
   }
 
   if (const gtirb::SymAddrConst* s = std::get_if<gtirb::SymAddrConst>(symbolic); s != nullptr) {
-    if (s->Sym->getAddress().has_value() && this->skipEA(s->Sym->getAddress().value())) {
+    if (s->Sym->getAddress() && this->skipEA(s->Sym->getAddress().value())) {
       os << getAddendString(op.mem.disp, first);
     } else {
       os << "+";

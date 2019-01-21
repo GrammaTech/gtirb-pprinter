@@ -232,7 +232,7 @@ void AbstractPP::printLabel(std::ostream& os, gtirb::Addr ea) {
 }
 
 std::string AbstractPP::getAdaptedSymbolNameDefault(const gtirb::Symbol* symbol) const {
-  if (symbol->getAddress().has_value()) {
+  if (symbol->getAddress()) {
     std::string destName = this->disasm.getRelocatedDestination(symbol->getAddress().value());
     if (!destName.empty()) {
       return destName;

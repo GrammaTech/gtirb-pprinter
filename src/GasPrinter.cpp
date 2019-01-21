@@ -53,7 +53,7 @@ void GasPP::printOpImmediate(std::ostream& os, const std::string& /*opcode*/,
 
   // plt reference
   const std::optional<std::string>& plt_name = this->getPltCodeSymName(ea);
-  if (plt_name.has_value()) {
+  if (plt_name) {
     os << plt_name.value();
     return;
   }
@@ -96,7 +96,7 @@ void GasPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* s
 
   const gtirb::SymAddrConst* s = std::get_if<gtirb::SymAddrConst>(symbolic);
   if (s != nullptr &&
-      (!s->Sym->getAddress().has_value() || !this->skipEA(s->Sym->getAddress().value()))) {
+      (!s->Sym->getAddress() || !this->skipEA(s->Sym->getAddress().value()))) {
     // Symbolic displacement
     printSymbolicExpression(os, s);
   } else {
