@@ -15,6 +15,7 @@
 #ifndef GTIRB_PP_PRETTY_PRINTER_H
 #define GTIRB_PP_PRETTY_PRINTER_H
 
+#include <boost/range/any_range.hpp>
 #include <capstone/capstone.h>
 #include <cstdint>
 #include <initializer_list>
@@ -37,13 +38,14 @@ class AbstractPP;
 ///
 class PrettyPrinter {
 public:
+  using string_range = boost::any_range<std::string, boost::forward_traversal_tag, std::string&, std::ptrdiff_t>;
   ///
   /// The type of the factories that may be registered. A factory is simply something that can be
   /// called with an allocation context, the IR to pretty print, the set of function names to skip
   /// during printing, and a boolean indicating whether to include debugging output.
   ///
   using factory = std::function<std::unique_ptr<AbstractPP>(
-      gtirb::Context& context, gtirb::IR& ir, const std::unordered_set<std::string>&, bool)>;
+      gtirb::Context& context, gtirb::IR& ir, const string_range&, bool)>;
 
   /// Register a factory for creating pretty printer objects. The factory will be used for the
   /// flavors named in the initialization list. For example,
@@ -120,8 +122,8 @@ private:
 /// class follows the template method design pattern.
 class AbstractPP {
 public:
-  AbstractPP(gtirb::Context& context, gtirb::IR& ir,
-             const std::unordered_set<std::string>& skip_funcs, bool dbg);
+  AbstractPP(gtirb::Context& context, gtirb::IR& ir, const PrettyPrinter::string_range& skip_funcs,
+             bool dbg);
   virtual ~AbstractPP();
 
   virtual std::ostream& print(std::ostream& out);

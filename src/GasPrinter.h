@@ -19,7 +19,7 @@
 
 class GasPP : public AbstractPP {
 public:
-  GasPP(gtirb::Context& context, gtirb::IR& ir, const std::unordered_set<std::string>& skip_funcs,
+  GasPP(gtirb::Context& context, gtirb::IR& ir, const PrettyPrinter::string_range& skip_funcs,
         bool dbg);
 
 protected:

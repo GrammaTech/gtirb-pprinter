@@ -19,7 +19,7 @@
 
 class NasmPP : public AbstractPP {
 public:
-  NasmPP(gtirb::Context& context, gtirb::IR& ir, const std::unordered_set<std::string>& skip_funcs,
+  NasmPP(gtirb::Context& context, gtirb::IR& ir, const PrettyPrinter::string_range& skip_funcs,
          bool dbg);
 
 protected:
