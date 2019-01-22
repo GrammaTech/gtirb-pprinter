@@ -95,10 +95,10 @@ std::string PrettyPrinter::getFlavor() const { return this->flavor; }
 void PrettyPrinter::setDebug(bool x) { this->debug = x; }
 
 bool PrettyPrinter::getDebug() const { return this->debug; }
-void PrettyPrinter::keepFunction(const std::string functionName) {
+void PrettyPrinter::keepFunction(const std::string& functionName) {
   AsmSkipFunction.erase(functionName);
 }
-void PrettyPrinter::skipFunction(const std::string functionName) {
+void PrettyPrinter::skipFunction(const std::string& functionName) {
   AsmSkipFunction.insert(functionName);
 }
 

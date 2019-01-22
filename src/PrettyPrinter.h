@@ -82,12 +82,12 @@ public:
   /// Do not skip the named function when printing.
   ///
   /// \param functionName the name of the function to skip.
-  void keepFunction(const std::string functionName);
+  void keepFunction(const std::string& functionName);
 
   /// Skip the named function when printing.
   ///
   /// \param functionName the name of the function to skip.
-  void skipFunction(const std::string functionName);
+  void skipFunction(const std::string& functionName);
 
   ///
   /// Pretty print to a string. This actually builds the pretty-printer object of the current
