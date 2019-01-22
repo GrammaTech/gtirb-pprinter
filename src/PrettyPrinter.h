@@ -119,8 +119,7 @@ private:
   bool debug{false};
 };
 
-/// The pretty-printer interface. There is only one exposed function, \link print(). Most of this
-/// class follows the template method design pattern.
+/// The pretty-printer interface. There is only one exposed function, \link print().
 class AbstractPP {
 public:
   AbstractPP(gtirb::Context& context, gtirb::IR& ir, const PrettyPrinter::string_range& skip_funcs,

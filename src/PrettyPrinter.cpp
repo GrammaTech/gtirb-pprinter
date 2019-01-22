@@ -245,7 +245,7 @@ std::string AbstractPP::getAdaptedSymbolNameDefault(const gtirb::Symbol* symbol)
 std::string AbstractPP::getAdaptedSymbolName(const gtirb::Symbol* symbol) const {
   std::string name = DisasmData::CleanSymbolNameSuffix(symbol->getName());
   if (!this->disasm.isAmbiguousSymbol(symbol->getName()) &&
-      !this->disasm.isRelocated(name)) // && !DisasmData::GetIsReservedSymbol(name)
+      !this->disasm.isRelocated(name))
     return DisasmData::AvoidRegNameConflicts(name);
   return std::string{};
 }
