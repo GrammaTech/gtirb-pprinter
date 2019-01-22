@@ -90,7 +90,7 @@ void PrettyPrinter::setFlavor(const std::string& flavor_name) {
   this->flavor = flavor_name;
 }
 
-std::string PrettyPrinter::getFlavor() const { return this->flavor; }
+const std::string& PrettyPrinter::getFlavor() const { return this->flavor; }
 
 void PrettyPrinter::setDebug(bool x) { this->debug = x; }
 

@@ -69,7 +69,7 @@ public:
   void setFlavor(const std::string& flavor);
 
   /// Return the flavor of output that would currently be generated.
-  std::string getFlavor() const;
+  const std::string& getFlavor() const;
 
   /// Enable or disable debugging output.
   ///
