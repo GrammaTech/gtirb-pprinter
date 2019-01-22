@@ -52,13 +52,12 @@ public:
   /// \code
   /// PrettyPrinter::registerPrinter({"foo", "bar"}, theFactory);
   /// \endcode
-  /// If the factory is empty (e.g, a \c nullptr), the registry is not changed.
   ///
   /// \param flavors the flavors produced by the factory
   /// \param f       the \link factory object
   ///
   /// \return \c true if the registry was updated, otherwise \c false.
-  static bool registerPrinter(std::initializer_list<const char*> flavors, factory f);
+  static bool registerPrinter(std::initializer_list<std::string> flavors, factory f);
 
   /// Return the current set of registered flavors.
   static std::set<std::string> getRegisteredFlavors();

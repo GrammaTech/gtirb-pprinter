@@ -69,10 +69,10 @@ std::map<std::string, PrettyPrinter::factory>& PrettyPrinter::getFactories() {
   return factories;
 }
 
-bool PrettyPrinter::registerPrinter(std::initializer_list<const char*> flavors, factory f) {
-  if (flavors.size() == 0 || !f)
-    return false;
-  for (const char* name : flavors)
+bool PrettyPrinter::registerPrinter(std::initializer_list<std::string> flavors, factory f) {
+  assert(f && "Cannot register null factory!");
+  assert(flavors.size() > 0 && "No names to register!");
+  for (const std::string& name : flavors)
     getFactories()[name] = f;
   return true;
 }
