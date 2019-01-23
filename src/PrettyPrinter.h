@@ -52,29 +52,29 @@ public:
   using factory = std::function<std::unique_ptr<AbstractPP>(
       gtirb::Context& context, gtirb::IR& ir, const string_range&, DebugStyle)>;
 
-  /// Register a factory for creating pretty printer objects. The factory will be used for the
-  /// flavors named in the initialization list. For example,
+  /// Register a factory for creating pretty printer objects. The factory will be used to generate
+  /// the syntaxes named in the initialization list. For example,
   /// \code
   /// PrettyPrinter::registerPrinter({"foo", "bar"}, theFactory);
   /// \endcode
   ///
-  /// \param flavors the (non-empty) flavors produced by the factory
-  /// \param f       the (non-empty) \link factory object
+  /// \param syntaxes the (non-empty) syntaxes produced by the factory
+  /// \param f        the (non-empty) \link factory object
   ///
   /// \return \c true.
-  static bool registerPrinter(std::initializer_list<std::string> flavors, factory f);
+  static bool registerPrinter(std::initializer_list<std::string> syntaxes, factory f);
 
-  /// Return the current set of registered flavors.
-  static std::set<std::string> getRegisteredFlavors();
+  /// Return the current set of syntaxes with registered factories.
+  static std::set<std::string> getRegisteredSyntaxes();
 
-  /// Set the flavor of output to generate. The flavor must be one of the flavors previously
+  /// Set the syntax of output to generate. The syntax must be one of the syntaxes previously
   /// registered with \link registerPrinter.
   ///
-  /// \param flavor the name of a registered flavor
-  void setFlavor(const std::string& flavor);
+  /// \param syntax the name of a registered syntax
+  void setSyntax(const std::string& syntax);
 
-  /// Return the flavor of output that would currently be generated.
-  const std::string& getFlavor() const;
+  /// Return the syntax of output that would currently be generated.
+  const std::string& getSyntax() const;
 
   /// Enable or disable debugging output.
   ///
@@ -96,7 +96,7 @@ public:
 
   ///
   /// Pretty print to a string. This actually builds the pretty-printer object of the current
-  /// flavor for the given IR. Since the pretty-printer has an appropriate \c operator<< and can
+  /// syntax for the given IR. Since the pretty-printer has an appropriate \c operator<< and can
   /// only print the one IR to a stream anyway, this method will often be called directly as an
   /// argument to an output stream:
   /// \code
@@ -117,8 +117,8 @@ private:
       {"_start", "deregister_tm_clones", "register_tm_clones", "__do_global_dtors_aux",
        "frame_dummy", "__libc_csu_fini", "__libc_csu_init", "_dl_relocate_static_pie"}};
 
-  /// Default flavor is "intel".
-  std::string flavor{"intel"};
+  /// Default syntax is "intel".
+  std::string syntax{"intel"};
 
   /// Debugging is disabled by default.
   bool debug{false};

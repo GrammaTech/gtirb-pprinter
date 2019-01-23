@@ -14,7 +14,8 @@ int main(int argc, char** argv) {
   desc.add_options()("help", "Produce help message.");
   desc.add_options()("ir,i", po::value<std::string>(), "gtirb file to print.");
   desc.add_options()("out,o", po::value<std::string>(), "The name of the assembly output file.");
-  desc.add_options()("flavor,f", po::value<std::string>(), "The flavor of assembly to generate.");
+  desc.add_options()("syntax,s", po::value<std::string>(),
+                     "The syntax of the assembly file to generate.");
   desc.add_options()("debug,D", "Turn on debugging (will break assembly)");
   desc.add_options()("keep-functions,K", po::value<std::vector<std::string>>()->multitoken(),
                      "Print the given functions even if they are skipped by default (e.g. _start)");
@@ -54,14 +55,14 @@ int main(int argc, char** argv) {
   // Perform the Pretty Printing step.
   PrettyPrinter pp;
   pp.setDebug(vm.count("debug"));
-  if (vm.count("flavor") != 0) {
+  if (vm.count("syntax") != 0) {
     try {
-      pp.setFlavor(vm["flavor"].as<std::string>());
+      pp.setSyntax(vm["syntax"].as<std::string>());
     } catch (std::out_of_range&) {
-      LOG_ERROR << "Unknown flavor of assembly: '" << vm["flavor"].as<std::string>() << "'\n";
-      LOG_ERROR << "Available flavors:\n";
-      for (const auto& flavor : PrettyPrinter::getRegisteredFlavors()) {
-        LOG_ERROR << "    " << flavor << '\n';
+      LOG_ERROR << "Unknown assembly syntax: '" << vm["syntax"].as<std::string>() << "'\n";
+      LOG_ERROR << "Available syntaxes:\n";
+      for (const auto& syntax : PrettyPrinter::getRegisteredSyntaxes()) {
+        LOG_ERROR << "    " << syntax << '\n';
       }
       return EXIT_FAILURE;
     }

@@ -69,27 +69,27 @@ std::map<std::string, PrettyPrinter::factory>& PrettyPrinter::getFactories() {
   return factories;
 }
 
-bool PrettyPrinter::registerPrinter(std::initializer_list<std::string> flavors, factory f) {
+bool PrettyPrinter::registerPrinter(std::initializer_list<std::string> syntaxes, factory f) {
   assert(f && "Cannot register null factory!");
-  assert(flavors.size() > 0 && "No names to register!");
-  for (const std::string& name : flavors)
+  assert(syntaxes.size() > 0 && "No syntaxes to register!");
+  for (const std::string& name : syntaxes)
     getFactories()[name] = f;
   return true;
 }
 
-std::set<std::string> PrettyPrinter::getRegisteredFlavors() {
-  std::set<std::string> flavors;
+std::set<std::string> PrettyPrinter::getRegisteredSyntaxes() {
+  std::set<std::string> syntaxes;
   for (const std::pair<std::string, factory>& entry : getFactories())
-    flavors.insert(entry.first);
-  return flavors;
+    syntaxes.insert(entry.first);
+  return syntaxes;
 }
 
-void PrettyPrinter::setFlavor(const std::string& flavor_name) {
-  assert(getFactories().find(flavor_name) != getFactories().end());
-  this->flavor = flavor_name;
+void PrettyPrinter::setSyntax(const std::string& syntax_name) {
+  assert(getFactories().find(syntax_name) != getFactories().end());
+  this->syntax = syntax_name;
 }
 
-const std::string& PrettyPrinter::getFlavor() const { return this->flavor; }
+const std::string& PrettyPrinter::getSyntax() const { return this->syntax; }
 
 void PrettyPrinter::setDebug(bool x) { this->debug = x; }
 
@@ -102,7 +102,7 @@ void PrettyPrinter::skipFunction(const std::string& functionName) {
 }
 
 std::unique_ptr<AbstractPP> PrettyPrinter::prettyPrint(gtirb::Context& context, gtirb::IR& ir) {
-  return getFactories().at(flavor)(context, ir, AsmSkipFunction, debug ? PrettyPrinter::DebugMessages : PrettyPrinter::NoDebug);
+  return getFactories().at(syntax)(context, ir, AsmSkipFunction, debug ? PrettyPrinter::DebugMessages : PrettyPrinter::NoDebug);
 }
 
 AbstractPP::AbstractPP(gtirb::Context& context, gtirb::IR& ir,
