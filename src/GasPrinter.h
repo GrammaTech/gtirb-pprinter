@@ -35,7 +35,7 @@ protected:
                        const cs_insn& inst, uint64_t index) override;
 
 private:
-  static bool registered;
+  static volatile bool registered;
 };
 
 #endif /* GTIRB_PP_GAS_PRINTER_H */

@@ -124,7 +124,7 @@ void GasPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* s
   }
 }
 
-bool GasPP::registered = PrettyPrinter::registerPrinter(
+volatile bool GasPP::registered = PrettyPrinter::registerPrinter(
     {"gas", "gnu"}, [](gtirb::Context& context, gtirb::IR& ir, const PrettyPrinter::string_range& skip_funcs, bool dbg) {
       return std::make_unique<GasPP>(context, ir, skip_funcs, dbg);
     });

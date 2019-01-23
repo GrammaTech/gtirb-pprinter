@@ -122,7 +122,7 @@ void NasmPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* 
   os << ']';
 }
 
-bool NasmPP::registered = PrettyPrinter::registerPrinter(
+volatile bool NasmPP::registered = PrettyPrinter::registerPrinter(
     {"intel", "nasm"}, [](gtirb::Context& context, gtirb::IR& ir, const PrettyPrinter::string_range& skip_funcs, bool dbg) {
       return std::make_unique<NasmPP>(context, ir, skip_funcs, dbg);
     });

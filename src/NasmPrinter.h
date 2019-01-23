@@ -36,7 +36,7 @@ protected:
   static constexpr char StrOffset[]{"OFFSET"};
 
 private:
-  static bool registered;
+  static volatile bool registered;
 };
 
 #endif /* GTIRB_PP_NASM_PRINTER_H */
