@@ -38,14 +38,19 @@ class AbstractPP;
 ///
 class PrettyPrinter {
 public:
+  /// Whether a pretty printer should include debugging messages in it output.
+  enum DebugStyle { NoDebug, DebugMessages };
+
+  /// A range containing strings. These can be standard library containers or pairs of iterators,
+  /// for example.
   using string_range = boost::any_range<std::string, boost::forward_traversal_tag, std::string&, std::ptrdiff_t>;
-  ///
+
   /// The type of the factories that may be registered. A factory is simply something that can be
   /// called with an allocation context, the IR to pretty print, the set of function names to skip
   /// during printing, and a boolean indicating whether to include debugging output.
   ///
   using factory = std::function<std::unique_ptr<AbstractPP>(
-      gtirb::Context& context, gtirb::IR& ir, const string_range&, bool)>;
+      gtirb::Context& context, gtirb::IR& ir, const string_range&, DebugStyle)>;
 
   /// Register a factory for creating pretty printer objects. The factory will be used for the
   /// flavors named in the initialization list. For example,
@@ -123,7 +128,7 @@ private:
 class AbstractPP {
 public:
   AbstractPP(gtirb::Context& context, gtirb::IR& ir, const PrettyPrinter::string_range& skip_funcs,
-             bool dbg);
+             PrettyPrinter::DebugStyle dbg);
   virtual ~AbstractPP();
 
   virtual std::ostream& print(std::ostream& out);
@@ -215,7 +220,7 @@ protected:
 
   csh csHandle;
   DisasmData disasm;
-  bool debug{false};
+  bool debug;
 };
 
 /// Print the wrapped IR to a stream.

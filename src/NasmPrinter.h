@@ -20,7 +20,7 @@
 class NasmPP : public AbstractPP {
 public:
   NasmPP(gtirb::Context& context, gtirb::IR& ir, const PrettyPrinter::string_range& skip_funcs,
-         bool dbg);
+         PrettyPrinter::DebugStyle dbg);
 
 protected:
   int getGtirbOpIndex(int index, int opCount) const override;

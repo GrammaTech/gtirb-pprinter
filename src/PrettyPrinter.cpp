@@ -102,12 +102,12 @@ void PrettyPrinter::skipFunction(const std::string& functionName) {
 }
 
 std::unique_ptr<AbstractPP> PrettyPrinter::prettyPrint(gtirb::Context& context, gtirb::IR& ir) {
-  return getFactories().at(flavor)(context, ir, AsmSkipFunction, debug);
+  return getFactories().at(flavor)(context, ir, AsmSkipFunction, debug ? PrettyPrinter::DebugMessages : PrettyPrinter::NoDebug);
 }
 
 AbstractPP::AbstractPP(gtirb::Context& context, gtirb::IR& ir,
-                       const PrettyPrinter::string_range& skip_funcs, bool dbg)
-    : AsmSkipFunction(skip_funcs.begin(), skip_funcs.end()), disasm(context, ir), debug(dbg) {
+                       const PrettyPrinter::string_range& skip_funcs, PrettyPrinter::DebugStyle dbg)
+    : AsmSkipFunction(skip_funcs.begin(), skip_funcs.end()), disasm(context, ir), debug(dbg == PrettyPrinter::DebugMessages ? true : false) {
   cs_err err = cs_open(CS_ARCH_X86, CS_MODE_64, &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
 }

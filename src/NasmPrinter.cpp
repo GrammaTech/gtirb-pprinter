@@ -16,7 +16,7 @@
 #include "NasmPrinter.h"
 
 NasmPP::NasmPP(gtirb::Context& context, gtirb::IR& ir,
-               const PrettyPrinter::string_range& skip_funcs, bool dbg)
+               const PrettyPrinter::string_range& skip_funcs, PrettyPrinter::DebugStyle dbg)
     : AbstractPP(context, ir, skip_funcs, dbg) {}
 
 int NasmPP::getGtirbOpIndex(int index, int opCount) const {
@@ -123,6 +123,6 @@ void NasmPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* 
 }
 
 volatile bool NasmPP::registered = PrettyPrinter::registerPrinter(
-    {"intel", "nasm"}, [](gtirb::Context& context, gtirb::IR& ir, const PrettyPrinter::string_range& skip_funcs, bool dbg) {
+    {"intel", "nasm"}, [](gtirb::Context& context, gtirb::IR& ir, const PrettyPrinter::string_range& skip_funcs, PrettyPrinter::DebugStyle dbg) {
       return std::make_unique<NasmPP>(context, ir, skip_funcs, dbg);
     });

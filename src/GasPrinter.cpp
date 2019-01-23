@@ -18,7 +18,7 @@
 #include <iomanip>
 
 GasPP::GasPP(gtirb::Context& context, gtirb::IR& ir,
-             const PrettyPrinter::string_range& skip_funcs, bool dbg)
+             const PrettyPrinter::string_range& skip_funcs, PrettyPrinter::DebugStyle dbg)
     : AbstractPP(context, ir, skip_funcs, dbg) {
   cs_option(this->csHandle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
 }
@@ -125,6 +125,6 @@ void GasPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* s
 }
 
 volatile bool GasPP::registered = PrettyPrinter::registerPrinter(
-    {"gas", "gnu"}, [](gtirb::Context& context, gtirb::IR& ir, const PrettyPrinter::string_range& skip_funcs, bool dbg) {
+    {"gas", "gnu"}, [](gtirb::Context& context, gtirb::IR& ir, const PrettyPrinter::string_range& skip_funcs, PrettyPrinter::DebugStyle dbg) {
       return std::make_unique<GasPP>(context, ir, skip_funcs, dbg);
     });

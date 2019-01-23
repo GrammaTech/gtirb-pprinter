@@ -20,7 +20,7 @@
 class GasPP : public AbstractPP {
 public:
   GasPP(gtirb::Context& context, gtirb::IR& ir, const PrettyPrinter::string_range& skip_funcs,
-        bool dbg);
+        PrettyPrinter::DebugStyle dbg);
 
 protected:
   int getGtirbOpIndex(int index, int opCount) const override;
