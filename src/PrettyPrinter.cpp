@@ -152,7 +152,7 @@ void AbstractPP::printBlock(std::ostream& os, const gtirb::Block& x) {
   cs_insn* insn;
   cs_option(this->csHandle, CS_OPT_DETAIL, CS_OPT_ON);
 
-  auto bytes2 = getBytes(this->disasm.ir.modules()[0].getImageByteMap(), x);
+  gtirb::ImageByteMap::const_range bytes2 = getBytes(this->disasm.ir.modules()[0].getImageByteMap(), x);
   size_t count = cs_disasm(this->csHandle, reinterpret_cast<const uint8_t*>(&bytes2[0]),
                            bytes2.size(), uint64_t(x.getAddress()), 0, &insn);
 
