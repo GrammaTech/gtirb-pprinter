@@ -16,7 +16,7 @@
 #include "IntelPrinter.h"
 
 IntelPP::IntelPP(gtirb::Context& context, gtirb::IR& ir,
-               const PrettyPrinter::string_range& skip_funcs, PrettyPrinter::DebugStyle dbg)
+                 const PrettyPrinter::string_range& skip_funcs, PrettyPrinter::DebugStyle dbg)
     : AbstractPP(context, ir, skip_funcs, dbg) {}
 
 int IntelPP::getGtirbOpIndex(int index, int opCount) const {
@@ -45,8 +45,8 @@ void IntelPP::printOpRegdirect(std::ostream& os, const cs_insn& /*inst*/, const 
 }
 
 void IntelPP::printOpImmediate(std::ostream& os, const std::string& opcode,
-                              const gtirb::SymbolicExpression* symbolic, const cs_insn& inst,
-                              gtirb::Addr ea, uint64_t index) {
+                               const gtirb::SymbolicExpression* symbolic, const cs_insn& inst,
+                               gtirb::Addr ea, uint64_t index) {
   const cs_x86& detail = inst.detail->x86;
   const cs_x86_op& op = detail.operands[index];
   assert(op.type == X86_OP_IMM && "printOpImmediate called without an immediate operand");
@@ -84,7 +84,7 @@ void IntelPP::printOpImmediate(std::ostream& os, const std::string& opcode,
 }
 
 void IntelPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* symbolic,
-                             const cs_insn& inst, uint64_t index) {
+                              const cs_insn& inst, uint64_t index) {
   const cs_x86& detail = inst.detail->x86;
   const cs_x86_op& op = detail.operands[index];
   assert(op.type == X86_OP_MEM && "printOpIndirect called without a memory operand");
@@ -123,6 +123,7 @@ void IntelPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression*
 }
 
 volatile bool IntelPP::registered = PrettyPrinter::registerPrinter(
-    {"intel"}, [](gtirb::Context& context, gtirb::IR& ir, const PrettyPrinter::string_range& skip_funcs, PrettyPrinter::DebugStyle dbg) {
+    {"intel"}, [](gtirb::Context& context, gtirb::IR& ir,
+                  const PrettyPrinter::string_range& skip_funcs, PrettyPrinter::DebugStyle dbg) {
       return std::make_unique<IntelPP>(context, ir, skip_funcs, dbg);
     });

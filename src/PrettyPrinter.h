@@ -15,8 +15,8 @@
 #ifndef GTIRB_PP_PRETTY_PRINTER_H
 #define GTIRB_PP_PRETTY_PRINTER_H
 
-#include <boost/range/any_range.hpp>
 #include <capstone/capstone.h>
+#include <boost/range/any_range.hpp>
 #include <cstdint>
 #include <initializer_list>
 #include <iosfwd>
@@ -43,14 +43,15 @@ public:
 
   /// A range containing strings. These can be standard library containers or pairs of iterators,
   /// for example.
-  using string_range = boost::any_range<std::string, boost::forward_traversal_tag, std::string&, std::ptrdiff_t>;
+  using string_range =
+      boost::any_range<std::string, boost::forward_traversal_tag, std::string&, std::ptrdiff_t>;
 
   /// The type of the factories that may be registered. A factory is simply something that can be
   /// called with an allocation context, the IR to pretty print, the set of function names to skip
   /// during printing, and a boolean indicating whether to include debugging output.
   ///
-  using factory = std::function<std::unique_ptr<AbstractPP>(
-      gtirb::Context& context, gtirb::IR& ir, const string_range&, DebugStyle)>;
+  using factory = std::function<std::unique_ptr<AbstractPP>(gtirb::Context& context, gtirb::IR& ir,
+                                                            const string_range&, DebugStyle)>;
 
   /// Register a factory for creating pretty printer objects. The factory will be used to generate
   /// the syntaxes named in the initialization list. For example,

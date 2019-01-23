@@ -17,8 +17,8 @@
 #include "string_utils.h"
 #include <iomanip>
 
-AttPP::AttPP(gtirb::Context& context, gtirb::IR& ir,
-             const PrettyPrinter::string_range& skip_funcs, PrettyPrinter::DebugStyle dbg)
+AttPP::AttPP(gtirb::Context& context, gtirb::IR& ir, const PrettyPrinter::string_range& skip_funcs,
+             PrettyPrinter::DebugStyle dbg)
     : AbstractPP(context, ir, skip_funcs, dbg) {
   cs_option(this->csHandle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
 }
@@ -96,8 +96,7 @@ void AttPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* s
     os << getRegisterName(op.mem.segment) << ':';
 
   const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic);
-  if (s != nullptr &&
-      (!s->Sym->getAddress() || !this->skipEA(s->Sym->getAddress().value()))) {
+  if (s != nullptr && (!s->Sym->getAddress() || !this->skipEA(s->Sym->getAddress().value()))) {
     // Displacement is symbolic.
     printSymbolicExpression(os, s);
   } else {
@@ -126,6 +125,7 @@ void AttPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* s
 }
 
 volatile bool AttPP::registered = PrettyPrinter::registerPrinter(
-    {"att"}, [](gtirb::Context& context, gtirb::IR& ir, const PrettyPrinter::string_range& skip_funcs, PrettyPrinter::DebugStyle dbg) {
+    {"att"}, [](gtirb::Context& context, gtirb::IR& ir,
+                const PrettyPrinter::string_range& skip_funcs, PrettyPrinter::DebugStyle dbg) {
       return std::make_unique<AttPP>(context, ir, skip_funcs, dbg);
     });

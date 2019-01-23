@@ -20,7 +20,7 @@
 class IntelPP : public AbstractPP {
 public:
   IntelPP(gtirb::Context& context, gtirb::IR& ir, const PrettyPrinter::string_range& skip_funcs,
-         PrettyPrinter::DebugStyle dbg);
+          PrettyPrinter::DebugStyle dbg);
 
 protected:
   int getGtirbOpIndex(int index, int opCount) const override;

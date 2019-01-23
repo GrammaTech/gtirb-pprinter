@@ -102,12 +102,14 @@ void PrettyPrinter::skipFunction(const std::string& functionName) {
 }
 
 std::unique_ptr<AbstractPP> PrettyPrinter::prettyPrint(gtirb::Context& context, gtirb::IR& ir) {
-  return getFactories().at(syntax)(context, ir, AsmSkipFunction, debug ? PrettyPrinter::DebugMessages : PrettyPrinter::NoDebug);
+  return getFactories().at(syntax)(context, ir, AsmSkipFunction,
+                                   debug ? PrettyPrinter::DebugMessages : PrettyPrinter::NoDebug);
 }
 
 AbstractPP::AbstractPP(gtirb::Context& context, gtirb::IR& ir,
                        const PrettyPrinter::string_range& skip_funcs, PrettyPrinter::DebugStyle dbg)
-    : AsmSkipFunction(skip_funcs.begin(), skip_funcs.end()), disasm(context, ir), debug(dbg == PrettyPrinter::DebugMessages ? true : false) {
+    : AsmSkipFunction(skip_funcs.begin(), skip_funcs.end()), disasm(context, ir),
+      debug(dbg == PrettyPrinter::DebugMessages ? true : false) {
   [[maybe_unused]] cs_err err = cs_open(CS_ARCH_X86, CS_MODE_64, &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
 }
@@ -152,7 +154,8 @@ void AbstractPP::printBlock(std::ostream& os, const gtirb::Block& x) {
   cs_insn* insn;
   cs_option(this->csHandle, CS_OPT_DETAIL, CS_OPT_ON);
 
-  gtirb::ImageByteMap::const_range bytes2 = getBytes(this->disasm.ir.modules()[0].getImageByteMap(), x);
+  gtirb::ImageByteMap::const_range bytes2 =
+      getBytes(this->disasm.ir.modules()[0].getImageByteMap(), x);
   size_t count = cs_disasm(this->csHandle, reinterpret_cast<const uint8_t*>(&bytes2[0]),
                            bytes2.size(), uint64_t(x.getAddress()), 0, &insn);
 
@@ -243,8 +246,7 @@ std::string AbstractPP::getAdaptedSymbolNameDefault(const gtirb::Symbol* symbol)
 
 std::string AbstractPP::getAdaptedSymbolName(const gtirb::Symbol* symbol) const {
   std::string name = DisasmData::CleanSymbolNameSuffix(symbol->getName());
-  if (!this->disasm.isAmbiguousSymbol(symbol->getName()) &&
-      !this->disasm.isRelocated(name))
+  if (!this->disasm.isAmbiguousSymbol(symbol->getName()) && !this->disasm.isRelocated(name))
     return DisasmData::AvoidRegNameConflicts(name);
   return std::string{};
 }
