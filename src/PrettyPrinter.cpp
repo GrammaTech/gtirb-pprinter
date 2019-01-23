@@ -85,8 +85,7 @@ std::set<std::string> PrettyPrinter::getRegisteredFlavors() {
 }
 
 void PrettyPrinter::setFlavor(const std::string& flavor_name) {
-  if (getFactories().find(flavor_name) == getFactories().end())
-    throw std::out_of_range("unknown flavor");
+  assert(getFactories().find(flavor_name) != getFactories().end());
   this->flavor = flavor_name;
 }
 

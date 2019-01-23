@@ -62,7 +62,8 @@ public:
   /// Return the current set of registered flavors.
   static std::set<std::string> getRegisteredFlavors();
 
-  /// Set the flavor of output to generate.
+  /// Set the flavor of output to generate. The flavor must be one of the flavors previously
+  /// registered with \link registerPrinter.
   ///
   /// \param flavor the name of a registered flavor
   void setFlavor(const std::string& flavor);
