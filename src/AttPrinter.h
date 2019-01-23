@@ -1,4 +1,4 @@
-//===- GasPrinter.h ---------------------------------------------*- C++ -*-===//
+//===- AttPrinter.h ---------------------------------------------*- C++ -*-===//
 //
 //  Copyright (C) 2019 GrammaTech, Inc.
 //
@@ -17,9 +17,9 @@
 
 #include "PrettyPrinter.h"
 
-class GasPP : public AbstractPP {
+class AttPP : public AbstractPP {
 public:
-  GasPP(gtirb::Context& context, gtirb::IR& ir, const PrettyPrinter::string_range& skip_funcs,
+  AttPP(gtirb::Context& context, gtirb::IR& ir, const PrettyPrinter::string_range& skip_funcs,
         PrettyPrinter::DebugStyle dbg);
 
 protected:

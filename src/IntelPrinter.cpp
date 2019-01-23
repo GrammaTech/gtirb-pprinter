@@ -1,4 +1,4 @@
-//===- NasmPrinter.cpp ------------------------------------------*- C++ -*-===//
+//===- IntelPrinter.cpp ------------------------------------------*- C++ -*-===//
 //
 //  Copyright (C) 2019 GrammaTech, Inc.
 //
@@ -13,13 +13,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "NasmPrinter.h"
+#include "IntelPrinter.h"
 
-NasmPP::NasmPP(gtirb::Context& context, gtirb::IR& ir,
+IntelPP::IntelPP(gtirb::Context& context, gtirb::IR& ir,
                const PrettyPrinter::string_range& skip_funcs, PrettyPrinter::DebugStyle dbg)
     : AbstractPP(context, ir, skip_funcs, dbg) {}
 
-int NasmPP::getGtirbOpIndex(int index, int opCount) const {
+int IntelPP::getGtirbOpIndex(int index, int opCount) const {
   // Note: disassembler currently puts the dest operand last and uses
   // 1-based operand indices. Capstone puts the dest first and uses
   // zero-based indices.
@@ -28,7 +28,7 @@ int NasmPP::getGtirbOpIndex(int index, int opCount) const {
   return index;
 }
 
-void NasmPP::printHeader(std::ostream& os) {
+void IntelPP::printHeader(std::ostream& os) {
   this->printBar(os);
   os << ".intel_syntax noprefix\n";
   this->printBar(os);
@@ -39,12 +39,12 @@ void NasmPP::printHeader(std::ostream& os) {
   }
 }
 
-void NasmPP::printOpRegdirect(std::ostream& os, const cs_insn& /*inst*/, const cs_x86_op& op) {
+void IntelPP::printOpRegdirect(std::ostream& os, const cs_insn& /*inst*/, const cs_x86_op& op) {
   assert(op.type == X86_OP_REG && "printOpRegdirect called without a register operand");
   os << getRegisterName(op.reg);
 }
 
-void NasmPP::printOpImmediate(std::ostream& os, const std::string& opcode,
+void IntelPP::printOpImmediate(std::ostream& os, const std::string& opcode,
                               const gtirb::SymbolicExpression* symbolic, const cs_insn& inst,
                               gtirb::Addr ea, uint64_t index) {
   const cs_x86& detail = inst.detail->x86;
@@ -58,7 +58,7 @@ void NasmPP::printOpImmediate(std::ostream& os, const std::string& opcode,
         cs_insn_group(this->csHandle, &inst, CS_GRP_JUMP))
       os << plt_name.value() << "@PLT";
     else
-      os << NasmPP::StrOffset << ' ' << plt_name.value();
+      os << IntelPP::StrOffset << ' ' << plt_name.value();
     return;
   }
 
@@ -78,12 +78,12 @@ void NasmPP::printOpImmediate(std::ostream& os, const std::string& opcode,
     return;
   }
 
-  const char* offsetLabel = opcode == "call" ? "" : NasmPP::StrOffset;
+  const char* offsetLabel = opcode == "call" ? "" : IntelPP::StrOffset;
   os << offsetLabel << ' ' << this->getAdaptedSymbolNameDefault(s->Sym)
      << getAddendString(s->Offset);
 }
 
-void NasmPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* symbolic,
+void IntelPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* symbolic,
                              const cs_insn& inst, uint64_t index) {
   const cs_x86& detail = inst.detail->x86;
   const cs_x86_op& op = detail.operands[index];
@@ -122,7 +122,7 @@ void NasmPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* 
   os << ']';
 }
 
-volatile bool NasmPP::registered = PrettyPrinter::registerPrinter(
-    {"intel", "nasm"}, [](gtirb::Context& context, gtirb::IR& ir, const PrettyPrinter::string_range& skip_funcs, PrettyPrinter::DebugStyle dbg) {
-      return std::make_unique<NasmPP>(context, ir, skip_funcs, dbg);
+volatile bool IntelPP::registered = PrettyPrinter::registerPrinter(
+    {"intel"}, [](gtirb::Context& context, gtirb::IR& ir, const PrettyPrinter::string_range& skip_funcs, PrettyPrinter::DebugStyle dbg) {
+      return std::make_unique<IntelPP>(context, ir, skip_funcs, dbg);
     });

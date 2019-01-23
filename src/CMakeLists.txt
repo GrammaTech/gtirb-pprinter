@@ -14,18 +14,18 @@ elseif(${CMAKE_CXX_COMPILEUR_ID} STREQUAL Clang)
 endif()
 
 set(${PROJECT_NAME}_H
+	AttPrinter.h
 	DisasmData.h
 	Export.h
-	GasPrinter.h
-	NasmPrinter.h
+	IntelPrinter.h
 	PrettyPrinter.h
 	string_utils.h
 )
 
 set(${PROJECT_NAME}_SRC
+	AttPrinter.cpp
 	DisasmData.cpp
-	GasPrinter.cpp
-	NasmPrinter.cpp
+	IntelPrinter.cpp
 	PrettyPrinter.cpp
 	string_utils.cpp
 )

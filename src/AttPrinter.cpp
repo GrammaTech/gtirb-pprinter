@@ -1,4 +1,4 @@
-//===- GasPrinter.cpp -------------------------------------------*- C++ -*-===//
+//===- AttPrinter.cpp -------------------------------------------*- C++ -*-===//
 //
 //  Copyright (C) 2019 GrammaTech, Inc.
 //
@@ -13,32 +13,32 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "GasPrinter.h"
+#include "AttPrinter.h"
 #include "string_utils.h"
 #include <iomanip>
 
-GasPP::GasPP(gtirb::Context& context, gtirb::IR& ir,
+AttPP::AttPP(gtirb::Context& context, gtirb::IR& ir,
              const PrettyPrinter::string_range& skip_funcs, PrettyPrinter::DebugStyle dbg)
     : AbstractPP(context, ir, skip_funcs, dbg) {
   cs_option(this->csHandle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
 }
 
-void GasPP::printHeader(std::ostream& /*os*/) {}
+void AttPP::printHeader(std::ostream& /*os*/) {}
 
-std::string GasPP::getRegisterName(unsigned int reg) const {
+std::string AttPP::getRegisterName(unsigned int reg) const {
   return std::string{"%"} + ascii_str_tolower(AbstractPP::getRegisterName(reg));
 }
 
-int GasPP::getGtirbOpIndex(int index, int /*opCount*/) const { return index + 1; }
+int AttPP::getGtirbOpIndex(int index, int /*opCount*/) const { return index + 1; }
 
-void GasPP::printOpRegdirect(std::ostream& os, const cs_insn& inst, const cs_x86_op& op) {
+void AttPP::printOpRegdirect(std::ostream& os, const cs_insn& inst, const cs_x86_op& op) {
   assert(op.type == X86_OP_REG && "printOpRegdirect called without a register operand");
   if (cs_insn_group(this->csHandle, &inst, CS_GRP_CALL))
     os << '*';
   os << ascii_str_tolower(getRegisterName(op.reg));
 }
 
-void GasPP::printOpImmediate(std::ostream& os, const std::string& /*opcode*/,
+void AttPP::printOpImmediate(std::ostream& os, const std::string& /*opcode*/,
                              const gtirb::SymbolicExpression* symbolic, const cs_insn& inst,
                              gtirb::Addr ea, uint64_t index) {
   const cs_x86& detail = inst.detail->x86;
@@ -80,7 +80,7 @@ void GasPP::printOpImmediate(std::ostream& os, const std::string& /*opcode*/,
   }
 }
 
-void GasPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* symbolic,
+void AttPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* symbolic,
                             const cs_insn& inst, uint64_t index) {
   const cs_x86& detail = inst.detail->x86;
   const cs_x86_op& op = detail.operands[index];
@@ -125,7 +125,7 @@ void GasPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* s
   }
 }
 
-volatile bool GasPP::registered = PrettyPrinter::registerPrinter(
-    {"gas", "gnu"}, [](gtirb::Context& context, gtirb::IR& ir, const PrettyPrinter::string_range& skip_funcs, PrettyPrinter::DebugStyle dbg) {
-      return std::make_unique<GasPP>(context, ir, skip_funcs, dbg);
+volatile bool AttPP::registered = PrettyPrinter::registerPrinter(
+    {"att"}, [](gtirb::Context& context, gtirb::IR& ir, const PrettyPrinter::string_range& skip_funcs, PrettyPrinter::DebugStyle dbg) {
+      return std::make_unique<AttPP>(context, ir, skip_funcs, dbg);
     });

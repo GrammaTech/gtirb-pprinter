@@ -1,4 +1,4 @@
-//===- NasmPrinter.h --------------------------------------------*- C++ -*-===//
+//===- IntelPrinter.h -------------------------------------------*- C++ -*-===//
 //
 //  Copyright (C) 2019 GrammaTech, Inc.
 //
@@ -17,9 +17,9 @@
 
 #include "PrettyPrinter.h"
 
-class NasmPP : public AbstractPP {
+class IntelPP : public AbstractPP {
 public:
-  NasmPP(gtirb::Context& context, gtirb::IR& ir, const PrettyPrinter::string_range& skip_funcs,
+  IntelPP(gtirb::Context& context, gtirb::IR& ir, const PrettyPrinter::string_range& skip_funcs,
          PrettyPrinter::DebugStyle dbg);
 
 protected:

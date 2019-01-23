@@ -117,8 +117,8 @@ private:
       {"_start", "deregister_tm_clones", "register_tm_clones", "__do_global_dtors_aux",
        "frame_dummy", "__libc_csu_fini", "__libc_csu_init", "_dl_relocate_static_pie"}};
 
-  /// Default flavor is "nasm".
-  std::string flavor{"nasm"};
+  /// Default flavor is "intel".
+  std::string flavor{"intel"};
 
   /// Debugging is disabled by default.
   bool debug{false};
