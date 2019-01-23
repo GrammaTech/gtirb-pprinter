@@ -26,7 +26,7 @@ GasPP::GasPP(gtirb::Context& context, gtirb::IR& ir,
 void GasPP::printHeader(std::ostream& /*os*/) {}
 
 std::string GasPP::getRegisterName(unsigned int reg) const {
-  return std::string{"%"} + str_tolower(AbstractPP::getRegisterName(reg));
+  return std::string{"%"} + ascii_str_tolower(AbstractPP::getRegisterName(reg));
 }
 
 int GasPP::getGtirbOpIndex(int index, int /*opCount*/) const { return index + 1; }
@@ -35,7 +35,7 @@ void GasPP::printOpRegdirect(std::ostream& os, const cs_insn& inst, const cs_x86
   assert(op.type == X86_OP_REG && "printOpRegdirect called without a register operand");
   if (cs_insn_group(this->csHandle, &inst, CS_GRP_CALL))
     os << '*';
-  os << str_tolower(getRegisterName(op.reg));
+  os << ascii_str_tolower(getRegisterName(op.reg));
 }
 
 void GasPP::printOpImmediate(std::ostream& os, const std::string& /*opcode*/,

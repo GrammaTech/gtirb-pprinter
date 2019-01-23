@@ -17,7 +17,7 @@
 
 #include <string>
 
-std::string str_tolower(std::string s);
-std::string str_toupper(std::string s);
+std::string ascii_str_tolower(std::string s);
+std::string ascii_str_toupper(std::string s);
 
 #endif /* GTIRB_PP_STRING_UTILS_H */

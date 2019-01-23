@@ -18,16 +18,16 @@
 #include <algorithm>
 #include <cctype>
 
-std::string str_tolower(std::string s) {
+std::string ascii_str_tolower(std::string s) {
   std::transform(s.begin(), s.end(), s.begin(),
-                 [](unsigned char c) { return std::tolower(c); } // correct
+                 [](unsigned char c) { return std::tolower(c); }
   );
   return s;
 }
 
-std::string str_toupper(std::string s) {
+std::string ascii_str_toupper(std::string s) {
   std::transform(s.begin(), s.end(), s.begin(),
-                 [](unsigned char c) { return std::toupper(c); } // correct
+                 [](unsigned char c) { return std::toupper(c); }
   );
   return s;
 }

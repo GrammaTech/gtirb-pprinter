@@ -265,7 +265,7 @@ void AbstractPP::printInstruction(std::ostream& os, const cs_insn& inst) {
   gtirb::Addr ea(inst.address);
   printComment(os, ea);
   this->printEA(os, ea);
-  std::string opcode = str_tolower(inst.mnemonic);
+  std::string opcode = ascii_str_tolower(inst.mnemonic);
 
   ////////////////////////////////////////////////////////////////////
   // special cases
@@ -570,7 +570,7 @@ std::string AbstractPP::getContainerFunctionName(const gtirb::Addr x) const {
 
 std::string AbstractPP::getRegisterName(unsigned int reg) const {
   return DisasmData::AdaptRegister(
-      str_toupper(reg == X86_REG_INVALID ? "" : cs_reg_name(this->csHandle, reg)));
+      ascii_str_toupper(reg == X86_REG_INVALID ? "" : cs_reg_name(this->csHandle, reg)));
 }
 
 std::string AbstractPP::getAddendString(int64_t number, bool first) {
