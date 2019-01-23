@@ -22,7 +22,7 @@ NasmPP::NasmPP(gtirb::Context& context, gtirb::IR& ir,
 int NasmPP::getGtirbOpIndex(int index, int opCount) const {
   // Note: disassembler currently puts the dest operand last and uses
   // 1-based operand indices. Capstone puts the dest first and uses
-  // zero-based indices. Translate here.
+  // zero-based indices.
   if (index == 0)
     return opCount;
   return index;
@@ -51,7 +51,7 @@ void NasmPP::printOpImmediate(std::ostream& os, const std::string& opcode,
   const cs_x86_op& op = detail.operands[index];
   assert(op.type == X86_OP_IMM && "printOpImmediate called without an immediate operand");
 
-  // plt reference
+  // Is the operand a plt reference?
   const std::optional<std::string> plt_name = this->getPltCodeSymName(ea);
   if (plt_name) {
     if (cs_insn_group(this->csHandle, &inst, CS_GRP_CALL) ||
@@ -62,17 +62,17 @@ void NasmPP::printOpImmediate(std::ostream& os, const std::string& opcode,
     return;
   }
 
-  // not symbolic
+  // Is the operand not symbolic?
   if (!symbolic) {
     os << op.imm;
     return;
   }
 
-  // symbolic
+  // Check if it is symbolic.
   const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic);
   assert(s != nullptr && "symbolic operands must be 'address[+offset]'");
 
-  // the symbol points to a skipped destination
+  // The symbol points to a skipped destination
   if (this->skipEA(s->Sym->getAddress().value())) {
     os << op.imm;
     return;

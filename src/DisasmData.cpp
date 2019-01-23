@@ -69,6 +69,7 @@ bool DisasmData::isFunction(const gtirb::Symbol& sym) const {
 }
 
 std::string DisasmData::getFunctionName(gtirb::Addr x) const {
+  // Is there a symbol at this address that's listed as a function?
   for (gtirb::Symbol& s : this->ir.modules()[0].findSymbols(x)) {
     if (isFunction(s)) {
       std::stringstream name;
@@ -82,13 +83,14 @@ std::string DisasmData::getFunctionName(gtirb::Addr x) const {
     }
   }
 
+  // Is this the address of a special function?
   if (this->main_function && x == this->main_function.value()) {
     return "main";
   } else if (this->start_function && x == this->start_function.value()) {
     return "_start";
   }
 
-  // or is this a function entry?
+  // Or is this a function entry?
   for (gtirb::Addr f : this->functionEntry) {
     if (x == f) {
       std::stringstream ss;
@@ -206,7 +208,7 @@ std::string DisasmData::AvoidRegNameConflicts(const std::string& x) {
   return x;
 }
 
-// Name, Alignment.
+// Name, Alignment pairs describing data sections.
 const std::array<std::pair<std::string, int>, 7> DataSectionDescriptors{{
     {".got", 8},         //
     {".got.plt", 8},     //

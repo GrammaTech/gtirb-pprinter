@@ -208,7 +208,7 @@ void AbstractPP::printFunctionHeader(std::ostream& os, gtirb::Addr ea) {
   if (name.empty() == false) {
     const BlockAreaComment bac(os, "Function Header", [this, &os]() { this->printBar(os, false); });
 
-    // enforce maximum alignment
+    // Enforce maximum alignment
     uint64_t x(ea);
     if (x % 8 == 0) {
       os << ".align 8\n";
@@ -356,7 +356,7 @@ void AbstractPP::printDataGroups(std::ostream& os) {
     if (isSectionSkipped(sectionPtr->getName()))
       continue;
 
-    // print header
+    // Print header
     this->printSectionHeader(os, sectionPtr->getName(), alignment);
     // Print data for this section
     for (const gtirb::DataObject* dataGroup : dataGroups) {
@@ -463,7 +463,7 @@ void AbstractPP::printSymbolicExpression(std::ostream& os, const gtirb::SymAddrC
 }
 
 void AbstractPP::printSymbolicExpression(std::ostream& os, const gtirb::SymAddrAddr* sexpr) {
-  // FIXME: why doesn't this use getAdaptedSymbolNameDefault()?
+  // FIXME: Why doesn't this use getAdaptedSymbolNameDefault()?
   os << sexpr->Sym1->getName() << '-' << sexpr->Sym2->getName();
 }
 
@@ -502,7 +502,7 @@ void AbstractPP::printBSS(std::ostream& os) {
     this->printSectionHeader(os, AbstractPP::StrSectionBSS, 16);
     const auto* bssData = getAuxData<std::vector<gtirb::UUID>>(this->disasm.ir, "bssData");
 
-    // Special case.
+    // Special case for auxilary bss data.
     if (bssData && !bssData->empty()) {
       auto* data = nodeFromUUID<gtirb::DataObject>(this->disasm.context, bssData->at(0));
       if (data && data->getAddress() != bssSection->getAddress()) {

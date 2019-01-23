@@ -58,10 +58,10 @@ public:
   /// PrettyPrinter::registerPrinter({"foo", "bar"}, theFactory);
   /// \endcode
   ///
-  /// \param flavors the flavors produced by the factory
-  /// \param f       the \link factory object
+  /// \param flavors the (non-empty) flavors produced by the factory
+  /// \param f       the (non-empty) \link factory object
   ///
-  /// \return \c true if the registry was updated, otherwise \c false.
+  /// \return \c true.
   static bool registerPrinter(std::initializer_list<std::string> flavors, factory f);
 
   /// Return the current set of registered flavors.

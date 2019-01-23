@@ -51,25 +51,26 @@ void GasPP::printOpImmediate(std::ostream& os, const std::string& /*opcode*/,
   if (!is_call && !is_jump)
     os << '$';
 
-  // plt reference
+  // Is the operand a plt reference?
   const std::optional<std::string>& plt_name = this->getPltCodeSymName(ea);
   if (plt_name) {
     os << plt_name.value();
     return;
   }
 
+  // Is the operand symbolic?
   if (symbolic) {
     const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic);
     assert(s != nullptr && "symbolic operands must be 'address[+offset]'");
     if (this->skipEA(s->Sym->getAddress().value()))
-      // the symbol points to a skipped destination: treat as not symbolic
+      // The symbol points to a skipped destination: treat the operand as not symbolic.
       symbolic = nullptr;
     else {
       os << this->getAdaptedSymbolNameDefault(s->Sym) << getAddendString(s->Offset);
     }
   }
 
-  // skipped or not symbolic
+  // Was it skipped or not symbolic?
   if (!symbolic) {
     std::ios_base::fmtflags flags = os.flags();
     if (is_call || is_jump)
@@ -97,20 +98,20 @@ void GasPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* s
   const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic);
   if (s != nullptr &&
       (!s->Sym->getAddress() || !this->skipEA(s->Sym->getAddress().value()))) {
-    // Symbolic displacement
+    // Displacement is symbolic.
     printSymbolicExpression(os, s);
   } else {
-    // Numeric displacement
+    // Displacement is numeric.
     if (!has_segment && !has_base && !has_index) {
       std::ios_base::fmtflags flags = os.flags();
       os << "0x" << std::hex << op.mem.disp;
       os.flags(flags);
     } else if (op.mem.disp != 0 || has_segment)
-      // Optimization to only print a 0 displacement if there is a segment register prefix
+      // Optimization to only print a 0 displacement if there is a segment register prefix.
       os << op.mem.disp;
   }
 
-  // Base/Index/Scale
+  // Print base, index, and scale.
   if (has_base || has_index) {
     os << '(';
     if (has_base)
