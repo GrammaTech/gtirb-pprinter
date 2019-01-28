@@ -75,19 +75,22 @@ public:
   /// syntaxes previously registered with \link registerPrinter.
   ///
   /// \param syntax the name of a registered syntax
-  void setSyntax(const std::string& syntax);
+  void setSyntax(const std::string& syntax_name) {
+    assert(getFactories().find(syntax_name) != getFactories().end());
+    this->syntax = syntax_name;
+  }
 
   /// Return the syntax of output that would currently be generated.
-  const std::string& getSyntax() const;
+  const std::string& getSyntax() const { return this->syntax; }
 
   /// Enable or disable debugging output.
   ///
   /// \param x whether to enable (\c true) or disable (\c false) debugging
   /// output.
-  void setDebug(bool x);
+  void setDebug(bool x) { this->debug = x; };
 
   /// Return whether debugging output is enabled.
-  bool getDebug() const;
+  bool getDebug() const { return this->debug; };
 
   /// Do not skip the named function when printing.
   ///

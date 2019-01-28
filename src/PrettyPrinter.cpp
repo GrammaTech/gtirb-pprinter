@@ -85,16 +85,6 @@ std::set<std::string> PrettyPrinter::getRegisteredSyntaxes() {
   return syntaxes;
 }
 
-void PrettyPrinter::setSyntax(const std::string& syntax_name) {
-  assert(getFactories().find(syntax_name) != getFactories().end());
-  this->syntax = syntax_name;
-}
-
-const std::string& PrettyPrinter::getSyntax() const { return this->syntax; }
-
-void PrettyPrinter::setDebug(bool x) { this->debug = x; }
-
-bool PrettyPrinter::getDebug() const { return this->debug; }
 void PrettyPrinter::keepFunction(const std::string& functionName) {
   AsmSkipFunction.erase(functionName);
 }
