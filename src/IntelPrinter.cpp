@@ -62,9 +62,9 @@ void IntelPP::printOpImmediate(std::ostream& os, const std::string& opcode,
   if (plt_name) {
     if (cs_insn_group(this->csHandle, &inst, CS_GRP_CALL) ||
         cs_insn_group(this->csHandle, &inst, CS_GRP_JUMP))
-      os << plt_name.value() << "@PLT";
+      os << *plt_name << "@PLT";
     else
-      os << IntelPP::StrOffset << ' ' << plt_name.value();
+      os << IntelPP::StrOffset << ' ' << *plt_name;
     return;
   }
 
@@ -79,7 +79,7 @@ void IntelPP::printOpImmediate(std::ostream& os, const std::string& opcode,
   assert(s != nullptr && "symbolic operands must be 'address[+offset]'");
 
   // The symbol points to a skipped destination
-  if (this->skipEA(s->Sym->getAddress().value())) {
+  if (this->skipEA(*s->Sym->getAddress())) {
     os << op.imm;
     return;
   }
@@ -118,7 +118,7 @@ void IntelPP::printOpIndirect(std::ostream& os,
   }
 
   if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
-    if (s->Sym->getAddress() && this->skipEA(s->Sym->getAddress().value())) {
+    if (s->Sym->getAddress() && this->skipEA(*s->Sym->getAddress())) {
       os << getAddendString(op.mem.disp, first);
     } else {
       os << '+';

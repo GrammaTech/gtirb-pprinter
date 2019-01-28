@@ -88,9 +88,9 @@ std::string DisasmData::getFunctionName(gtirb::Addr x) const {
   }
 
   // Is this the address of a special function?
-  if (this->main_function && x == this->main_function.value()) {
+  if (this->main_function && x == *this->main_function) {
     return "main";
-  } else if (this->start_function && x == this->start_function.value()) {
+  } else if (this->start_function && x == *this->start_function) {
     return "_start";
   }
 

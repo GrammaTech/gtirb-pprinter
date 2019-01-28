@@ -61,7 +61,7 @@ void AttPP::printOpImmediate(std::ostream& os, const std::string& /*opcode*/,
   // Is the operand a plt reference?
   const std::optional<std::string>& plt_name = this->getPltCodeSymName(ea);
   if (plt_name) {
-    os << plt_name.value();
+    os << *plt_name;
     return;
   }
 
@@ -69,7 +69,7 @@ void AttPP::printOpImmediate(std::ostream& os, const std::string& /*opcode*/,
   if (symbolic) {
     const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic);
     assert(s != nullptr && "symbolic operands must be 'address[+offset]'");
-    if (this->skipEA(s->Sym->getAddress().value()))
+    if (this->skipEA(*s->Sym->getAddress()))
       // The symbol points to a skipped destination: treat the operand as not
       // symbolic.
       symbolic = nullptr;
@@ -108,7 +108,7 @@ void AttPP::printOpIndirect(std::ostream& os,
 
   const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic);
   if (s != nullptr &&
-      (!s->Sym->getAddress() || !this->skipEA(s->Sym->getAddress().value()))) {
+      (!s->Sym->getAddress() || !this->skipEA(*s->Sym->getAddress()))) {
     // Displacement is symbolic.
     printSymbolicExpression(os, s);
   } else {

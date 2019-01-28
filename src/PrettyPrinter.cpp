@@ -245,13 +245,13 @@ std::string
 AbstractPP::getAdaptedSymbolNameDefault(const gtirb::Symbol* symbol) const {
   if (symbol->getAddress()) {
     std::string destName =
-        this->disasm.getRelocatedDestination(symbol->getAddress().value());
+        this->disasm.getRelocatedDestination(*symbol->getAddress());
     if (!destName.empty()) {
       return destName;
     }
   }
   if (this->disasm.isAmbiguousSymbol(symbol->getName())) {
-    return DisasmData::GetSymbolToPrint(symbol->getAddress().value());
+    return DisasmData::GetSymbolToPrint(*symbol->getAddress());
   }
 
   return DisasmData::AvoidRegNameConflicts(
@@ -412,7 +412,7 @@ bool AbstractPP::isPointerToExcludedCode(const gtirb::DataObject& dataGroup) {
           module.findSymbolicExpression(dataGroup.getAddress());
       foundSymbolic != module.symbolic_expr_end()) {
     if (const auto* s = std::get_if<gtirb::SymAddrConst>(&*foundSymbolic)) {
-      return this->skipEA(s->Sym->getAddress().value());
+      return this->skipEA(*s->Sym->getAddress());
     }
   }
   return false;
