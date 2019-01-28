@@ -589,15 +589,17 @@ std::string AbstractPP::getContainerFunctionName(const gtirb::Addr x) const {
   gtirb::Addr xFunctionAddress{0};
   if (const auto* functionEntries = getAuxData<std::vector<gtirb::Addr>>(
           this->disasm.ir, "functionEntry")) {
-    for (auto fe = std::begin(*functionEntries);
-         fe != std::end(*functionEntries); ++fe) {
-      auto feNext = fe;
-      feNext++;
-
-      if (x >= *fe && x < *feNext) {
+    if (auto fe =
+            std::lower_bound(functionEntries->rbegin(), functionEntries->rend(),
+                             x, std::greater<>());
+        fe != functionEntries->rend()) {
+      if (fe == functionEntries->rbegin()) {
+        for (const gtirb::Module& module : this->disasm.ir.modules()) {
+          if (gtirb::containsAddr(module, x))
+            xFunctionAddress = *fe;
+        }
+      } else
         xFunctionAddress = *fe;
-        continue;
-      }
     }
   }
   return this->disasm.getFunctionName(xFunctionAddress);
