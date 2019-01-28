@@ -361,7 +361,7 @@ void AbstractPP::printOperand(std::ostream& os, const std::string& opcode,
 }
 
 void AbstractPP::printDataGroups(std::ostream& os) {
-  std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>*
+  const std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>*
       dataSections = this->disasm.getDataSections();
   if (!dataSections)
     return;

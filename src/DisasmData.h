@@ -46,7 +46,7 @@ public:
 
   const gtirb::Module::section_range getSections() const;
   std::vector<std::string>* getAmbiguousSymbol();
-  std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>*
+  const std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>*
   getDataSections();
 
   bool isFunction(const gtirb::Symbol& sym) const;

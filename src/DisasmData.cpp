@@ -26,18 +26,19 @@ using namespace std::rel_ops;
 DisasmData::DisasmData(gtirb::Context& context_, gtirb::IR& ir_)
     : context(context_), ir(ir_), functionEAs(), start_function(),
       main_function(), functionEntry() {
-  if (auto* EAs = getAuxData<std::vector<gtirb::Addr>>(ir, "functionEAs"))
+  if (const auto* EAs = getAuxData<std::vector<gtirb::Addr>>(ir, "functionEAs"))
     functionEAs.insert(functionEAs.end(), EAs->begin(), EAs->end());
 
-  if (auto* entries = getAuxData<std::vector<gtirb::Addr>>(ir, "functionEntry"))
+  if (const auto* entries =
+          getAuxData<std::vector<gtirb::Addr>>(ir, "functionEntry"))
     functionEntry.insert(functionEntry.end(), entries->begin(), entries->end());
 
-  if (auto* startFuncs =
+  if (const auto* startFuncs =
           getAuxData<std::vector<gtirb::Addr>>(ir, "startFunction");
       startFuncs && !startFuncs->empty())
     start_function = (*startFuncs)[0];
 
-  if (auto* mainFuncs =
+  if (const auto* mainFuncs =
           getAuxData<std::vector<gtirb::Addr>>(ir, "mainFunction");
       mainFuncs && !mainFuncs->empty())
     main_function = (*mainFuncs)[0];
@@ -47,7 +48,7 @@ const gtirb::Module::section_range DisasmData::getSections() const {
   return this->ir.modules()[0].sections();
 }
 
-std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>*
+const std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>*
 DisasmData::getDataSections() {
   using table_type =
       std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>;
@@ -112,10 +113,9 @@ std::string DisasmData::GetSymbolToPrint(gtirb::Addr x) {
 }
 
 std::string DisasmData::getRelocatedDestination(const gtirb::Addr& addr) const {
-  auto* relocations =
-      getAuxData<std::map<gtirb::Addr, std::tuple<std::string, std::string>>>(
-          ir, "relocations");
-  if (relocations) {
+  if (const auto* relocations = getAuxData<
+          std::map<gtirb::Addr, std::tuple<std::string, std::string>>>(
+          ir, "relocations")) {
     const auto found = relocations->find(addr);
     if (found != std::end(*relocations) &&
         std::get<0>(found->second) == "R_X86_64_GLOB_DAT")
@@ -125,7 +125,7 @@ std::string DisasmData::getRelocatedDestination(const gtirb::Addr& addr) const {
 }
 
 bool DisasmData::isRelocated(const std::string& x) const {
-  auto relocations =
+  const auto* relocations =
       getAuxData<std::map<gtirb::Addr, std::tuple<std::string, std::string>>>(
           ir, "relocations");
   if (!relocations)
