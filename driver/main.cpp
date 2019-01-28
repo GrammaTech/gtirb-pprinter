@@ -11,13 +11,13 @@ namespace po = boost::program_options;
 
 int main(int argc, char** argv) {
   po::options_description desc("Allowed options");
-  desc.add_options()("help", "Produce help message.");
+  desc.add_options()("help,h", "Produce help message.");
   desc.add_options()("ir,i", po::value<std::string>(), "gtirb file to print.");
   desc.add_options()("out,o", po::value<std::string>(), "The name of the assembly output file.");
   desc.add_options()("syntax,s", po::value<std::string>(),
                      "The syntax of the assembly file to generate.");
-  desc.add_options()("debug,D", "Turn on debugging (will break assembly)");
-  desc.add_options()("keep-functions,K", po::value<std::vector<std::string>>()->multitoken(),
+  desc.add_options()("debug,d", "Turn on debugging (will break assembly)");
+  desc.add_options()("keep-functions,k", po::value<std::vector<std::string>>()->multitoken(),
                      "Print the given functions even if they are skipped by default (e.g. _start)");
   po::positional_options_description pd;
   pd.add("ir", -1);
