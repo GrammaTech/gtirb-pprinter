@@ -546,9 +546,9 @@ void AbstractPP::printBSS(std::ostream& os) {
       }
       os << '\n';
 
-      for (size_t i = 0; i < bssData->size(); ++i) {
-        const auto* current = nodeFromUUID<gtirb::DataObject>(
-            this->disasm.context, bssData->at(i));
+      for (const gtirb::UUID& uuid : *bssData) {
+        const auto* current =
+            nodeFromUUID<gtirb::DataObject>(this->disasm.context, uuid);
         if (!current)
           continue;
         this->printLabel(os, current->getAddress());
