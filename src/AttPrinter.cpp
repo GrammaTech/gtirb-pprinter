@@ -117,10 +117,12 @@ void AttPP::printOpIndirect(std::ostream& os,
       std::ios_base::fmtflags flags = os.flags();
       os << "0x" << std::hex << op.mem.disp;
       os.flags(flags);
-    } else if (op.mem.disp != 0 || has_segment)
-      // Optimization to only print a 0 displacement if there is a segment
-      // register prefix.
+    } else if (op.mem.disp != 0 || has_segment) {
       os << op.mem.disp;
+    } else {
+      // Print nothing. There is no segment register and the base or index
+      // register will be printed, so the zero displacement is implicit.
+    }
   }
 
   // Print base, index, and scale.
