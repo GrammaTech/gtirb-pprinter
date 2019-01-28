@@ -26,21 +26,21 @@ using namespace std::rel_ops;
 DisasmData::DisasmData(gtirb::Context& context_, gtirb::IR& ir_)
     : context(context_), ir(ir_), functionEAs(), start_function(),
       main_function(), functionEntry() {
-  auto* EAs = getAuxData<std::vector<gtirb::Addr>>(ir, "functionEAs");
-  if (EAs)
+  if (auto* EAs = getAuxData<std::vector<gtirb::Addr>>(ir, "functionEAs"))
     functionEAs.insert(functionEAs.end(), EAs->begin(), EAs->end());
 
-  auto* entries = getAuxData<std::vector<gtirb::Addr>>(ir, "functionEntry");
-  if (entries)
+  if (auto* entries = getAuxData<std::vector<gtirb::Addr>>(ir, "functionEntry"))
     functionEntry.insert(functionEntry.end(), entries->begin(), entries->end());
 
-  auto* start = getAuxData<std::vector<gtirb::Addr>>(ir, "startFunction");
-  if (start && !start->empty())
-    start_function = (*start)[0];
+  if (auto* startFuncs =
+          getAuxData<std::vector<gtirb::Addr>>(ir, "startFunction");
+      startFuncs && !startFuncs->empty())
+    start_function = (*startFuncs)[0];
 
-  auto* main = getAuxData<std::vector<gtirb::Addr>>(ir, "mainFunction");
-  if (main && !main->empty())
-    main_function = (*main)[0];
+  if (auto* mainFuncs =
+          getAuxData<std::vector<gtirb::Addr>>(ir, "mainFunction");
+      mainFuncs && !mainFuncs->empty())
+    main_function = (*mainFuncs)[0];
 }
 
 const gtirb::Module::section_range DisasmData::getSections() const {
