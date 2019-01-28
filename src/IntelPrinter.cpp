@@ -97,8 +97,7 @@ void IntelPP::printOpIndirect(std::ostream& os,
   assert(op.type == X86_OP_MEM &&
          "printOpIndirect called without a memory operand");
   bool first = true;
-  const std::string sizeName = DisasmData::GetSizeName(op.size * 8);
-  os << sizeName << ' ';
+  os << DisasmData::GetSizeName(op.size * 8) << ' ';
 
   if (op.mem.segment != X86_REG_INVALID)
     os << getRegisterName(op.mem.segment) << ':';
