@@ -457,9 +457,8 @@ void AbstractPP::printDataObject(std::ostream& os,
 void AbstractPP::printComment(std::ostream& os, const gtirb::Addr ea) {
   if (!this->debug)
     return;
-  const auto* comments = getAuxData<std::map<gtirb::Addr, std::string>>(
-      this->disasm.ir, "comments");
-  if (comments) {
+  if (const auto* comments = getAuxData<std::map<gtirb::Addr, std::string>>(
+          this->disasm.ir, "comments")) {
     const auto p = comments->find(ea);
     if (p != comments->end()) {
       os << "# " << p->second << '\n';
@@ -469,10 +468,9 @@ void AbstractPP::printComment(std::ostream& os, const gtirb::Addr ea) {
 
 void AbstractPP::printSymbolicData(std::ostream& os, const gtirb::Addr addr,
                                    const gtirb::SymbolicExpression* symbolic) {
-  const auto* pltReferences = getAuxData<std::map<gtirb::Addr, std::string>>(
-      this->disasm.ir, "pltDataReferences");
-
-  if (pltReferences) {
+  if (const auto* pltReferences =
+          getAuxData<std::map<gtirb::Addr, std::string>>(this->disasm.ir,
+                                                         "pltDataReferences")) {
     const auto p = pltReferences->find(addr);
     if (p != pltReferences->end()) {
       os << ".quad " << p->second;
@@ -530,10 +528,8 @@ void AbstractPP::printString(std::ostream& os, const gtirb::DataObject& x) {
 }
 
 void AbstractPP::printBSS(std::ostream& os) {
-  const gtirb::Section* bssSection =
-      this->disasm.getSection(AbstractPP::StrSectionBSS);
-
-  if (bssSection) {
+  if (const gtirb::Section* bssSection =
+          this->disasm.getSection(AbstractPP::StrSectionBSS)) {
     this->printSectionHeader(os, AbstractPP::StrSectionBSS, 16);
     const auto* bssData =
         getAuxData<std::vector<gtirb::UUID>>(this->disasm.ir, "bssData");
@@ -591,9 +587,8 @@ bool AbstractPP::isInSkippedFunction(const gtirb::Addr x) const {
 
 std::string AbstractPP::getContainerFunctionName(const gtirb::Addr x) const {
   gtirb::Addr xFunctionAddress{0};
-  auto* functionEntries =
-      getAuxData<std::vector<gtirb::Addr>>(this->disasm.ir, "functionEntry");
-  if (functionEntries) {
+  if (const auto* functionEntries = getAuxData<std::vector<gtirb::Addr>>(
+          this->disasm.ir, "functionEntry")) {
     for (auto fe = std::begin(*functionEntries);
          fe != std::end(*functionEntries); ++fe) {
       auto feNext = fe;
