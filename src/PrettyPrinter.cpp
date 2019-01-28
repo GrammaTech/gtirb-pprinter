@@ -15,9 +15,9 @@
 #include "PrettyPrinter.h"
 #include "DisasmData.h"
 #include "string_utils.h"
-#include <capstone/capstone.h>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/lexical_cast.hpp>
+#include <capstone/capstone.h>
 #include <gsl/gsl>
 #include <gtirb/gtirb.hpp>
 #include <iomanip>
@@ -69,7 +69,8 @@ std::map<std::string, PrettyPrinter::factory>& PrettyPrinter::getFactories() {
   return factories;
 }
 
-bool PrettyPrinter::registerPrinter(std::initializer_list<std::string> syntaxes, factory f) {
+bool PrettyPrinter::registerPrinter(std::initializer_list<std::string> syntaxes,
+                                    factory f) {
   assert(f && "Cannot register null factory!");
   assert(syntaxes.size() > 0 && "No syntaxes to register!");
   for (const std::string& name : syntaxes)
@@ -101,24 +102,29 @@ void PrettyPrinter::skipFunction(const std::string& functionName) {
   AsmSkipFunction.insert(functionName);
 }
 
-std::unique_ptr<AbstractPP> PrettyPrinter::prettyPrint(gtirb::Context& context, gtirb::IR& ir) {
+std::unique_ptr<AbstractPP> PrettyPrinter::prettyPrint(gtirb::Context& context,
+                                                       gtirb::IR& ir) {
   return getFactories().at(syntax)(context, ir, AsmSkipFunction,
-                                   debug ? PrettyPrinter::DebugMessages : PrettyPrinter::NoDebug);
+                                   debug ? PrettyPrinter::DebugMessages
+                                         : PrettyPrinter::NoDebug);
 }
 
 AbstractPP::AbstractPP(gtirb::Context& context, gtirb::IR& ir,
-                       const PrettyPrinter::string_range& skip_funcs, PrettyPrinter::DebugStyle dbg)
-    : AsmSkipFunction(skip_funcs.begin(), skip_funcs.end()), disasm(context, ir),
+                       const PrettyPrinter::string_range& skip_funcs,
+                       PrettyPrinter::DebugStyle dbg)
+    : AsmSkipFunction(skip_funcs.begin(), skip_funcs.end()),
+      disasm(context, ir),
       debug(dbg == PrettyPrinter::DebugMessages ? true : false) {
-  [[maybe_unused]] cs_err err = cs_open(CS_ARCH_X86, CS_MODE_64, &this->csHandle);
+  [[maybe_unused]] cs_err err =
+      cs_open(CS_ARCH_X86, CS_MODE_64, &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
 }
 
 AbstractPP::~AbstractPP() { cs_close(&this->csHandle); }
 
 std::optional<std::string> AbstractPP::getPltCodeSymName(gtirb::Addr ea) {
-  const auto* pltReferences =
-      getAuxData<std::map<gtirb::Addr, std::string>>(this->disasm.ir, "pltCodeReferences");
+  const auto* pltReferences = getAuxData<std::map<gtirb::Addr, std::string>>(
+      this->disasm.ir, "pltCodeReferences");
   if (pltReferences) {
     const auto p = pltReferences->find(gtirb::Addr(ea));
     if (p != pltReferences->end())
@@ -130,7 +136,8 @@ std::optional<std::string> AbstractPP::getPltCodeSymName(gtirb::Addr ea) {
 std::ostream& AbstractPP::print(std::ostream& os) {
   this->printHeader(os);
 
-  for (const gtirb::Block& b : gtirb::blocks(this->disasm.ir.modules()[0].getCFG())) {
+  for (const gtirb::Block& b :
+       gtirb::blocks(this->disasm.ir.modules()[0].getCFG())) {
     this->printBlock(os, b);
   }
 
@@ -156,8 +163,9 @@ void AbstractPP::printBlock(std::ostream& os, const gtirb::Block& x) {
 
   gtirb::ImageByteMap::const_range bytes2 =
       getBytes(this->disasm.ir.modules()[0].getImageByteMap(), x);
-  size_t count = cs_disasm(this->csHandle, reinterpret_cast<const uint8_t*>(&bytes2[0]),
-                           bytes2.size(), uint64_t(x.getAddress()), 0, &insn);
+  size_t count =
+      cs_disasm(this->csHandle, reinterpret_cast<const uint8_t*>(&bytes2[0]),
+                bytes2.size(), uint64_t(x.getAddress()), 0, &insn);
 
   // Exception-safe cleanup of instructions
   std::unique_ptr<cs_insn, std::function<void(cs_insn*)>> freeInsn(
@@ -169,14 +177,16 @@ void AbstractPP::printBlock(std::ostream& os, const gtirb::Block& x) {
   }
 }
 
-void AbstractPP::condPrintSectionHeader(std::ostream& os, const gtirb::Block& x) {
+void AbstractPP::condPrintSectionHeader(std::ostream& os,
+                                        const gtirb::Block& x) {
   const std::string& name = this->disasm.getSectionName(x.getAddress());
 
   if (!name.empty())
     this->printSectionHeader(os, name);
 }
 
-void AbstractPP::printSectionHeader(std::ostream& os, const std::string& x, uint64_t alignment) {
+void AbstractPP::printSectionHeader(std::ostream& os, const std::string& x,
+                                    uint64_t alignment) {
   os << '\n';
   this->printBar(os);
 
@@ -209,7 +219,8 @@ void AbstractPP::printFunctionHeader(std::ostream& os, gtirb::Addr ea) {
   const std::string& name = this->disasm.getFunctionName(ea);
 
   if (name.empty() == false) {
-    const BlockAreaComment bac(os, "Function Header", [this, &os]() { this->printBar(os, false); });
+    const BlockAreaComment bac(os, "Function Header",
+                               [this, &os]() { this->printBar(os, false); });
 
     // Enforce maximum alignment
     uint64_t x(ea);
@@ -230,9 +241,11 @@ void AbstractPP::printLabel(std::ostream& os, gtirb::Addr ea) {
     os << ".L_" << std::hex << uint64_t(ea) << ':' << std::dec;
 }
 
-std::string AbstractPP::getAdaptedSymbolNameDefault(const gtirb::Symbol* symbol) const {
+std::string
+AbstractPP::getAdaptedSymbolNameDefault(const gtirb::Symbol* symbol) const {
   if (symbol->getAddress()) {
-    std::string destName = this->disasm.getRelocatedDestination(symbol->getAddress().value());
+    std::string destName =
+        this->disasm.getRelocatedDestination(symbol->getAddress().value());
     if (!destName.empty()) {
       return destName;
     }
@@ -241,19 +254,23 @@ std::string AbstractPP::getAdaptedSymbolNameDefault(const gtirb::Symbol* symbol)
     return DisasmData::GetSymbolToPrint(symbol->getAddress().value());
   }
 
-  return DisasmData::AvoidRegNameConflicts(DisasmData::CleanSymbolNameSuffix(symbol->getName()));
+  return DisasmData::AvoidRegNameConflicts(
+      DisasmData::CleanSymbolNameSuffix(symbol->getName()));
 }
 
-std::string AbstractPP::getAdaptedSymbolName(const gtirb::Symbol* symbol) const {
+std::string
+AbstractPP::getAdaptedSymbolName(const gtirb::Symbol* symbol) const {
   std::string name = DisasmData::CleanSymbolNameSuffix(symbol->getName());
-  if (!this->disasm.isAmbiguousSymbol(symbol->getName()) && !this->disasm.isRelocated(name))
+  if (!this->disasm.isAmbiguousSymbol(symbol->getName()) &&
+      !this->disasm.isRelocated(name))
     return DisasmData::AvoidRegNameConflicts(name);
   return std::string{};
 }
 
 bool AbstractPP::condPrintGlobalSymbol(std::ostream& os, gtirb::Addr ea) {
   bool printed = false;
-  for (const gtirb::Symbol& sym : this->disasm.ir.modules()[0].findSymbols(ea)) {
+  for (const gtirb::Symbol& sym :
+       this->disasm.ir.modules()[0].findSymbols(ea)) {
     std::string name = this->getAdaptedSymbolName(&sym);
     if (!name.empty()) {
       os << name << ":\n";
@@ -294,8 +311,8 @@ void AbstractPP::printEA(std::ostream& os, gtirb::Addr ea) {
   }
 }
 
-void AbstractPP::printOperandList(std::ostream& os, const std::string& opcode, const gtirb::Addr ea,
-                                  const cs_insn& inst) {
+void AbstractPP::printOperandList(std::ostream& os, const std::string& opcode,
+                                  const gtirb::Addr ea, const cs_insn& inst) {
   std::string str_operands[4];
   cs_x86& detail = inst.detail->x86;
   const gtirb::Module& module = this->disasm.ir.modules()[0];
@@ -303,8 +320,8 @@ void AbstractPP::printOperandList(std::ostream& os, const std::string& opcode, c
 
   // Operands are implicit for various MOVS* instructions. But there is also
   // an SSE2 instruction named MOVSD which has explicit operands.
-  if ((inst.id == X86_INS_MOVSB || inst.id == X86_INS_MOVSW || inst.id == X86_INS_MOVSD ||
-       inst.id == X86_INS_MOVSQ) &&
+  if ((inst.id == X86_INS_MOVSB || inst.id == X86_INS_MOVSW ||
+       inst.id == X86_INS_MOVSD || inst.id == X86_INS_MOVSQ) &&
       inst.detail->groups[0] != X86_GRP_SSE2) {
     opCount = 0;
   }
@@ -323,8 +340,9 @@ void AbstractPP::printOperandList(std::ostream& os, const std::string& opcode, c
 }
 
 void AbstractPP::printOperand(std::ostream& os, const std::string& opcode,
-                              const gtirb::SymbolicExpression* symbolic, const cs_insn& inst,
-                              gtirb::Addr ea, uint64_t index) {
+                              const gtirb::SymbolicExpression* symbolic,
+                              const cs_insn& inst, gtirb::Addr ea,
+                              uint64_t index) {
   const cs_x86_op& op = inst.detail->x86.operands[index];
   switch (op.type) {
   case X86_OP_REG:
@@ -343,8 +361,8 @@ void AbstractPP::printOperand(std::ostream& os, const std::string& opcode,
 }
 
 void AbstractPP::printDataGroups(std::ostream& os) {
-  std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>* dataSections =
-      this->disasm.getDataSections();
+  std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>*
+      dataSections = this->disasm.getDataSections();
   if (!dataSections)
     return;
   for (const auto& [name, alignment, dataIDs] : *dataSections) {
@@ -352,7 +370,8 @@ void AbstractPP::printDataGroups(std::ostream& os) {
 
     std::vector<const gtirb::DataObject*> dataGroups;
     for (gtirb::UUID i : dataIDs) {
-      dataGroups.push_back(nodeFromUUID<gtirb::DataObject>(this->disasm.context, i));
+      dataGroups.push_back(
+          nodeFromUUID<gtirb::DataObject>(this->disasm.context, i));
     }
 
     if (isSectionSkipped(sectionPtr->getName()))
@@ -371,7 +390,8 @@ void AbstractPP::printDataGroups(std::ostream& os) {
     const gtirb::Addr endAddress = addressLimit(*sectionPtr);
     std::string next_section = this->disasm.getSectionName(endAddress);
     if (next_section.empty() == true ||
-        (next_section != StrSectionBSS && getDataSectionDescriptor(next_section) == nullptr)) {
+        (next_section != StrSectionBSS &&
+         getDataSectionDescriptor(next_section) == nullptr)) {
       // This is no the start of a new section, so print the label.
       this->printLabel(os, endAddress);
       os << '\n';
@@ -388,7 +408,8 @@ bool AbstractPP::shouldExcludeDataElement(const std::string& sectionName,
 bool AbstractPP::isPointerToExcludedCode(const gtirb::DataObject& dataGroup) {
   gtirb::IR& ir = this->disasm.ir;
   const gtirb::Module& module = ir.modules()[0];
-  if (auto foundSymbolic = module.findSymbolicExpression(dataGroup.getAddress());
+  if (auto foundSymbolic =
+          module.findSymbolicExpression(dataGroup.getAddress());
       foundSymbolic != module.symbolic_expr_end()) {
     if (const auto* s = std::get_if<gtirb::SymAddrConst>(&*foundSymbolic)) {
       return this->skipEA(s->Sym->getAddress().value());
@@ -397,7 +418,8 @@ bool AbstractPP::isPointerToExcludedCode(const gtirb::DataObject& dataGroup) {
   return false;
 }
 
-void AbstractPP::printDataObject(std::ostream& os, const gtirb::DataObject& dataGroup) {
+void AbstractPP::printDataObject(std::ostream& os,
+                                 const gtirb::DataObject& dataGroup) {
   gtirb::IR& ir = this->disasm.ir;
   const gtirb::Module& module = ir.modules()[0];
   const auto* stringEAs = getAuxData<std::vector<gtirb::Addr>>(ir, "stringEAs");
@@ -408,19 +430,23 @@ void AbstractPP::printDataObject(std::ostream& os, const gtirb::DataObject& data
   if (this->debug)
     os << std::hex << uint64_t(dataGroup.getAddress()) << std::dec << ':';
 
-  const auto& foundSymbolic = module.findSymbolicExpression(dataGroup.getAddress());
+  const auto& foundSymbolic =
+      module.findSymbolicExpression(dataGroup.getAddress());
   if (foundSymbolic != module.symbolic_expr_end()) {
     printSymbolicData(os, dataGroup.getAddress(), &*foundSymbolic);
     os << '\n';
 
-  } else if (stringEAs && std::find(stringEAs->begin(), stringEAs->end(), dataGroup.getAddress()) !=
-                              stringEAs->end()) {
+  } else if (stringEAs &&
+             std::find(stringEAs->begin(), stringEAs->end(),
+                       dataGroup.getAddress()) != stringEAs->end()) {
     this->printString(os, dataGroup);
     os << '\n';
 
   } else {
-    for (std::byte byte : getBytes(this->disasm.ir.modules()[0].getImageByteMap(), dataGroup)) {
-      os << ".byte 0x" << std::hex << static_cast<uint32_t>(byte) << std::dec << '\n';
+    for (std::byte byte :
+         getBytes(this->disasm.ir.modules()[0].getImageByteMap(), dataGroup)) {
+      os << ".byte 0x" << std::hex << static_cast<uint32_t>(byte) << std::dec
+         << '\n';
     }
   }
 }
@@ -428,8 +454,8 @@ void AbstractPP::printDataObject(std::ostream& os, const gtirb::DataObject& data
 void AbstractPP::printComment(std::ostream& os, const gtirb::Addr ea) {
   if (!this->debug)
     return;
-  const auto* comments =
-      getAuxData<std::map<gtirb::Addr, std::string>>(this->disasm.ir, "comments");
+  const auto* comments = getAuxData<std::map<gtirb::Addr, std::string>>(
+      this->disasm.ir, "comments");
   if (comments) {
     const auto p = comments->find(ea);
     if (p != comments->end()) {
@@ -440,8 +466,8 @@ void AbstractPP::printComment(std::ostream& os, const gtirb::Addr ea) {
 
 void AbstractPP::printSymbolicData(std::ostream& os, const gtirb::Addr addr,
                                    const gtirb::SymbolicExpression* symbolic) {
-  const auto* pltReferences =
-      getAuxData<std::map<gtirb::Addr, std::string>>(this->disasm.ir, "pltDataReferences");
+  const auto* pltReferences = getAuxData<std::map<gtirb::Addr, std::string>>(
+      this->disasm.ir, "pltDataReferences");
 
   if (pltReferences) {
     const auto p = pltReferences->find(addr);
@@ -459,12 +485,14 @@ void AbstractPP::printSymbolicData(std::ostream& os, const gtirb::Addr addr,
   }
 }
 
-void AbstractPP::printSymbolicExpression(std::ostream& os, const gtirb::SymAddrConst* sexpr) {
+void AbstractPP::printSymbolicExpression(std::ostream& os,
+                                         const gtirb::SymAddrConst* sexpr) {
   os << this->getAdaptedSymbolNameDefault(sexpr->Sym);
   os << getAddendString(sexpr->Offset);
 }
 
-void AbstractPP::printSymbolicExpression(std::ostream& os, const gtirb::SymAddrAddr* sexpr) {
+void AbstractPP::printSymbolicExpression(std::ostream& os,
+                                         const gtirb::SymAddrAddr* sexpr) {
   // FIXME: Why doesn't this use getAdaptedSymbolNameDefault()?
   os << sexpr->Sym1->getName() << '-' << sexpr->Sym2->getName();
 }
@@ -488,7 +516,8 @@ void AbstractPP::printString(std::ostream& os, const gtirb::DataObject& x) {
 
   os << ".string \"";
 
-  for (const std::byte& b : getBytes(this->disasm.ir.modules()[0].getImageByteMap(), x)) {
+  for (const std::byte& b :
+       getBytes(this->disasm.ir.modules()[0].getImageByteMap(), x)) {
     if (b != std::byte(0)) {
       os << cleanByte(uint8_t(b));
     }
@@ -498,15 +527,18 @@ void AbstractPP::printString(std::ostream& os, const gtirb::DataObject& x) {
 }
 
 void AbstractPP::printBSS(std::ostream& os) {
-  const gtirb::Section* bssSection = this->disasm.getSection(AbstractPP::StrSectionBSS);
+  const gtirb::Section* bssSection =
+      this->disasm.getSection(AbstractPP::StrSectionBSS);
 
   if (bssSection) {
     this->printSectionHeader(os, AbstractPP::StrSectionBSS, 16);
-    const auto* bssData = getAuxData<std::vector<gtirb::UUID>>(this->disasm.ir, "bssData");
+    const auto* bssData =
+        getAuxData<std::vector<gtirb::UUID>>(this->disasm.ir, "bssData");
 
     // Special case for auxilary bss data.
     if (bssData && !bssData->empty()) {
-      auto* data = nodeFromUUID<gtirb::DataObject>(this->disasm.context, bssData->at(0));
+      auto* data =
+          nodeFromUUID<gtirb::DataObject>(this->disasm.context, bssData->at(0));
       if (data && data->getAddress() != bssSection->getAddress()) {
         const gtirb::Addr current = bssSection->getAddress();
         const gtirb::Addr next = data->getAddress();
@@ -516,7 +548,8 @@ void AbstractPP::printBSS(std::ostream& os) {
       os << '\n';
 
       for (size_t i = 0; i < bssData->size(); ++i) {
-        const auto* current = nodeFromUUID<gtirb::DataObject>(this->disasm.context, bssData->at(i));
+        const auto* current = nodeFromUUID<gtirb::DataObject>(
+            this->disasm.context, bssData->at(i));
         if (!current)
           continue;
         this->printLabel(os, current->getAddress());
@@ -555,9 +588,11 @@ bool AbstractPP::isInSkippedFunction(const gtirb::Addr x) const {
 
 std::string AbstractPP::getContainerFunctionName(const gtirb::Addr x) const {
   gtirb::Addr xFunctionAddress{0};
-  auto* functionEntries = getAuxData<std::vector<gtirb::Addr>>(this->disasm.ir, "functionEntry");
+  auto* functionEntries =
+      getAuxData<std::vector<gtirb::Addr>>(this->disasm.ir, "functionEntry");
   if (functionEntries) {
-    for (auto fe = std::begin(*functionEntries); fe != std::end(*functionEntries); ++fe) {
+    for (auto fe = std::begin(*functionEntries);
+         fe != std::end(*functionEntries); ++fe) {
       auto feNext = fe;
       feNext++;
 
@@ -571,8 +606,8 @@ std::string AbstractPP::getContainerFunctionName(const gtirb::Addr x) const {
 }
 
 std::string AbstractPP::getRegisterName(unsigned int reg) const {
-  return DisasmData::AdaptRegister(
-      ascii_str_toupper(reg == X86_REG_INVALID ? "" : cs_reg_name(this->csHandle, reg)));
+  return DisasmData::AdaptRegister(ascii_str_toupper(
+      reg == X86_REG_INVALID ? "" : cs_reg_name(this->csHandle, reg)));
 }
 
 std::string AbstractPP::getAddendString(int64_t number, bool first) {

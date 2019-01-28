@@ -17,7 +17,8 @@
 #include "string_utils.h"
 #include <iomanip>
 
-AttPP::AttPP(gtirb::Context& context, gtirb::IR& ir, const PrettyPrinter::string_range& skip_funcs,
+AttPP::AttPP(gtirb::Context& context, gtirb::IR& ir,
+             const PrettyPrinter::string_range& skip_funcs,
              PrettyPrinter::DebugStyle dbg)
     : AbstractPP(context, ir, skip_funcs, dbg) {
   cs_option(this->csHandle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
@@ -29,21 +30,27 @@ std::string AttPP::getRegisterName(unsigned int reg) const {
   return std::string{"%"} + ascii_str_tolower(AbstractPP::getRegisterName(reg));
 }
 
-int AttPP::getGtirbOpIndex(int index, int /*opCount*/) const { return index + 1; }
+int AttPP::getGtirbOpIndex(int index, int /*opCount*/) const {
+  return index + 1;
+}
 
-void AttPP::printOpRegdirect(std::ostream& os, const cs_insn& inst, const cs_x86_op& op) {
-  assert(op.type == X86_OP_REG && "printOpRegdirect called without a register operand");
+void AttPP::printOpRegdirect(std::ostream& os, const cs_insn& inst,
+                             const cs_x86_op& op) {
+  assert(op.type == X86_OP_REG &&
+         "printOpRegdirect called without a register operand");
   if (cs_insn_group(this->csHandle, &inst, CS_GRP_CALL))
     os << '*';
   os << ascii_str_tolower(getRegisterName(op.reg));
 }
 
 void AttPP::printOpImmediate(std::ostream& os, const std::string& /*opcode*/,
-                             const gtirb::SymbolicExpression* symbolic, const cs_insn& inst,
-                             gtirb::Addr ea, uint64_t index) {
+                             const gtirb::SymbolicExpression* symbolic,
+                             const cs_insn& inst, gtirb::Addr ea,
+                             uint64_t index) {
   const cs_x86& detail = inst.detail->x86;
   const cs_x86_op& op = detail.operands[index];
-  assert(op.type == X86_OP_IMM && "printOpImmediate called without an immediate operand");
+  assert(op.type == X86_OP_IMM &&
+         "printOpImmediate called without an immediate operand");
 
   bool is_call = cs_insn_group(this->csHandle, &inst, CS_GRP_CALL);
   bool is_jump = cs_insn_group(this->csHandle, &inst, CS_GRP_JUMP);
@@ -63,10 +70,12 @@ void AttPP::printOpImmediate(std::ostream& os, const std::string& /*opcode*/,
     const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic);
     assert(s != nullptr && "symbolic operands must be 'address[+offset]'");
     if (this->skipEA(s->Sym->getAddress().value()))
-      // The symbol points to a skipped destination: treat the operand as not symbolic.
+      // The symbol points to a skipped destination: treat the operand as not
+      // symbolic.
       symbolic = nullptr;
     else {
-      os << this->getAdaptedSymbolNameDefault(s->Sym) << getAddendString(s->Offset);
+      os << this->getAdaptedSymbolNameDefault(s->Sym)
+         << getAddendString(s->Offset);
     }
   }
 
@@ -80,11 +89,13 @@ void AttPP::printOpImmediate(std::ostream& os, const std::string& /*opcode*/,
   }
 }
 
-void AttPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* symbolic,
+void AttPP::printOpIndirect(std::ostream& os,
+                            const gtirb::SymbolicExpression* symbolic,
                             const cs_insn& inst, uint64_t index) {
   const cs_x86& detail = inst.detail->x86;
   const cs_x86_op& op = detail.operands[index];
-  assert(op.type == X86_OP_MEM && "printOpIndirect called without a memory operand");
+  assert(op.type == X86_OP_MEM &&
+         "printOpIndirect called without a memory operand");
 
   bool has_segment = op.mem.segment != X86_REG_INVALID;
   bool has_base = op.mem.base != X86_REG_INVALID;
@@ -96,7 +107,8 @@ void AttPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* s
     os << getRegisterName(op.mem.segment) << ':';
 
   const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic);
-  if (s != nullptr && (!s->Sym->getAddress() || !this->skipEA(s->Sym->getAddress().value()))) {
+  if (s != nullptr &&
+      (!s->Sym->getAddress() || !this->skipEA(s->Sym->getAddress().value()))) {
     // Displacement is symbolic.
     printSymbolicExpression(os, s);
   } else {
@@ -106,7 +118,8 @@ void AttPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* s
       os << "0x" << std::hex << op.mem.disp;
       os.flags(flags);
     } else if (op.mem.disp != 0 || has_segment)
-      // Optimization to only print a 0 displacement if there is a segment register prefix.
+      // Optimization to only print a 0 displacement if there is a segment
+      // register prefix.
       os << op.mem.disp;
   }
 
@@ -126,6 +139,7 @@ void AttPP::printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* s
 
 volatile bool AttPP::registered = PrettyPrinter::registerPrinter(
     {"att"}, [](gtirb::Context& context, gtirb::IR& ir,
-                const PrettyPrinter::string_range& skip_funcs, PrettyPrinter::DebugStyle dbg) {
+                const PrettyPrinter::string_range& skip_funcs,
+                PrettyPrinter::DebugStyle dbg) {
       return std::make_unique<AttPP>(context, ir, skip_funcs, dbg);
     });

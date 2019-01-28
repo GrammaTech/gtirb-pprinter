@@ -1,11 +1,11 @@
+#include "DisasmData.h"
+#include "Logger.h"
+#include "PrettyPrinter.h"
 #include <boost/filesystem.hpp>
 #include <boost/process.hpp>
 #include <boost/program_options.hpp>
 #include <iomanip>
 #include <iostream>
-#include "DisasmData.h"
-#include "Logger.h"
-#include "PrettyPrinter.h"
 
 namespace po = boost::program_options;
 
@@ -13,17 +13,22 @@ int main(int argc, char** argv) {
   po::options_description desc("Allowed options");
   desc.add_options()("help,h", "Produce help message.");
   desc.add_options()("ir,i", po::value<std::string>(), "gtirb file to print.");
-  desc.add_options()("out,o", po::value<std::string>(), "The name of the assembly output file.");
+  desc.add_options()("out,o", po::value<std::string>(),
+                     "The name of the assembly output file.");
   desc.add_options()("syntax,s", po::value<std::string>(),
                      "The syntax of the assembly file to generate.");
   desc.add_options()("debug,d", "Turn on debugging (will break assembly)");
-  desc.add_options()("keep-functions,k", po::value<std::vector<std::string>>()->multitoken(),
-                     "Print the given functions even if they are skipped by default (e.g. _start)");
+  desc.add_options()("keep-functions,k",
+                     po::value<std::vector<std::string>>()->multitoken(),
+                     "Print the given functions even if they are skipped by "
+                     "default (e.g. _start)");
   po::positional_options_description pd;
   pd.add("ir", -1);
   po::variables_map vm;
   try {
-    po::store(po::command_line_parser(argc, argv).options(desc).positional(pd).run(), vm);
+    po::store(
+        po::command_line_parser(argc, argv).options(desc).positional(pd).run(),
+        vm);
     if (vm.count("help") != 0) {
       std::cout << desc << "\n";
       return 1;
@@ -41,7 +46,8 @@ int main(int argc, char** argv) {
   if (vm.count("ir") != 0) {
     boost::filesystem::path irPath = vm["ir"].as<std::string>();
     if (boost::filesystem::exists(irPath) == true) {
-      LOG_INFO << std::setw(24) << std::left << "Reading IR: " << irPath << std::endl;
+      LOG_INFO << std::setw(24) << std::left << "Reading IR: " << irPath
+               << std::endl;
       std::ifstream in(irPath.string());
       ir = gtirb::IR::load(ctx, in);
     } else {
@@ -59,7 +65,8 @@ int main(int argc, char** argv) {
     try {
       pp.setSyntax(vm["syntax"].as<std::string>());
     } catch (std::out_of_range&) {
-      LOG_ERROR << "Unknown assembly syntax: '" << vm["syntax"].as<std::string>() << "'\n";
+      LOG_ERROR << "Unknown assembly syntax: '"
+                << vm["syntax"].as<std::string>() << "'\n";
       LOG_ERROR << "Available syntaxes:\n";
       for (const auto& syntax : PrettyPrinter::getRegisteredSyntaxes()) {
         LOG_ERROR << "    " << syntax << '\n';

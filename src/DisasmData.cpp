@@ -24,8 +24,8 @@
 using namespace std::rel_ops;
 
 DisasmData::DisasmData(gtirb::Context& context_, gtirb::IR& ir_)
-    : context(context_), ir(ir_), functionEAs(), start_function(), main_function(),
-      functionEntry() {
+    : context(context_), ir(ir_), functionEAs(), start_function(),
+      main_function(), functionEntry() {
   auto* EAs = getAuxData<std::vector<gtirb::Addr>>(ir, "functionEAs");
   if (EAs)
     functionEAs.insert(functionEAs.end(), EAs->begin(), EAs->end());
@@ -47,15 +47,17 @@ const gtirb::Module::section_range DisasmData::getSections() const {
   return this->ir.modules()[0].sections();
 }
 
-std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>* DisasmData::getDataSections() {
-  using table_type = std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>;
+std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>*
+DisasmData::getDataSections() {
+  using table_type =
+      std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>;
   return getAuxData<table_type>(ir, "dataSections");
 }
 
 std::string DisasmData::getSectionName(gtirb::Addr x) const {
   const gtirb::Module::section_range& sections = this->getSections();
-  const auto& match =
-      find_if(sections, [x](const gtirb::Section& s) { return s.getAddress() == x; });
+  const auto& match = find_if(
+      sections, [x](const gtirb::Section& s) { return s.getAddress() == x; });
 
   if (match != sections.end()) {
     return match->getName();
@@ -65,7 +67,8 @@ std::string DisasmData::getSectionName(gtirb::Addr x) const {
 }
 
 bool DisasmData::isFunction(const gtirb::Symbol& sym) const {
-  return std::binary_search(this->functionEAs.begin(), this->functionEAs.end(), sym.getAddress());
+  return std::binary_search(this->functionEAs.begin(), this->functionEAs.end(),
+                            sym.getAddress());
 }
 
 std::string DisasmData::getFunctionName(gtirb::Addr x) const {
@@ -110,10 +113,12 @@ std::string DisasmData::GetSymbolToPrint(gtirb::Addr x) {
 
 std::string DisasmData::getRelocatedDestination(const gtirb::Addr& addr) const {
   auto* relocations =
-      getAuxData<std::map<gtirb::Addr, std::tuple<std::string, std::string>>>(ir, "relocations");
+      getAuxData<std::map<gtirb::Addr, std::tuple<std::string, std::string>>>(
+          ir, "relocations");
   if (relocations) {
     const auto found = relocations->find(addr);
-    if (found != std::end(*relocations) && std::get<0>(found->second) == "R_X86_64_GLOB_DAT")
+    if (found != std::end(*relocations) &&
+        std::get<0>(found->second) == "R_X86_64_GLOB_DAT")
       return std::get<1>(found->second) + "@GOTPCREL";
   }
   return std::string{};
@@ -121,19 +126,22 @@ std::string DisasmData::getRelocatedDestination(const gtirb::Addr& addr) const {
 
 bool DisasmData::isRelocated(const std::string& x) const {
   auto relocations =
-      getAuxData<std::map<gtirb::Addr, std::tuple<std::string, std::string>>>(ir, "relocations");
+      getAuxData<std::map<gtirb::Addr, std::tuple<std::string, std::string>>>(
+          ir, "relocations");
   if (!relocations)
     return false;
 
-  const auto found = std::find_if(std::begin(*relocations), std::end(*relocations),
-                                  [x](const auto& element) { return get<1>(element.second) == x; });
+  const auto found = std::find_if(
+      std::begin(*relocations), std::end(*relocations),
+      [x](const auto& element) { return get<1>(element.second) == x; });
 
   return found != std::end(*relocations);
 }
 
 const gtirb::Section* DisasmData::getSection(const std::string& x) const {
-  const auto found = std::find_if(getSections().begin(), getSections().end(),
-                                  [x](const auto& element) { return element.getName() == x; });
+  const auto found =
+      std::find_if(getSections().begin(), getSections().end(),
+                   [x](const auto& element) { return element.getName() == x; });
 
   if (found != getSections().end()) {
     return &(*found);
@@ -152,7 +160,8 @@ std::string DisasmData::CleanSymbolNameSuffix(std::string x) {
   return x.substr(0, x.find_first_of('@'));
 }
 
-// FIXME: get rid of this function once capstone returns the right name for all registers
+// FIXME: get rid of this function once capstone returns the right name for all
+// registers
 std::string DisasmData::AdaptRegister(const std::string& x) {
   const std::map<std::string, std::string> adapt{{"ST(0", "ST(0)"}};
   if (const auto found = adapt.find(x); found != std::end(adapt)) {
@@ -168,8 +177,9 @@ std::string DisasmData::GetSizeName(uint64_t x) {
 
 std::string DisasmData::GetSizeName(const std::string& x) {
   const std::map<std::string, std::string> adapt{
-      {"128", ""},         {"0", ""},          {"80", "TBYTE PTR"}, {"64", "QWORD PTR"},
-      {"32", "DWORD PTR"}, {"16", "WORD PTR"}, {"8", "BYTE PTR"}};
+      {"128", ""},         {"0", ""},           {"80", "TBYTE PTR"},
+      {"64", "QWORD PTR"}, {"32", "DWORD PTR"}, {"16", "WORD PTR"},
+      {"8", "BYTE PTR"}};
 
   if (const auto found = adapt.find(x); found != std::end(adapt)) {
     return found->second;
@@ -185,8 +195,9 @@ std::string DisasmData::GetSizeSuffix(uint64_t x) {
 }
 
 std::string DisasmData::GetSizeSuffix(const std::string& x) {
-  const std::map<std::string, std::string> adapt{{"128", ""}, {"0", ""},   {"80", "t"}, {"64", "q"},
-                                                 {"32", "d"}, {"16", "w"}, {"8", "b"}};
+  const std::map<std::string, std::string> adapt{
+      {"128", ""}, {"0", ""},   {"80", "t"}, {"64", "q"},
+      {"32", "d"}, {"16", "w"}, {"8", "b"}};
 
   if (const auto found = adapt.find(x); found != std::end(adapt)) {
     return found->second;
@@ -198,7 +209,8 @@ std::string DisasmData::GetSizeSuffix(const std::string& x) {
 }
 
 std::string DisasmData::AvoidRegNameConflicts(const std::string& x) {
-  const std::vector<std::string> adapt{"FS", "MOD", "DIV", "NOT", "mod", "div", "not", "and", "or"};
+  const std::vector<std::string> adapt{"FS",  "MOD", "DIV", "NOT", "mod",
+                                       "div", "not", "and", "or"};
 
   if (const auto found = std::find(std::begin(adapt), std::end(adapt), x);
       found != std::end(adapt)) {
@@ -219,10 +231,11 @@ const std::array<std::pair<std::string, int>, 7> DataSectionDescriptors{{
     {".data", 16}        //
 }};
 
-const std::pair<std::string, int>* getDataSectionDescriptor(const std::string& name) {
-  const auto foundDataSection =
-      std::find_if(std::begin(DataSectionDescriptors), std::end(DataSectionDescriptors),
-                   [name](const auto& dsd) { return dsd.first == name; });
+const std::pair<std::string, int>*
+getDataSectionDescriptor(const std::string& name) {
+  const auto foundDataSection = std::find_if(
+      std::begin(DataSectionDescriptors), std::end(DataSectionDescriptors),
+      [name](const auto& dsd) { return dsd.first == name; });
   if (foundDataSection != std::end(DataSectionDescriptors))
     return foundDataSection;
   else

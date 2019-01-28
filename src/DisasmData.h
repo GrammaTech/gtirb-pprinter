@@ -17,6 +17,7 @@
 
 /// \file DisasmData.h
 
+#include "Export.h"
 #include <cstdint>
 #include <gtirb/gtirb.hpp>
 #include <iosfwd>
@@ -25,7 +26,6 @@
 #include <optional>
 #include <string>
 #include <vector>
-#include "Export.h"
 
 template <typename T> T* getAuxData(gtirb::IR& ir, const std::string& name) {
   gtirb::AuxData* data = ir.getAuxData(name);
@@ -46,7 +46,8 @@ public:
 
   const gtirb::Module::section_range getSections() const;
   std::vector<std::string>* getAmbiguousSymbol();
-  std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>* getDataSections();
+  std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>*
+  getDataSections();
 
   bool isFunction(const gtirb::Symbol& sym) const;
   std::string getSectionName(gtirb::Addr x) const;
@@ -74,6 +75,7 @@ private:
   std::vector<gtirb::Addr> functionEntry;
 };
 
-const std::pair<std::string, int>* getDataSectionDescriptor(const std::string& name);
+const std::pair<std::string, int>*
+getDataSectionDescriptor(const std::string& name);
 
 #endif /* GTIRB_PP_DISASM_DATA_H */

@@ -19,18 +19,22 @@
 
 class IntelPP : public AbstractPP {
 public:
-  IntelPP(gtirb::Context& context, gtirb::IR& ir, const PrettyPrinter::string_range& skip_funcs,
+  IntelPP(gtirb::Context& context, gtirb::IR& ir,
+          const PrettyPrinter::string_range& skip_funcs,
           PrettyPrinter::DebugStyle dbg);
 
 protected:
   int getGtirbOpIndex(int index, int opCount) const override;
 
   void printHeader(std::ostream& os) override;
-  void printOpRegdirect(std::ostream& os, const cs_insn& inst, const cs_x86_op& op) override;
+  void printOpRegdirect(std::ostream& os, const cs_insn& inst,
+                        const cs_x86_op& op) override;
   void printOpImmediate(std::ostream& os, const std::string& opcode,
-                        const gtirb::SymbolicExpression* symbolic, const cs_insn& inst,
-                        gtirb::Addr ea, uint64_t index) override;
-  void printOpIndirect(std::ostream& os, const gtirb::SymbolicExpression* symbolic,
+                        const gtirb::SymbolicExpression* symbolic,
+                        const cs_insn& inst, gtirb::Addr ea,
+                        uint64_t index) override;
+  void printOpIndirect(std::ostream& os,
+                       const gtirb::SymbolicExpression* symbolic,
                        const cs_insn& inst, uint64_t index) override;
 
   static constexpr char StrOffset[]{"OFFSET"};
