@@ -155,7 +155,7 @@ void AbstractPP::printBlock(std::ostream& os, const gtirb::Block& x) {
       getBytes(this->disasm.ir.modules()[0].getImageByteMap(), x);
   size_t count =
       cs_disasm(this->csHandle, reinterpret_cast<const uint8_t*>(&bytes2[0]),
-                bytes2.size(), uint64_t(x.getAddress()), 0, &insn);
+                bytes2.size(), static_cast<uint64_t>(x.getAddress()), 0, &insn);
 
   // Exception-safe cleanup of instructions
   std::unique_ptr<cs_insn, std::function<void(cs_insn*)>> freeInsn(
@@ -228,7 +228,7 @@ void AbstractPP::printFunctionHeader(std::ostream& os, gtirb::Addr ea) {
 
 void AbstractPP::printLabel(std::ostream& os, gtirb::Addr ea) {
   if (!this->condPrintGlobalSymbol(os, ea))
-    os << ".L_" << std::hex << uint64_t(ea) << ':' << std::dec;
+    os << ".L_" << std::hex << static_cast<uint64_t>(ea) << ':' << std::dec;
 }
 
 std::string
@@ -301,7 +301,7 @@ void AbstractPP::printInstruction(std::ostream& os, const cs_insn& inst) {
 void AbstractPP::printEA(std::ostream& os, gtirb::Addr ea) {
   os << StrTab;
   if (this->debug) {
-    os << std::hex << uint64_t(ea) << ": " << std::dec;
+    os << std::hex << static_cast<uint64_t>(ea) << ": " << std::dec;
   }
 }
 
@@ -421,7 +421,8 @@ void AbstractPP::printDataObject(std::ostream& os,
   printLabel(os, dataGroup.getAddress());
   os << AbstractPP::StrTab;
   if (this->debug)
-    os << std::hex << uint64_t(dataGroup.getAddress()) << std::dec << ':';
+    os << std::hex << static_cast<uint64_t>(dataGroup.getAddress()) << std::dec
+       << ':';
 
   const auto& foundSymbolic =
       module.findSymbolicExpression(dataGroup.getAddress());
