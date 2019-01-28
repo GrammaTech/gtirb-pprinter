@@ -284,7 +284,6 @@ void AbstractPP::printInstruction(std::ostream& os, const cs_insn& inst) {
   gtirb::Addr ea(inst.address);
   printComment(os, ea);
   this->printEA(os, ea);
-  std::string opcode = ascii_str_tolower(inst.mnemonic);
 
   ////////////////////////////////////////////////////////////////////
   // special cases
@@ -300,6 +299,11 @@ void AbstractPP::printInstruction(std::ostream& os, const cs_insn& inst) {
     }
     return;
   }
+
+  // end special cases
+  ////////////////////////////////////////////////////////////////////
+
+  std::string opcode = ascii_str_tolower(inst.mnemonic);
   os << "  " << opcode << ' ';
   this->printOperandList(os, opcode, ea, inst);
 }
