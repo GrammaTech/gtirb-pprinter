@@ -123,9 +123,9 @@ AbstractPP::AbstractPP(gtirb::Context& context, gtirb::IR& ir,
 AbstractPP::~AbstractPP() { cs_close(&this->csHandle); }
 
 std::optional<std::string> AbstractPP::getPltCodeSymName(gtirb::Addr ea) {
-  const auto* pltReferences = getAuxData<std::map<gtirb::Addr, std::string>>(
-      this->disasm.ir, "pltCodeReferences");
-  if (pltReferences) {
+  if (const auto* pltReferences =
+          getAuxData<std::map<gtirb::Addr, std::string>>(this->disasm.ir,
+                                                         "pltCodeReferences")) {
     const auto p = pltReferences->find(gtirb::Addr(ea));
     if (p != pltReferences->end())
       return p->second;
