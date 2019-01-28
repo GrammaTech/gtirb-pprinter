@@ -223,7 +223,7 @@ void AbstractPP::printFunctionHeader(std::ostream& os, gtirb::Addr ea) {
                                [this, &os]() { this->printBar(os, false); });
 
     // Enforce maximum alignment
-    uint64_t x(ea);
+    uint64_t x{ea};
     if (x % 8 == 0) {
       os << ".align 8\n";
     } else if (x % 2 == 0) {
