@@ -317,7 +317,6 @@ void AbstractPP::printEA(std::ostream& os, gtirb::Addr ea) {
 
 void AbstractPP::printOperandList(std::ostream& os, const std::string& opcode,
                                   const gtirb::Addr ea, const cs_insn& inst) {
-  std::string str_operands[4];
   cs_x86& detail = inst.detail->x86;
   const gtirb::Module& module = this->disasm.ir.modules()[0];
   uint8_t opCount = detail.op_count;
