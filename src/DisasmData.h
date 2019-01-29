@@ -49,7 +49,6 @@ public:
   const std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>*
   getDataSections();
 
-  bool isFunction(const gtirb::Symbol& sym) const;
   std::string getSectionName(gtirb::Addr x) const;
   std::string getFunctionName(gtirb::Addr x) const;
 
@@ -69,7 +68,6 @@ public:
   static std::string AvoidRegNameConflicts(const std::string& x);
 
 private:
-  std::vector<gtirb::Addr> functionEAs;
   std::optional<gtirb::Addr> start_function;
   std::optional<gtirb::Addr> main_function;
   std::vector<gtirb::Addr> functionEntry;

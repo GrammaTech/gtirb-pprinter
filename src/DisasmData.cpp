@@ -24,14 +24,12 @@
 using namespace std::rel_ops;
 
 DisasmData::DisasmData(gtirb::Context& context_, gtirb::IR& ir_)
-    : context(context_), ir(ir_), functionEAs(), start_function(),
-      main_function(), functionEntry() {
-  if (const auto* EAs = getAuxData<std::vector<gtirb::Addr>>(ir, "functionEAs"))
-    functionEAs.insert(functionEAs.end(), EAs->begin(), EAs->end());
-
+    : context(context_), ir(ir_), start_function(), main_function(),
+      functionEntry() {
   if (const auto* entries =
           getAuxData<std::vector<gtirb::Addr>>(ir, "functionEntry"))
     functionEntry.insert(functionEntry.end(), entries->begin(), entries->end());
+  std::sort(functionEntry.begin(), functionEntry.end());
 
   if (const auto* startFuncs =
           getAuxData<std::vector<gtirb::Addr>>(ir, "startFunction");
@@ -67,22 +65,15 @@ std::string DisasmData::getSectionName(gtirb::Addr x) const {
   return std::string{};
 }
 
-bool DisasmData::isFunction(const gtirb::Symbol& sym) const {
-  return std::binary_search(this->functionEAs.begin(), this->functionEAs.end(),
-                            sym.getAddress());
-}
-
 std::string DisasmData::getFunctionName(gtirb::Addr x) const {
-  // Is there a symbol at this address that's listed as a function?
-  for (gtirb::Symbol& s : this->ir.modules()[0].findSymbols(x)) {
-    if (isFunction(s)) {
-      std::stringstream name;
-      name << s.getName();
-
-      if (this->isAmbiguousSymbol(s.getName()) == true) {
-        name << '_' << std::hex << uint64_t(x);
-      }
-
+  // Is this address an entry point to a function with a symbol?
+  bool entry_point = std::binary_search(this->functionEntry.begin(),
+                                        this->functionEntry.end(), x);
+  if (entry_point) {
+    for (gtirb::Symbol& s : this->ir.modules()[0].findSymbols(x)) {
+      std::stringstream name(s.getName());
+      if (this->isAmbiguousSymbol(s.getName()))
+        name << '_' << std::hex << static_cast<uint64_t>(x);
       return name.str();
     }
   }
@@ -94,15 +85,14 @@ std::string DisasmData::getFunctionName(gtirb::Addr x) const {
     return "_start";
   }
 
-  // Or is this a function entry?
-  for (gtirb::Addr f : this->functionEntry) {
-    if (x == f) {
-      std::stringstream ss;
-      ss << "unknown_function_" << std::hex << uint64_t(x);
-      return ss.str();
-    }
+  // Is this a function entry with no associated symbol?
+  if (entry_point) {
+    std::stringstream name("unknown_function_");
+    name << std::hex << static_cast<uint64_t>(x);
+    return name.str();
   }
 
+  // This doesn't seem to be a function.
   return std::string{};
 }
 

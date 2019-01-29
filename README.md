@@ -56,8 +56,7 @@ associated types and contents in this table.
 | bssData           | `std::vector<gtirb::UUID>` | UUID of the `DataObject` associated with the bss section. |
 | comments          | `std::map<gtirb::Addr, std::string>` | Per-instruction comments. |
 | dataSections      | `std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>` | Tuples containing the name, alignment, and IDs of `DataObject`s for data sections. |
-| functionEAs       | `std::vector<gtirb::Addr>` | Addresses of the beginnings of functions with associated `Symbol`s. |
-| functionEntry     | `std::vector<gtirb::Addr>` | Addresses of entry points of functions without `Symbol`s. |
+| functionEntry     | `std::vector<gtirb::Addr>` | Addresses of entry points of functions. |
 | mainFunction      | `std::vector<gtirb::Addr>` | Address of the "main" function. Only the first such address is used. |
 | pltCodeReferences | `std::map<gtirb::Addr, std::string>` | Map from call targets in the PLT to the associated symbols.
 | pltDataReferences | `std::map<gtirb::Addr, std::string>` | Map from addresses to symbol names. FIXME: Which subset of symbols does this apply to? |
