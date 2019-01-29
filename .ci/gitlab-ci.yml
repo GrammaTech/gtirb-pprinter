@@ -3,7 +3,11 @@ variables:
   LOCAL_IMAGE_NAME: '$CI_BUILD_REF_NAME-$CI_PIPELINE_ID'
   GIT_SUBMODULE_STRATEGY: recursive
 
+before_script:
+  - docker info
+
 stages:
+  - check-format
   - build-ubuntu16-gcc
   - test-and-tag-ubuntu16-gcc
 # - build-test-ubuntu16-clang
@@ -13,6 +17,11 @@ stages:
 # - cleanup-ubuntu16-clang
 # - cleanup-ubuntu14-gcc
 # - cleanup-arch-gcc
+
+check-format:
+  stage: check-format
+  script:
+    - docker build --rm -f .ci/Dockerfile.formatter .
 
 .build-template: &build
   script:
