@@ -127,7 +127,7 @@ find_package(gtirb REQUIRED)
 # ---------------------------------------------------------------------------
 
 add_compile_options(-DBOOST_SYSTEM_NO_DEPRECATED)
-find_package(Boost 1.59 REQUIRED COMPONENTS serialization filesystem system program_options)
+find_package(Boost 1.59 REQUIRED COMPONENTS program_options)
 include_directories(${Boost_INCLUDE_DIRS})
 
 # ---------------------------------------------------------------------------

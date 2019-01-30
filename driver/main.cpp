@@ -1,11 +1,20 @@
 #include "DisasmData.h"
 #include "Logger.h"
 #include "PrettyPrinter.h"
-#include <boost/filesystem.hpp>
-#include <boost/process.hpp>
 #include <boost/program_options.hpp>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
+
+#if __has_include(<filesystem>)
+#include <filesystem>
+namespace fs = std::filesystem;
+#elif __has_include(<experimental/filesystem>)
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
+#else
+#error "This program requires <filesystem> or <experimental/filesystem>"
+#endif
 
 namespace po = boost::program_options;
 
@@ -44,8 +53,8 @@ int main(int argc, char** argv) {
   gtirb::IR* ir;
 
   if (vm.count("ir") != 0) {
-    boost::filesystem::path irPath = vm["ir"].as<std::string>();
-    if (boost::filesystem::exists(irPath) == true) {
+    fs::path irPath = vm["ir"].as<std::string>();
+    if (fs::exists(irPath) == true) {
       LOG_INFO << std::setw(24) << std::left << "Reading IR: " << irPath
                << std::endl;
       std::ifstream in(irPath.string());
@@ -83,7 +92,7 @@ int main(int argc, char** argv) {
 
   // Do we write it to a file?
   if (vm.count("out") != 0) {
-    const auto asmPath = boost::filesystem::path(vm["out"].as<std::string>());
+    const auto asmPath = fs::path(vm["out"].as<std::string>());
     std::ofstream ofs;
     ofs.open(asmPath.string());
 

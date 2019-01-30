@@ -20,11 +20,15 @@ set(${PROJECT_NAME}_SRC
 )
 
 # Unix, but not Cygwin.
-IF(UNIX AND NOT WIN32)
+IF(UNIX)
 	SET(SYSLIBS
-		dl
-		pthread
-	)
+		stdc++fs)
+	IF (NOT WIN32)
+		SET(SYSLIBS
+			${SYSLIBS}
+			dl
+			pthread)
+	ENDIF()
 ELSE()
 	SET(SYSLIBS
 	)
