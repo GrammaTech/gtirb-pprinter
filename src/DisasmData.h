@@ -70,6 +70,8 @@ public:
 private:
   std::optional<gtirb::Addr> start_function;
   std::optional<gtirb::Addr> main_function;
+
+  // This should be kept sorted to enable fast searches.
   std::vector<gtirb::Addr> functionEntry;
 };
 

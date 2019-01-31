@@ -42,7 +42,7 @@ public:
       : ofs{ss}, message{std::move(m)}, func{std::move(f)} {
     ofs << '\n';
 
-    if (message.empty() == false) {
+    if (!message.empty()) {
       ofs << "# BEGIN - " << this->message << '\n';
     }
 
@@ -52,7 +52,7 @@ public:
   ~BlockAreaComment() {
     func();
 
-    if (message.empty() == false) {
+    if (!message.empty()) {
       ofs << "# END   - " << this->message << '\n';
     }
 
@@ -198,7 +198,7 @@ void AbstractPP::printSectionHeader(std::ostream& os, const std::string& x,
 }
 
 void AbstractPP::printBar(std::ostream& os, bool heavy) {
-  if (heavy == true) {
+  if (heavy) {
     os << "#===================================\n";
   } else {
     os << "#-----------------------------------\n";
@@ -208,7 +208,7 @@ void AbstractPP::printBar(std::ostream& os, bool heavy) {
 void AbstractPP::printFunctionHeader(std::ostream& os, gtirb::Addr ea) {
   const std::string& name = this->disasm.getFunctionName(ea);
 
-  if (name.empty() == false) {
+  if (!name.empty()) {
     const BlockAreaComment bac(os, "Function Header",
                                [this, &os]() { this->printBar(os, false); });
 
@@ -382,7 +382,7 @@ void AbstractPP::printDataGroups(std::ostream& os) {
     // End label
     const gtirb::Addr endAddress = addressLimit(*sectionPtr);
     std::string next_section = this->disasm.getSectionName(endAddress);
-    if (next_section.empty() == true ||
+    if (next_section.empty() ||
         (next_section != StrSectionBSS &&
          getDataSectionDescriptor(next_section) == nullptr)) {
       // This is no the start of a new section, so print the label.
