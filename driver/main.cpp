@@ -63,17 +63,15 @@ int main(int argc, char** argv) {
   PrettyPrinter pp;
   pp.setDebug(vm.count("debug"));
   if (vm.count("syntax") != 0) {
-    try {
-      pp.setSyntax(vm["syntax"].as<std::string>());
-    } catch (std::out_of_range&) {
-      LOG_ERROR << "Unknown assembly syntax: '"
-                << vm["syntax"].as<std::string>() << "'\n";
+    const std::string& syntax = vm["syntax"].as<std::string>();
+    if (PrettyPrinter::getRegisteredSyntaxes().count(syntax) == 0) {
+      LOG_ERROR << "Unknown assembly syntax: '" << syntax << "'\n";
       LOG_ERROR << "Available syntaxes:\n";
-      for (const auto& syntax : PrettyPrinter::getRegisteredSyntaxes()) {
-        LOG_ERROR << "    " << syntax << '\n';
-      }
+      for (const std::string& s : PrettyPrinter::getRegisteredSyntaxes())
+        LOG_ERROR << "    " << s << '\n';
       return EXIT_FAILURE;
     }
+    pp.setSyntax(syntax);
   }
   if (vm.count("keep-functions") != 0) {
     for (auto keep : vm["keep-functions"].as<std::vector<std::string>>()) {

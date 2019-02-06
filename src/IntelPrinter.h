@@ -29,7 +29,7 @@ protected:
   void printHeader(std::ostream& os) override;
   void printOpRegdirect(std::ostream& os, const cs_insn& inst,
                         const cs_x86_op& op) override;
-  void printOpImmediate(std::ostream& os, const std::string& opcode,
+  void printOpImmediate(std::ostream& os,
                         const gtirb::SymbolicExpression* symbolic,
                         const cs_insn& inst, gtirb::Addr ea,
                         uint64_t index) override;

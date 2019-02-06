@@ -94,7 +94,7 @@ public:
 
   /// Do not skip the named function when printing.
   ///
-  /// \param functionName the name of the function to skip.
+  /// \param functionName the name of the function to keep.
   void keepFunction(const std::string& functionName);
 
   /// Skip the named function when printing.
@@ -169,6 +169,12 @@ protected:
   /// \param the address to look up.
   virtual std::optional<std::string> getPltCodeSymName(gtirb::Addr ea);
 
+  /// Return the SymAddrConst expression if it refers to a printed symbol.
+  ///
+  /// \param symex the SymbolicExpression to check
+  virtual const gtirb::SymAddrConst*
+  getSymbolicImmediate(const gtirb::SymbolicExpression* symex);
+
   // FIXME: I don't actually understand when to use one or the other of these
   // two functions. Someone needs to document this to make it clear (or remove
   // one of the functions).
@@ -181,6 +187,9 @@ protected:
 
   /// Get the index of an operand in the GTIRB, given the index of the operand
   /// in the Capstone instruction.
+  ///
+  /// NOTE: The GTIRB operands are indexed as if they were in an array:
+  ///   auto operands[] = {<unused>, src1, src2, ..., dst}
   ///
   /// \param index   the Capstone index of the operand
   /// \param opCount the total number of operands in the instruction
@@ -195,10 +204,20 @@ protected:
   virtual void printFunctionHeader(std::ostream& os, gtirb::Addr ea);
   virtual void printBlock(std::ostream& os, const gtirb::Block& x);
   virtual void printLabel(std::ostream& os, gtirb::Addr ea);
+
+  /// Print a single instruction to the stream. This implementation prints the
+  /// mnemonic provided by Capstone, then calls printOperandList(). Thus, it is
+  /// probably sufficient for most subclasses to configure Capstone to produce
+  /// the correct mnemonics (e.g., to include an operand size suffix) and not
+  /// modify this method.
+  ///
+  /// \param os   the output stream to print to
+  /// \param inst the instruction to print
   virtual void printInstruction(std::ostream& os, const cs_insn& inst);
+
   virtual void printEA(std::ostream& os, gtirb::Addr ea);
-  virtual void printOperandList(std::ostream& os, const std::string& opcode,
-                                const gtirb::Addr ea, const cs_insn& inst);
+  virtual void printOperandList(std::ostream& os, const gtirb::Addr ea,
+                                const cs_insn& inst);
   virtual void printComment(std::ostream& os, const gtirb::Addr ea);
   virtual void printDataGroups(std::ostream& os);
   virtual void printDataObject(std::ostream& os,
@@ -213,13 +232,13 @@ protected:
   virtual void printBSS(std::ostream& os);
   virtual void printString(std::ostream& os, const gtirb::DataObject& x);
 
-  virtual void printOperand(std::ostream& os, const std::string& opcode,
+  virtual void printOperand(std::ostream& os,
                             const gtirb::SymbolicExpression* symbolic,
                             const cs_insn& inst, gtirb::Addr ea,
                             uint64_t index);
   virtual void printOpRegdirect(std::ostream& os, const cs_insn& inst,
                                 const cs_x86_op& op) = 0;
-  virtual void printOpImmediate(std::ostream& os, const std::string& opcode,
+  virtual void printOpImmediate(std::ostream& os,
                                 const gtirb::SymbolicExpression* symbolic,
                                 const cs_insn& inst, gtirb::Addr ea,
                                 uint64_t index) = 0;
@@ -236,7 +255,21 @@ protected:
   bool skipEA(const gtirb::Addr x) const;
   bool isInSkippedSection(const gtirb::Addr x) const;
   bool isInSkippedFunction(const gtirb::Addr x) const;
-  std::string getContainerFunctionName(const gtirb::Addr x) const;
+
+  /// Get the name of the function containing an effective address. This
+  /// implementation assumes that functions are tightly packed within a
+  /// module; that is, it assumes that all addresses from the start of one
+  /// function to the next is part of the first. It also assumes that the
+  /// body of the last function in a module extends to the end of the module.
+  ///
+  /// The locations of the functions are found in the "functionEntry" AuxData
+  /// table.
+  ///
+  /// \param x the address to check
+  ///
+  /// \return the name of the containing function if one is found.
+  std::optional<std::string>
+  getContainerFunctionName(const gtirb::Addr x) const;
   bool isSectionSkipped(const std::string& name);
 
   std::string avoidRegNameConflicts(const std::string& x);

@@ -123,6 +123,17 @@ std::optional<std::string> AbstractPP::getPltCodeSymName(gtirb::Addr ea) {
   return std::nullopt;
 }
 
+const gtirb::SymAddrConst*
+AbstractPP::getSymbolicImmediate(const gtirb::SymbolicExpression* symex) {
+  if (symex) {
+    const auto* s = std::get_if<gtirb::SymAddrConst>(symex);
+    assert(s != nullptr && "symbolic operands must be 'address[+offset]'");
+    if (!this->skipEA(*s->Sym->getAddress()))
+      return s;
+  }
+  return nullptr;
+}
+
 std::ostream& AbstractPP::print(std::ostream& os) {
   this->printHeader(os);
 
@@ -295,7 +306,7 @@ void AbstractPP::printInstruction(std::ostream& os, const cs_insn& inst) {
 
   std::string opcode = ascii_str_tolower(inst.mnemonic);
   os << "  " << opcode << ' ';
-  this->printOperandList(os, opcode, ea, inst);
+  this->printOperandList(os, ea, inst);
 }
 
 void AbstractPP::printEA(std::ostream& os, gtirb::Addr ea) {
@@ -305,8 +316,8 @@ void AbstractPP::printEA(std::ostream& os, gtirb::Addr ea) {
   }
 }
 
-void AbstractPP::printOperandList(std::ostream& os, const std::string& opcode,
-                                  const gtirb::Addr ea, const cs_insn& inst) {
+void AbstractPP::printOperandList(std::ostream& os, const gtirb::Addr ea,
+                                  const cs_insn& inst) {
   cs_x86& detail = inst.detail->x86;
   const gtirb::Module& module = this->disasm.ir.modules()[0];
   uint8_t opCount = detail.op_count;
@@ -328,11 +339,11 @@ void AbstractPP::printOperandList(std::ostream& os, const std::string& opcode,
     auto found = module.findSymbolicExpression(ea + index);
     if (found != module.symbolic_expr_end())
       symbolic = &*found;
-    this->printOperand(os, opcode, symbolic, inst, ea, i);
+    this->printOperand(os, symbolic, inst, ea, i);
   }
 }
 
-void AbstractPP::printOperand(std::ostream& os, const std::string& opcode,
+void AbstractPP::printOperand(std::ostream& os,
                               const gtirb::SymbolicExpression* symbolic,
                               const cs_insn& inst, gtirb::Addr ea,
                               uint64_t index) {
@@ -342,7 +353,7 @@ void AbstractPP::printOperand(std::ostream& os, const std::string& opcode,
     this->printOpRegdirect(os, inst, op);
     return;
   case X86_OP_IMM:
-    this->printOpImmediate(os, opcode, symbolic, inst, ea, index);
+    this->printOpImmediate(os, symbolic, inst, ea, index);
     return;
   case X86_OP_MEM:
     this->printOpIndirect(os, symbolic, inst, index);
@@ -570,30 +581,32 @@ bool AbstractPP::isInSkippedSection(const gtirb::Addr x) const {
 }
 
 bool AbstractPP::isInSkippedFunction(const gtirb::Addr x) const {
-  std::string xFunctionName = getContainerFunctionName(x);
-  if (xFunctionName.empty())
+  std::optional<std::string> xFunctionName = getContainerFunctionName(x);
+  if (!xFunctionName)
     return false;
-  return AsmSkipFunction.count(xFunctionName);
+  return AsmSkipFunction.count(*xFunctionName);
 }
 
-std::string AbstractPP::getContainerFunctionName(const gtirb::Addr x) const {
-  gtirb::Addr xFunctionAddress{0};
-  if (const auto* functionEntries = getAuxData<std::vector<gtirb::Addr>>(
-          this->disasm.ir, "functionEntry")) {
-    if (auto fe =
-            std::lower_bound(functionEntries->rbegin(), functionEntries->rend(),
+std::optional<std::string>
+AbstractPP::getContainerFunctionName(const gtirb::Addr x) const {
+  const auto* functionEntries =
+      getAuxData<std::vector<gtirb::Addr>>(this->disasm.ir, "functionEntry");
+  if (!functionEntries)
+    return std::nullopt;
+
+  const auto mod = std::find_if(this->disasm.ir.begin(), this->disasm.ir.end(),
+                                [x](const gtirb::Module& module) {
+                                  return gtirb::containsAddr(module, x);
+                                });
+  if (mod == this->disasm.ir.end())
+    return std::nullopt;
+
+  auto fe = std::lower_bound(functionEntries->rbegin(), functionEntries->rend(),
                              x, std::greater<>());
-        fe != functionEntries->rend()) {
-      if (fe == functionEntries->rbegin()) {
-        for (const gtirb::Module& module : this->disasm.ir.modules()) {
-          if (gtirb::containsAddr(module, x))
-            xFunctionAddress = *fe;
-        }
-      } else
-        xFunctionAddress = *fe;
-    }
-  }
-  return this->disasm.getFunctionName(xFunctionAddress);
+  if (fe == functionEntries->rend() || !gtirb::containsAddr(*mod, *fe))
+    return std::nullopt;
+
+  return this->disasm.getFunctionName(*fe);
 }
 
 std::string AbstractPP::getRegisterName(unsigned int reg) const {
