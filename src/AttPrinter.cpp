@@ -17,9 +17,10 @@
 #include "string_utils.h"
 #include <iomanip>
 
+namespace gtirb_pprint {
+
 AttPP::AttPP(gtirb::Context& context, gtirb::IR& ir,
-             const PrettyPrinter::string_range& skip_funcs,
-             PrettyPrinter::DebugStyle dbg)
+             const string_range& skip_funcs, DebugStyle dbg)
     : AbstractPP(context, ir, skip_funcs, dbg) {
   cs_option(this->csHandle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
 }
@@ -138,9 +139,10 @@ void AttPP::printOpIndirect(std::ostream& os,
   }
 }
 
-volatile bool AttPP::registered = PrettyPrinter::registerPrinter(
+volatile bool AttPP::registered = registerPrinter(
     {"att"}, [](gtirb::Context& context, gtirb::IR& ir,
-                const PrettyPrinter::string_range& skip_funcs,
-                PrettyPrinter::DebugStyle dbg) {
+                const string_range& skip_funcs, DebugStyle dbg) {
       return std::make_unique<AttPP>(context, ir, skip_funcs, dbg);
     });
+
+} // namespace gtirb_pprint

@@ -16,9 +16,10 @@
 
 #include "IntelPrinter.h"
 
+namespace gtirb_pprint {
+
 IntelPP::IntelPP(gtirb::Context& context, gtirb::IR& ir,
-                 const PrettyPrinter::string_range& skip_funcs,
-                 PrettyPrinter::DebugStyle dbg)
+                 const string_range& skip_funcs, DebugStyle dbg)
     : AbstractPP(context, ir, skip_funcs, dbg) {}
 
 int IntelPP::getGtirbOpIndex(int index, int opCount) const {
@@ -124,9 +125,10 @@ void IntelPP::printOpIndirect(std::ostream& os,
   os << ']';
 }
 
-volatile bool IntelPP::registered = PrettyPrinter::registerPrinter(
+volatile bool IntelPP::registered = registerPrinter(
     {"intel"}, [](gtirb::Context& context, gtirb::IR& ir,
-                  const PrettyPrinter::string_range& skip_funcs,
-                  PrettyPrinter::DebugStyle dbg) {
+                  const string_range& skip_funcs, DebugStyle dbg) {
       return std::make_unique<IntelPP>(context, ir, skip_funcs, dbg);
     });
+
+} // namespace gtirb_pprint

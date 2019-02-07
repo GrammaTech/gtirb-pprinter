@@ -17,11 +17,12 @@
 
 #include "PrettyPrinter.h"
 
+namespace gtirb_pprint {
+
 class AttPP : public AbstractPP {
 public:
-  AttPP(gtirb::Context& context, gtirb::IR& ir,
-        const PrettyPrinter::string_range& skip_funcs,
-        PrettyPrinter::DebugStyle dbg);
+  AttPP(gtirb::Context& context, gtirb::IR& ir, const string_range& skip_funcs,
+        DebugStyle dbg);
 
 protected:
   int getGtirbOpIndex(int index, int opCount) const override;
@@ -41,5 +42,7 @@ protected:
 private:
   static volatile bool registered;
 };
+
+} // namespace gtirb_pprint
 
 #endif /* GTIRB_PP_GAS_PRINTER_H */

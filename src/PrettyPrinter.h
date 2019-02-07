@@ -28,119 +28,112 @@
 #include <unordered_set>
 #include <vector>
 
+/// \brief Pretty-print GTIRB representations.
+namespace gtirb_pprint {
 class AbstractPP;
+/// Whether a pretty printer should include debugging messages in it output.
+enum DebugStyle { NoDebug, DebugMessages };
 
+/// A range containing strings. These can be standard library containers or
+/// pairs of iterators, for example.
+using string_range = boost::any_range<std::string, boost::forward_traversal_tag,
+                                      std::string&, std::ptrdiff_t>;
+
+/// The type of the factories that may be registered. A factory is simply
+/// something that can be called with an allocation context, the IR to pretty
+/// print, the set of function names to skip during printing, and a boolean
+/// indicating whether to include debugging output.
 ///
-/// \class PrettyPrinter
+using factory = std::function<std::unique_ptr<AbstractPP>(
+    gtirb::Context& context, gtirb::IR& ir, const string_range&, DebugStyle)>;
+
+/// Register a factory for creating pretty printer objects. The factory will
+/// be used to generate the syntaxes named in the initialization list. For
+/// example, \code registerPrinter({"foo", "bar"}, theFactory); \endcode
 ///
-/// The PrettyPrinter class is actually a factory/builder for pretty-printers.
-/// It allows different pretty-printer implementations to be registered to
-/// target different output formats.
+/// \param syntaxes the (non-empty) syntaxes produced by the factory
+/// \param f        the (non-empty) \link factory object
 ///
-class PrettyPrinter {
-public:
-  /// Whether a pretty printer should include debugging messages in it output.
-  enum DebugStyle { NoDebug, DebugMessages };
+/// \return \c true.
+bool registerPrinter(std::initializer_list<std::string> syntaxes, factory f);
 
-  /// A range containing strings. These can be standard library containers or
-  /// pairs of iterators, for example.
-  using string_range =
-      boost::any_range<std::string, boost::forward_traversal_tag, std::string&,
-                       std::ptrdiff_t>;
+/// Return the current set of syntaxes with registered factories.
+std::set<std::string> getRegisteredSyntaxes();
 
-  /// The type of the factories that may be registered. A factory is simply
-  /// something that can be called with an allocation context, the IR to pretty
-  /// print, the set of function names to skip during printing, and a boolean
-  /// indicating whether to include debugging output.
-  ///
-  using factory = std::function<std::unique_ptr<AbstractPP>(
-      gtirb::Context& context, gtirb::IR& ir, const string_range&, DebugStyle)>;
+/// Default set of functions to skip during printing.
+const std::set<std::string>& getDefaultSkippedFunctions();
 
-  /// Register a factory for creating pretty printer objects. The factory will
-  /// be used to generate the syntaxes named in the initialization list. For
-  /// example, \code PrettyPrinter::registerPrinter({"foo", "bar"}, theFactory);
-  /// \endcode
-  ///
-  /// \param syntaxes the (non-empty) syntaxes produced by the factory
-  /// \param f        the (non-empty) \link factory object
-  ///
-  /// \return \c true.
-  static bool registerPrinter(std::initializer_list<std::string> syntaxes,
-                              factory f);
+/// Get a pretty printer to print the given IR in a particular syntax. The
+/// syntax must be one of the syntaxes reported by getRegisteredSyntaxes().
+///
+/// \param context Context containing the IR
+/// \param ir      IR to print
+/// \param syntax  name of the registered syntax to print
+///
+/// \return a pointer to the pretty printer object
+std::unique_ptr<AbstractPP> getPrinter(gtirb::Context& context, gtirb::IR& ir,
+                                       const std::string& syntax);
 
-  /// Return the current set of syntaxes with registered factories.
-  static std::set<std::string> getRegisteredSyntaxes();
+/// Pretty print an IR to a stream. The syntax must be one of the syntaxes
+/// reported by getRegisteredSyntaxes().
+///
+/// The supported DebugStyles are DebugMessages, which included debugging
+/// comments in the output and includes all functions and sections, and
+/// NoDebug, which does not.
+///
+/// \param stream        stream to print to
+/// \param context       Context containing the IR
+/// \param ir            IR to print
+/// \param skipFunctions range of names of functions that should not be printed
+/// \param syntax        name of the registered syntax to output
+/// \param debug         whether to enable debugging-style output
+///
+/// \return a condition indicating if there was an error, or condition 0 if
+/// there were no errors.
+std::error_condition prettyPrint(std::ostream& stream, gtirb::Context& context,
+                                 gtirb::IR& ir, string_range skipFunctions,
+                                 const std::string& syntax, DebugStyle debug);
 
-  /// Set the syntax of output to generate. The syntax must be one of the
-  /// syntaxes previously registered with \link registerPrinter.
-  ///
-  /// \param syntax the name of a registered syntax
-  void setSyntax(const std::string& syntax_name) {
-    assert(getFactories().find(syntax_name) != getFactories().end());
-    this->syntax = syntax_name;
-  }
+/// Pretty print an IR to a stream. The syntax must be one of the syntaxes
+/// reported by getRegisteredSyntaxes(). Equivalent to
+/// \code
+/// prettyPrint(stream, context, ir, skipFunctions, syntax, NoDebug)
+/// \endcode
+///
+/// \param stream        stream to print to
+/// \param context       Context containing the IR
+/// \param ir            IR to print
+/// \param skipFunctions range of names of functions that should not be printed
+/// \param syntax        name of the registered syntax to output
+///
+/// \return a condition indicating if there was an error, or condition 0 if
+/// there were no errors.
+std::error_condition prettyPrint(std::ostream& stream, gtirb::Context& context,
+                                 gtirb::IR& ir, string_range skipFunctions,
+                                 const std::string& syntax);
 
-  /// Return the syntax of output that would currently be generated.
-  const std::string& getSyntax() const { return this->syntax; }
-
-  /// Enable or disable debugging output.
-  ///
-  /// \param x whether to enable (\c true) or disable (\c false) debugging
-  /// output.
-  void setDebug(bool x) { this->debug = x; };
-
-  /// Return whether debugging output is enabled.
-  bool getDebug() const { return this->debug; };
-
-  /// Do not skip the named function when printing.
-  ///
-  /// \param functionName the name of the function to keep.
-  void keepFunction(const std::string& functionName);
-
-  /// Skip the named function when printing.
-  ///
-  /// \param functionName the name of the function to skip.
-  void skipFunction(const std::string& functionName);
-
-  ///
-  /// Pretty print to a string. This actually builds the pretty-printer object
-  /// of the current syntax for the given IR. Since the pretty-printer has an
-  /// appropriate \c operator<< and can only print the one IR to a stream
-  /// anyway, this method will often be called directly as an argument to an
-  /// output stream: \code PrettyPrinter pp;
-  /// // ...
-  /// std::cout << pp.prettyPrint(context, ir);
-  /// \endcode
-  ///
-  std::unique_ptr<AbstractPP> prettyPrint(gtirb::Context& context,
-                                          gtirb::IR& ir);
-
-private:
-  // To avoid issues with static initialization order, the singleton map of
-  // factories is a function-local static object that can be accessed with this
-  // function.
-  static std::map<std::string, factory>& getFactories();
-
-  /// Initial set of functions to skip during printing.
-  std::unordered_set<std::string> AsmSkipFunction{
-      {"_start", "deregister_tm_clones", "register_tm_clones",
-       "__do_global_dtors_aux", "frame_dummy", "__libc_csu_fini",
-       "__libc_csu_init", "_dl_relocate_static_pie"}};
-
-  /// Default syntax is "intel".
-  std::string syntax{"intel"};
-
-  /// Debugging is disabled by default.
-  bool debug{false};
-};
+/// Pretty print an IR to a stream. The syntax must be one of the syntaxes
+/// reported by getRegisteredSyntaxes(). Equivalent to
+/// \code
+/// prettyPrint(stream, context, ir, getDefaultSkippedFunctions(), syntax,
+/// NoDebug) \endcode
+///
+/// \param stream        stream to print to
+/// \param context       Context containing the IR
+/// \param ir            IR to print
+/// \param syntax        name of the registered syntax to output
+///
+/// \return a condition indicating if there was an error, or condition 0 if
+/// there were no errors.
+std::error_condition prettyPrint(std::ostream& stream, gtirb::Context& context,
+                                 gtirb::IR& ir, const std::string& syntax);
 
 /// The pretty-printer interface. There is only one exposed function, \link
 /// print().
 class AbstractPP {
 public:
   AbstractPP(gtirb::Context& context, gtirb::IR& ir,
-             const PrettyPrinter::string_range& skip_funcs,
-             PrettyPrinter::DebugStyle dbg);
+             const string_range& skip_funcs, DebugStyle dbg);
   virtual ~AbstractPP();
 
   virtual std::ostream& print(std::ostream& out);
@@ -280,10 +273,6 @@ protected:
   bool debug;
 };
 
-/// Print the wrapped IR to a stream.
-inline std::ostream& operator<<(std::ostream& out,
-                                const std::unique_ptr<AbstractPP>& pp) {
-  return pp->print(out);
-}
+} // namespace gtirb_pprint
 
 #endif /* GTIRB_PP_PRETTY_PRINTER_H */

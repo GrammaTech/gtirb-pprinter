@@ -64,13 +64,14 @@ public:
   std::function<void()> func;
 };
 
-std::map<std::string, PrettyPrinter::factory>& PrettyPrinter::getFactories() {
-  static std::map<std::string, PrettyPrinter::factory> factories;
+static std::map<std::string, ::gtirb_pprint::factory>& getFactories() {
+  static std::map<std::string, gtirb_pprint::factory> factories;
   return factories;
 }
 
-bool PrettyPrinter::registerPrinter(std::initializer_list<std::string> syntaxes,
-                                    factory f) {
+namespace gtirb_pprint {
+
+bool registerPrinter(std::initializer_list<std::string> syntaxes, factory f) {
   assert(f && "Cannot register null factory!");
   assert(syntaxes.size() > 0 && "No syntaxes to register!");
   for (const std::string& name : syntaxes)
@@ -78,33 +79,53 @@ bool PrettyPrinter::registerPrinter(std::initializer_list<std::string> syntaxes,
   return true;
 }
 
-std::set<std::string> PrettyPrinter::getRegisteredSyntaxes() {
+std::set<std::string> getRegisteredSyntaxes() {
   std::set<std::string> syntaxes;
   for (const std::pair<std::string, factory>& entry : getFactories())
     syntaxes.insert(entry.first);
   return syntaxes;
 }
 
-void PrettyPrinter::keepFunction(const std::string& functionName) {
-  AsmSkipFunction.erase(functionName);
-}
-void PrettyPrinter::skipFunction(const std::string& functionName) {
-  AsmSkipFunction.insert(functionName);
+const std::set<std::string>& getDefaultSkippedFunctions() {
+  static const std::set<std::string> functions{"_start",
+                                               "deregister_tm_clones",
+                                               "register_tm_clones",
+                                               "__do_global_dtors_aux",
+                                               "frame_dummy",
+                                               "__libc_csu_fini",
+                                               "__libc_csu_init",
+                                               "_dl_relocate_static_pie"};
+  return functions;
 }
 
-std::unique_ptr<AbstractPP> PrettyPrinter::prettyPrint(gtirb::Context& context,
-                                                       gtirb::IR& ir) {
-  return getFactories().at(syntax)(context, ir, AsmSkipFunction,
-                                   debug ? PrettyPrinter::DebugMessages
-                                         : PrettyPrinter::NoDebug);
+std::error_condition prettyPrint(std::ostream& stream, gtirb::Context& context,
+                                 gtirb::IR& ir, string_range skipFunctions,
+                                 const std::string& syntax) {
+  return prettyPrint(stream, context, ir, skipFunctions, syntax, NoDebug);
+}
+
+std::error_condition prettyPrint(std::ostream& stream, gtirb::Context& context,
+                                 gtirb::IR& ir, const std::string& syntax) {
+  return prettyPrint(stream, context, ir, getDefaultSkippedFunctions(), syntax,
+                     NoDebug);
+}
+
+std::error_condition prettyPrint(std::ostream& stream, gtirb::Context& context,
+                                 gtirb::IR& ir, string_range skipFunctions,
+                                 const std::string& syntax, DebugStyle debug) {
+  getFactories().at(syntax)(context, ir, skipFunctions, debug)->print(stream);
+  return std::error_condition{};
+}
+
+std::unique_ptr<AbstractPP> getPrinter(gtirb::Context& context, gtirb::IR& ir,
+                                       const std::string& syntax) {
+  return getFactories().at(syntax)(context, ir, string_range{}, NoDebug);
 }
 
 AbstractPP::AbstractPP(gtirb::Context& context, gtirb::IR& ir,
-                       const PrettyPrinter::string_range& skip_funcs,
-                       PrettyPrinter::DebugStyle dbg)
+                       const string_range& skip_funcs, DebugStyle dbg)
     : AsmSkipFunction(skip_funcs.begin(), skip_funcs.end()),
-      disasm(context, ir),
-      debug(dbg == PrettyPrinter::DebugMessages ? true : false) {
+      disasm(context, ir), debug(dbg == DebugMessages ? true : false) {
   [[maybe_unused]] cs_err err =
       cs_open(CS_ARCH_X86, CS_MODE_64, &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
@@ -627,3 +648,5 @@ bool AbstractPP::isSectionSkipped(const std::string& name) {
     return false;
   return AsmSkipSection.count(name);
 }
+
+} // namespace gtirb_pprint

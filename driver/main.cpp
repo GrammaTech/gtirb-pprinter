@@ -16,7 +16,8 @@ int main(int argc, char** argv) {
   desc.add_options()("ir,i", po::value<std::string>(), "gtirb file to print.");
   desc.add_options()("out,o", po::value<std::string>(),
                      "The name of the assembly output file.");
-  desc.add_options()("syntax,s", po::value<std::string>(),
+  desc.add_options()("syntax,s",
+                     po::value<std::string>()->default_value("intel"),
                      "The syntax of the assembly file to generate.");
   desc.add_options()("debug,d", "Turn on debugging (will break assembly)");
   desc.add_options()("keep-functions,k",
@@ -60,25 +61,23 @@ int main(int argc, char** argv) {
   }
 
   // Perform the Pretty Printing step.
-  PrettyPrinter pp;
-  pp.setDebug(vm.count("debug"));
-  if (vm.count("syntax") != 0) {
-    const std::string& syntax = vm["syntax"].as<std::string>();
-    if (PrettyPrinter::getRegisteredSyntaxes().count(syntax) == 0) {
-      LOG_ERROR << "Unknown assembly syntax: '" << syntax << "'\n";
-      LOG_ERROR << "Available syntaxes:\n";
-      for (const std::string& s : PrettyPrinter::getRegisteredSyntaxes())
-        LOG_ERROR << "    " << s << '\n';
-      return EXIT_FAILURE;
-    }
-    pp.setSyntax(syntax);
+  gtirb_pprint::DebugStyle debug =
+      vm.count("debug") ? gtirb_pprint::DebugMessages : gtirb_pprint::NoDebug;
+  const std::string& syntax = vm["syntax"].as<std::string>();
+  if (gtirb_pprint::getRegisteredSyntaxes().count(syntax) == 0) {
+    LOG_ERROR << "Unknown assembly syntax: '" << syntax << "'\n";
+    LOG_ERROR << "Available syntaxes:\n";
+    for (const std::string& s : gtirb_pprint::getRegisteredSyntaxes())
+      LOG_ERROR << "    " << s << '\n';
+    return EXIT_FAILURE;
   }
+
+  std::set<std::string> blacklist = gtirb_pprint::getDefaultSkippedFunctions();
   if (vm.count("keep-functions") != 0) {
     for (auto keep : vm["keep-functions"].as<std::vector<std::string>>()) {
-      pp.keepFunction(keep);
+      blacklist.erase(keep);
     }
   }
-  const auto assembly = pp.prettyPrint(ctx, *ir);
 
   // Do we write it to a file?
   if (vm.count("out") != 0) {
@@ -87,14 +86,14 @@ int main(int argc, char** argv) {
     ofs.open(asmPath.string());
 
     if (ofs.is_open() == true) {
-      ofs << assembly;
+      gtirb_pprint::prettyPrint(ofs, ctx, *ir, blacklist, syntax, debug);
       ofs.close();
       LOG_INFO << "Assembly written to: " << asmPath << "\n";
     } else {
       LOG_ERROR << "Could not output assembly output file: " << asmPath << "\n";
     }
   } else {
-    std::cout << assembly << std::endl;
+    gtirb_pprint::prettyPrint(std::cout, ctx, *ir, blacklist, syntax, debug);
   }
 
   return EXIT_SUCCESS;

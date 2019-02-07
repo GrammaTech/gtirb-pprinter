@@ -17,11 +17,12 @@
 
 #include "PrettyPrinter.h"
 
+namespace gtirb_pprint {
+
 class IntelPP : public AbstractPP {
 public:
   IntelPP(gtirb::Context& context, gtirb::IR& ir,
-          const PrettyPrinter::string_range& skip_funcs,
-          PrettyPrinter::DebugStyle dbg);
+          const string_range& skip_funcs, DebugStyle dbg);
 
 protected:
   int getGtirbOpIndex(int index, int opCount) const override;
@@ -42,5 +43,7 @@ protected:
 private:
   static volatile bool registered;
 };
+
+} // namespace gtirb_pprint
 
 #endif /* GTIRB_PP_NASM_PRINTER_H */
