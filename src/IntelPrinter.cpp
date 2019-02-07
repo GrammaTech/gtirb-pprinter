@@ -18,11 +18,12 @@
 
 namespace gtirb_pprint {
 
-IntelPP::IntelPP(gtirb::Context& context, gtirb::IR& ir,
-                 const string_range& skip_funcs, DebugStyle dbg)
-    : AbstractPP(context, ir, skip_funcs, dbg) {}
+IntelPrettyPrinter::IntelPrettyPrinter(gtirb::Context& context, gtirb::IR& ir,
+                                       const string_range& skip_funcs,
+                                       DebugStyle dbg)
+    : PrettyPrinterBase(context, ir, skip_funcs, dbg) {}
 
-int IntelPP::getGtirbOpIndex(int index, int opCount) const {
+int IntelPrettyPrinter::getGtirbOpIndex(int index, int opCount) const {
   // The datalog disassembler always treats operand indices as if using this
   // array:
   //   {opcode, src1, src2, ..., dst}
@@ -36,28 +37,28 @@ int IntelPP::getGtirbOpIndex(int index, int opCount) const {
   return index;
 }
 
-void IntelPP::printHeader(std::ostream& os) {
+void IntelPrettyPrinter::printHeader(std::ostream& os) {
   this->printBar(os);
   os << ".intel_syntax noprefix\n";
   this->printBar(os);
   os << '\n';
 
   for (int i = 0; i < 8; i++) {
-    os << AbstractPP::StrNOP << '\n';
+    os << PrettyPrinterBase::StrNOP << '\n';
   }
 }
 
-void IntelPP::printOpRegdirect(std::ostream& os, const cs_insn& /*inst*/,
-                               const cs_x86_op& op) {
+void IntelPrettyPrinter::printOpRegdirect(std::ostream& os,
+                                          const cs_insn& /*inst*/,
+                                          const cs_x86_op& op) {
   assert(op.type == X86_OP_REG &&
          "printOpRegdirect called without a register operand");
   os << getRegisterName(op.reg);
 }
 
-void IntelPP::printOpImmediate(std::ostream& os,
-                               const gtirb::SymbolicExpression* symbolic,
-                               const cs_insn& inst, gtirb::Addr ea,
-                               uint64_t index) {
+void IntelPrettyPrinter::printOpImmediate(
+    std::ostream& os, const gtirb::SymbolicExpression* symbolic,
+    const cs_insn& inst, gtirb::Addr ea, uint64_t index) {
   const cs_x86_op& op = inst.detail->x86.operands[index];
   assert(op.type == X86_OP_IMM &&
          "printOpImmediate called without an immediate operand");
@@ -71,12 +72,12 @@ void IntelPP::printOpImmediate(std::ostream& os,
     if (is_call || is_jump)
       os << *plt_name << "@PLT";
     else
-      os << IntelPP::StrOffset << ' ' << *plt_name;
+      os << IntelPrettyPrinter::StrOffset << ' ' << *plt_name;
   } else if (const gtirb::SymAddrConst* s =
                  this->getSymbolicImmediate(symbolic)) {
     // The operand is symbolic.
     if (!is_call)
-      os << IntelPP::StrOffset << ' ';
+      os << IntelPrettyPrinter::StrOffset << ' ';
     os << this->getAdaptedSymbolNameDefault(s->Sym)
        << getAddendString(s->Offset);
   } else {
@@ -85,9 +86,9 @@ void IntelPP::printOpImmediate(std::ostream& os,
   }
 }
 
-void IntelPP::printOpIndirect(std::ostream& os,
-                              const gtirb::SymbolicExpression* symbolic,
-                              const cs_insn& inst, uint64_t index) {
+void IntelPrettyPrinter::printOpIndirect(
+    std::ostream& os, const gtirb::SymbolicExpression* symbolic,
+    const cs_insn& inst, uint64_t index) {
   const cs_x86& detail = inst.detail->x86;
   const cs_x86_op& op = detail.operands[index];
   assert(op.type == X86_OP_MEM &&
@@ -125,10 +126,10 @@ void IntelPP::printOpIndirect(std::ostream& os,
   os << ']';
 }
 
-volatile bool IntelPP::registered = registerPrinter(
+volatile bool IntelPrettyPrinter::registered = registerPrinter(
     {"intel"}, [](gtirb::Context& context, gtirb::IR& ir,
                   const string_range& skip_funcs, DebugStyle dbg) {
-      return std::make_unique<IntelPP>(context, ir, skip_funcs, dbg);
+      return std::make_unique<IntelPrettyPrinter>(context, ir, skip_funcs, dbg);
     });
 
 } // namespace gtirb_pprint

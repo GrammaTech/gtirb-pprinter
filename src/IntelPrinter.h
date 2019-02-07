@@ -19,10 +19,10 @@
 
 namespace gtirb_pprint {
 
-class IntelPP : public AbstractPP {
+class IntelPrettyPrinter : public PrettyPrinterBase {
 public:
-  IntelPP(gtirb::Context& context, gtirb::IR& ir,
-          const string_range& skip_funcs, DebugStyle dbg);
+  IntelPrettyPrinter(gtirb::Context& context, gtirb::IR& ir,
+                     const string_range& skip_funcs, DebugStyle dbg);
 
 protected:
   int getGtirbOpIndex(int index, int opCount) const override;

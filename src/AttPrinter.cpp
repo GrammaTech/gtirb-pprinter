@@ -19,19 +19,21 @@
 
 namespace gtirb_pprint {
 
-AttPP::AttPP(gtirb::Context& context, gtirb::IR& ir,
-             const string_range& skip_funcs, DebugStyle dbg)
-    : AbstractPP(context, ir, skip_funcs, dbg) {
+AttPrettyPrinter::AttPrettyPrinter(gtirb::Context& context, gtirb::IR& ir,
+                                   const string_range& skip_funcs,
+                                   DebugStyle dbg)
+    : PrettyPrinterBase(context, ir, skip_funcs, dbg) {
   cs_option(this->csHandle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
 }
 
-void AttPP::printHeader(std::ostream& /*os*/) {}
+void AttPrettyPrinter::printHeader(std::ostream& /*os*/) {}
 
-std::string AttPP::getRegisterName(unsigned int reg) const {
-  return std::string{"%"} + ascii_str_tolower(AbstractPP::getRegisterName(reg));
+std::string AttPrettyPrinter::getRegisterName(unsigned int reg) const {
+  return std::string{"%"} +
+         ascii_str_tolower(PrettyPrinterBase::getRegisterName(reg));
 }
 
-int AttPP::getGtirbOpIndex(int index, int opCount) const {
+int AttPrettyPrinter::getGtirbOpIndex(int index, int opCount) const {
   // The datalog disassmbler always treats operands indice as if using this
   // array:
   //   {opcode, src1, src2, ..., dst}
@@ -45,8 +47,8 @@ int AttPP::getGtirbOpIndex(int index, int opCount) const {
   return index - 1;
 }
 
-void AttPP::printOpRegdirect(std::ostream& os, const cs_insn& inst,
-                             const cs_x86_op& op) {
+void AttPrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
+                                        const cs_x86_op& op) {
   assert(op.type == X86_OP_REG &&
          "printOpRegdirect called without a register operand");
   if (cs_insn_group(this->csHandle, &inst, CS_GRP_CALL))
@@ -54,10 +56,9 @@ void AttPP::printOpRegdirect(std::ostream& os, const cs_insn& inst,
   os << getRegisterName(op.reg);
 }
 
-void AttPP::printOpImmediate(std::ostream& os,
-                             const gtirb::SymbolicExpression* symbolic,
-                             const cs_insn& inst, gtirb::Addr ea,
-                             uint64_t index) {
+void AttPrettyPrinter::printOpImmediate(
+    std::ostream& os, const gtirb::SymbolicExpression* symbolic,
+    const cs_insn& inst, gtirb::Addr ea, uint64_t index) {
   const cs_x86_op& op = inst.detail->x86.operands[index];
   assert(op.type == X86_OP_IMM &&
          "printOpImmediate called without an immediate operand");
@@ -89,9 +90,9 @@ void AttPP::printOpImmediate(std::ostream& os,
   }
 }
 
-void AttPP::printOpIndirect(std::ostream& os,
-                            const gtirb::SymbolicExpression* symbolic,
-                            const cs_insn& inst, uint64_t index) {
+void AttPrettyPrinter::printOpIndirect(
+    std::ostream& os, const gtirb::SymbolicExpression* symbolic,
+    const cs_insn& inst, uint64_t index) {
   const cs_x86& detail = inst.detail->x86;
   const cs_x86_op& op = detail.operands[index];
   assert(op.type == X86_OP_MEM &&
@@ -139,10 +140,10 @@ void AttPP::printOpIndirect(std::ostream& os,
   }
 }
 
-volatile bool AttPP::registered = registerPrinter(
+volatile bool AttPrettyPrinter::registered = registerPrinter(
     {"att"}, [](gtirb::Context& context, gtirb::IR& ir,
                 const string_range& skip_funcs, DebugStyle dbg) {
-      return std::make_unique<AttPP>(context, ir, skip_funcs, dbg);
+      return std::make_unique<AttPrettyPrinter>(context, ir, skip_funcs, dbg);
     });
 
 } // namespace gtirb_pprint

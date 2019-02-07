@@ -30,7 +30,7 @@
 
 /// \brief Pretty-print GTIRB representations.
 namespace gtirb_pprint {
-class AbstractPP;
+class PrettyPrinterBase;
 /// Whether a pretty printer should include debugging messages in it output.
 enum DebugStyle { NoDebug, DebugMessages };
 
@@ -44,7 +44,7 @@ using string_range = boost::any_range<std::string, boost::forward_traversal_tag,
 /// print, the set of function names to skip during printing, and a boolean
 /// indicating whether to include debugging output.
 ///
-using factory = std::function<std::unique_ptr<AbstractPP>(
+using factory = std::function<std::unique_ptr<PrettyPrinterBase>(
     gtirb::Context& context, gtirb::IR& ir, const string_range&, DebugStyle)>;
 
 /// Register a factory for creating pretty printer objects. The factory will
@@ -71,8 +71,8 @@ const std::set<std::string>& getDefaultSkippedFunctions();
 /// \param syntax  name of the registered syntax to print
 ///
 /// \return a pointer to the pretty printer object
-std::unique_ptr<AbstractPP> getPrinter(gtirb::Context& context, gtirb::IR& ir,
-                                       const std::string& syntax);
+std::unique_ptr<PrettyPrinterBase>
+getPrinter(gtirb::Context& context, gtirb::IR& ir, const std::string& syntax);
 
 /// Pretty print an IR to a stream. The syntax must be one of the syntaxes
 /// reported by getRegisteredSyntaxes().
@@ -130,11 +130,11 @@ std::error_condition prettyPrint(std::ostream& stream, gtirb::Context& context,
 
 /// The pretty-printer interface. There is only one exposed function, \link
 /// print().
-class AbstractPP {
+class PrettyPrinterBase {
 public:
-  AbstractPP(gtirb::Context& context, gtirb::IR& ir,
-             const string_range& skip_funcs, DebugStyle dbg);
-  virtual ~AbstractPP();
+  PrettyPrinterBase(gtirb::Context& context, gtirb::IR& ir,
+                    const string_range& skip_funcs, DebugStyle dbg);
+  virtual ~PrettyPrinterBase();
 
   virtual std::ostream& print(std::ostream& out);
 
