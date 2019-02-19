@@ -33,19 +33,6 @@ RUN cd /home && wget https://dl.bintray.com/boostorg/release/${BOOST_VERSION}/so
 RUN curl -SL https://cmake.org/files/v$CMAKE_VERSION/cmake-$CMAKE_VERSION.0-Linux-x86_64.tar.gz \
     |tar -xz --strip-components=1 -C /usr/local
 
-# Install souffle (For the datalog disassembler)
-RUN apt-get -y install bison flex libncurses5-dev libtool libsqlite3-dev mcpp python sqlite zlib1g-dev
-RUN apt-get -y install autoconf automake
-RUN cd /usr/local/src \
-    && git clone -b 1.4.0 https://github.com/souffle-lang/souffle.git \
-    && cd souffle \
-    && pwd \
-    && ls -l \
-    && ./bootstrap \
-    && ./configure --enable-64bit-domain --disable-provenance \
-    && make \
-    && make install
-
 # Install protobuf
 RUN cd /usr/local/src \
     && wget https://github.com/google/protobuf/releases/download/v3.6.0/protobuf-cpp-3.6.0.tar.gz \
@@ -56,26 +43,26 @@ RUN cd /usr/local/src \
     && make install
 RUN ldconfig
 
-COPY . /gt/pretty-printer/
+COPY . /gt/gtirb-pprinter/
 
 # Install capstone
 RUN cd /usr/local/src \
-    && wget https://github.com/aquynh/capstone/archive/3.0.5.tar.gz \
-    && tar xf 3.0.5.tar.gz \
-    && cd capstone-3.0.5 \
+    && wget https://github.com/aquynh/capstone/archive/4.0.1.tar.gz \
+    && tar xf 4.0.1.tar.gz \
+    && cd capstone-4.0.1 \
     && CAPSTONE_ARCHS=x86 ./make.sh \
     && CAPSTONE_ARCHS=x86 ./make.sh install
 
 # Install gtirb
-RUN rm -rf /gt/pretty-printer/gtirb/build /gt/pretty-printer/gtirb/CMakeCache.txt /gt/pretty-printer/gtirb/CMakeFiles /gt/pretty-printer/gtirb/CMakeScripts
-RUN cd /gt/pretty-printer/gtirb/ && cmake ./ -Bbuild -DCMAKE_CXX_COMPILER=g++-7 && cd build &&  make && make install
+RUN rm -rf /gt/gtirb-pprinter/gtirb/build /gt/gtirb-pprinter/gtirb/CMakeCache.txt /gt/gtirb-pprinter/gtirb/CMakeFiles /gt/gtirb-pprinter/gtirb/CMakeScripts
+RUN cd /gt/gtirb-pprinter/gtirb/ && cmake ./ -Bbuild -DCMAKE_CXX_COMPILER=g++-7 && cd build &&  make && make install
 
-# Build pretty-printer
-ENV PATH=/gt/pretty-printer/bin:/gt/pretty-printer/datalog_disasm/build/bin/:$PATH
-RUN rm -rf /gt/pretty-printer/build /gt/pretty-printer/CMakeCache.txt /gt/pretty-printer/CMakeFiles /gt/pretty-printer/CMakeScripts
-RUN mkdir -p /gt/pretty-printer/build
-WORKDIR /gt/pretty-printer/build
+# Build gtirb-pprinter
+ENV PATH=/gt/gtirb-pprinter/bin:/gt/gtirb-pprinter/datalog_disasm/build/bin/:$PATH
+RUN rm -rf /gt/gtirb-pprinter/build /gt/gtirb-pprinter/CMakeCache.txt /gt/gtirb-pprinter/CMakeFiles /gt/gtirb-pprinter/CMakeScripts
+RUN mkdir -p /gt/gtirb-pprinter/build
+WORKDIR /gt/gtirb-pprinter/build
 RUN cmake ../ -DCMAKE_CXX_COMPILER=g++-7
 RUN make -j
-WORKDIR /gt/pretty-printer/
-ENV LD_LIBRARY_PATH /gt/pretty-printer/gtirb/build/lib
+WORKDIR /gt/gtirb-pprinter/
+ENV LD_LIBRARY_PATH /gt/gtirb-pprinter/gtirb/build/lib
