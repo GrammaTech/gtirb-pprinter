@@ -309,9 +309,6 @@ std::string PrettyPrinter::buildOperand(const std::string& opcode,
     break;
   case X86_OP_MEM:
     return this->buildOpIndirect(symbolic, inst, index);
-  case X86_OP_FP:
-    std::cerr << "floating point operations not implemented\n";
-    exit(1);
   case X86_OP_INVALID:
     std::cerr << "invalid operand\n";
     exit(1);
