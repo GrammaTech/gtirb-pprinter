@@ -34,7 +34,7 @@ std::string AttPrettyPrinter::getRegisterName(unsigned int reg) const {
 }
 
 int AttPrettyPrinter::getGtirbOpIndex(int index, int opCount) const {
-  // The datalog disassmbler always treats operands indice as if using this
+  // The datalog disassmbler always treats operand indices as if using this
   // array:
   //   {opcode, src1, src2, ..., dst}
   // With CS_OPT_SYNTAX_ATT, Capstone operands are conceptually indexed as
