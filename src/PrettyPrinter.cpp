@@ -86,40 +86,49 @@ std::set<std::string> getRegisteredSyntaxes() {
   return syntaxes;
 }
 
-const std::set<std::string>& getDefaultSkippedFunctions() {
-  static const std::set<std::string> functions{"_start",
-                                               "deregister_tm_clones",
-                                               "register_tm_clones",
-                                               "__do_global_dtors_aux",
-                                               "frame_dummy",
-                                               "__libc_csu_fini",
-                                               "__libc_csu_init",
-                                               "_dl_relocate_static_pie"};
-  return functions;
+PrettyPrinter::PrettyPrinter()
+    : m_skip_funcs{"_start",
+                   "deregister_tm_clones",
+                   "register_tm_clones",
+                   "__do_global_dtors_aux",
+                   "frame_dummy",
+                   "__libc_csu_fini",
+                   "__libc_csu_init",
+                   "_dl_relocate_static_pie"},
+      m_syntax{"intel"}, m_debug{NoDebug} {}
+
+void PrettyPrinter::setSyntax(const std::string& syntax) {
+  assert(getFactories().find(syntax) != getFactories().end());
+  m_syntax = syntax;
 }
 
-std::error_condition prettyPrint(std::ostream& stream, gtirb::Context& context,
-                                 gtirb::IR& ir, string_range skipFunctions,
-                                 const std::string& syntax) {
-  return prettyPrint(stream, context, ir, skipFunctions, syntax, NoDebug);
+const std::string& PrettyPrinter::getSyntax() const { return m_syntax; }
+
+void PrettyPrinter::setDebug(bool do_debug) {
+  m_debug = do_debug ? DebugMessages : NoDebug;
 }
 
-std::error_condition prettyPrint(std::ostream& stream, gtirb::Context& context,
-                                 gtirb::IR& ir, const std::string& syntax) {
-  return prettyPrint(stream, context, ir, getDefaultSkippedFunctions(), syntax,
-                     NoDebug);
+bool PrettyPrinter::getDebug() const { return m_debug == DebugMessages; }
+
+const std::set<std::string>& PrettyPrinter::getSkippedFunctions() const {
+  return m_skip_funcs;
 }
 
-std::error_condition prettyPrint(std::ostream& stream, gtirb::Context& context,
-                                 gtirb::IR& ir, string_range skipFunctions,
-                                 const std::string& syntax, DebugStyle debug) {
-  getFactories().at(syntax)(context, ir, skipFunctions, debug)->print(stream);
+void PrettyPrinter::skipFunction(const std::string& functionName) {
+  m_skip_funcs.insert(functionName);
+}
+
+void PrettyPrinter::keepFunction(const std::string& functionName) {
+  m_skip_funcs.erase(functionName);
+}
+
+std::error_condition PrettyPrinter::print(std::ostream& stream,
+                                          gtirb::Context& context,
+                                          gtirb::IR& ir) const {
+  getFactories()
+      .at(m_syntax)(context, ir, m_skip_funcs, m_debug)
+      ->print(stream);
   return std::error_condition{};
-}
-
-std::unique_ptr<PrettyPrinterBase>
-getPrinter(gtirb::Context& context, gtirb::IR& ir, const std::string& syntax) {
-  return getFactories().at(syntax)(context, ir, string_range{}, NoDebug);
 }
 
 PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context, gtirb::IR& ir,

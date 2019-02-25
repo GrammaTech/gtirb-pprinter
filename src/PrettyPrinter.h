@@ -30,7 +30,9 @@
 
 /// \brief Pretty-print GTIRB representations.
 namespace gtirb_pprint {
+
 class PrettyPrinterBase;
+
 /// Whether a pretty printer should include debugging messages in it output.
 enum DebugStyle { NoDebug, DebugMessages };
 
@@ -40,10 +42,9 @@ using string_range = boost::any_range<std::string, boost::forward_traversal_tag,
                                       std::string&, std::ptrdiff_t>;
 
 /// The type of the factories that may be registered. A factory is simply
-/// something that can be called with an allocation context, the IR to pretty
-/// print, the set of function names to skip during printing, and a boolean
-/// indicating whether to include debugging output.
-///
+/// something that can be called with an allocation context, the IR to
+/// pretty print, the set of function names to skip during printing, and a
+/// boolean indicating whether to include debugging output.
 using factory = std::function<std::unique_ptr<PrettyPrinterBase>(
     gtirb::Context& context, gtirb::IR& ir, const string_range&, DebugStyle)>;
 
@@ -60,73 +61,68 @@ bool registerPrinter(std::initializer_list<std::string> syntaxes, factory f);
 /// Return the current set of syntaxes with registered factories.
 std::set<std::string> getRegisteredSyntaxes();
 
-/// Default set of functions to skip during printing.
-const std::set<std::string>& getDefaultSkippedFunctions();
+/// The primary interface for pretty-printing GTIRB objects. The typical flow
+/// is to create a PrettyPrinter, configure it (e.g., set the output syntax,
+/// enable/disable debugging messages, etc.), then print one or more IR objects.
+class PrettyPrinter {
+public:
+  /// Construct a PrettyPrinter with the default configuration.
+  PrettyPrinter();
 
-/// Get a pretty printer to print the given IR in a particular syntax. The
-/// syntax must be one of the syntaxes reported by getRegisteredSyntaxes().
-///
-/// \param context Context containing the IR
-/// \param ir      IR to print
-/// \param syntax  name of the registered syntax to print
-///
-/// \return a pointer to the pretty printer object
-std::unique_ptr<PrettyPrinterBase>
-getPrinter(gtirb::Context& context, gtirb::IR& ir, const std::string& syntax);
+  PrettyPrinter(const PrettyPrinter&) = default;
+  PrettyPrinter(PrettyPrinter&&) = default;
+  PrettyPrinter& operator=(const PrettyPrinter&) = default;
+  PrettyPrinter& operator=(PrettyPrinter&&) = default;
 
-/// Pretty print an IR to a stream. The syntax must be one of the syntaxes
-/// reported by getRegisteredSyntaxes().
-///
-/// The supported DebugStyles are DebugMessages, which included debugging
-/// comments in the output and includes all functions and sections, and
-/// NoDebug, which does not.
-///
-/// \param stream        stream to print to
-/// \param context       Context containing the IR
-/// \param ir            IR to print
-/// \param skipFunctions range of names of functions that should not be printed
-/// \param syntax        name of the registered syntax to output
-/// \param debug         whether to enable debugging-style output
-///
-/// \return a condition indicating if there was an error, or condition 0 if
-/// there were no errors.
-std::error_condition prettyPrint(std::ostream& stream, gtirb::Context& context,
-                                 gtirb::IR& ir, string_range skipFunctions,
-                                 const std::string& syntax, DebugStyle debug);
+  /// Set the syntax with in which to pretty print. It is the caller's
+  /// responsibility to ensure that the syntax name has been registered.
+  ///
+  /// \param syntax name of the syntax to use
+  void setSyntax(const std::string& syntax);
 
-/// Pretty print an IR to a stream. The syntax must be one of the syntaxes
-/// reported by getRegisteredSyntaxes(). Equivalent to
-/// \code
-/// prettyPrint(stream, context, ir, skipFunctions, syntax, NoDebug)
-/// \endcode
-///
-/// \param stream        stream to print to
-/// \param context       Context containing the IR
-/// \param ir            IR to print
-/// \param skipFunctions range of names of functions that should not be printed
-/// \param syntax        name of the registered syntax to output
-///
-/// \return a condition indicating if there was an error, or condition 0 if
-/// there were no errors.
-std::error_condition prettyPrint(std::ostream& stream, gtirb::Context& context,
-                                 gtirb::IR& ir, string_range skipFunctions,
-                                 const std::string& syntax);
+  /// Return the syntax that will be used for pretty printing.
+  const std::string& getSyntax() const;
 
-/// Pretty print an IR to a stream. The syntax must be one of the syntaxes
-/// reported by getRegisteredSyntaxes(). Equivalent to
-/// \code
-/// prettyPrint(stream, context, ir, getDefaultSkippedFunctions(), syntax,
-/// NoDebug) \endcode
-///
-/// \param stream        stream to print to
-/// \param context       Context containing the IR
-/// \param ir            IR to print
-/// \param syntax        name of the registered syntax to output
-///
-/// \return a condition indicating if there was an error, or condition 0 if
-/// there were no errors.
-std::error_condition prettyPrint(std::ostream& stream, gtirb::Context& context,
-                                 gtirb::IR& ir, const std::string& syntax);
+  /// Enable or disable debugging messages inside the pretty-printed code.
+  ///
+  /// \param do_debug whether to enable debugging messages
+  void setDebug(bool do_debug);
+
+  /// Indicates whether debugging messages are currently enable or disabled.
+  ///
+  /// \return \c true if debugging messages are currently enabled, otherwise
+  /// \c false.
+  bool getDebug() const;
+
+  /// Set of functions to skip during printing.
+  const std::set<std::string>& getSkippedFunctions() const;
+
+  /// Skip the named function when printing.
+  ///
+  /// \param functionName name of the function to skip
+  void skipFunction(const std::string& functionName);
+
+  /// Do not skip the named function when printing.
+  ///
+  /// \param functionName name of the function to keep
+  void keepFunction(const std::string& functionName);
+
+  /// Pretty-print the IR to a stream.
+  ///
+  /// \param stream  the stream to print to
+  /// \param context context to use for allocating AuxData objects if needed
+  /// \param ir      the IR to pretty-print
+  ///
+  /// \return a condition indicating if there was an error, or condition 0 if
+  /// there were no errors.
+  std::error_condition print(std::ostream& stream, gtirb::Context& context,
+                             gtirb::IR& ir) const;
+
+private:
+  std::set<std::string> m_skip_funcs;
+  std::string m_syntax;
+  DebugStyle m_debug;
+};
 
 /// The pretty-printer interface. There is only one exposed function, \link
 /// print().

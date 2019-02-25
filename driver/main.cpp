@@ -61,21 +61,23 @@ int main(int argc, char** argv) {
   }
 
   // Perform the Pretty Printing step.
-  gtirb_pprint::DebugStyle debug =
-      vm.count("debug") ? gtirb_pprint::DebugMessages : gtirb_pprint::NoDebug;
-  const std::string& syntax = vm["syntax"].as<std::string>();
-  if (gtirb_pprint::getRegisteredSyntaxes().count(syntax) == 0) {
-    LOG_ERROR << "Unknown assembly syntax: '" << syntax << "'\n";
-    LOG_ERROR << "Available syntaxes:\n";
-    for (const std::string& s : gtirb_pprint::getRegisteredSyntaxes())
-      LOG_ERROR << "    " << s << '\n';
-    return EXIT_FAILURE;
+  gtirb_pprint::PrettyPrinter pp;
+  pp.setDebug(vm.count("debug"));
+  if (vm.count("syntax") != 0) {
+    const std::string& syntax = vm["syntax"].as<std::string>();
+    if (gtirb_pprint::getRegisteredSyntaxes().count(syntax) == 0) {
+      LOG_ERROR << "Unknown assembly syntax: '" << syntax << "'\n";
+      LOG_ERROR << "Available syntaxes:\n";
+      for (const std::string& s : gtirb_pprint::getRegisteredSyntaxes())
+        LOG_ERROR << "    " << s << '\n';
+      return EXIT_FAILURE;
+    }
+    pp.setSyntax(syntax);
   }
 
-  std::set<std::string> blacklist = gtirb_pprint::getDefaultSkippedFunctions();
   if (vm.count("keep-functions") != 0) {
     for (auto keep : vm["keep-functions"].as<std::vector<std::string>>()) {
-      blacklist.erase(keep);
+      pp.keepFunction(keep);
     }
   }
 
@@ -86,14 +88,14 @@ int main(int argc, char** argv) {
     ofs.open(asmPath.string());
 
     if (ofs.is_open() == true) {
-      gtirb_pprint::prettyPrint(ofs, ctx, *ir, blacklist, syntax, debug);
+      pp.print(ofs, ctx, *ir);
       ofs.close();
       LOG_INFO << "Assembly written to: " << asmPath << "\n";
     } else {
       LOG_ERROR << "Could not output assembly output file: " << asmPath << "\n";
     }
   } else {
-    gtirb_pprint::prettyPrint(std::cout, ctx, *ir, blacklist, syntax, debug);
+    pp.print(std::cout, ctx, *ir);
   }
 
   return EXIT_SUCCESS;
