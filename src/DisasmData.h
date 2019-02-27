@@ -12,40 +12,46 @@
 //  endorsement should be inferred.
 //
 //===----------------------------------------------------------------------===//
-#pragma once
+#ifndef GTIRB_PP_DISASM_DATA_H
+#define GTIRB_PP_DISASM_DATA_H
 
+/// \file DisasmData.h
+
+#include "Export.h"
 #include <cstdint>
 #include <gtirb/gtirb.hpp>
 #include <iosfwd>
 #include <list>
 #include <map>
-#include <string>
 #include <optional>
+#include <string>
 #include <vector>
-#include "Export.h"
+
+template <typename T> T* getAuxData(gtirb::IR& ir, const std::string& name) {
+  gtirb::AuxData* data = ir.getAuxData(name);
+  return data ? data->get<T>() : nullptr;
+}
 
 ///
 /// \class DisasmData
 ///
-/// Port of the prolog disasm.
+/// Interface to collect information from GTIRB for pretty-printing.
 ///
 class DEBLOAT_PRETTYPRINTER_EXPORT_API DisasmData {
 public:
-  DisasmData(gtirb::Context& context, gtirb::IR* ir);
+  DisasmData(gtirb::Context& context, gtirb::IR& ir);
 
   gtirb::Context& context;
   gtirb::IR& ir;
 
   const gtirb::Module::section_range getSections() const;
   std::vector<std::string>* getAmbiguousSymbol();
-  std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>& getDataSections();
+  const std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>*
+  getDataSections();
 
-  bool isFunction(const gtirb::Symbol& sym) const;
   std::string getSectionName(gtirb::Addr x) const;
   std::string getFunctionName(gtirb::Addr x) const;
 
-  std::string getAdaptedSymbolName(const gtirb::Symbol* symbol) const;
-  std::string getAdaptedSymbolNameDefault(const gtirb::Symbol* symbol) const;
   bool isRelocated(const std::string& x) const;
   std::string getRelocatedDestination(const gtirb::Addr& addr) const;
   const gtirb::Section* getSection(const std::string& x) const;
@@ -62,10 +68,14 @@ public:
   static std::string AvoidRegNameConflicts(const std::string& x);
 
 private:
-  std::vector<gtirb::Addr> functionEAs;
   std::optional<gtirb::Addr> start_function;
   std::optional<gtirb::Addr> main_function;
+
+  // This should be kept sorted to enable fast searches.
   std::vector<gtirb::Addr> functionEntry;
 };
 
-const std::pair<std::string, int>* getDataSectionDescriptor(const std::string& name);
+const std::pair<std::string, int>*
+getDataSectionDescriptor(const std::string& name);
+
+#endif /* GTIRB_PP_DISASM_DATA_H */

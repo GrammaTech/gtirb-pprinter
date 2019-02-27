@@ -4,6 +4,7 @@ doc/html/*
 temp/*
 *.o
 *.out
+*.swp
 CMakeCache.txt
 CMakeFiles
 CMakeScripts
