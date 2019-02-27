@@ -72,8 +72,10 @@ std::string DisasmData::getFunctionName(gtirb::Addr x) const {
   if (entry_point) {
     for (gtirb::Symbol& s : this->ir.modules()[0].findSymbols(x)) {
       std::stringstream name(s.getName());
-      if (this->isAmbiguousSymbol(s.getName()))
+      if (this->isAmbiguousSymbol(s.getName())) {
+        name.seekp(0, std::ios_base::end);
         name << '_' << std::hex << static_cast<uint64_t>(x);
+      }
       return name.str();
     }
   }
@@ -87,8 +89,8 @@ std::string DisasmData::getFunctionName(gtirb::Addr x) const {
 
   // Is this a function entry with no associated symbol?
   if (entry_point) {
-    std::stringstream name("unknown_function_");
-    name << std::hex << static_cast<uint64_t>(x);
+    std::stringstream name;
+    name << "unknown_function_" << std::hex << static_cast<uint64_t>(x);
     return name.str();
   }
 
