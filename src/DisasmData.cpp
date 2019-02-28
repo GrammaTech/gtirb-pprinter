@@ -24,22 +24,11 @@
 using namespace std::rel_ops;
 
 DisasmData::DisasmData(gtirb::Context& context_, gtirb::IR& ir_)
-    : context(context_), ir(ir_), start_function(), main_function(),
-      functionEntry() {
+    : context(context_), ir(ir_), functionEntry() {
   if (const auto* entries =
           getAuxData<std::vector<gtirb::Addr>>(ir, "functionEntry"))
     functionEntry.insert(functionEntry.end(), entries->begin(), entries->end());
   std::sort(functionEntry.begin(), functionEntry.end());
-
-  if (const auto* startFuncs =
-          getAuxData<std::vector<gtirb::Addr>>(ir, "startFunction");
-      startFuncs && !startFuncs->empty())
-    start_function = (*startFuncs)[0];
-
-  if (const auto* mainFuncs =
-          getAuxData<std::vector<gtirb::Addr>>(ir, "mainFunction");
-      mainFuncs && !mainFuncs->empty())
-    main_function = (*mainFuncs)[0];
 }
 
 const gtirb::Module::section_range DisasmData::getSections() const {
@@ -78,13 +67,6 @@ std::string DisasmData::getFunctionName(gtirb::Addr x) const {
       }
       return name.str();
     }
-  }
-
-  // Is this the address of a special function?
-  if (this->main_function && x == *this->main_function) {
-    return "main";
-  } else if (this->start_function && x == *this->start_function) {
-    return "_start";
   }
 
   // Is this a function entry with no associated symbol?

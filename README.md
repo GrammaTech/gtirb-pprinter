@@ -57,9 +57,7 @@ associated types and contents in this table.
 | comments          | `std::map<gtirb::Addr, std::string>` | Per-instruction comments. |
 | dataSections      | `std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>` | Tuples containing the name, alignment, and IDs of `DataObject`s for data sections. |
 | functionEntry     | `std::vector<gtirb::Addr>` | Addresses of entry points of functions. |
-| mainFunction      | `std::vector<gtirb::Addr>` | Address of the "main" function. Only the first such address is used. |
 | pltCodeReferences | `std::map<gtirb::Addr, std::string>` | Map from call targets in the PLT to the associated symbols.
 | pltDataReferences | `std::map<gtirb::Addr, std::string>` | Map from addresses to symbol names. FIXME: Which subset of symbols does this apply to? |
 | relocations       | `std::map<gtirb::Addr, std::tuple<std::string, std::string>>` | Map from symbol addresses to (relocation type, relocated symbol name) pairs. |
-| startFunction     | `std::vector<gtirb::Addr>` | Address of the "_start" function. Only the first such address is used. |
 | stringEAs         | `std::vector<gtirb::Addr>`| Addresses of string constants. |
