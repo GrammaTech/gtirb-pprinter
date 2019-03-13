@@ -168,17 +168,21 @@ const gtirb::SymAddrConst* PrettyPrinterBase::getSymbolicImmediate(
 
 std::ostream& PrettyPrinterBase::print(std::ostream& os) {
   this->printHeader(os);
-
   for (const gtirb::Block& b :
        gtirb::blocks(this->disasm.ir.modules()[0].getCFG())) {
     this->printBlock(os, b);
   }
-
   this->printDataGroups(os);
-
   this->printBSS(os);
-
+  this->printUndefinedSymbols(os);
   return os;
+}
+
+void PrettyPrinterBase::printUndefinedSymbols(std::ostream& os) {
+  for (const auto& sym : this->disasm.ir.modules()[0].symbols()) {
+    if (sym.getStorageKind() == gtirb::Symbol::StorageKind::Undefined)
+      os << ".weak " << sym.getName() << std::endl;
+  }
 }
 
 void PrettyPrinterBase::printBlock(std::ostream& os, const gtirb::Block& x) {

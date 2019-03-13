@@ -219,6 +219,7 @@ protected:
                                        const gtirb::SymAddrAddr* sexpr);
 
   virtual void printBSS(std::ostream& os);
+  virtual void printUndefinedSymbols(std::ostream& os);
   virtual void printString(std::ostream& os, const gtirb::DataObject& x);
 
   virtual void printOperand(std::ostream& os,
