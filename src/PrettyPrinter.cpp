@@ -181,7 +181,7 @@ std::ostream& PrettyPrinterBase::print(std::ostream& os) {
 void PrettyPrinterBase::printUndefinedSymbols(std::ostream& os) {
   for (const auto& sym : this->disasm.ir.modules()[0].symbols()) {
     if (sym.getStorageKind() == gtirb::Symbol::StorageKind::Undefined)
-      os << ".weak " << sym.getName() << std::endl;
+      os << ".weak \"" << sym.getName()<<"\""<< std::endl;
   }
 }
 
