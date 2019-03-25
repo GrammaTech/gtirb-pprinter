@@ -58,7 +58,7 @@ void IntelPrettyPrinter::printOpRegdirect(std::ostream& os,
 
 void IntelPrettyPrinter::printOpImmediate(
     std::ostream& os, const gtirb::SymbolicExpression* symbolic,
-    const cs_insn& inst, gtirb::Addr ea, uint64_t index) {
+    const cs_insn& inst, uint64_t index) {
   const cs_x86_op& op = inst.detail->x86.operands[index];
   assert(op.type == X86_OP_IMM &&
          "printOpImmediate called without an immediate operand");
@@ -66,20 +66,11 @@ void IntelPrettyPrinter::printOpImmediate(
   bool is_call = cs_insn_group(this->csHandle, &inst, CS_GRP_CALL);
   bool is_jump = cs_insn_group(this->csHandle, &inst, CS_GRP_JUMP);
 
-  const std::optional<std::string> plt_name = this->getPltCodeSymName(ea);
-  if (plt_name) {
-    // The operand is a plt reference.
-    if (is_call || is_jump)
-      os << *plt_name << "@PLT";
-    else
-      os << IntelPrettyPrinter::StrOffset << ' ' << *plt_name;
-  } else if (const gtirb::SymAddrConst* s =
-                 this->getSymbolicImmediate(symbolic)) {
+  if (const gtirb::SymAddrConst* s = this->getSymbolicImmediate(symbolic)) {
     // The operand is symbolic.
-    if (!is_call)
+    if (!is_call && !is_jump)
       os << IntelPrettyPrinter::StrOffset << ' ';
-    os << this->getAdaptedSymbolNameDefault(s->Sym)
-       << getAddendString(s->Offset);
+    this->printSymbolicExpression(os, s, !is_call && !is_jump);
   } else {
     // The operand is just a number.
     os << op.imm;
@@ -118,7 +109,7 @@ void IntelPrettyPrinter::printOpIndirect(
       os << getAddendString(op.mem.disp, first);
     } else {
       os << '+';
-      printSymbolicExpression(os, s);
+      printSymbolicExpression(os, s, false);
     }
   } else {
     os << getAddendString(op.mem.disp, first);

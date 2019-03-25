@@ -152,27 +152,18 @@ protected:
   /// Functions to avoid printing.
   std::unordered_set<std::string> AsmSkipFunction;
 
-  /// Returns the symbol name for the PLT code at the referenced address, if it
-  /// exists.
-  ///
-  /// \param the address to look up.
-  virtual std::optional<std::string> getPltCodeSymName(gtirb::Addr ea);
-
   /// Return the SymAddrConst expression if it refers to a printed symbol.
   ///
   /// \param symex the SymbolicExpression to check
   virtual const gtirb::SymAddrConst*
   getSymbolicImmediate(const gtirb::SymbolicExpression* symex);
 
-  // FIXME: I don't actually understand when to use one or the other of these
-  // two functions. Someone needs to document this to make it clear (or remove
-  // one of the functions).
-  //
-  // If the symbol is ambiguous, return a label containing the address instead.
-  //
+  // print a symbol in a symbolic expression
+  // if the symbol is ambiguous print a symbol with the address instead.
+  // if the symbol is forwarded (e.g. a plt reference) print the forwarded
+  // symbol with the adequate ending (e.g. @PLT)
   virtual std::string
-  getAdaptedSymbolNameDefault(const gtirb::Symbol* symbol) const;
-  virtual std::string getAdaptedSymbolName(const gtirb::Symbol* symbol) const;
+  getAdaptedSymbolName(const gtirb::Symbol* symbol, bool inData) const;
 
   /// Get the index of an operand in the GTIRB, given the index of the operand
   /// in the Capstone instruction.
@@ -211,32 +202,29 @@ protected:
   virtual void printDataGroups(std::ostream& os);
   virtual void printDataObject(std::ostream& os,
                                const gtirb::DataObject& dataGroup);
-  virtual void printSymbolicData(std::ostream& os, const gtirb::Addr addr,
-                                 const gtirb::SymbolicExpression* symbolic);
+  virtual void printSymbolicData(std::ostream& os, const gtirb::SymbolicExpression* symbolic);
   virtual void printSymbolicExpression(std::ostream& os,
-                                       const gtirb::SymAddrConst* sexpr);
+                                       const gtirb::SymAddrConst* sexpr, bool inData=false);
   virtual void printSymbolicExpression(std::ostream& os,
-                                       const gtirb::SymAddrAddr* sexpr);
+                                       const gtirb::SymAddrAddr* sexpr, bool inData=false);
 
   virtual void printBSS(std::ostream& os);
-  virtual void printUndefinedSymbols(std::ostream& os);
   virtual void printString(std::ostream& os, const gtirb::DataObject& x);
 
   virtual void printOperand(std::ostream& os,
                             const gtirb::SymbolicExpression* symbolic,
-                            const cs_insn& inst, gtirb::Addr ea,
+                            const cs_insn& inst,
                             uint64_t index);
   virtual void printOpRegdirect(std::ostream& os, const cs_insn& inst,
                                 const cs_x86_op& op) = 0;
   virtual void printOpImmediate(std::ostream& os,
                                 const gtirb::SymbolicExpression* symbolic,
-                                const cs_insn& inst, gtirb::Addr ea,
-                                uint64_t index) = 0;
+                                const cs_insn& inst,uint64_t index) = 0;
   virtual void printOpIndirect(std::ostream& os,
                                const gtirb::SymbolicExpression* symbolic,
                                const cs_insn& inst, uint64_t index) = 0;
 
-  virtual bool condPrintGlobalSymbol(std::ostream& os, gtirb::Addr ea);
+  virtual bool printSymbolDefinitionsAtAddress(std::ostream& os, gtirb::Addr ea);
 
   bool shouldExcludeDataElement(const std::string& sectionName,
                                 const gtirb::DataObject& dataGroup);

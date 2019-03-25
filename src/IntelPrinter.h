@@ -32,8 +32,7 @@ protected:
                         const cs_x86_op& op) override;
   void printOpImmediate(std::ostream& os,
                         const gtirb::SymbolicExpression* symbolic,
-                        const cs_insn& inst, gtirb::Addr ea,
-                        uint64_t index) override;
+                        const cs_insn& inst, uint64_t index) override;
   void printOpIndirect(std::ostream& os,
                        const gtirb::SymbolicExpression* symbolic,
                        const cs_insn& inst, uint64_t index) override;

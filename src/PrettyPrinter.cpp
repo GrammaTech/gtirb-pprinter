@@ -143,25 +143,12 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context, gtirb::IR& ir,
 
 PrettyPrinterBase::~PrettyPrinterBase() { cs_close(&this->csHandle); }
 
-std::optional<std::string>
-PrettyPrinterBase::getPltCodeSymName(gtirb::Addr ea) {
-  if (const auto* pltReferences =
-          getAuxData<std::map<gtirb::Addr, std::string>>(this->disasm.ir,
-                                                         "pltCodeReferences")) {
-    const auto p = pltReferences->find(gtirb::Addr(ea));
-    if (p != pltReferences->end())
-      return p->second;
-  }
-  return std::nullopt;
-}
-
 const gtirb::SymAddrConst* PrettyPrinterBase::getSymbolicImmediate(
     const gtirb::SymbolicExpression* symex) {
   if (symex) {
     const auto* s = std::get_if<gtirb::SymAddrConst>(symex);
     assert(s != nullptr && "symbolic operands must be 'address[+offset]'");
-    if (!this->skipEA(*s->Sym->getAddress()))
-      return s;
+    return s;
   }
   return nullptr;
 }
@@ -174,15 +161,7 @@ std::ostream& PrettyPrinterBase::print(std::ostream& os) {
   }
   this->printDataGroups(os);
   this->printBSS(os);
-  this->printUndefinedSymbols(os);
   return os;
-}
-
-void PrettyPrinterBase::printUndefinedSymbols(std::ostream& os) {
-  for (const auto& sym : this->disasm.ir.modules()[0].symbols()) {
-    if (sym.getStorageKind() == gtirb::Symbol::StorageKind::Undefined)
-      os << ".weak \"" << sym.getName() << "\"" << std::endl;
-  }
 }
 
 void PrettyPrinterBase::printBlock(std::ostream& os, const gtirb::Block& x) {
@@ -275,44 +254,33 @@ void PrettyPrinterBase::printFunctionHeader(std::ostream& os, gtirb::Addr ea) {
 }
 
 void PrettyPrinterBase::printLabel(std::ostream& os, gtirb::Addr ea) {
-  if (!this->condPrintGlobalSymbol(os, ea))
+  if (!this->printSymbolDefinitionsAtAddress(os, ea))
     os << ".L_" << std::hex << static_cast<uint64_t>(ea) << ':' << std::dec;
 }
 
-std::string PrettyPrinterBase::getAdaptedSymbolNameDefault(
-    const gtirb::Symbol* symbol) const {
-  if (symbol->getAddress()) {
-    std::string destName =
-        this->disasm.getRelocatedDestination(*symbol->getAddress());
-    if (!destName.empty()) {
-      return destName;
-    }
+std::string PrettyPrinterBase::getAdaptedSymbolName(const gtirb::Symbol* symbol,
+                                                    bool isAbsolute) const {
+  std::string forwardedName = disasm.getForwardedSymbolName(symbol, isAbsolute);
+  if (!forwardedName.empty())
+    return forwardedName;
+  if (symbol->getAddress().has_value() && this->skipEA(*symbol->getAddress())) {
+    std::stringstream str;
+    str << static_cast<uint64_t>(*symbol->getAddress());
+    return str.str();
   }
   if (this->disasm.isAmbiguousSymbol(symbol->getName())) {
     return DisasmData::GetSymbolToPrint(*symbol->getAddress());
   }
-
-  return DisasmData::AvoidRegNameConflicts(
-      DisasmData::CleanSymbolNameSuffix(symbol->getName()));
+  return DisasmData::AvoidRegNameConflicts(symbol->getName());
 }
 
-std::string
-PrettyPrinterBase::getAdaptedSymbolName(const gtirb::Symbol* symbol) const {
-  std::string name = DisasmData::CleanSymbolNameSuffix(symbol->getName());
-  if (!this->disasm.isAmbiguousSymbol(symbol->getName()) &&
-      !this->disasm.isRelocated(name))
-    return DisasmData::AvoidRegNameConflicts(name);
-  return std::string{};
-}
-
-bool PrettyPrinterBase::condPrintGlobalSymbol(std::ostream& os,
-                                              gtirb::Addr ea) {
+bool PrettyPrinterBase::printSymbolDefinitionsAtAddress(std::ostream& os,
+                                                        gtirb::Addr ea) {
   bool printed = false;
   for (const gtirb::Symbol& sym :
        this->disasm.ir.modules()[0].findSymbols(ea)) {
-    std::string name = this->getAdaptedSymbolName(&sym);
-    if (!name.empty()) {
-      os << name << ":\n";
+    if (!this->disasm.isAmbiguousSymbol(sym.getName())) {
+      os << DisasmData::AvoidRegNameConflicts(sym.getName()) << ":\n";
       printed = true;
     }
   }
@@ -378,21 +346,20 @@ void PrettyPrinterBase::printOperandList(std::ostream& os, const gtirb::Addr ea,
     auto found = module.findSymbolicExpression(ea + index);
     if (found != module.symbolic_expr_end())
       symbolic = &*found;
-    this->printOperand(os, symbolic, inst, ea, i);
+    this->printOperand(os, symbolic, inst, i);
   }
 }
 
 void PrettyPrinterBase::printOperand(std::ostream& os,
                                      const gtirb::SymbolicExpression* symbolic,
-                                     const cs_insn& inst, gtirb::Addr ea,
-                                     uint64_t index) {
+                                     const cs_insn& inst, uint64_t index) {
   const cs_x86_op& op = inst.detail->x86.operands[index];
   switch (op.type) {
   case X86_OP_REG:
     this->printOpRegdirect(os, inst, op);
     return;
   case X86_OP_IMM:
-    this->printOpImmediate(os, symbolic, inst, ea, index);
+    this->printOpImmediate(os, symbolic, inst, index);
     return;
   case X86_OP_MEM:
     this->printOpIndirect(os, symbolic, inst, index);
@@ -478,7 +445,7 @@ void PrettyPrinterBase::printDataObject(std::ostream& os,
   const auto& foundSymbolic =
       module.findSymbolicExpression(dataGroup.getAddress());
   if (foundSymbolic != module.symbolic_expr_end()) {
-    printSymbolicData(os, dataGroup.getAddress(), &*foundSymbolic);
+    printSymbolicData(os, &*foundSymbolic);
     os << '\n';
 
   } else if (stringEAs &&
@@ -509,36 +476,27 @@ void PrettyPrinterBase::printComment(std::ostream& os, const gtirb::Addr ea) {
 }
 
 void PrettyPrinterBase::printSymbolicData(
-    std::ostream& os, const gtirb::Addr addr,
-    const gtirb::SymbolicExpression* symbolic) {
-  if (const auto* pltReferences =
-          getAuxData<std::map<gtirb::Addr, std::string>>(this->disasm.ir,
-                                                         "pltDataReferences")) {
-    const auto p = pltReferences->find(addr);
-    if (p != pltReferences->end()) {
-      os << ".quad " << p->second;
-      return;
-    }
-  }
+    std::ostream& os, const gtirb::SymbolicExpression* symbolic) {
   if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
     os << ".quad ";
-    printSymbolicExpression(os, s);
+    printSymbolicExpression(os, s, true);
   } else if (const auto* sa = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
     os << ".long ";
-    printSymbolicExpression(os, sa);
+    printSymbolicExpression(os, sa, true);
   }
 }
 
 void PrettyPrinterBase::printSymbolicExpression(
-    std::ostream& os, const gtirb::SymAddrConst* sexpr) {
-  os << this->getAdaptedSymbolNameDefault(sexpr->Sym);
+    std::ostream& os, const gtirb::SymAddrConst* sexpr, bool inData) {
+  os << this->getAdaptedSymbolName(sexpr->Sym, inData);
   os << getAddendString(sexpr->Offset);
 }
 
-void PrettyPrinterBase::printSymbolicExpression(
-    std::ostream& os, const gtirb::SymAddrAddr* sexpr) {
-  // FIXME: Why doesn't this use getAdaptedSymbolNameDefault()?
-  os << sexpr->Sym1->getName() << '-' << sexpr->Sym2->getName();
+void PrettyPrinterBase::printSymbolicExpression(std::ostream& os,
+                                                const gtirb::SymAddrAddr* sexpr,
+                                                bool inData) {
+  os << this->getAdaptedSymbolName(sexpr->Sym1, inData) << '-'
+     << this->getAdaptedSymbolName(sexpr->Sym2, inData);
 }
 
 void PrettyPrinterBase::printString(std::ostream& os,
@@ -652,8 +610,8 @@ PrettyPrinterBase::getContainerFunctionName(const gtirb::Addr x) const {
 }
 
 std::string PrettyPrinterBase::getRegisterName(unsigned int reg) const {
-  return DisasmData::AdaptRegister(ascii_str_toupper(
-      reg == X86_REG_INVALID ? "" : cs_reg_name(this->csHandle, reg)));
+  return ascii_str_toupper(
+      reg == X86_REG_INVALID ? "" : cs_reg_name(this->csHandle, reg));
 }
 
 std::string PrettyPrinterBase::getAddendString(int64_t number, bool first) {

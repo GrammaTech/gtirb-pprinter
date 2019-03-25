@@ -58,7 +58,7 @@ void AttPrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
 
 void AttPrettyPrinter::printOpImmediate(
     std::ostream& os, const gtirb::SymbolicExpression* symbolic,
-    const cs_insn& inst, gtirb::Addr ea, uint64_t index) {
+    const cs_insn& inst, uint64_t index) {
   const cs_x86_op& op = inst.detail->x86.operands[index];
   assert(op.type == X86_OP_IMM &&
          "printOpImmediate called without an immediate operand");
@@ -69,18 +69,8 @@ void AttPrettyPrinter::printOpImmediate(
   if (!is_call && !is_jump)
     os << '$';
 
-  const std::optional<std::string>& plt_name = this->getPltCodeSymName(ea);
-  if (plt_name) {
-    // The operand is a plt reference.
-    os << *plt_name;
-    if (is_call || is_jump)
-      os << "@PLT";
-    return;
-  } else if (const gtirb::SymAddrConst* s =
-                 this->getSymbolicImmediate(symbolic)) {
-    // The operand is symbolic.
-    os << this->getAdaptedSymbolNameDefault(s->Sym)
-       << getAddendString(s->Offset);
+  if (const gtirb::SymAddrConst* s = this->getSymbolicImmediate(symbolic)) {
+    this->printSymbolicExpression(os, s, !is_call && !is_jump);
   } else {
     std::ios_base::fmtflags flags = os.flags();
     if (is_call || is_jump)
@@ -111,7 +101,7 @@ void AttPrettyPrinter::printOpIndirect(
   if (s != nullptr &&
       (!s->Sym->getAddress() || !this->skipEA(*s->Sym->getAddress()))) {
     // Displacement is symbolic.
-    printSymbolicExpression(os, s);
+    printSymbolicExpression(os, s, false);
   } else {
     // Displacement is numeric.
     if (!has_segment && !has_base && !has_index) {

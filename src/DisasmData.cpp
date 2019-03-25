@@ -86,30 +86,36 @@ std::string DisasmData::GetSymbolToPrint(gtirb::Addr x) {
   return ss.str();
 }
 
-std::string DisasmData::getRelocatedDestination(const gtirb::Addr& addr) const {
-  if (const auto* relocations = getAuxData<
-          std::map<gtirb::Addr, std::tuple<std::string, std::string>>>(
-          ir, "relocations")) {
-    const auto found = relocations->find(addr);
-    if (found != std::end(*relocations) &&
-        std::get<0>(found->second) == "R_X86_64_GLOB_DAT")
-      return std::get<1>(found->second) + "@GOTPCREL";
+std::string DisasmData::getForwardedSymbolName(const gtirb::Symbol* symbol,
+                                               bool isAbsolute) const {
+  auto* symbolForwarding =
+      getAuxData<std::map<gtirb::UUID, gtirb::UUID>>(ir, "SymbolForwarding");
+  if (symbolForwarding) {
+    auto found = symbolForwarding->find(symbol->getUUID());
+    if (found != symbolForwarding->end()) {
+      gtirb::Node* destSymbol = gtirb::Node::getByUUID(context, found->second);
+      return (cast<gtirb::Symbol>(destSymbol))->getName() +
+             getForwardedSymbolEnding(symbol, isAbsolute);
+    }
   }
   return std::string{};
 }
 
-bool DisasmData::isRelocated(const std::string& x) const {
-  const auto* relocations =
-      getAuxData<std::map<gtirb::Addr, std::tuple<std::string, std::string>>>(
-          ir, "relocations");
-  if (!relocations)
-    return false;
-
-  const auto found = std::find_if(
-      std::begin(*relocations), std::end(*relocations),
-      [x](const auto& element) { return get<1>(element.second) == x; });
-
-  return found != std::end(*relocations);
+std::string DisasmData::getForwardedSymbolEnding(const gtirb::Symbol* symbol,
+                                                 bool isAbsolute) const {
+  if (symbol->getAddress()) {
+    gtirb::Addr addr = *symbol->getAddress();
+    const gtirb::Section* section;
+    if ((section = this->getSection(".plt")) && containsAddr(*section, addr) &&
+        !isAbsolute)
+      return std::string{"@PLT"};
+    if ((section = this->getSection(".got")) && containsAddr(*section, addr))
+      return std::string{"@GOTPCREL"};
+    if ((section = this->getSection(".got.plt")) &&
+        containsAddr(*section, addr))
+      return std::string{"@GOTPCREL"};
+  }
+  return std::string{""};
 }
 
 const gtirb::Section* DisasmData::getSection(const std::string& x) const {
@@ -128,21 +134,6 @@ bool DisasmData::isAmbiguousSymbol(const std::string& name) const {
   // Are there multiple symbols with this name?
   auto found = this->ir.modules()[0].findSymbols(name);
   return distance(begin(found), end(found)) > 1;
-}
-
-std::string DisasmData::CleanSymbolNameSuffix(std::string x) {
-  return x.substr(0, x.find_first_of('@'));
-}
-
-// FIXME: get rid of this function once capstone returns the right name for all
-// registers
-std::string DisasmData::AdaptRegister(const std::string& x) {
-  const std::map<std::string, std::string> adapt{{"ST(0", "ST(0)"}};
-  if (const auto found = adapt.find(x); found != std::end(adapt)) {
-    return found->second;
-  }
-
-  return x;
 }
 
 std::string DisasmData::GetSizeName(uint64_t x) {
