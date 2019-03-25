@@ -162,8 +162,8 @@ protected:
   // if the symbol is ambiguous print a symbol with the address instead.
   // if the symbol is forwarded (e.g. a plt reference) print the forwarded
   // symbol with the adequate ending (e.g. @PLT)
-  virtual std::string
-  getAdaptedSymbolName(const gtirb::Symbol* symbol, bool inData) const;
+  virtual std::string getAdaptedSymbolName(const gtirb::Symbol* symbol,
+                                           bool inData) const;
 
   /// Get the index of an operand in the GTIRB, given the index of the operand
   /// in the Capstone instruction.
@@ -202,29 +202,32 @@ protected:
   virtual void printDataGroups(std::ostream& os);
   virtual void printDataObject(std::ostream& os,
                                const gtirb::DataObject& dataGroup);
-  virtual void printSymbolicData(std::ostream& os, const gtirb::SymbolicExpression* symbolic);
+  virtual void printSymbolicData(std::ostream& os,
+                                 const gtirb::SymbolicExpression* symbolic);
   virtual void printSymbolicExpression(std::ostream& os,
-                                       const gtirb::SymAddrConst* sexpr, bool inData=false);
+                                       const gtirb::SymAddrConst* sexpr,
+                                       bool inData = false);
   virtual void printSymbolicExpression(std::ostream& os,
-                                       const gtirb::SymAddrAddr* sexpr, bool inData=false);
+                                       const gtirb::SymAddrAddr* sexpr,
+                                       bool inData = false);
 
   virtual void printBSS(std::ostream& os);
   virtual void printString(std::ostream& os, const gtirb::DataObject& x);
 
   virtual void printOperand(std::ostream& os,
                             const gtirb::SymbolicExpression* symbolic,
-                            const cs_insn& inst,
-                            uint64_t index);
+                            const cs_insn& inst, uint64_t index);
   virtual void printOpRegdirect(std::ostream& os, const cs_insn& inst,
                                 const cs_x86_op& op) = 0;
   virtual void printOpImmediate(std::ostream& os,
                                 const gtirb::SymbolicExpression* symbolic,
-                                const cs_insn& inst,uint64_t index) = 0;
+                                const cs_insn& inst, uint64_t index) = 0;
   virtual void printOpIndirect(std::ostream& os,
                                const gtirb::SymbolicExpression* symbolic,
                                const cs_insn& inst, uint64_t index) = 0;
 
-  virtual bool printSymbolDefinitionsAtAddress(std::ostream& os, gtirb::Addr ea);
+  virtual bool printSymbolDefinitionsAtAddress(std::ostream& os,
+                                               gtirb::Addr ea);
 
   bool shouldExcludeDataElement(const std::string& sectionName,
                                 const gtirb::DataObject& dataGroup);

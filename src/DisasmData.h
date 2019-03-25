@@ -51,7 +51,8 @@ public:
 
   std::string getSectionName(gtirb::Addr x) const;
   std::string getFunctionName(gtirb::Addr x) const;
-  std::string getForwardedSymbolName(const gtirb::Symbol* symbol,bool isAbsolute) const;
+  std::string getForwardedSymbolName(const gtirb::Symbol* symbol,
+                                     bool isAbsolute) const;
   const gtirb::Section* getSection(const std::string& x) const;
   bool isAmbiguousSymbol(const std::string& ea) const;
   static std::string GetSymbolToPrint(gtirb::Addr x);
@@ -66,7 +67,8 @@ private:
   // This should be kept sorted to enable fast searches.
   std::vector<gtirb::Addr> functionEntry;
 
-  std::string getForwardedSymbolEnding(const gtirb::Symbol* symbol,bool isAbsolute) const;
+  std::string getForwardedSymbolEnding(const gtirb::Symbol* symbol,
+                                       bool isAbsolute) const;
 };
 
 const std::pair<std::string, int>*
