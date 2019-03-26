@@ -57,6 +57,6 @@ associated types and contents in this table.
 | comments          | `std::map<gtirb::Addr, std::string>` | Per-instruction comments. |
 | dataSections      | `std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>` | Tuples containing the name, alignment, and IDs of `DataObject`s for data sections. |
 | functionEntry     | `std::vector<gtirb::Addr>` | Addresses of entry points of functions. |
-| SymbolForwarding | `std::map<gtirb::UUID, gtirb::UUID>` | Map from symbols to other symbols. This table is used to forward symbols due to
+| symbolForwarding | `std::map<gtirb::UUID, gtirb::UUID>` | Map from symbols to other symbols. This table is used to forward symbols due to
 relocations or due to the use of plt and got tables.
 | stringEAs         | `std::vector<gtirb::Addr>`| Addresses of string constants. |

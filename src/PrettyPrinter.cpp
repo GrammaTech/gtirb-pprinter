@@ -263,7 +263,7 @@ std::string PrettyPrinterBase::getAdaptedSymbolName(const gtirb::Symbol* symbol,
   std::string forwardedName = disasm.getForwardedSymbolName(symbol, isAbsolute);
   if (!forwardedName.empty())
     return forwardedName;
-  if (symbol->getAddress().has_value() && this->skipEA(*symbol->getAddress())) {
+  if (symbol->getAddress() && this->skipEA(*symbol->getAddress())) {
     std::stringstream str;
     str << static_cast<uint64_t>(*symbol->getAddress());
     return str.str();

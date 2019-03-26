@@ -89,7 +89,7 @@ std::string DisasmData::GetSymbolToPrint(gtirb::Addr x) {
 std::string DisasmData::getForwardedSymbolName(const gtirb::Symbol* symbol,
                                                bool isAbsolute) const {
   auto* symbolForwarding =
-      getAuxData<std::map<gtirb::UUID, gtirb::UUID>>(ir, "SymbolForwarding");
+      getAuxData<std::map<gtirb::UUID, gtirb::UUID>>(ir, "symbolForwarding");
   if (symbolForwarding) {
     auto found = symbolForwarding->find(symbol->getUUID());
     if (found != symbolForwarding->end()) {
