@@ -109,6 +109,9 @@ std::string DisasmData::getForwardedSymbolEnding(const gtirb::Symbol* symbol,
     if ((section = this->getSection(".plt")) && containsAddr(*section, addr) &&
         !isAbsolute)
       return std::string{"@PLT"};
+    if ((section = this->getSection(".plt.got")) && containsAddr(*section, addr) &&
+        !isAbsolute)
+      return std::string{"@PLT"};
     if ((section = this->getSection(".got")) && containsAddr(*section, addr))
       return std::string{"@GOTPCREL"};
     if ((section = this->getSection(".got.plt")) &&
