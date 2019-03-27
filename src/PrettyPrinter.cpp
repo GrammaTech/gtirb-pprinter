@@ -258,20 +258,24 @@ void PrettyPrinterBase::printLabel(std::ostream& os, gtirb::Addr ea) {
     os << ".L_" << std::hex << static_cast<uint64_t>(ea) << ':' << std::dec;
 }
 
-std::string PrettyPrinterBase::getAdaptedSymbolName(const gtirb::Symbol* symbol,
-                                                    bool isAbsolute) const {
-  std::string forwardedName = disasm.getForwardedSymbolName(symbol, isAbsolute);
-  if (!forwardedName.empty())
-    return forwardedName;
+void PrettyPrinterBase::printSymbolReference(std::ostream& os,
+                                             const gtirb::Symbol* symbol,
+                                             bool isAbsolute) const {
+  std::optional<std::string> forwardedName =
+      disasm.getForwardedSymbolName(symbol, isAbsolute);
+  if (forwardedName) {
+    os << forwardedName.value();
+    return;
+  }
   if (symbol->getAddress() && this->skipEA(*symbol->getAddress())) {
-    std::stringstream str;
-    str << static_cast<uint64_t>(*symbol->getAddress());
-    return str.str();
+    os << static_cast<uint64_t>(*symbol->getAddress());
+    return;
   }
   if (this->disasm.isAmbiguousSymbol(symbol->getName())) {
-    return DisasmData::GetSymbolToPrint(*symbol->getAddress());
+    os << DisasmData::GetSymbolToPrint(*symbol->getAddress());
+    return;
   }
-  return DisasmData::AvoidRegNameConflicts(symbol->getName());
+  os << DisasmData::AvoidRegNameConflicts(symbol->getName());
 }
 
 bool PrettyPrinterBase::printSymbolDefinitionsAtAddress(std::ostream& os,
@@ -488,15 +492,16 @@ void PrettyPrinterBase::printSymbolicData(
 
 void PrettyPrinterBase::printSymbolicExpression(
     std::ostream& os, const gtirb::SymAddrConst* sexpr, bool inData) {
-  os << this->getAdaptedSymbolName(sexpr->Sym, inData);
-  os << getAddendString(sexpr->Offset);
+  printSymbolReference(os, sexpr->Sym, inData);
+  printAddend(os, sexpr->Offset);
 }
 
 void PrettyPrinterBase::printSymbolicExpression(std::ostream& os,
                                                 const gtirb::SymAddrAddr* sexpr,
                                                 bool inData) {
-  os << this->getAdaptedSymbolName(sexpr->Sym1, inData) << '-'
-     << this->getAdaptedSymbolName(sexpr->Sym2, inData);
+  printSymbolReference(os, sexpr->Sym1, inData);
+  os << '-';
+  printSymbolReference(os, sexpr->Sym2, inData);
 }
 
 void PrettyPrinterBase::printString(std::ostream& os,
@@ -614,12 +619,15 @@ std::string PrettyPrinterBase::getRegisterName(unsigned int reg) const {
       reg == X86_REG_INVALID ? "" : cs_reg_name(this->csHandle, reg));
 }
 
-std::string PrettyPrinterBase::getAddendString(int64_t number, bool first) {
-  if (number < 0 || first)
-    return std::to_string(number);
+void PrettyPrinterBase::printAddend(std::ostream& os, int64_t number,
+                                    bool first) {
+  if (number < 0 || first) {
+    os << number;
+    return;
+  }
   if (number == 0)
-    return std::string("");
-  return "+" + std::to_string(number);
+    return;
+  os << "+" << number;
 }
 
 bool PrettyPrinterBase::isSectionSkipped(const std::string& name) {

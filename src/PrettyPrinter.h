@@ -158,13 +158,6 @@ protected:
   virtual const gtirb::SymAddrConst*
   getSymbolicImmediate(const gtirb::SymbolicExpression* symex);
 
-  // print a symbol in a symbolic expression
-  // if the symbol is ambiguous print a symbol with the address instead.
-  // if the symbol is forwarded (e.g. a plt reference) print the forwarded
-  // symbol with the adequate ending (e.g. @PLT)
-  virtual std::string getAdaptedSymbolName(const gtirb::Symbol* symbol,
-                                           bool inData) const;
-
   /// Get the index of an operand in the GTIRB, given the index of the operand
   /// in the Capstone instruction.
   ///
@@ -210,6 +203,15 @@ protected:
   virtual void printSymbolicExpression(std::ostream& os,
                                        const gtirb::SymAddrAddr* sexpr,
                                        bool inData = false);
+  // print a symbol in a symbolic expression
+  // if the symbol is ambiguous print a symbol with the address instead.
+  // if the symbol is forwarded (e.g. a plt reference) print the forwarded
+  // symbol with the adequate ending (e.g. @PLT)
+  virtual void printSymbolReference(std::ostream& os,
+                                    const gtirb::Symbol* symbol,
+                                    bool inData) const;
+  virtual void printAddend(std::ostream& os, int64_t number,
+                           bool first = false);
 
   virtual void printBSS(std::ostream& os);
   virtual void printString(std::ostream& os, const gtirb::DataObject& x);
@@ -254,7 +256,6 @@ protected:
   bool isSectionSkipped(const std::string& name);
 
   std::string avoidRegNameConflicts(const std::string& x);
-  std::string getAddendString(int64_t number, bool first = false);
 
   csh csHandle;
   DisasmData disasm;

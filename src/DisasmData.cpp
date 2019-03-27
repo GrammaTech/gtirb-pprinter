@@ -86,8 +86,9 @@ std::string DisasmData::GetSymbolToPrint(gtirb::Addr x) {
   return ss.str();
 }
 
-std::string DisasmData::getForwardedSymbolName(const gtirb::Symbol* symbol,
-                                               bool isAbsolute) const {
+std::optional<std::string>
+DisasmData::getForwardedSymbolName(const gtirb::Symbol* symbol,
+                                   bool isAbsolute) const {
   auto* symbolForwarding =
       getAuxData<std::map<gtirb::UUID, gtirb::UUID>>(ir, "symbolForwarding");
   if (symbolForwarding) {
@@ -98,7 +99,7 @@ std::string DisasmData::getForwardedSymbolName(const gtirb::Symbol* symbol,
              getForwardedSymbolEnding(symbol, isAbsolute);
     }
   }
-  return std::string{};
+  return {};
 }
 
 std::string DisasmData::getForwardedSymbolEnding(const gtirb::Symbol* symbol,
@@ -118,7 +119,7 @@ std::string DisasmData::getForwardedSymbolEnding(const gtirb::Symbol* symbol,
         containsAddr(*section, addr))
       return std::string{"@GOTPCREL"};
   }
-  return std::string{""};
+  return std::string{};
 }
 
 const gtirb::Section* DisasmData::getSection(const std::string& x) const {
