@@ -171,7 +171,7 @@ void PrettyPrinterBase::printBlock(std::ostream& os, const gtirb::Block& x) {
 
   this->condPrintSectionHeader(os, x);
   this->printFunctionHeader(os, x.getAddress());
-  this->printLabel(os, x.getAddress());
+  this->printSymbolDefinitionsAtAddress(os, x.getAddress());
   os << '\n';
 
   cs_insn* insn;
@@ -253,11 +253,6 @@ void PrettyPrinterBase::printFunctionHeader(std::ostream& os, gtirb::Addr ea) {
   }
 }
 
-void PrettyPrinterBase::printLabel(std::ostream& os, gtirb::Addr ea) {
-  if (!this->printSymbolDefinitionsAtAddress(os, ea))
-    os << ".L_" << std::hex << static_cast<uint64_t>(ea) << ':' << std::dec;
-}
-
 void PrettyPrinterBase::printSymbolReference(std::ostream& os,
                                              const gtirb::Symbol* symbol,
                                              bool isAbsolute) const {
@@ -271,24 +266,21 @@ void PrettyPrinterBase::printSymbolReference(std::ostream& os,
     os << static_cast<uint64_t>(*symbol->getAddress());
     return;
   }
-  if (this->disasm.isAmbiguousSymbol(symbol->getName())) {
+  if (this->disasm.isAmbiguousSymbol(symbol->getName()))
     os << DisasmData::GetSymbolToPrint(*symbol->getAddress());
-    return;
-  }
-  os << DisasmData::AvoidRegNameConflicts(symbol->getName());
+  else
+    os << DisasmData::AvoidRegNameConflicts(symbol->getName());
 }
 
-bool PrettyPrinterBase::printSymbolDefinitionsAtAddress(std::ostream& os,
+void PrettyPrinterBase::printSymbolDefinitionsAtAddress(std::ostream& os,
                                                         gtirb::Addr ea) {
-  bool printed = false;
-  for (const gtirb::Symbol& sym :
+  for (const gtirb::Symbol& symbol :
        this->disasm.ir.modules()[0].findSymbols(ea)) {
-    if (!this->disasm.isAmbiguousSymbol(sym.getName())) {
-      os << DisasmData::AvoidRegNameConflicts(sym.getName()) << ":\n";
-      printed = true;
-    }
+    if (this->disasm.isAmbiguousSymbol(symbol.getName()))
+      os << DisasmData::GetSymbolToPrint(*symbol.getAddress()) << ":\n";
+    else
+      os << DisasmData::AvoidRegNameConflicts(symbol.getName()) << ":\n";
   }
-  return printed;
 }
 
 void PrettyPrinterBase::printInstruction(std::ostream& os,
@@ -407,7 +399,7 @@ void PrettyPrinterBase::printDataGroups(std::ostream& os) {
         (next_section != StrSectionBSS &&
          getDataSectionDescriptor(next_section) == nullptr)) {
       // This is no the start of a new section, so print the label.
-      this->printLabel(os, endAddress);
+      this->printSymbolDefinitionsAtAddress(os, endAddress);
       os << '\n';
     }
   }
@@ -440,7 +432,7 @@ void PrettyPrinterBase::printDataObject(std::ostream& os,
   const auto* stringEAs = getAuxData<std::vector<gtirb::Addr>>(ir, "stringEAs");
 
   printComment(os, dataGroup.getAddress());
-  printLabel(os, dataGroup.getAddress());
+  printSymbolDefinitionsAtAddress(os, dataGroup.getAddress());
   os << PrettyPrinterBase::StrTab;
   if (this->debug)
     os << std::hex << static_cast<uint64_t>(dataGroup.getAddress()) << std::dec
@@ -548,7 +540,7 @@ void PrettyPrinterBase::printBSS(std::ostream& os) {
       if (data && data->getAddress() != bssSection->getAddress()) {
         const gtirb::Addr current = bssSection->getAddress();
         const gtirb::Addr next = data->getAddress();
-        this->printLabel(os, current);
+        this->printSymbolDefinitionsAtAddress(os, current);
         os << " .zero " << next - current;
       }
       os << '\n';
@@ -558,7 +550,7 @@ void PrettyPrinterBase::printBSS(std::ostream& os) {
             nodeFromUUID<gtirb::DataObject>(this->disasm.context, uuid);
         if (!current)
           continue;
-        this->printLabel(os, current->getAddress());
+        this->printSymbolDefinitionsAtAddress(os, current->getAddress());
         if (current->getSize() == 0) {
           os << '\n';
         } else {
@@ -567,7 +559,7 @@ void PrettyPrinterBase::printBSS(std::ostream& os) {
       }
     }
 
-    this->printLabel(os, addressLimit(*bssSection));
+    this->printSymbolDefinitionsAtAddress(os, addressLimit(*bssSection));
     os << '\n';
   }
 }

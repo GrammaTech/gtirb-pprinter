@@ -176,7 +176,6 @@ protected:
                                   uint64_t alignment = 0);
   virtual void printFunctionHeader(std::ostream& os, gtirb::Addr ea);
   virtual void printBlock(std::ostream& os, const gtirb::Block& x);
-  virtual void printLabel(std::ostream& os, gtirb::Addr ea);
 
   /// Print a single instruction to the stream. This implementation prints the
   /// mnemonic provided by Capstone, then calls printOperandList(). Thus, it is
@@ -228,7 +227,7 @@ protected:
                                const gtirb::SymbolicExpression* symbolic,
                                const cs_insn& inst, uint64_t index) = 0;
 
-  virtual bool printSymbolDefinitionsAtAddress(std::ostream& os,
+  virtual void printSymbolDefinitionsAtAddress(std::ostream& os,
                                                gtirb::Addr ea);
 
   bool shouldExcludeDataElement(const std::string& sectionName,
