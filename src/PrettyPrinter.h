@@ -148,7 +148,9 @@ protected:
   /// Sections to avoid printing.
   std::unordered_set<std::string> AsmSkipSection{
       ".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt"};
-
+  // These sections have a couple of special cases for printing
+  // They usually containt entries that need to be ignored and require special
+  // alignment of 8
   const std::unordered_set<std::string> AsmArraySection{".init_array",
                                                         ".fini_array"};
   /// Functions to avoid printing.
@@ -266,6 +268,7 @@ protected:
   csh csHandle;
   DisasmData disasm;
   bool debug;
+  // FIXME: Remove once gtirb guarantees order
   std::map<gtirb::Addr, const gtirb::Section*> sections;
 };
 

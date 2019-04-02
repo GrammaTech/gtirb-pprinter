@@ -46,7 +46,6 @@ public:
 
   std::vector<std::string>* getAmbiguousSymbol();
 
-  std::string getSectionName(gtirb::Addr x) const;
   std::string getFunctionName(gtirb::Addr x) const;
   std::optional<std::string> getForwardedSymbolName(const gtirb::Symbol* symbol,
                                                     bool isAbsolute) const;

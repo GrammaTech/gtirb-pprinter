@@ -31,18 +31,6 @@ DisasmData::DisasmData(gtirb::Context& context_, gtirb::IR& ir_)
   std::sort(functionEntry.begin(), functionEntry.end());
 }
 
-std::string DisasmData::getSectionName(gtirb::Addr x) const {
-  const gtirb::Module::section_range& sections = ir.modules()[0].sections();
-  const auto& match = find_if(
-      sections, [x](const gtirb::Section& s) { return s.getAddress() == x; });
-
-  if (match != sections.end()) {
-    return match->getName();
-  }
-
-  return std::string{};
-}
-
 std::string DisasmData::getFunctionName(gtirb::Addr x) const {
   // Is this address an entry point to a function with a symbol?
   bool entry_point = std::binary_search(this->functionEntry.begin(),

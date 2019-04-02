@@ -158,7 +158,7 @@ const gtirb::SymAddrConst* PrettyPrinterBase::getSymbolicImmediate(
 
 std::ostream& PrettyPrinterBase::print(std::ostream& os) {
   this->printHeader(os);
-
+  // FIXME: simplify once interation order is guaranteed by gtirb
   auto address_order_block = [](const gtirb::Block* a, const gtirb::Block* b) {
     return a->getAddress() < b->getAddress();
   };
