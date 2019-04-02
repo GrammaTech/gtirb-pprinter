@@ -147,8 +147,10 @@ protected:
 
   /// Sections to avoid printing.
   std::unordered_set<std::string> AsmSkipSection{
-      {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt"}};
+      ".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt"};
 
+  const std::unordered_set<std::string> AsmArraySection{".init_array",
+                                                        ".fini_array"};
   /// Functions to avoid printing.
   std::unordered_set<std::string> AsmSkipFunction;
 
@@ -171,11 +173,16 @@ protected:
 
   virtual void printBar(std::ostream& os, bool heavy = true);
   virtual void printHeader(std::ostream& os) = 0;
-  virtual void condPrintSectionHeader(std::ostream& os, const gtirb::Block& x);
-  virtual void printSectionHeader(std::ostream& os, const std::string& x,
-                                  uint64_t alignment = 0);
+  virtual void printAlignment(std::ostream& os, const gtirb::Addr addr);
+  virtual void printSectionHeader(std::ostream& os, const gtirb::Addr addr);
   virtual void printFunctionHeader(std::ostream& os, gtirb::Addr ea);
   virtual void printBlock(std::ostream& os, const gtirb::Block& x);
+  virtual void printDataObject(std::ostream& os,
+                               const gtirb::DataObject& dataObject);
+  virtual void printNonZeroDataObject(std::ostream& os,
+                                      const gtirb::DataObject& dataObject);
+  virtual void printZeroDataObject(std::ostream& os,
+                                   const gtirb::DataObject& dataObject);
 
   /// Print a single instruction to the stream. This implementation prints the
   /// mnemonic provided by Capstone, then calls printOperandList(). Thus, it is
@@ -191,9 +198,6 @@ protected:
   virtual void printOperandList(std::ostream& os, const gtirb::Addr ea,
                                 const cs_insn& inst);
   virtual void printComment(std::ostream& os, const gtirb::Addr ea);
-  virtual void printDataGroups(std::ostream& os);
-  virtual void printDataObject(std::ostream& os,
-                               const gtirb::DataObject& dataGroup);
   virtual void printSymbolicData(std::ostream& os,
                                  const gtirb::SymbolicExpression* symbolic);
   virtual void printSymbolicExpression(std::ostream& os,
@@ -211,8 +215,6 @@ protected:
                                     bool inData) const;
   virtual void printAddend(std::ostream& os, int64_t number,
                            bool first = false);
-
-  virtual void printBSS(std::ostream& os);
   virtual void printString(std::ostream& os, const gtirb::DataObject& x);
 
   virtual void printOperand(std::ostream& os,
@@ -229,12 +231,17 @@ protected:
 
   virtual void printSymbolDefinitionsAtAddress(std::ostream& os,
                                                gtirb::Addr ea);
+  virtual void printOverlapWarning(std::ostream& os, gtirb::Addr ea);
 
-  bool shouldExcludeDataElement(const std::string& sectionName,
+  bool shouldExcludeDataElement(const gtirb::Section& section,
                                 const gtirb::DataObject& dataGroup);
-  bool isPointerToExcludedCode(const gtirb::DataObject& dataGroup);
 
   bool skipEA(const gtirb::Addr x) const;
+
+  // This method assumes sections do not overlap
+  const std::optional<const gtirb::Section*>
+  getContainerSection(const gtirb::Addr addr) const;
+
   bool isInSkippedSection(const gtirb::Addr x) const;
   bool isInSkippedFunction(const gtirb::Addr x) const;
 
@@ -259,6 +266,7 @@ protected:
   csh csHandle;
   DisasmData disasm;
   bool debug;
+  std::map<gtirb::Addr, const gtirb::Section*> sections;
 };
 
 } // namespace gtirb_pprint

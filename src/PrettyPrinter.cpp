@@ -139,6 +139,9 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context, gtirb::IR& ir,
   [[maybe_unused]] cs_err err =
       cs_open(CS_ARCH_X86, CS_MODE_64, &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
+  const gtirb::Module& module = this->disasm.ir.modules()[0];
+  for (const gtirb::Section& section : module.sections())
+    this->sections[section.getAddress()] = &section;
 }
 
 PrettyPrinterBase::~PrettyPrinterBase() { cs_close(&this->csHandle); }
@@ -155,23 +158,97 @@ const gtirb::SymAddrConst* PrettyPrinterBase::getSymbolicImmediate(
 
 std::ostream& PrettyPrinterBase::print(std::ostream& os) {
   this->printHeader(os);
-  for (const gtirb::Block& b :
+
+  auto address_order_block = [](const gtirb::Block* a, const gtirb::Block* b) {
+    return a->getAddress() < b->getAddress();
+  };
+  auto address_order_data = [](const gtirb::DataObject* a,
+                               const gtirb::DataObject* b) {
+    return a->getAddress() < b->getAddress();
+  };
+  std::vector<const gtirb::Block*> blocks;
+  std::vector<const gtirb::DataObject*> dataObjects;
+
+  for (const gtirb::Block& block :
        gtirb::blocks(this->disasm.ir.modules()[0].getCFG())) {
-    this->printBlock(os, b);
+    blocks.push_back(&block);
   }
-  this->printDataGroups(os);
-  this->printBSS(os);
+  std::sort(blocks.begin(), blocks.end(), address_order_block);
+
+  for (const gtirb::DataObject& dataObject :
+       this->disasm.ir.modules()[0].data()) {
+    dataObjects.push_back(&dataObject);
+  }
+  std::sort(dataObjects.begin(), dataObjects.end(), address_order_data);
+
+  auto blockIt = blocks.begin();
+  auto dataIt = dataObjects.begin();
+  gtirb::Addr last{0};
+  gtirb::Addr nextAddr{0};
+  while (blockIt != blocks.end() && dataIt != dataObjects.end()) {
+    if ((*blockIt)->getAddress() <= (*dataIt)->getAddress()) {
+      nextAddr = (*blockIt)->getAddress();
+      if (nextAddr < last) {
+        printOverlapWarning(os, nextAddr);
+      } else {
+        if (nextAddr > last)
+          printSymbolDefinitionsAtAddress(os, last);
+        printBlock(os, **blockIt);
+        last = (*blockIt)->getAddress() + (*blockIt)->getSize();
+      }
+      blockIt++;
+    } else {
+      nextAddr = (*dataIt)->getAddress();
+      if (nextAddr < last) {
+        printOverlapWarning(os, nextAddr);
+      } else {
+        if (nextAddr > last)
+          printSymbolDefinitionsAtAddress(os, last);
+        printDataObject(os, **dataIt);
+        last = (*dataIt)->getAddress() + (*dataIt)->getSize();
+      }
+      dataIt++;
+    }
+  }
+  for (; blockIt != blocks.end(); blockIt++) {
+    nextAddr = (*blockIt)->getAddress();
+    if (nextAddr < last) {
+      printOverlapWarning(os, (*blockIt)->getAddress());
+    } else {
+      if (nextAddr > last)
+        printSymbolDefinitionsAtAddress(os, last);
+      printBlock(os, **blockIt);
+      last = (*blockIt)->getAddress() + (*blockIt)->getSize();
+    }
+  }
+  for (; dataIt != dataObjects.end(); dataIt++) {
+    nextAddr = (*dataIt)->getAddress();
+    if (nextAddr < last) {
+      printOverlapWarning(os, nextAddr);
+    } else {
+      if (nextAddr > last)
+        printSymbolDefinitionsAtAddress(os, last);
+
+      printDataObject(os, **dataIt);
+      last = (*dataIt)->getAddress() + (*dataIt)->getSize();
+    }
+  }
+  printSymbolDefinitionsAtAddress(os, last);
   return os;
 }
 
+void PrettyPrinterBase::printOverlapWarning(std::ostream& os,
+                                            const gtirb::Addr addr) {
+  os << "# WARNING: found overlapping element at address " << std::hex
+     << static_cast<uint64_t>(addr) << ": " << std::dec;
+}
 void PrettyPrinterBase::printBlock(std::ostream& os, const gtirb::Block& x) {
-  if (this->skipEA(x.getAddress())) {
+  printSectionHeader(os, x.getAddress());
+  if (skipEA(x.getAddress())) {
     return;
   }
-
-  this->condPrintSectionHeader(os, x);
-  this->printFunctionHeader(os, x.getAddress());
-  this->printSymbolDefinitionsAtAddress(os, x.getAddress());
+  printFunctionHeader(os, x.getAddress());
+  printSymbolDefinitionsAtAddress(os, x.getAddress());
   os << '\n';
 
   cs_insn* insn;
@@ -188,38 +265,32 @@ void PrettyPrinterBase::printBlock(std::ostream& os, const gtirb::Block& x) {
       insn, [count](cs_insn* i) { cs_free(i, count); });
 
   for (size_t i = 0; i < count; i++) {
-    this->printInstruction(os, insn[i]);
+    printInstruction(os, insn[i]);
     os << '\n';
   }
 }
 
-void PrettyPrinterBase::condPrintSectionHeader(std::ostream& os,
-                                               const gtirb::Block& x) {
-  const std::string& name = this->disasm.getSectionName(x.getAddress());
-
-  if (!name.empty())
-    this->printSectionHeader(os, name);
-}
-
 void PrettyPrinterBase::printSectionHeader(std::ostream& os,
-                                           const std::string& x,
-                                           uint64_t alignment) {
+                                           const gtirb::Addr addr) {
+  auto found = sections.find(addr);
+  if (found == sections.end())
+    return;
+  std::string sectionName = found->second->getName();
+  if (AsmSkipSection.count(sectionName))
+    return;
   os << '\n';
   this->printBar(os);
-
-  if (x == PrettyPrinterBase::StrSectionText) {
+  if (sectionName == PrettyPrinterBase::StrSectionText) {
     os << PrettyPrinterBase::StrSectionText << '\n';
-  } else if (x == PrettyPrinterBase::StrSectionBSS) {
+  } else if (sectionName == PrettyPrinterBase::StrSectionBSS) {
     os << PrettyPrinterBase::StrSectionBSS << '\n';
-    os << ".align " << alignment << '\n';
   } else {
-    os << PrettyPrinterBase::StrSection << ' ' << x << '\n';
-
-    if (alignment != 0) {
-      os << ".align " << alignment << '\n';
-    }
+    os << PrettyPrinterBase::StrSection << ' ' << sectionName << '\n';
   }
-
+  if (AsmArraySection.count(sectionName))
+    os << ".align 8\n";
+  else
+    printAlignment(os, addr);
   this->printBar(os);
   os << '\n';
 }
@@ -232,21 +303,14 @@ void PrettyPrinterBase::printBar(std::ostream& os, bool heavy) {
   }
 }
 
-void PrettyPrinterBase::printFunctionHeader(std::ostream& os, gtirb::Addr ea) {
-  const std::string& name = this->disasm.getFunctionName(ea);
+void PrettyPrinterBase::printFunctionHeader(std::ostream& os,
+                                            gtirb::Addr addr) {
+  const std::string& name = this->disasm.getFunctionName(addr);
 
   if (!name.empty()) {
     const BlockAreaComment bac(os, "Function Header",
                                [this, &os]() { this->printBar(os, false); });
-
-    // Enforce maximum alignment
-    uint64_t x{ea};
-    if (x % 8 == 0) {
-      os << ".align 8\n";
-    } else if (x % 2 == 0) {
-      os << ".align 2\n";
-    }
-
+    printAlignment(os, addr);
     os << PrettyPrinterBase::StrSectionGlobal << ' ' << name << '\n';
     os << PrettyPrinterBase::StrSectionType << ' ' << name << ", @function\n";
     os << name << ":\n";
@@ -287,7 +351,7 @@ void PrettyPrinterBase::printInstruction(std::ostream& os,
                                          const cs_insn& inst) {
   gtirb::Addr ea(inst.address);
   printComment(os, ea);
-  this->printEA(os, ea);
+  printEA(os, ea);
 
   ////////////////////////////////////////////////////////////////////
   // special cases
@@ -298,7 +362,7 @@ void PrettyPrinterBase::printInstruction(std::ostream& os,
       ea += 1;
       os << '\n';
       printComment(os, ea);
-      this->printEA(os, ea);
+      printEA(os, ea);
       os << "  " << PrettyPrinterBase::StrNOP;
     }
     return;
@@ -309,7 +373,7 @@ void PrettyPrinterBase::printInstruction(std::ostream& os,
 
   std::string opcode = ascii_str_tolower(inst.mnemonic);
   os << "  " << opcode << ' ';
-  this->printOperandList(os, ea, inst);
+  printOperandList(os, ea, inst);
 }
 
 void PrettyPrinterBase::printEA(std::ostream& os, gtirb::Addr ea) {
@@ -342,7 +406,7 @@ void PrettyPrinterBase::printOperandList(std::ostream& os, const gtirb::Addr ea,
     auto found = module.findSymbolicExpression(ea + index);
     if (found != module.symbolic_expr_end())
       symbolic = &*found;
-    this->printOperand(os, symbolic, inst, i);
+    printOperand(os, symbolic, inst, i);
   }
 }
 
@@ -352,13 +416,13 @@ void PrettyPrinterBase::printOperand(std::ostream& os,
   const cs_x86_op& op = inst.detail->x86.operands[index];
   switch (op.type) {
   case X86_OP_REG:
-    this->printOpRegdirect(os, inst, op);
+    printOpRegdirect(os, inst, op);
     return;
   case X86_OP_IMM:
-    this->printOpImmediate(os, symbolic, inst, index);
+    printOpImmediate(os, symbolic, inst, index);
     return;
   case X86_OP_MEM:
-    this->printOpIndirect(os, symbolic, inst, index);
+    printOpIndirect(os, symbolic, inst, index);
     return;
   case X86_OP_INVALID:
     std::cerr << "invalid operand\n";
@@ -366,97 +430,54 @@ void PrettyPrinterBase::printOperand(std::ostream& os,
   }
 }
 
-void PrettyPrinterBase::printDataGroups(std::ostream& os) {
-  const std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>*
-      dataSections = this->disasm.getDataSections();
-  if (!dataSections)
-    return;
-  for (const auto& [name, alignment, dataIDs] : *dataSections) {
-    const gtirb::Section* sectionPtr = this->disasm.getSection(name);
-
-    std::vector<const gtirb::DataObject*> dataGroups;
-    for (gtirb::UUID i : dataIDs) {
-      dataGroups.push_back(
-          nodeFromUUID<gtirb::DataObject>(this->disasm.context, i));
-    }
-
-    if (isSectionSkipped(sectionPtr->getName()))
-      continue;
-
-    // Print header
-    this->printSectionHeader(os, sectionPtr->getName(), alignment);
-    // Print data for this section
-    for (const gtirb::DataObject* dataGroup : dataGroups) {
-      if (shouldExcludeDataElement(sectionPtr->getName(), *dataGroup))
-        continue;
-      printDataObject(os, *dataGroup);
-    }
-
-    // End label
-    const gtirb::Addr endAddress = addressLimit(*sectionPtr);
-    std::string next_section = this->disasm.getSectionName(endAddress);
-    if (next_section.empty() ||
-        (next_section != StrSectionBSS &&
-         getDataSectionDescriptor(next_section) == nullptr)) {
-      // This is no the start of a new section, so print the label.
-      this->printSymbolDefinitionsAtAddress(os, endAddress);
-      os << '\n';
-    }
-  }
-}
-
-bool PrettyPrinterBase::shouldExcludeDataElement(
-    const std::string& sectionName, const gtirb::DataObject& dataGroup) {
-  return (sectionName == ".init_array" || sectionName == ".fini_array") &&
-         this->isPointerToExcludedCode(dataGroup);
-}
-
-bool PrettyPrinterBase::isPointerToExcludedCode(
-    const gtirb::DataObject& dataGroup) {
-  gtirb::IR& ir = this->disasm.ir;
-  const gtirb::Module& module = ir.modules()[0];
-  if (auto foundSymbolic =
-          module.findSymbolicExpression(dataGroup.getAddress());
-      foundSymbolic != module.symbolic_expr_end()) {
-    if (const auto* s = std::get_if<gtirb::SymAddrConst>(&*foundSymbolic)) {
-      return this->skipEA(*s->Sym->getAddress());
-    }
-  }
-  return false;
-}
-
 void PrettyPrinterBase::printDataObject(std::ostream& os,
-                                        const gtirb::DataObject& dataGroup) {
-  gtirb::IR& ir = this->disasm.ir;
-  const gtirb::Module& module = ir.modules()[0];
-  const auto* stringEAs = getAuxData<std::vector<gtirb::Addr>>(ir, "stringEAs");
-
-  printComment(os, dataGroup.getAddress());
-  printSymbolDefinitionsAtAddress(os, dataGroup.getAddress());
+                                        const gtirb::DataObject& dataObject) {
+  gtirb::Addr addr = dataObject.getAddress();
+  printSectionHeader(os, addr);
+  if (skipEA(addr)) {
+    return;
+  }
+  printComment(os, addr);
+  printSymbolDefinitionsAtAddress(os, addr);
   os << PrettyPrinterBase::StrTab;
   if (this->debug)
-    os << std::hex << static_cast<uint64_t>(dataGroup.getAddress()) << std::dec
-       << ':';
+    os << std::hex << static_cast<uint64_t>(addr) << std::dec << ':';
+  const auto section = getContainerSection(addr);
+  assert(section && "Found a data object outside all sections");
+  if (shouldExcludeDataElement(**section, dataObject))
+    return;
+  if ((*section)->getName() == StrSectionBSS)
+    printZeroDataObject(os, dataObject);
+  else
+    printNonZeroDataObject(os, dataObject);
+}
 
+void PrettyPrinterBase::printNonZeroDataObject(
+    std::ostream& os, const gtirb::DataObject& dataObject) {
+  const gtirb::Module& module = this->disasm.ir.modules()[0];
+  const auto* stringEAs =
+      getAuxData<std::vector<gtirb::Addr>>(this->disasm.ir, "stringEAs");
   const auto& foundSymbolic =
-      module.findSymbolicExpression(dataGroup.getAddress());
+      module.findSymbolicExpression(dataObject.getAddress());
   if (foundSymbolic != module.symbolic_expr_end()) {
     printSymbolicData(os, &*foundSymbolic);
     os << '\n';
-
   } else if (stringEAs &&
              std::find(stringEAs->begin(), stringEAs->end(),
-                       dataGroup.getAddress()) != stringEAs->end()) {
-    this->printString(os, dataGroup);
+                       dataObject.getAddress()) != stringEAs->end()) {
+    this->printString(os, dataObject);
     os << '\n';
-
   } else {
-    for (std::byte byte :
-         getBytes(this->disasm.ir.modules()[0].getImageByteMap(), dataGroup)) {
+    for (std::byte byte : getBytes(module.getImageByteMap(), dataObject)) {
       os << ".byte 0x" << std::hex << static_cast<uint32_t>(byte) << std::dec
          << '\n';
     }
   }
+}
+
+void PrettyPrinterBase::printZeroDataObject(
+    std::ostream& os, const gtirb::DataObject& dataObject) {
+  os << " .zero " << dataObject.getSize() << '\n';
 }
 
 void PrettyPrinterBase::printComment(std::ostream& os, const gtirb::Addr ea) {
@@ -526,55 +547,29 @@ void PrettyPrinterBase::printString(std::ostream& os,
   os << '"';
 }
 
-void PrettyPrinterBase::printBSS(std::ostream& os) {
-  if (const gtirb::Section* bssSection =
-          this->disasm.getSection(PrettyPrinterBase::StrSectionBSS)) {
-    this->printSectionHeader(os, PrettyPrinterBase::StrSectionBSS, 16);
-    const auto* bssData =
-        getAuxData<std::vector<gtirb::UUID>>(this->disasm.ir, "bssData");
-
-    // Special case for auxilary bss data.
-    if (bssData && !bssData->empty()) {
-      auto* data =
-          nodeFromUUID<gtirb::DataObject>(this->disasm.context, bssData->at(0));
-      if (data && data->getAddress() != bssSection->getAddress()) {
-        const gtirb::Addr current = bssSection->getAddress();
-        const gtirb::Addr next = data->getAddress();
-        this->printSymbolDefinitionsAtAddress(os, current);
-        os << " .zero " << next - current;
-      }
-      os << '\n';
-
-      for (const gtirb::UUID& uuid : *bssData) {
-        const auto* current =
-            nodeFromUUID<gtirb::DataObject>(this->disasm.context, uuid);
-        if (!current)
-          continue;
-        this->printSymbolDefinitionsAtAddress(os, current->getAddress());
-        if (current->getSize() == 0) {
-          os << '\n';
-        } else {
-          os << " .zero " << current->getSize() << '\n';
-        }
-      }
+bool PrettyPrinterBase::shouldExcludeDataElement(
+    const gtirb::Section& section, const gtirb::DataObject& dataObject) {
+  if (!AsmArraySection.count(section.getName()))
+    return false;
+  const gtirb::Module& module = this->disasm.ir.modules()[0];
+  auto foundSymbolic = module.findSymbolicExpression(dataObject.getAddress());
+  if (foundSymbolic != module.symbolic_expr_end()) {
+    if (const auto* s = std::get_if<gtirb::SymAddrConst>(&*foundSymbolic)) {
+      return this->skipEA(*s->Sym->getAddress());
     }
-
-    this->printSymbolDefinitionsAtAddress(os, addressLimit(*bssSection));
-    os << '\n';
   }
+  return false;
 }
 
 bool PrettyPrinterBase::skipEA(const gtirb::Addr x) const {
   return !this->debug && (isInSkippedSection(x) || isInSkippedFunction(x));
 }
 
-bool PrettyPrinterBase::isInSkippedSection(const gtirb::Addr x) const {
-  for (const gtirb::Section& s : this->disasm.getSections()) {
-    if (AsmSkipSection.count(s.getName()) && containsAddr(s, gtirb::Addr(x))) {
-      return true;
-    }
-  }
-  return false;
+bool PrettyPrinterBase::isInSkippedSection(const gtirb::Addr addr) const {
+  if (debug)
+    return false;
+  const auto section = getContainerSection(addr);
+  return section && AsmSkipSection.count((*section)->getName());
 }
 
 bool PrettyPrinterBase::isInSkippedFunction(const gtirb::Addr x) const {
@@ -606,6 +601,20 @@ PrettyPrinterBase::getContainerFunctionName(const gtirb::Addr x) const {
   return this->disasm.getFunctionName(*fe);
 }
 
+const std::optional<const gtirb::Section*>
+PrettyPrinterBase::getContainerSection(const gtirb::Addr addr) const {
+  auto found = sections.upper_bound(addr);
+  if (found == sections.begin())
+    return std::nullopt;
+  // go to the previous one
+  found--;
+  if (containsAddr(*(found->second), addr) ||
+      addressLimit(*(found->second)) == addr)
+    return found->second;
+  else
+    return std::nullopt;
+}
+
 std::string PrettyPrinterBase::getRegisterName(unsigned int reg) const {
   return ascii_str_toupper(
       reg == X86_REG_INVALID ? "" : cs_reg_name(this->csHandle, reg));
@@ -622,10 +631,21 @@ void PrettyPrinterBase::printAddend(std::ostream& os, int64_t number,
   os << "+" << number;
 }
 
-bool PrettyPrinterBase::isSectionSkipped(const std::string& name) {
-  if (this->debug)
-    return false;
-  return AsmSkipSection.count(name);
+void PrettyPrinterBase::printAlignment(std::ostream& os, gtirb::Addr addr) {
+  // Enforce maximum alignment
+  uint64_t x{addr};
+  if (x % 16 == 0) {
+    os << ".align 16\n";
+    return;
+  }
+  if (x % 8 == 0) {
+    os << ".align 8\n";
+    return;
+  }
+  if (x % 2 == 0) {
+    os << ".align 2\n";
+    return;
+  }
 }
 
 } // namespace gtirb_pprint

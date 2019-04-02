@@ -31,19 +31,8 @@ DisasmData::DisasmData(gtirb::Context& context_, gtirb::IR& ir_)
   std::sort(functionEntry.begin(), functionEntry.end());
 }
 
-const gtirb::Module::section_range DisasmData::getSections() const {
-  return this->ir.modules()[0].sections();
-}
-
-const std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>*
-DisasmData::getDataSections() {
-  using table_type =
-      std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>;
-  return getAuxData<table_type>(ir, "dataSections");
-}
-
 std::string DisasmData::getSectionName(gtirb::Addr x) const {
-  const gtirb::Module::section_range& sections = this->getSections();
+  const gtirb::Module::section_range& sections = ir.modules()[0].sections();
   const auto& match = find_if(
       sections, [x](const gtirb::Section& s) { return s.getAddress() == x; });
 
@@ -123,11 +112,12 @@ std::string DisasmData::getForwardedSymbolEnding(const gtirb::Symbol* symbol,
 }
 
 const gtirb::Section* DisasmData::getSection(const std::string& x) const {
+  auto sections = ir.modules()[0].sections();
   const auto found =
-      std::find_if(getSections().begin(), getSections().end(),
+      std::find_if(sections.begin(), sections.end(),
                    [x](const auto& element) { return element.getName() == x; });
 
-  if (found != getSections().end()) {
+  if (found != sections.end()) {
     return &(*found);
   }
 
@@ -187,26 +177,4 @@ std::string DisasmData::AvoidRegNameConflicts(const std::string& x) {
   }
 
   return x;
-}
-
-// Name, Alignment pairs describing data sections.
-const std::array<std::pair<std::string, int>, 7> DataSectionDescriptors{{
-    {".got", 8},         //
-    {".got.plt", 8},     //
-    {".data.rel.ro", 8}, //
-    {".init_array", 8},  //
-    {".fini_array", 8},  //
-    {".rodata", 16},     //
-    {".data", 16}        //
-}};
-
-const std::pair<std::string, int>*
-getDataSectionDescriptor(const std::string& name) {
-  const auto foundDataSection = std::find_if(
-      std::begin(DataSectionDescriptors), std::end(DataSectionDescriptors),
-      [name](const auto& dsd) { return dsd.first == name; });
-  if (foundDataSection != std::end(DataSectionDescriptors))
-    return foundDataSection;
-  else
-    return nullptr;
 }

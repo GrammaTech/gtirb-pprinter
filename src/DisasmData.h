@@ -44,10 +44,7 @@ public:
   gtirb::Context& context;
   gtirb::IR& ir;
 
-  const gtirb::Module::section_range getSections() const;
   std::vector<std::string>* getAmbiguousSymbol();
-  const std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>*
-  getDataSections();
 
   std::string getSectionName(gtirb::Addr x) const;
   std::string getFunctionName(gtirb::Addr x) const;
@@ -70,8 +67,5 @@ private:
   std::string getForwardedSymbolEnding(const gtirb::Symbol* symbol,
                                        bool isAbsolute) const;
 };
-
-const std::pair<std::string, int>*
-getDataSectionDescriptor(const std::string& name);
 
 #endif /* GTIRB_PP_DISASM_DATA_H */
