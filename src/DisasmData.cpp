@@ -36,7 +36,7 @@ std::string DisasmData::getFunctionName(gtirb::Addr x) const {
   bool entry_point = std::binary_search(this->functionEntry.begin(),
                                         this->functionEntry.end(), x);
   if (entry_point) {
-    for (gtirb::Symbol& s : this->ir.modules()[0].findSymbols(x)) {
+    for (gtirb::Symbol& s : this->ir.modules().begin()->findSymbols(x)) {
       std::stringstream name(s.getName());
       if (this->isAmbiguousSymbol(s.getName())) {
         name.seekp(0, std::ios_base::end);
@@ -100,7 +100,7 @@ std::string DisasmData::getForwardedSymbolEnding(const gtirb::Symbol* symbol,
 }
 
 const gtirb::Section* DisasmData::getSection(const std::string& x) const {
-  auto sections = ir.modules()[0].sections();
+  auto sections = ir.modules().begin()->sections();
   const auto found =
       std::find_if(sections.begin(), sections.end(),
                    [x](const auto& element) { return element.getName() == x; });
@@ -114,7 +114,7 @@ const gtirb::Section* DisasmData::getSection(const std::string& x) const {
 
 bool DisasmData::isAmbiguousSymbol(const std::string& name) const {
   // Are there multiple symbols with this name?
-  auto found = this->ir.modules()[0].findSymbols(name);
+  auto found = this->ir.modules().begin()->findSymbols(name);
   return distance(begin(found), end(found)) > 1;
 }
 

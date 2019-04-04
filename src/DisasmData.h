@@ -32,6 +32,12 @@ template <typename T> T* getAuxData(gtirb::IR& ir, const std::string& name) {
   return data ? data->get<T>() : nullptr;
 }
 
+template <typename T>
+T* getAuxData(const gtirb::Module& m, const std::string& name) {
+  gtirb::AuxData* data = m.getAuxData(name);
+  return data ? data->get<T>() : nullptr;
+}
+
 ///
 /// \class DisasmData
 ///

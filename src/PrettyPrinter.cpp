@@ -139,7 +139,7 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context, gtirb::IR& ir,
   [[maybe_unused]] cs_err err =
       cs_open(CS_ARCH_X86, CS_MODE_64, &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
-  const gtirb::Module& module = this->disasm.ir.modules()[0];
+  const gtirb::Module& module = *this->disasm.ir.modules().begin();
   for (const gtirb::Section& section : module.sections())
     this->sections[section.getAddress()] = &section;
 }
@@ -158,35 +158,22 @@ const gtirb::SymAddrConst* PrettyPrinterBase::getSymbolicImmediate(
 
 std::ostream& PrettyPrinterBase::print(std::ostream& os) {
   this->printHeader(os);
-  // FIXME: simplify once interation order is guaranteed by gtirb
+  // FIXME: simplify once block interation order is guaranteed by gtirb
+  const gtirb::Module& module = *this->disasm.ir.modules().begin();
   auto address_order_block = [](const gtirb::Block* a, const gtirb::Block* b) {
     return a->getAddress() < b->getAddress();
   };
-  auto address_order_data = [](const gtirb::DataObject* a,
-                               const gtirb::DataObject* b) {
-    return a->getAddress() < b->getAddress();
-  };
   std::vector<const gtirb::Block*> blocks;
-  std::vector<const gtirb::DataObject*> dataObjects;
-
-  for (const gtirb::Block& block :
-       gtirb::blocks(this->disasm.ir.modules()[0].getCFG())) {
+  for (const gtirb::Block& block : gtirb::blocks(module.getCFG())) {
     blocks.push_back(&block);
   }
   std::sort(blocks.begin(), blocks.end(), address_order_block);
-
-  for (const gtirb::DataObject& dataObject :
-       this->disasm.ir.modules()[0].data()) {
-    dataObjects.push_back(&dataObject);
-  }
-  std::sort(dataObjects.begin(), dataObjects.end(), address_order_data);
-
   auto blockIt = blocks.begin();
-  auto dataIt = dataObjects.begin();
+  auto dataIt = module.data_begin();
   gtirb::Addr last{0};
   gtirb::Addr nextAddr{0};
-  while (blockIt != blocks.end() && dataIt != dataObjects.end()) {
-    if ((*blockIt)->getAddress() <= (*dataIt)->getAddress()) {
+  while (blockIt != blocks.end() && dataIt != module.data_end()) {
+    if ((*blockIt)->getAddress() <= dataIt->getAddress()) {
       nextAddr = (*blockIt)->getAddress();
       if (nextAddr < last) {
         printOverlapWarning(os, nextAddr);
@@ -198,14 +185,14 @@ std::ostream& PrettyPrinterBase::print(std::ostream& os) {
       }
       blockIt++;
     } else {
-      nextAddr = (*dataIt)->getAddress();
+      nextAddr = dataIt->getAddress();
       if (nextAddr < last) {
         printOverlapWarning(os, nextAddr);
       } else {
         if (nextAddr > last)
           printSymbolDefinitionsAtAddress(os, last);
-        printDataObject(os, **dataIt);
-        last = (*dataIt)->getAddress() + (*dataIt)->getSize();
+        printDataObject(os, *dataIt);
+        last = dataIt->getAddress() + dataIt->getSize();
       }
       dataIt++;
     }
@@ -221,16 +208,16 @@ std::ostream& PrettyPrinterBase::print(std::ostream& os) {
       last = (*blockIt)->getAddress() + (*blockIt)->getSize();
     }
   }
-  for (; dataIt != dataObjects.end(); dataIt++) {
-    nextAddr = (*dataIt)->getAddress();
+  for (; dataIt != module.data_end(); dataIt++) {
+    nextAddr = dataIt->getAddress();
     if (nextAddr < last) {
       printOverlapWarning(os, nextAddr);
     } else {
       if (nextAddr > last)
         printSymbolDefinitionsAtAddress(os, last);
 
-      printDataObject(os, **dataIt);
-      last = (*dataIt)->getAddress() + (*dataIt)->getSize();
+      printDataObject(os, *dataIt);
+      last = dataIt->getAddress() + dataIt->getSize();
     }
   }
   printSymbolDefinitionsAtAddress(os, last);
@@ -255,7 +242,7 @@ void PrettyPrinterBase::printBlock(std::ostream& os, const gtirb::Block& x) {
   cs_option(this->csHandle, CS_OPT_DETAIL, CS_OPT_ON);
 
   gtirb::ImageByteMap::const_range bytes2 =
-      getBytes(this->disasm.ir.modules()[0].getImageByteMap(), x);
+      getBytes(this->disasm.ir.modules().begin()->getImageByteMap(), x);
   size_t count =
       cs_disasm(this->csHandle, reinterpret_cast<const uint8_t*>(&bytes2[0]),
                 bytes2.size(), static_cast<uint64_t>(x.getAddress()), 0, &insn);
@@ -339,7 +326,7 @@ void PrettyPrinterBase::printSymbolReference(std::ostream& os,
 void PrettyPrinterBase::printSymbolDefinitionsAtAddress(std::ostream& os,
                                                         gtirb::Addr ea) {
   for (const gtirb::Symbol& symbol :
-       this->disasm.ir.modules()[0].findSymbols(ea)) {
+       this->disasm.ir.modules().begin()->findSymbols(ea)) {
     if (this->disasm.isAmbiguousSymbol(symbol.getName()))
       os << DisasmData::GetSymbolToPrint(*symbol.getAddress()) << ":\n";
     else
@@ -386,7 +373,7 @@ void PrettyPrinterBase::printEA(std::ostream& os, gtirb::Addr ea) {
 void PrettyPrinterBase::printOperandList(std::ostream& os, const gtirb::Addr ea,
                                          const cs_insn& inst) {
   cs_x86& detail = inst.detail->x86;
-  const gtirb::Module& module = this->disasm.ir.modules()[0];
+  const gtirb::Module& module = *this->disasm.ir.modules().begin();
   uint8_t opCount = detail.op_count;
 
   // Operands are implicit for various MOVS* instructions. But there is also
@@ -454,7 +441,7 @@ void PrettyPrinterBase::printDataObject(std::ostream& os,
 
 void PrettyPrinterBase::printNonZeroDataObject(
     std::ostream& os, const gtirb::DataObject& dataObject) {
-  const gtirb::Module& module = this->disasm.ir.modules()[0];
+  const gtirb::Module& module = *this->disasm.ir.modules().begin();
   const auto* stringEAs =
       getAuxData<std::vector<gtirb::Addr>>(this->disasm.ir, "stringEAs");
   const auto& foundSymbolic =
@@ -538,7 +525,7 @@ void PrettyPrinterBase::printString(std::ostream& os,
   os << ".string \"";
 
   for (const std::byte& b :
-       getBytes(this->disasm.ir.modules()[0].getImageByteMap(), x)) {
+       getBytes(this->disasm.ir.modules().begin()->getImageByteMap(), x)) {
     if (b != std::byte(0)) {
       os << cleanByte(uint8_t(b));
     }
@@ -551,7 +538,7 @@ bool PrettyPrinterBase::shouldExcludeDataElement(
     const gtirb::Section& section, const gtirb::DataObject& dataObject) {
   if (!AsmArraySection.count(section.getName()))
     return false;
-  const gtirb::Module& module = this->disasm.ir.modules()[0];
+  const gtirb::Module& module = *this->disasm.ir.modules().begin();
   auto foundSymbolic = module.findSymbolicExpression(dataObject.getAddress());
   if (foundSymbolic != module.symbolic_expr_end()) {
     if (const auto* s = std::get_if<gtirb::SymAddrConst>(&*foundSymbolic)) {

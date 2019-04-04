@@ -148,11 +148,7 @@ protected:
   /// Sections to avoid printing.
   std::unordered_set<std::string> AsmSkipSection{
       ".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt"};
-  // These sections have a couple of special cases for printing
-  // They usually containt entries that need to be ignored and require special
-  // alignment of 8
-  const std::unordered_set<std::string> AsmArraySection{".init_array",
-                                                        ".fini_array"};
+
   /// Functions to avoid printing.
   std::unordered_set<std::string> AsmSkipFunction;
 
@@ -235,8 +231,15 @@ protected:
                                                gtirb::Addr ea);
   virtual void printOverlapWarning(std::ostream& os, gtirb::Addr ea);
 
+  // These sections have a couple of special cases for printing
+  // They usually containt entries that need to be ignored (the compiler will
+  // add them again) and require special alignment of 8
+  const std::unordered_set<std::string> AsmArraySection{".init_array",
+                                                        ".fini_array"};
+  // This method method checks in the dataObject is in AsmArraySection and
+  // has to be ignored
   bool shouldExcludeDataElement(const gtirb::Section& section,
-                                const gtirb::DataObject& dataGroup);
+                                const gtirb::DataObject& dataObject);
 
   bool skipEA(const gtirb::Addr x) const;
 
