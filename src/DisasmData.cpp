@@ -26,7 +26,7 @@ using namespace std::rel_ops;
 DisasmData::DisasmData(gtirb::Context& context_, gtirb::IR& ir_)
     : context(context_), ir(ir_), functionEntry() {
   if (const auto* entries =
-          getAuxData<std::vector<gtirb::Addr>>(ir, "functionEntry"))
+          ir.getAuxData<std::vector<gtirb::Addr>>("functionEntry"))
     functionEntry.insert(functionEntry.end(), entries->begin(), entries->end());
   std::sort(functionEntry.begin(), functionEntry.end());
 }
@@ -38,7 +38,7 @@ std::string DisasmData::getFunctionName(gtirb::Addr x) const {
   if (entry_point) {
     for (gtirb::Symbol& s : this->ir.modules().begin()->findSymbols(x)) {
       std::stringstream name(s.getName());
-      if (this->isAmbiguousSymbol(s.getName())) {
+      if (isAmbiguousSymbol(s.getName())) {
         name.seekp(0, std::ios_base::end);
         name << '_' << std::hex << static_cast<uint64_t>(x);
       }
@@ -66,8 +66,8 @@ std::string DisasmData::GetSymbolToPrint(gtirb::Addr x) {
 std::optional<std::string>
 DisasmData::getForwardedSymbolName(const gtirb::Symbol* symbol,
                                    bool isAbsolute) const {
-  auto* symbolForwarding =
-      getAuxData<std::map<gtirb::UUID, gtirb::UUID>>(ir, "symbolForwarding");
+  const std::map<gtirb::UUID, gtirb::UUID>* symbolForwarding =
+      ir.getAuxData<std::map<gtirb::UUID, gtirb::UUID>>("symbolForwarding");
   if (symbolForwarding) {
     auto found = symbolForwarding->find(symbol->getUUID());
     if (found != symbolForwarding->end()) {
@@ -83,33 +83,17 @@ std::string DisasmData::getForwardedSymbolEnding(const gtirb::Symbol* symbol,
                                                  bool isAbsolute) const {
   if (symbol->getAddress()) {
     gtirb::Addr addr = *symbol->getAddress();
-    const gtirb::Section* section;
-    if ((section = this->getSection(".plt")) && containsAddr(*section, addr) &&
-        !isAbsolute)
+    const auto container_sections =
+        this->ir.modules().begin()->findSection(addr);
+    if (container_sections.begin() == container_sections.end())
+      return std::string{};
+    std::string section_name = container_sections.begin()->getName();
+    if (!isAbsolute && (section_name == ".plt" || section_name == ".plt.got"))
       return std::string{"@PLT"};
-    if ((section = this->getSection(".plt.got")) &&
-        containsAddr(*section, addr) && !isAbsolute)
-      return std::string{"@PLT"};
-    if ((section = this->getSection(".got")) && containsAddr(*section, addr))
-      return std::string{"@GOTPCREL"};
-    if ((section = this->getSection(".got.plt")) &&
-        containsAddr(*section, addr))
+    if (section_name == ".got" || section_name == ".got.plt")
       return std::string{"@GOTPCREL"};
   }
   return std::string{};
-}
-
-const gtirb::Section* DisasmData::getSection(const std::string& x) const {
-  auto sections = ir.modules().begin()->sections();
-  const auto found =
-      std::find_if(sections.begin(), sections.end(),
-                   [x](const auto& element) { return element.getName() == x; });
-
-  if (found != sections.end()) {
-    return &(*found);
-  }
-
-  return nullptr;
 }
 
 bool DisasmData::isAmbiguousSymbol(const std::string& name) const {

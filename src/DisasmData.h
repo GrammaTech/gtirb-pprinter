@@ -27,17 +27,6 @@
 #include <string>
 #include <vector>
 
-template <typename T> T* getAuxData(gtirb::IR& ir, const std::string& name) {
-  gtirb::AuxData* data = ir.getAuxData(name);
-  return data ? data->get<T>() : nullptr;
-}
-
-template <typename T>
-T* getAuxData(const gtirb::Module& m, const std::string& name) {
-  gtirb::AuxData* data = m.getAuxData(name);
-  return data ? data->get<T>() : nullptr;
-}
-
 ///
 /// \class DisasmData
 ///
@@ -55,7 +44,6 @@ public:
   std::string getFunctionName(gtirb::Addr x) const;
   std::optional<std::string> getForwardedSymbolName(const gtirb::Symbol* symbol,
                                                     bool isAbsolute) const;
-  const gtirb::Section* getSection(const std::string& x) const;
   bool isAmbiguousSymbol(const std::string& ea) const;
   static std::string GetSymbolToPrint(gtirb::Addr x);
   static std::string AdaptRegister(const std::string& x);

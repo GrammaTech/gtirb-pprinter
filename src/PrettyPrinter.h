@@ -239,7 +239,7 @@ protected:
   // This method method checks in the dataObject is in AsmArraySection and
   // has to be ignored
   bool shouldExcludeDataElement(const gtirb::Section& section,
-                                const gtirb::DataObject& dataObject);
+                                const gtirb::DataObject& dataObject) const;
 
   bool skipEA(const gtirb::Addr x) const;
 
@@ -271,8 +271,6 @@ protected:
   csh csHandle;
   DisasmData disasm;
   bool debug;
-  // FIXME: Remove once gtirb guarantees order
-  std::map<gtirb::Addr, const gtirb::Section*> sections;
 };
 
 } // namespace gtirb_pprint

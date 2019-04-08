@@ -139,9 +139,6 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context, gtirb::IR& ir,
   [[maybe_unused]] cs_err err =
       cs_open(CS_ARCH_X86, CS_MODE_64, &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
-  const gtirb::Module& module = *this->disasm.ir.modules().begin();
-  for (const gtirb::Section& section : module.sections())
-    this->sections[section.getAddress()] = &section;
 }
 
 PrettyPrinterBase::~PrettyPrinterBase() { cs_close(&this->csHandle); }
@@ -157,7 +154,7 @@ const gtirb::SymAddrConst* PrettyPrinterBase::getSymbolicImmediate(
 }
 
 std::ostream& PrettyPrinterBase::print(std::ostream& os) {
-  this->printHeader(os);
+  printHeader(os);
   // FIXME: simplify once block interation order is guaranteed by gtirb
   const gtirb::Module& module = *this->disasm.ir.modules().begin();
   auto address_order_block = [](const gtirb::Block* a, const gtirb::Block* b) {
@@ -259,14 +256,17 @@ void PrettyPrinterBase::printBlock(std::ostream& os, const gtirb::Block& x) {
 
 void PrettyPrinterBase::printSectionHeader(std::ostream& os,
                                            const gtirb::Addr addr) {
-  auto found = sections.find(addr);
-  if (found == sections.end())
+  const auto found_section =
+      this->disasm.ir.modules().begin()->findSection(addr);
+  if (found_section.begin() == found_section.end())
     return;
-  std::string sectionName = found->second->getName();
+  if (found_section.begin()->getAddress() != addr)
+    return;
+  std::string sectionName = found_section.begin()->getName();
   if (AsmSkipSection.count(sectionName))
     return;
   os << '\n';
-  this->printBar(os);
+  printBar(os);
   if (sectionName == PrettyPrinterBase::StrSectionText) {
     os << PrettyPrinterBase::StrSectionText << '\n';
   } else if (sectionName == PrettyPrinterBase::StrSectionBSS) {
@@ -278,7 +278,7 @@ void PrettyPrinterBase::printSectionHeader(std::ostream& os,
     os << ".align 8\n";
   else
     printAlignment(os, addr);
-  this->printBar(os);
+  printBar(os);
   os << '\n';
 }
 
@@ -296,7 +296,7 @@ void PrettyPrinterBase::printFunctionHeader(std::ostream& os,
 
   if (!name.empty()) {
     const BlockAreaComment bac(os, "Function Header",
-                               [this, &os]() { this->printBar(os, false); });
+                               [this, &os]() { printBar(os, false); });
     printAlignment(os, addr);
     os << PrettyPrinterBase::StrSectionGlobal << ' ' << name << '\n';
     os << PrettyPrinterBase::StrSectionType << ' ' << name << ", @function\n";
@@ -313,7 +313,7 @@ void PrettyPrinterBase::printSymbolReference(std::ostream& os,
     os << forwardedName.value();
     return;
   }
-  if (symbol->getAddress() && this->skipEA(*symbol->getAddress())) {
+  if (symbol->getAddress() && skipEA(*symbol->getAddress())) {
     os << static_cast<uint64_t>(*symbol->getAddress());
     return;
   }
@@ -443,7 +443,7 @@ void PrettyPrinterBase::printNonZeroDataObject(
     std::ostream& os, const gtirb::DataObject& dataObject) {
   const gtirb::Module& module = *this->disasm.ir.modules().begin();
   const auto* stringEAs =
-      getAuxData<std::vector<gtirb::Addr>>(this->disasm.ir, "stringEAs");
+      this->disasm.ir.getAuxData<std::vector<gtirb::Addr>>("stringEAs");
   const auto& foundSymbolic =
       module.findSymbolicExpression(dataObject.getAddress());
   if (foundSymbolic != module.symbolic_expr_end()) {
@@ -452,7 +452,7 @@ void PrettyPrinterBase::printNonZeroDataObject(
   } else if (stringEAs &&
              std::find(stringEAs->begin(), stringEAs->end(),
                        dataObject.getAddress()) != stringEAs->end()) {
-    this->printString(os, dataObject);
+    printString(os, dataObject);
     os << '\n';
   } else {
     for (std::byte byte : getBytes(module.getImageByteMap(), dataObject)) {
@@ -470,8 +470,9 @@ void PrettyPrinterBase::printZeroDataObject(
 void PrettyPrinterBase::printComment(std::ostream& os, const gtirb::Addr ea) {
   if (!this->debug)
     return;
-  if (const auto* comments = getAuxData<std::map<gtirb::Addr, std::string>>(
-          this->disasm.ir, "comments")) {
+  if (const auto* comments =
+          this->disasm.ir.getAuxData<std::map<gtirb::Addr, std::string>>(
+              "comments")) {
     const auto p = comments->find(ea);
     if (p != comments->end()) {
       os << "# " << p->second << '\n';
@@ -535,14 +536,14 @@ void PrettyPrinterBase::printString(std::ostream& os,
 }
 
 bool PrettyPrinterBase::shouldExcludeDataElement(
-    const gtirb::Section& section, const gtirb::DataObject& dataObject) {
+    const gtirb::Section& section, const gtirb::DataObject& dataObject) const {
   if (!AsmArraySection.count(section.getName()))
     return false;
   const gtirb::Module& module = *this->disasm.ir.modules().begin();
   auto foundSymbolic = module.findSymbolicExpression(dataObject.getAddress());
   if (foundSymbolic != module.symbolic_expr_end()) {
     if (const auto* s = std::get_if<gtirb::SymAddrConst>(&*foundSymbolic)) {
-      return this->skipEA(*s->Sym->getAddress());
+      return skipEA(*s->Sym->getAddress());
     }
   }
   return false;
@@ -569,7 +570,7 @@ bool PrettyPrinterBase::isInSkippedFunction(const gtirb::Addr x) const {
 std::optional<std::string>
 PrettyPrinterBase::getContainerFunctionName(const gtirb::Addr x) const {
   const auto* functionEntries =
-      getAuxData<std::vector<gtirb::Addr>>(this->disasm.ir, "functionEntry");
+      this->disasm.ir.getAuxData<std::vector<gtirb::Addr>>("functionEntry");
   if (!functionEntries)
     return std::nullopt;
 
@@ -590,16 +591,11 @@ PrettyPrinterBase::getContainerFunctionName(const gtirb::Addr x) const {
 
 const std::optional<const gtirb::Section*>
 PrettyPrinterBase::getContainerSection(const gtirb::Addr addr) const {
-  auto found = sections.upper_bound(addr);
-  if (found == sections.begin())
+  auto found_sections = this->disasm.ir.begin()->findSection(addr);
+  if (found_sections.begin() == found_sections.end())
     return std::nullopt;
-  // go to the previous one
-  found--;
-  if (containsAddr(*(found->second), addr) ||
-      addressLimit(*(found->second)) == addr)
-    return found->second;
   else
-    return std::nullopt;
+    return &*found_sections.begin();
 }
 
 std::string PrettyPrinterBase::getRegisterName(unsigned int reg) const {
@@ -627,6 +623,10 @@ void PrettyPrinterBase::printAlignment(std::ostream& os, gtirb::Addr addr) {
   }
   if (x % 8 == 0) {
     os << ".align 8\n";
+    return;
+  }
+  if (x % 4 == 0) {
+    os << ".align 4\n";
     return;
   }
   if (x % 2 == 0) {
