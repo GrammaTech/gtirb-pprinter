@@ -53,10 +53,7 @@ associated types and contents in this table.
 
 | Key | Type | Purpose |
 | --- | ---- | ------- |
-| bssData           | `std::vector<gtirb::UUID>` | UUID of the `DataObject` associated with the bss section. |
 | comments          | `std::map<gtirb::Addr, std::string>` | Per-instruction comments. |
-| dataSections      | `std::vector<std::tuple<std::string, int, std::vector<gtirb::UUID>>>` | Tuples containing the name, alignment, and IDs of `DataObject`s for data sections. |
-| functionEntry     | `std::vector<gtirb::Addr>` | Addresses of entry points of functions. |
-| symbolForwarding | `std::map<gtirb::UUID, gtirb::UUID>` | Map from symbols to other symbols. This table is used to forward symbols due to
-relocations or due to the use of plt and got tables.
-| stringEAs         | `std::vector<gtirb::Addr>`| Addresses of string constants. |
+| functionEntry     | `std::map<gtirb::UUID, std::set<gtirb::Addr>>` | Addresses of entry points of functions. |
+| symbolForwarding | `std::map<gtirb::UUID, gtirb::UUID>` | Map from symbols to other symbols. This table is used to forward symbols due to relocations or due to the use of plt and got tables. |
+| types         | `std::map<gtirb::UUID,std::string>` | Map from (typed) data objects to the type of the data,  expressed as a std::string containing a C++ type specifier. |

@@ -21,5 +21,58 @@ Testing Development
 
 Documentation
 -------------
-- Documentation is provided in man-page format in the
-  `gtirb-pprinter.md` file in the root of this directory.
+- Documentation for the gtirb-pprinter command is provided in
+  man-page format in the `gtirb-pprinter.md` file in the root of this
+  directory.
+
+- Full gtirb-pprinter documentation consists of complete documentation
+  for all components of the gtirb-pprinter API, along with examples and other
+  usage information.
+
+
+### Building Documentation
+
+You will need `cmake` and `Doxygen`.
+
+1. Create and change to a temporary build directory. We will refer to
+   this directory as `build`.
+
+   ```bash
+   > mkdir build
+   > cd build
+   ```
+
+2. Build the documentation.
+
+   ```bash
+   build> cmake <PATH_TO_GTIRB_PPRINTER>/doc/doxy/
+   build> cmake --build . --target doc
+   ```
+
+3. Open the documentation home page `build/html/index.html`
+   in your browser.
+
+
+### Contributing Markdown Documentation
+
+To add a new markdown document to the documentation:
+
+1. Create the new document as a child of /doc.
+   - File extension is `.md`.
+   - Use github markdown syntax.
+   - Wrap your markdown documents at 80 columns.
+
+2. Edit `/doc/doxy/Doxyfile.in` to add the basename of your new
+   markdown document to the `INPUT` rule setting. Note that the
+   ordering of file names here corresponds to table of contents
+   ordering.
+
+3. Edit `/doc/doxy/CMakeLists.txt` to add your new markdown document
+   to `MDFILES_IN`. Ordering is not important.
+
+4. [Build the documentation](#building-documentation) and check that
+   your new page is present and rendered correctly.
+   - If it is not rendered correctly, you may need to add a new
+     preprocessing step to `doc/doxy/preprocmd.py` to rewrite the
+     corresponding github-style markdown into something Doxygen
+     can handle correctly.
