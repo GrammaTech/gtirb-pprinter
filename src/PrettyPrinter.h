@@ -174,6 +174,22 @@ protected:
   virtual void printAlignment(std::ostream& os, const gtirb::Addr addr);
   virtual void printSectionHeader(std::ostream& os, const gtirb::Addr addr);
   virtual void printFunctionHeader(std::ostream& os, gtirb::Addr ea);
+
+  /// Print the block as long as it does not overlap with the address last.
+  /// If it overlaps, print a warning instead.
+  /// Return the ending address of the block if this was printed. Otherwise
+  /// return last.
+  virtual gtirb::Addr printBlockOrWarning(std::ostream& os,
+                                          const gtirb::Block& x,
+                                          gtirb::Addr last);
+  /// Print the dataObject as long as it does not overlap with the address last.
+  /// If it overlaps, print a warning instead.
+  /// Return the ending address of the block if this was printed. Otherwise
+  /// return last.
+  virtual gtirb::Addr printDataObjectOrWarning(std::ostream& os,
+                                               const gtirb::DataObject& x,
+                                               gtirb::Addr last);
+
   virtual void printBlock(std::ostream& os, const gtirb::Block& x);
   virtual void printDataObject(std::ostream& os,
                                const gtirb::DataObject& dataObject);

@@ -168,57 +168,50 @@ std::ostream& PrettyPrinterBase::print(std::ostream& os) {
   auto blockIt = blocks.begin();
   auto dataIt = module.data_begin();
   gtirb::Addr last{0};
-  gtirb::Addr nextAddr{0};
   while (blockIt != blocks.end() && dataIt != module.data_end()) {
     if ((*blockIt)->getAddress() <= dataIt->getAddress()) {
-      nextAddr = (*blockIt)->getAddress();
-      if (nextAddr < last) {
-        printOverlapWarning(os, nextAddr);
-      } else {
-        if (nextAddr > last)
-          printSymbolDefinitionsAtAddress(os, last);
-        printBlock(os, **blockIt);
-        last = (*blockIt)->getAddress() + (*blockIt)->getSize();
-      }
+      last = printBlockOrWarning(os, **blockIt, last);
       blockIt++;
     } else {
-      nextAddr = dataIt->getAddress();
-      if (nextAddr < last) {
-        printOverlapWarning(os, nextAddr);
-      } else {
-        if (nextAddr > last)
-          printSymbolDefinitionsAtAddress(os, last);
-        printDataObject(os, *dataIt);
-        last = dataIt->getAddress() + dataIt->getSize();
-      }
+      last = printDataObjectOrWarning(os, *dataIt, last);
       dataIt++;
     }
   }
-  for (; blockIt != blocks.end(); blockIt++) {
-    nextAddr = (*blockIt)->getAddress();
-    if (nextAddr < last) {
-      printOverlapWarning(os, (*blockIt)->getAddress());
-    } else {
-      if (nextAddr > last)
-        printSymbolDefinitionsAtAddress(os, last);
-      printBlock(os, **blockIt);
-      last = (*blockIt)->getAddress() + (*blockIt)->getSize();
-    }
-  }
-  for (; dataIt != module.data_end(); dataIt++) {
-    nextAddr = dataIt->getAddress();
-    if (nextAddr < last) {
-      printOverlapWarning(os, nextAddr);
-    } else {
-      if (nextAddr > last)
-        printSymbolDefinitionsAtAddress(os, last);
-
-      printDataObject(os, *dataIt);
-      last = dataIt->getAddress() + dataIt->getSize();
-    }
-  }
+  for (; blockIt != blocks.end(); blockIt++)
+    last = printBlockOrWarning(os, **blockIt, last);
+  for (; dataIt != module.data_end(); dataIt++)
+    last = printDataObjectOrWarning(os, *dataIt, last);
   printSymbolDefinitionsAtAddress(os, last);
   return os;
+}
+
+gtirb::Addr PrettyPrinterBase::printBlockOrWarning(std::ostream& os,
+                                                   const gtirb::Block& block,
+                                                   gtirb::Addr last) {
+  gtirb::Addr nextAddr = block.getAddress();
+  if (nextAddr < last) {
+    printOverlapWarning(os, nextAddr);
+    return last;
+  } else {
+    if (nextAddr > last)
+      printSymbolDefinitionsAtAddress(os, last);
+    printBlock(os, block);
+    return block.getAddress() + block.getSize();
+  }
+}
+
+gtirb::Addr PrettyPrinterBase::printDataObjectOrWarning(
+    std::ostream& os, const gtirb::DataObject& dataObject, gtirb::Addr last) {
+  gtirb::Addr nextAddr = dataObject.getAddress();
+  if (nextAddr < last) {
+    printOverlapWarning(os, nextAddr);
+    return last;
+  } else {
+    if (nextAddr > last)
+      printSymbolDefinitionsAtAddress(os, last);
+    printDataObject(os, dataObject);
+    return dataObject.getAddress() + dataObject.getSize();
+  }
 }
 
 void PrettyPrinterBase::printOverlapWarning(std::ostream& os,
@@ -226,6 +219,7 @@ void PrettyPrinterBase::printOverlapWarning(std::ostream& os,
   os << "# WARNING: found overlapping element at address " << std::hex
      << static_cast<uint64_t>(addr) << ": " << std::dec;
 }
+
 void PrettyPrinterBase::printBlock(std::ostream& os, const gtirb::Block& x) {
   printSectionHeader(os, x.getAddress());
   if (skipEA(x.getAddress())) {
