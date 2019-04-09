@@ -41,7 +41,6 @@ gtirb-pp hello.gtirb -o hello.S
 as hello.S -o hello.o
 ld hello.o -o hello
 ./hello
-# Prints "Hello, world!"
 ```
 
 
