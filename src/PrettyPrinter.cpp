@@ -436,24 +436,27 @@ void PrettyPrinterBase::printDataObject(std::ostream& os,
 void PrettyPrinterBase::printNonZeroDataObject(
     std::ostream& os, const gtirb::DataObject& dataObject) {
   gtirb::Module& module = *this->disasm.ir.modules().begin();
-  const auto* stringEAs =
-      module.getAuxData<std::vector<gtirb::Addr>>("stringEAs");
+  const auto* types =
+      module.getAuxData<std::map<gtirb::UUID, std::string>>("types");
   const auto& foundSymbolic =
       module.findSymbolicExpression(dataObject.getAddress());
   if (foundSymbolic != module.symbolic_expr_end()) {
     printSymbolicData(os, &*foundSymbolic);
     os << '\n';
-  } else if (stringEAs &&
-             std::find(stringEAs->begin(), stringEAs->end(),
-                       dataObject.getAddress()) != stringEAs->end()) {
-    printString(os, dataObject);
-    os << '\n';
-  } else {
+    return;
+  }
 
-    for (std::byte byte : getBytes(module.getImageByteMap(), dataObject)) {
-      os << ".byte 0x" << std::hex << static_cast<uint32_t>(byte) << std::dec
-         << '\n';
+  if (types) {
+    auto foundType = types->find(dataObject.getUUID());
+    if (foundType != types->end() && foundType->second == "char[]") {
+      printString(os, dataObject);
+      os << '\n';
+      return;
     }
+  }
+  for (std::byte byte : getBytes(module.getImageByteMap(), dataObject)) {
+    os << ".byte 0x" << std::hex << static_cast<uint32_t>(byte) << std::dec
+       << '\n';
   }
 }
 
