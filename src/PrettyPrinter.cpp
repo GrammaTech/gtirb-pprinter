@@ -418,6 +418,8 @@ void PrettyPrinterBase::printDataObject(std::ostream& os,
   if (skipEA(addr)) {
     return;
   }
+  printComment(os, addr);
+  printSymbolDefinitionsAtAddress(os, addr);
   os << PrettyPrinterBase::StrTab;
   if (this->debug)
     os << std::hex << static_cast<uint64_t>(addr) << std::dec << ':';
