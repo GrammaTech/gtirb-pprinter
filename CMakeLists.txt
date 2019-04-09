@@ -163,7 +163,10 @@ include_directories("${CMAKE_BINARY_DIR}/gsl-src/include")
 find_library(CAPSTONE NAMES capstone)
 if(NOT CAPSTONE)
   message(FATAL_ERROR "capstone library not found")
+else()
+  include_directories(${CAPSTONE_INCLUDE_DIRS})
 endif()
+
 
 add_subdirectory(driver)
 add_subdirectory(src)
