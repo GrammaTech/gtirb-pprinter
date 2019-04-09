@@ -466,8 +466,10 @@ void PrettyPrinterBase::printComment(std::ostream& os, const gtirb::Addr ea) {
   if (!this->debug)
     return;
 
-  if (const auto* comments = getAuxData<std::map<gtirb::Addr, std::string>>(
-          *this->disasm.ir.modules().begin(), "comments")) {
+  if (const auto* comments =
+          this->disasm.ir.modules()
+              .begin()
+              ->getAuxData<std::map<gtirb::Addr, std::string>>("comments")) {
     const auto p = comments->find(ea);
     if (p != comments->end()) {
       os << "# " << p->second << '\n';
@@ -564,8 +566,9 @@ bool PrettyPrinterBase::isInSkippedFunction(const gtirb::Addr x) const {
 
 std::optional<std::string>
 PrettyPrinterBase::getContainerFunctionName(const gtirb::Addr x) const {
-  const auto* functionEntries = getAuxData<std::vector<gtirb::Addr>>(
-      *this->disasm.ir.modules().begin(), "functionEntry");
+  const auto* functionEntries =
+      this->disasm.ir.modules().begin()->getAuxData<std::vector<gtirb::Addr>>(
+          "functionEntry");
 
   if (!functionEntries)
     return std::nullopt;
