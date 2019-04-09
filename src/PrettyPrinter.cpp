@@ -418,8 +418,6 @@ void PrettyPrinterBase::printDataObject(std::ostream& os,
   if (skipEA(addr)) {
     return;
   }
-  printComment(os, addr);
-  printSymbolDefinitionsAtAddress(os, addr);
   os << PrettyPrinterBase::StrTab;
   if (this->debug)
     os << std::hex << static_cast<uint64_t>(addr) << std::dec << ':';
@@ -435,9 +433,9 @@ void PrettyPrinterBase::printDataObject(std::ostream& os,
 
 void PrettyPrinterBase::printNonZeroDataObject(
     std::ostream& os, const gtirb::DataObject& dataObject) {
-  const gtirb::Module& module = *this->disasm.ir.modules().begin();
+  gtirb::Module& module = *this->disasm.ir.modules().begin();
   const auto* stringEAs =
-      this->disasm.ir.getAuxData<std::vector<gtirb::Addr>>("stringEAs");
+      module.getAuxData<std::vector<gtirb::Addr>>("stringEAs");
   const auto& foundSymbolic =
       module.findSymbolicExpression(dataObject.getAddress());
   if (foundSymbolic != module.symbolic_expr_end()) {
@@ -449,6 +447,7 @@ void PrettyPrinterBase::printNonZeroDataObject(
     printString(os, dataObject);
     os << '\n';
   } else {
+
     for (std::byte byte : getBytes(module.getImageByteMap(), dataObject)) {
       os << ".byte 0x" << std::hex << static_cast<uint32_t>(byte) << std::dec
          << '\n';
@@ -464,9 +463,9 @@ void PrettyPrinterBase::printZeroDataObject(
 void PrettyPrinterBase::printComment(std::ostream& os, const gtirb::Addr ea) {
   if (!this->debug)
     return;
-  if (const auto* comments =
-          this->disasm.ir.getAuxData<std::map<gtirb::Addr, std::string>>(
-              "comments")) {
+
+  if (const auto* comments = getAuxData<std::map<gtirb::Addr, std::string>>(
+          *this->disasm.ir.modules().begin(), "comments")) {
     const auto p = comments->find(ea);
     if (p != comments->end()) {
       os << "# " << p->second << '\n';
@@ -563,8 +562,9 @@ bool PrettyPrinterBase::isInSkippedFunction(const gtirb::Addr x) const {
 
 std::optional<std::string>
 PrettyPrinterBase::getContainerFunctionName(const gtirb::Addr x) const {
-  const auto* functionEntries =
-      this->disasm.ir.getAuxData<std::vector<gtirb::Addr>>("functionEntry");
+  const auto* functionEntries = getAuxData<std::vector<gtirb::Addr>>(
+      *this->disasm.ir.modules().begin(), "functionEntry");
+  
   if (!functionEntries)
     return std::nullopt;
 

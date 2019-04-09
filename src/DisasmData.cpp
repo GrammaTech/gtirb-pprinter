@@ -25,8 +25,9 @@ using namespace std::rel_ops;
 
 DisasmData::DisasmData(gtirb::Context& context_, gtirb::IR& ir_)
     : context(context_), ir(ir_), functionEntry() {
-  if (const auto* entries =
-          ir.getAuxData<std::vector<gtirb::Addr>>("functionEntry"))
+  if (const auto* entries = getAuxData<std::vector<gtirb::Addr>>(
+          *ir.modules().begin(), "functionEntry"))
+
     functionEntry.insert(functionEntry.end(), entries->begin(), entries->end());
   std::sort(functionEntry.begin(), functionEntry.end());
 }
@@ -67,7 +68,9 @@ std::optional<std::string>
 DisasmData::getForwardedSymbolName(const gtirb::Symbol* symbol,
                                    bool isAbsolute) const {
   const std::map<gtirb::UUID, gtirb::UUID>* symbolForwarding =
-      ir.getAuxData<std::map<gtirb::UUID, gtirb::UUID>>("symbolForwarding");
+      getAuxData<std::map<gtirb::UUID, gtirb::UUID>>(*(ir.modules().begin()),
+                                                     "symbolForwarding");
+
   if (symbolForwarding) {
     auto found = symbolForwarding->find(symbol->getUUID());
     if (found != symbolForwarding->end()) {
