@@ -564,7 +564,7 @@ std::optional<std::string>
 PrettyPrinterBase::getContainerFunctionName(const gtirb::Addr x) const {
   const auto* functionEntries = getAuxData<std::vector<gtirb::Addr>>(
       *this->disasm.ir.modules().begin(), "functionEntry");
-  
+
   if (!functionEntries)
     return std::nullopt;
 

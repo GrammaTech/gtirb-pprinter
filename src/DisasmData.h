@@ -27,9 +27,7 @@
 #include <string>
 #include <vector>
 
-
-template <typename T>
-T* getAuxData(gtirb::Module& m, const std::string& name) {
+template <typename T> T* getAuxData(gtirb::Module& m, const std::string& name) {
   gtirb::AuxData* data = m.getAuxData(name);
   return data ? data->get<T>() : nullptr;
 }
