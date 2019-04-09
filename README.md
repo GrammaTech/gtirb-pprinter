@@ -5,6 +5,7 @@ A pretty printer from the [GTIRB](https://github.com/grammatech/gtirb)
 intermediate representation for binary analysis and reverse
 engineering to gas-syntax assembly code.
 
+
 ## Building
 
 The pretty-printer uses C++17, and requires a compiler which supports
@@ -21,11 +22,12 @@ Use the following options to configure cmake:
 
 Once the dependencies are installed, you can configure and build as follows:
 
-```bash
-$ cmake ./ -Bbuild
-$ cd build
-$ make
+```sh
+cmake ./ -Bbuild
+cd build
+make
 ```
+
 
 ## Usage
 
@@ -34,13 +36,14 @@ assembly file named `hello.S`, assemble this file with the GNU
 assembler to an object file named `hello.o`, and link this object file
 into an executable.
 
+```sh
+gtirb-pp hello.gtirb -o hello.S
+as hello.S -o hello.o
+ld hello.o -o hello
+./hello
+# Prints "Hello, world!"
 ```
-$ gtirb-pp hello.gtirb -o hello.S
-$ as hello.S -o hello.o
-$ ld hello.o -o hello
-$ ./hello
-Hello, world!
-```
+
 
 ## AuxData Used by the Pretty Printer
 
@@ -51,9 +54,9 @@ expects this information to be available in a number of
 objects stored with the IR. We document the expected keys along with the
 associated types and contents in this table.
 
-| Key | Type | Purpose |
-| --- | ---- | ------- |
-| comments          | `std::map<gtirb::Addr, std::string>` | Per-instruction comments. |
-| functionEntry     | `std::map<gtirb::UUID, std::set<gtirb::Addr>>` | Addresses of entry points of functions. |
-| symbolForwarding | `std::map<gtirb::UUID, gtirb::UUID>` | Map from symbols to other symbols. This table is used to forward symbols due to relocations or due to the use of plt and got tables. |
-| types         | `std::map<gtirb::UUID,std::string>` | Map from (typed) data objects to the type of the data,  expressed as a std::string containing a C++ type specifier. |
+| Key              | Type                                           | Purpose                                                                                                                              |
+|------------------|------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
+| comments         | `std::map<gtirb::Addr, std::string>`           | Per-instruction comments.                                                                                                            |
+| functionEntry    | `std::map<gtirb::UUID, std::set<gtirb::Addr>>` | Addresses of entry points of functions.                                                                                              |
+| symbolForwarding | `std::map<gtirb::UUID, gtirb::UUID>`           | Map from symbols to other symbols. This table is used to forward symbols due to relocations or due to the use of plt and got tables. |
+| types            | `std::map<gtirb::UUID,std::string>`            | Map from (typed) data objects to the type of the data,  expressed as a std::string containing a C++ type specifier.                  |

@@ -37,16 +37,16 @@ You will need `cmake` and `Doxygen`.
 1. Create and change to a temporary build directory. We will refer to
    this directory as `build`.
 
-   ```bash
-   > mkdir build
-   > cd build
+   ```sh
+   mkdir build
+   cd build
    ```
 
 2. Build the documentation.
 
-   ```bash
-   build> cmake <PATH_TO_GTIRB_PPRINTER>/doc/doxy/
-   build> cmake --build . --target doc
+   ```sh
+   cmake ../path/to/gtirb-pprinter/doc/doxy/
+   cmake --build . --target doc
    ```
 
 3. Open the documentation home page `build/html/index.html`
