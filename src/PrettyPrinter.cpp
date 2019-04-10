@@ -436,8 +436,6 @@ void PrettyPrinterBase::printDataObject(std::ostream& os,
 void PrettyPrinterBase::printNonZeroDataObject(
     std::ostream& os, const gtirb::DataObject& dataObject) {
   gtirb::Module& module = *this->disasm.ir.modules().begin();
-  const auto* types =
-      module.getAuxData<std::map<gtirb::UUID, std::string>>("types");
   const auto& foundSymbolic =
       module.findSymbolicExpression(dataObject.getAddress());
   if (foundSymbolic != module.symbolic_expr_end()) {
@@ -445,7 +443,8 @@ void PrettyPrinterBase::printNonZeroDataObject(
     os << '\n';
     return;
   }
-
+  const auto* types =
+      module.getAuxData<std::map<gtirb::UUID, std::string>>("types");
   if (types) {
     auto foundType = types->find(dataObject.getUUID());
     if (foundType != types->end() && foundType->second == "char[]") {
