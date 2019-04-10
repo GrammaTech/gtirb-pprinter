@@ -97,9 +97,7 @@ void AttPrettyPrinter::printOpIndirect(
   if (has_segment)
     os << getRegisterName(op.mem.segment) << ':';
 
-  const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic);
-  if (s != nullptr &&
-      (!s->Sym->getAddress() || !this->skipEA(*s->Sym->getAddress()))) {
+  if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
     // Displacement is symbolic.
     printSymbolicExpression(os, s, false);
   } else {
