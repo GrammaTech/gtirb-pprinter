@@ -85,7 +85,7 @@ void IntelPrettyPrinter::printOpIndirect(
   assert(op.type == X86_OP_MEM &&
          "printOpIndirect called without a memory operand");
   bool first = true;
-  os << DisasmData::GetSizeName(op.size * 8) << ' ';
+  os << PrettyPrinterBase::GetSizeName(op.size * 8) << ' ';
 
   if (op.mem.segment != X86_REG_INVALID)
     os << getRegisterName(op.mem.segment) << ':';

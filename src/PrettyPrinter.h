@@ -15,7 +15,10 @@
 #ifndef GTIRB_PP_PRETTY_PRINTER_H
 #define GTIRB_PP_PRETTY_PRINTER_H
 
-#include "DisasmData.h"
+#include "Export.h"
+
+#include <gtirb/gtirb.hpp>
+
 #include <boost/range/any_range.hpp>
 #include <capstone/capstone.h>
 #include <cstdint>
@@ -24,6 +27,7 @@
 #include <list>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -285,8 +289,32 @@ protected:
   std::string avoidRegNameConflicts(const std::string& x);
 
   csh csHandle;
-  DisasmData disasm;
+
   bool debug;
+
+  gtirb::Context& context;
+  gtirb::IR& ir;
+
+  std::vector<std::string>* getAmbiguousSymbol();
+
+  std::string getFunctionName(gtirb::Addr x) const;
+  std::optional<std::string> getForwardedSymbolName(const gtirb::Symbol* symbol,
+                                                    bool isAbsolute) const;
+  bool isAmbiguousSymbol(const std::string& ea) const;
+  static std::string GetSymbolToPrint(gtirb::Addr x);
+  static std::string AdaptRegister(const std::string& x);
+  static std::string GetSizeName(uint64_t x);
+  static std::string GetSizeName(const std::string& x);
+  static std::string GetSizeSuffix(uint64_t x);
+  static std::string GetSizeSuffix(const std::string& x);
+  static std::string AvoidRegNameConflicts(const std::string& x);
+
+private:
+  // This should be kept sorted to enable fast searches.
+  std::vector<gtirb::Addr> functionEntry;
+
+  std::string getForwardedSymbolEnding(const gtirb::Symbol* symbol,
+                                       bool isAbsolute) const;
 };
 
 } // namespace gtirb_pprint

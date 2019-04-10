@@ -15,7 +15,6 @@ endif()
 
 set(${PROJECT_NAME}_H
 	AttPrinter.h
-	DisasmData.h
 	Export.h
 	IntelPrinter.h
 	PrettyPrinter.h
@@ -24,7 +23,6 @@ set(${PROJECT_NAME}_H
 
 set(${PROJECT_NAME}_SRC
 	AttPrinter.cpp
-	DisasmData.cpp
 	IntelPrinter.cpp
 	PrettyPrinter.cpp
 	string_utils.cpp
