@@ -18,10 +18,10 @@
 
 namespace gtirb_pprint {
 
-IntelPrettyPrinter::IntelPrettyPrinter(gtirb::Context& context, gtirb::IR& ir,
+IntelPrettyPrinter::IntelPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
                                        const string_range& skip_funcs,
                                        DebugStyle dbg)
-    : PrettyPrinterBase(context, ir, skip_funcs, dbg) {}
+    : PrettyPrinterBase(context_, ir_, skip_funcs, dbg) {}
 
 int IntelPrettyPrinter::getGtirbOpIndex(int index, int opCount) const {
   // The datalog disassembler always treats operand indices as if using this

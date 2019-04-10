@@ -19,10 +19,10 @@
 
 namespace gtirb_pprint {
 
-AttPrettyPrinter::AttPrettyPrinter(gtirb::Context& context, gtirb::IR& ir,
+AttPrettyPrinter::AttPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
                                    const string_range& skip_funcs,
                                    DebugStyle dbg)
-    : PrettyPrinterBase(context, ir, skip_funcs, dbg) {
+    : PrettyPrinterBase(context_, ir_, skip_funcs, dbg) {
   cs_option(this->csHandle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
 }
 
