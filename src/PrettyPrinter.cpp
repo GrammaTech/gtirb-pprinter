@@ -726,7 +726,7 @@ std::string PrettyPrinterBase::GetSizeName(uint64_t x) {
 }
 
 std::string PrettyPrinterBase::GetSizeName(const std::string& x) {
-  const std::map<std::string, std::string> adapt{
+  static const std::map<std::string, std::string> adapt{
       {"128", ""},         {"0", ""},           {"80", "TBYTE PTR"},
       {"64", "QWORD PTR"}, {"32", "DWORD PTR"}, {"16", "WORD PTR"},
       {"8", "BYTE PTR"}};
@@ -745,7 +745,7 @@ std::string PrettyPrinterBase::GetSizeSuffix(uint64_t x) {
 }
 
 std::string PrettyPrinterBase::GetSizeSuffix(const std::string& x) {
-  const std::map<std::string, std::string> adapt{
+  static const std::map<std::string, std::string> adapt{
       {"128", ""}, {"0", ""},   {"80", "t"}, {"64", "q"},
       {"32", "d"}, {"16", "w"}, {"8", "b"}};
 
