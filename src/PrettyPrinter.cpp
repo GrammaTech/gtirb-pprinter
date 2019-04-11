@@ -20,7 +20,6 @@
 #include <boost/range/algorithm/find_if.hpp>
 #include <capstone/capstone.h>
 #include <fstream>
-#include <gsl/gsl>
 #include <gtirb/gtirb.hpp>
 #include <iomanip>
 #include <iostream>
