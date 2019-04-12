@@ -70,3 +70,9 @@ add_custom_command(
         COMMAND "${CMAKE_COMMAND}" -E copy
                 ${${PROJECT_NAME}_H}
                 "${CMAKE_BINARY_DIR}/include/")
+
+install(TARGETS ${PROJECT_NAME} EXPORT gtirb_pprinterTargets
+  LIBRARY DESTINATION lib)
+set(PUBLIC_HEADERS
+        ${CMAKE_SOURCE_DIR}/src/PrettyPrinter.h)
+install(FILES ${PUBLIC_HEADERS} DESTINATION include)

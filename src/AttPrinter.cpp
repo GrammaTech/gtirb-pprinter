@@ -15,6 +15,7 @@
 
 #include "AttPrinter.h"
 #include "string_utils.h"
+#include "version.h"
 #include <iomanip>
 
 namespace gtirb_pprint {

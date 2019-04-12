@@ -49,3 +49,4 @@ target_link_libraries(
 	${Boost_LIBRARIES}
         gtirb_pprinter
 )
+install(TARGETS gtirb-pprinter DESTINATION bin)

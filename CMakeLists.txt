@@ -6,6 +6,7 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.9.0)
 
 PROJECT(gtirb_pprinter)
+set(GTIRB_PPRINTER_VERSION "0.1.0" CACHE STRING "version of gtirb-pprinter" FORCE)
 
 include(CheckFunctionExists)
 include(CheckCXXSourceCompiles)
@@ -36,6 +37,22 @@ set(CMAKE_MINSIZEREL_POSTFIX     ""  CACHE STRING "add a postfix, usually empty 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+# Handle version initialization
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" ver)
+
+string(REGEX MATCH "VERSION_MAJOR ([0-9]*)" _ ${ver})
+set(GTIRB_PPRINTER_MAJOR_VERSION ${CMAKE_MATCH_1})
+
+string(REGEX MATCH "VERSION_MINOR ([0-9]*)" _ ${ver})
+set(GTIRB_PPRINTER_MINOR_VERSION ${CMAKE_MATCH_1})
+
+string(REGEX MATCH "VERSION_PATCH ([0-9]*)" _ ${ver})
+set(GTIRB_PPRINTER_PATCH_VERSION ${CMAKE_MATCH_1})
+
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/version.h.in"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/version.h"
+  @ONLY)
 
 # Use C++17
 set(CMAKE_CXX_STANDARD 17)
@@ -163,6 +180,7 @@ add_subdirectory(src)
 # ---------------------------------------------------------------------------
 # Export config for use by other CMake projects
 # ---------------------------------------------------------------------------
+export(TARGETS gtirb_pprinter FILE "${CMAKE_CURRENT_BINARY_DIR}/gtirb_pprinterTargets.cmake")
 file(
   WRITE "${CMAKE_CURRENT_BINARY_DIR}/gtirb_pprinterConfig.cmake"
         "
@@ -174,6 +192,25 @@ file(
             )
         "
     )
-
-export(TARGETS gtirb_pprinter FILE "${CMAKE_CURRENT_BINARY_DIR}/gtirb_pprinterTargets.cmake")
 export(PACKAGE gtirb_pprinter)
+
+# --- For the installed copy ---
+# Main config file for find_package, just includes the targets file.
+file(
+  WRITE "${CMAKE_CURRENT_BINARY_DIR}/export/gtirb_pprinterConfig.cmake"
+        "include(\"\$\{CMAKE_CURRENT_LIST_DIR\}/gtirb_pprinterTargets.cmake\")"
+    )
+# In this mode, find_package also seems to require a version file
+set(version_file "${CMAKE_CURRENT_BINARY_DIR}/gtirb_pprinterConfig-version.cmake")
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(${version_file}
+                                 VERSION ${GTIRB_PPRINTER_VERSION}
+                                 COMPATIBILITY AnyNewerVersion)
+
+# Copy the config files to the install location
+install(FILES
+  ${CMAKE_CURRENT_BINARY_DIR}/export/gtirb_pprinterConfig.cmake
+  ${version_file}
+  DESTINATION lib/gtirb-pprinter)
+# This exports the targets to the install location.
+install(EXPORT gtirb_pprinterTargets DESTINATION lib)
