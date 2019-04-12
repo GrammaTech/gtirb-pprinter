@@ -142,12 +142,19 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_, gtirb::IR& ir_,
       cs_open(CS_ARCH_X86, CS_MODE_64, &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
 
-  if (const auto* entries =
-          ir.modules().begin()->getAuxData<std::vector<gtirb::Addr>>(
-              "functionEntry")) {
-    functionEntry.insert(functionEntry.end(), entries->begin(), entries->end());
+  if (const auto* functionEntries =
+          ir.modules()
+              .begin()
+              ->getAuxData<std::map<gtirb::UUID, std::vector<gtirb::UUID>>>(
+                  "functionEntries")) {
+    for (auto const& function : *functionEntries) {
+      for (auto& entryBlockUUID : function.second) {
+        auto block = nodeFromUUID<gtirb::Block>(context, entryBlockUUID);
+        functionEntry.push_back(block->getAddress());
+      }
+    }
+    std::sort(functionEntry.begin(), functionEntry.end());
   }
-  std::sort(functionEntry.begin(), functionEntry.end());
 }
 
 PrettyPrinterBase::~PrettyPrinterBase() { cs_close(&this->csHandle); }
@@ -320,9 +327,9 @@ void PrettyPrinterBase::printSymbolReference(std::ostream& os,
     return;
   }
   if (this->isAmbiguousSymbol(symbol->getName()))
-    os << PrettyPrinterBase::GetSymbolToPrint(*symbol->getAddress());
+    os << GetSymbolToPrint(*symbol->getAddress());
   else
-    os << PrettyPrinterBase::AvoidRegNameConflicts(symbol->getName());
+    os << AvoidRegNameConflicts(symbol->getName());
 }
 
 void PrettyPrinterBase::printSymbolDefinitionsAtAddress(std::ostream& os,
@@ -330,9 +337,9 @@ void PrettyPrinterBase::printSymbolDefinitionsAtAddress(std::ostream& os,
   for (const gtirb::Symbol& symbol :
        this->ir.modules().begin()->findSymbols(ea)) {
     if (this->isAmbiguousSymbol(symbol.getName()))
-      os << PrettyPrinterBase::GetSymbolToPrint(*symbol.getAddress()) << ":\n";
+      os << GetSymbolToPrint(*symbol.getAddress()) << ":\n";
     else
-      os << PrettyPrinterBase::AvoidRegNameConflicts(symbol.getName()) << ":\n";
+      os << AvoidRegNameConflicts(symbol.getName()) << ":\n";
   }
 }
 
@@ -443,9 +450,7 @@ void PrettyPrinterBase::printDataObject(std::ostream& os,
 
 void PrettyPrinterBase::printNonZeroDataObject(
     std::ostream& os, const gtirb::DataObject& dataObject) {
-
   gtirb::Module& module = *this->ir.modules().begin();
-
   const auto& foundSymbolic =
       module.findSymbolicExpression(dataObject.getAddress());
   if (foundSymbolic != module.symbolic_expr_end()) {
@@ -578,26 +583,12 @@ bool PrettyPrinterBase::isInSkippedFunction(const gtirb::Addr x) const {
 
 std::optional<std::string>
 PrettyPrinterBase::getContainerFunctionName(const gtirb::Addr x) const {
-  const auto* functionEntries =
-      this->ir.modules().begin()->getAuxData<std::vector<gtirb::Addr>>(
-          "functionEntry");
-
-  if (!functionEntries)
+  auto it = std::upper_bound(this->functionEntry.begin(),
+                             this->functionEntry.end(), x);
+  if (it == this->functionEntry.begin())
     return std::nullopt;
-
-  const auto mod = std::find_if(this->ir.begin(), this->ir.end(),
-                                [x](const gtirb::Module& module) {
-                                  return gtirb::containsAddr(module, x);
-                                });
-  if (mod == this->ir.end())
-    return std::nullopt;
-
-  auto fe = std::lower_bound(functionEntries->rbegin(), functionEntries->rend(),
-                             x, std::greater<>());
-  if (fe == functionEntries->rend() || !gtirb::containsAddr(*mod, *fe))
-    return std::nullopt;
-
-  return this->getFunctionName(*fe);
+  it--;
+  return this->getFunctionName(*it);
 }
 
 const std::optional<const gtirb::Section*>
@@ -721,7 +712,7 @@ bool PrettyPrinterBase::isAmbiguousSymbol(const std::string& name) const {
 }
 
 std::string PrettyPrinterBase::GetSizeName(uint64_t x) {
-  return PrettyPrinterBase::GetSizeName(std::to_string(x));
+  return GetSizeName(std::to_string(x));
 }
 
 std::string PrettyPrinterBase::GetSizeName(const std::string& x) {
@@ -740,7 +731,7 @@ std::string PrettyPrinterBase::GetSizeName(const std::string& x) {
 }
 
 std::string PrettyPrinterBase::GetSizeSuffix(uint64_t x) {
-  return PrettyPrinterBase::GetSizeSuffix(std::to_string(x));
+  return GetSizeSuffix(std::to_string(x));
 }
 
 std::string PrettyPrinterBase::GetSizeSuffix(const std::string& x) {

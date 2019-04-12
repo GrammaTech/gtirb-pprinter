@@ -56,6 +56,6 @@ associated types and contents in this table.
 | Key              | Type                                           | Purpose                                                                                                                              |
 |------------------|------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
 | comments         | `std::map<gtirb::Addr, std::string>`           | Per-instruction comments.                                                                                                            |
-| functionEntry    | `std::map<gtirb::UUID, std::set<gtirb::Addr>>` | Addresses of entry points of functions.                                                                                              |
+| functionEntry    | `std::map<gtirb::UUID, std::vector<gtirb::UUID>>` | UUIDs of the blocks that are entry points of functions.                                                                                              |
 | symbolForwarding | `std::map<gtirb::UUID, gtirb::UUID>`           | Map from symbols to other symbols. This table is used to forward symbols due to relocations or due to the use of plt and got tables. |
 | types            | `std::map<gtirb::UUID,std::string>`            | Map from (typed) data objects to the type of the data,  expressed as a std::string containing a C++ type specifier.                  |
