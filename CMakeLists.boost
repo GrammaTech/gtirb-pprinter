@@ -15,7 +15,7 @@ ExternalProject_Add(Boost
   UPDATE_COMMAND ""
   CONFIGURE_COMMAND ./bootstrap.sh  --prefix=${CMAKE_BINARY_DIR}/Boost-src/ --with-libraries=program_options,filesystem,system,serialization
   BUILD_COMMAND ./b2 install --prefix=${CMAKE_BINARY_DIR}/Boost-src address-model=${Boost_address_model} link=static,shared
-  INSTALL_COMMAND  ./b2 install --prefix=${CMAKE_INSTALL_PREFIX} address-model=${Boost_address_model} link=static,shared
+  INSTALL_COMMAND  ""
   LOG_DOWNLOAD ON
   LOG_CONFIGURE ON
   LOG_UPDATE ON
