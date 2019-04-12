@@ -155,7 +155,7 @@ find_package(gtirb REQUIRED)
 
 add_compile_options(-DBOOST_SYSTEM_NO_DEPRECATED)
 
-if( ${GTIRB_USE_SYSTEM_BOOST} MATCHES "OFF" )
+if( ${GTIRB_PPRINTER_USE_SYSTEM_BOOST} MATCHES "OFF" )
   #Attempt to configure/build boost locally.  
   configure_file(CMakeLists.boost Boost/CMakeLists.txt)
   
@@ -251,7 +251,7 @@ install(FILES
   ${version_file}
   DESTINATION lib/gtirb-pprinter)
 # This exports the targets to the install location.
-if( ${GTIRB_USE_SYSTEM_BOOST} MATCHES "OFF" )
+if( ${GTIRB_PPRINTER_USE_SYSTEM_BOOST} MATCHES "OFF" )
   install(DIRECTORY "${Boost_LIBRARY_DIR}/" DESTINATION lib)
 endif()
 

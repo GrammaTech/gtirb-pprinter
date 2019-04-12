@@ -47,7 +47,7 @@ add_library(${PROJECT_NAME} SHARED
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "debloat")
 
-if( ${GTIRB_USE_SYSTEM_BOOST} MATCHES "OFF" )
+if( ${GTIRB_PPRINTER_USE_SYSTEM_BOOST} MATCHES "OFF" )
   add_dependencies(${PROJECT_NAME} Boost)
 endif()
 
