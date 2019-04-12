@@ -18,7 +18,7 @@ include(CheckIncludeFile)
 # This just sets the builtin BUILD_SHARED_LIBS, but if defaults to ON
 # instead of OFF.
 option(GTIRB_BUILD_SHARED_LIBS "Build shared libraries." ON)
-option(GTIRB_USE_SYSTEM_BOOST "Use system-wide installation of Boost." ON)
+option(GTIRB_USE_SYSTEM_BOOST "Use system-wide installation of Boost." OFF)
 if(GTIRB_BUILD_SHARED_LIBS)
   set(BUILD_SHARED_LIBS ON)
 else()
@@ -138,8 +138,7 @@ find_package(gtirb REQUIRED)
 
 add_compile_options(-DBOOST_SYSTEM_NO_DEPRECATED)
 
-option( USE_SYSTEM_Boost "Use system libraries for Boost" OFF )
-if( ${USE_SYSTEM_Boost} MATCHES "OFF" )
+if( ${GTIRB_USE_SYSTEM_BOOST} MATCHES "OFF" )
   include( CMakeLists.boost )
 else()
   find_package(Boost 1.59 REQUIRED COMPONENTS program_options)
