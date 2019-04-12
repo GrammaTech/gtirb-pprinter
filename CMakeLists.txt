@@ -213,4 +213,8 @@ install(FILES
   ${version_file}
   DESTINATION lib/gtirb-pprinter)
 # This exports the targets to the install location.
+if( ${GTIRB_USE_SYSTEM_BOOST} MATCHES "OFF" )
+  install(EXPORT Boost DESTINATION lib)
+endif()
+
 install(EXPORT gtirb_pprinterTargets DESTINATION lib)
