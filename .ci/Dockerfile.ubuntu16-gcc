@@ -1,7 +1,5 @@
 FROM ubuntu:16.04
 
-ARG BOOST_VERSION=1.67.0
-ARG BOOST_VERSION_=1_67_0
 # Minimum required version
 ARG CMAKE_VERSION=3.9
 
@@ -15,19 +13,6 @@ RUN apt-get -y update && apt-get -y install gcc-7 g++-7 make git \
 
 RUN update-alternatives --install /usr/bin/cc cc /usr/bin/gcc-7 60
 RUN update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-7 60
-
-# Install Boost
-ENV BOOST_VERSION=${BOOST_VERSION}
-ENV BOOST_VERSION_=${BOOST_VERSION_}
-ENV BOOST_ROOT=/usr/include/boost
-RUN cd /home && wget https://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION_}.tar.gz \
-  && tar xfz boost_${BOOST_VERSION_}.tar.gz \
-  && rm boost_${BOOST_VERSION_}.tar.gz \
-  && cd boost_${BOOST_VERSION_} \
-  && ./bootstrap.sh --prefix=/usr/local --with-libraries=program_options,filesystem,system,serialization \
-  && ./b2 install \
-  && cd /home \
-  && rm -rf boost_${BOOST_VERSION_}
 
 # Install CMake
 RUN curl -SL https://cmake.org/files/v$CMAKE_VERSION/cmake-$CMAKE_VERSION.0-Linux-x86_64.tar.gz \
