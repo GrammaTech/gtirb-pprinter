@@ -15,6 +15,16 @@ include(CheckIncludeFile)
 # Global settings
 # ---------------------------------------------------------------------------
 
+# This just sets the builtin BUILD_SHARED_LIBS, but if defaults to ON
+# instead of OFF.
+option(GTIRB_BUILD_SHARED_LIBS "Build shared libraries." ON)
+option(GTIRB_USE_SYSTEM_BOOST "Use system-wide installation of Boost." ON)
+if(GTIRB_BUILD_SHARED_LIBS)
+  set(BUILD_SHARED_LIBS ON)
+else()
+  set(BUILD_SHARED_LIBS OFF)
+endif()
+
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/src)
 if (WIN32)
@@ -127,8 +137,14 @@ find_package(gtirb REQUIRED)
 # ---------------------------------------------------------------------------
 
 add_compile_options(-DBOOST_SYSTEM_NO_DEPRECATED)
-find_package(Boost 1.59 REQUIRED COMPONENTS program_options)
-include_directories(${Boost_INCLUDE_DIRS})
+
+option( USE_SYSTEM_Boost "Use system libraries for Boost" OFF )
+if( ${USE_SYSTEM_Boost} MATCHES "OFF" )
+  include( CMakeLists.boost )
+else()
+  find_package(Boost 1.59 REQUIRED COMPONENTS program_options)
+  include_directories(${Boost_INCLUDE_DIRS})
+endif()
 
 
 # ---------------------------------------------------------------------------
