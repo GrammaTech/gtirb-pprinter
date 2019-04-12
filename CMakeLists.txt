@@ -155,8 +155,46 @@ find_package(gtirb REQUIRED)
 
 add_compile_options(-DBOOST_SYSTEM_NO_DEPRECATED)
 
-if( ${GTIRB_PPRINTER_USE_SYSTEM_BOOST} MATCHES "OFF" )
-  include( CMakeLists.boost )
+if( ${GTIRB_USE_SYSTEM_BOOST} MATCHES "OFF" )
+  #Attempt to configure/build protobuf locally.  
+  configure_file(CMakeLists.boost Boost/CMakeLists.txt)
+  
+  # Initialize CMake files required to build/install boost.
+  execute_process(COMMAND "${CMAKE_COMMAND}" -G "${CMAKE_GENERATOR}" . 
+    RESULT_VARIABLE result
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/Boost"
+    )
+  
+  if(result)
+    message(WARNING "CMake step for boost failed: ${result}")
+  endif()
+  
+  set(BOOST_INSTALL_DIR "${CMAKE_BINARY_DIR}/Boost-src")
+  
+  add_subdirectory("${CMAKE_BINARY_DIR}/Boost/"
+    "${BOOST_INSTALL_DIR}"
+    EXCLUDE_FROM_ALL)
+  set( Boost_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/Boost-src/include )
+
+  include_directories(${Boost_INCLUDE_DIRS})
+
+  set( Boost_LIBRARY_DIR ${CMAKE_BINARY_DIR}/Boost-src/lib )
+
+  if(${BUILD_SHARED_LIBS} MATCHES OFF)
+    set(Boost_LIBRARIES
+      ${Boost_LIBRARY_DIR}/libboost_filesystem.a
+      ${Boost_LIBRARY_DIR}/libboost_serialization.a
+      ${Boost_LIBRARY_DIR}/libboost_system.a
+      ${Boost_LIBRARY_DIR}/libboost_program_options.a
+      )
+  elseif(${BUILD_SHARED_LIBS} MATCHES ON)
+    set(Boost_LIBRARIES
+      ${Boost_LIBRARY_DIR}/libboost_filesystem.so
+      ${Boost_LIBRARY_DIR}/libboost_serialization.so
+      ${Boost_LIBRARY_DIR}/libboost_system.so
+      ${Boost_LIBRARY_DIR}/libboost_program_options.so
+      )
+  endif()
 else()
   find_package(Boost 1.59 REQUIRED COMPONENTS program_options)
   include_directories(${Boost_INCLUDE_DIRS})
@@ -213,8 +251,5 @@ install(FILES
   ${version_file}
   DESTINATION lib/gtirb-pprinter)
 # This exports the targets to the install location.
-if( ${GTIRB_USE_SYSTEM_BOOST} MATCHES "OFF" )
-  install(EXPORT Boost DESTINATION lib)
-endif()
 
 install(EXPORT gtirb_pprinterTargets DESTINATION lib)
