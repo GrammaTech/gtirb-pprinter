@@ -10,8 +10,6 @@ if(DOXYGEN_FOUND)
 set(DOC_INDIR "${CMAKE_CURRENT_SOURCE_DIR}/..")
 set(ROOTDIR "${CMAKE_CURRENT_SOURCE_DIR}/../..")
 
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in" "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile" @ONLY)
-
 set(BUILDFILES_IN preprocmd.py DoxygenLayout.xml)
 foreach(_inf ${BUILDFILES_IN})
   configure_file(${CMAKE_CURRENT_SOURCE_DIR}/${_inf} ${CMAKE_CURRENT_BINARY_DIR}/${_inf} @ONLY)
@@ -21,17 +19,19 @@ endforeach()
 file(READ "${ROOTDIR}/version.txt" ver)
 
 string(REGEX MATCH "VERSION_MAJOR ([0-9]*)" _ ${ver})
-set(GTIRB_MAJOR_VERSION ${CMAKE_MATCH_1})
+set(GTIRB_PPRINTER_MAJOR_VERSION ${CMAKE_MATCH_1})
 
 string(REGEX MATCH "VERSION_MINOR ([0-9]*)" _ ${ver})
-set(GTIRB_MINOR_VERSION ${CMAKE_MATCH_1})
+set(GTIRB_PPRINTER_MINOR_VERSION ${CMAKE_MATCH_1})
 
 string(REGEX MATCH "VERSION_PATCH ([0-9]*)" _ ${ver})
-set(GTIRB_PATCH_VERSION ${CMAKE_MATCH_1})
+set(GTIRB_PPRINTER_PATCH_VERSION ${CMAKE_MATCH_1})
 
 configure_file("${ROOTDIR}/src/version.h.in"
   "${ROOTDIR}/src/version.h"
   @ONLY)
+
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in" "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile" @ONLY)
 
 # adapted from https://gist.github.com/abravalheri/11214134
 
