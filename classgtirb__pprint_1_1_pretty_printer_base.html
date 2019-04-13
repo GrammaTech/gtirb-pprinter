@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">GTIRB-PPRINTER
-   &#160;<span id="projectnumber">v0.0</span>
+   &#160;<span id="projectnumber">v0.1.0</span>
    </div>
    <div id="projectbrief">GrammaTech Intermediate Representation for Binaries: Pretty Printer</div>
   </td>
@@ -70,6 +70,7 @@ $(function() {
   <div class="summary">
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="#pro-methods">Protected Member Functions</a> &#124;
+<a href="#pro-static-methods">Static Protected Member Functions</a> &#124;
 <a href="#pro-attribs">Protected Attributes</a> &#124;
 <a href="classgtirb__pprint_1_1_pretty_printer_base-members.html">List of all members</a>  </div>
   <div class="headertitle">
@@ -88,19 +89,10 @@ Inheritance diagram for gtirb_pprint::PrettyPrinterBase:</div>
 <area shape="rect"  href="classgtirb__pprint_1_1_intel_pretty_printer.html" title=" " alt="" coords="213,80,368,121"/>
 </map>
 <center><span class="legend">[<a href="graph_legend.html">legend</a>]</span></center></div>
-<div class="dynheader">
-Collaboration diagram for gtirb_pprint::PrettyPrinterBase:</div>
-<div class="dyncontent">
-<div class="center"><img src="classgtirb__pprint_1_1_pretty_printer_base__coll__graph.png" border="0" usemap="#gtirb__pprint_1_1_pretty_printer_base_coll__map" alt="Collaboration graph"/></div>
-<map name="gtirb__pprint_1_1_pretty_printer_base_coll__map" id="gtirb__pprint_1_1_pretty_printer_base_coll__map">
-<area shape="rect"  title=" " alt="" coords="5,95,203,121"/>
-<area shape="rect"  href="class_disasm_data.html" title=" " alt="" coords="57,5,151,32"/>
-</map>
-<center><span class="legend">[<a href="graph_legend.html">legend</a>]</span></center></div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a3ba22194676d1f1ea64c5f0d875f5813"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a3ba22194676d1f1ea64c5f0d875f5813">PrettyPrinterBase</a> (gtirb::Context &amp;context, gtirb::IR &amp;ir, const <a class="el" href="namespacegtirb__pprint.html#a32401e606ed59e8fdc73a1d0dee496e3">string_range</a> &amp;skip_funcs, <a class="el" href="namespacegtirb__pprint.html#a3e70fa998922b8c144eb49b06d2e6fac">DebugStyle</a> dbg)</td></tr>
+<tr class="memitem:a3ba22194676d1f1ea64c5f0d875f5813"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a3ba22194676d1f1ea64c5f0d875f5813">PrettyPrinterBase</a> (gtirb::Context &amp;<a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a2a613b211c56c223163de4f40d812575">context</a>, gtirb::IR &amp;<a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a0fefce636980bffb730a60d148dba826">ir</a>, const <a class="el" href="namespacegtirb__pprint.html#a32401e606ed59e8fdc73a1d0dee496e3">string_range</a> &amp;skip_funcs, <a class="el" href="namespacegtirb__pprint.html#a3e70fa998922b8c144eb49b06d2e6fac">DebugStyle</a> dbg)</td></tr>
 <tr class="separator:a3ba22194676d1f1ea64c5f0d875f5813"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac71fcb72cdab6248d94eb8f14719a4bb"><td class="memItemLeft" align="right" valign="top">virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#ac71fcb72cdab6248d94eb8f14719a4bb">~PrettyPrinterBase</a> ()</td></tr>
 <tr class="separator:ac71fcb72cdab6248d94eb8f14719a4bb"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -111,38 +103,46 @@ Public Member Functions</h2></td></tr>
 Protected Member Functions</h2></td></tr>
 <tr class="memitem:a568e14344950bf5c04b24e94ee4fdd66"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a568e14344950bf5c04b24e94ee4fdd66">avoidRegNameConflicts</a> (const std::string &amp;x)</td></tr>
 <tr class="separator:a568e14344950bf5c04b24e94ee4fdd66"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3c892754519d64aa55038c3e1d2c1943"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a3c892754519d64aa55038c3e1d2c1943">condPrintSectionHeader</a> (std::ostream &amp;os, const gtirb::Block &amp;x)</td></tr>
-<tr class="separator:a3c892754519d64aa55038c3e1d2c1943"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad1a5accc3e0d12d36dad6fbfe82bf042"><td class="memItemLeft" align="right" valign="top">std::vector&lt; std::string &gt; *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#ad1a5accc3e0d12d36dad6fbfe82bf042">getAmbiguousSymbol</a> ()</td></tr>
+<tr class="separator:ad1a5accc3e0d12d36dad6fbfe82bf042"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a647b551251bbea3891ab46d828fa9a8e"><td class="memItemLeft" align="right" valign="top">std::optional&lt; std::string &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a647b551251bbea3891ab46d828fa9a8e">getContainerFunctionName</a> (const gtirb::Addr x) const</td></tr>
 <tr class="separator:a647b551251bbea3891ab46d828fa9a8e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a74249ae37228f36a4ad7bc8e19ba8b37"><td class="memItemLeft" align="right" valign="top">const std::optional&lt; const gtirb::Section * &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a74249ae37228f36a4ad7bc8e19ba8b37">getContainerSection</a> (const gtirb::Addr addr) const</td></tr>
+<tr class="separator:a74249ae37228f36a4ad7bc8e19ba8b37"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9aa49ca249113dfc4490e4f2a6001858"><td class="memItemLeft" align="right" valign="top">std::optional&lt; std::string &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a9aa49ca249113dfc4490e4f2a6001858">getForwardedSymbolName</a> (const gtirb::Symbol *symbol, bool isAbsolute) const</td></tr>
+<tr class="separator:a9aa49ca249113dfc4490e4f2a6001858"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7c6187f90d5e14e77f67964cbbc2a920"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a7c6187f90d5e14e77f67964cbbc2a920">getFunctionName</a> (gtirb::Addr x) const</td></tr>
+<tr class="separator:a7c6187f90d5e14e77f67964cbbc2a920"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad38b11f21f34d39c4d1472c6dce02695"><td class="memItemLeft" align="right" valign="top">virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#ad38b11f21f34d39c4d1472c6dce02695">getGtirbOpIndex</a> (int index, int opCount) const =0</td></tr>
 <tr class="separator:ad38b11f21f34d39c4d1472c6dce02695"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a65c6bc8e527fa1c84b00d3dead3d1ec2"><td class="memItemLeft" align="right" valign="top">virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a65c6bc8e527fa1c84b00d3dead3d1ec2">getRegisterName</a> (unsigned int reg) const</td></tr>
 <tr class="separator:a65c6bc8e527fa1c84b00d3dead3d1ec2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab4e09f54293ed4258f3fdcc34d80ab3f"><td class="memItemLeft" align="right" valign="top">virtual const gtirb::SymAddrConst *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#ab4e09f54293ed4258f3fdcc34d80ab3f">getSymbolicImmediate</a> (const gtirb::SymbolicExpression *symex)</td></tr>
 <tr class="separator:ab4e09f54293ed4258f3fdcc34d80ab3f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7ee18590a6cbe615bc50f72a09069ff8"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a7ee18590a6cbe615bc50f72a09069ff8">isAmbiguousSymbol</a> (const std::string &amp;ea) const</td></tr>
+<tr class="separator:a7ee18590a6cbe615bc50f72a09069ff8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae9727369f62b9914f6aa16a99799c186"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#ae9727369f62b9914f6aa16a99799c186">isInSkippedFunction</a> (const gtirb::Addr x) const</td></tr>
 <tr class="separator:ae9727369f62b9914f6aa16a99799c186"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af6fabaf8665ede2f310ecdda56cdc6f8"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#af6fabaf8665ede2f310ecdda56cdc6f8">isInSkippedSection</a> (const gtirb::Addr x) const</td></tr>
 <tr class="separator:af6fabaf8665ede2f310ecdda56cdc6f8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a55da6988eb8d1c7972ea8b1fd00e043e"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a55da6988eb8d1c7972ea8b1fd00e043e">isPointerToExcludedCode</a> (const gtirb::DataObject &amp;dataGroup)</td></tr>
-<tr class="separator:a55da6988eb8d1c7972ea8b1fd00e043e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a458765c4de8c54788c89dcec71e42e38"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a458765c4de8c54788c89dcec71e42e38">isSectionSkipped</a> (const std::string &amp;name)</td></tr>
 <tr class="separator:a458765c4de8c54788c89dcec71e42e38"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0f3e858dfaba261c8def498f2ac525d3"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a0f3e858dfaba261c8def498f2ac525d3">printAddend</a> (std::ostream &amp;os, int64_t number, bool first=false)</td></tr>
 <tr class="separator:a0f3e858dfaba261c8def498f2ac525d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad877c74de9121aca9151e6f44f13f819"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#ad877c74de9121aca9151e6f44f13f819">printAlignment</a> (std::ostream &amp;os, const gtirb::Addr addr)</td></tr>
+<tr class="separator:ad877c74de9121aca9151e6f44f13f819"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a865cec135c3d5de17a047baa5bdf11f0"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a865cec135c3d5de17a047baa5bdf11f0">printBar</a> (std::ostream &amp;os, bool heavy=true)</td></tr>
 <tr class="separator:a865cec135c3d5de17a047baa5bdf11f0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af4677c8f289a256b4429b75407bdd257"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#af4677c8f289a256b4429b75407bdd257">printBlock</a> (std::ostream &amp;os, const gtirb::Block &amp;x)</td></tr>
 <tr class="separator:af4677c8f289a256b4429b75407bdd257"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae09783555804e652287a4def3cfbe3fb"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#ae09783555804e652287a4def3cfbe3fb">printBSS</a> (std::ostream &amp;os)</td></tr>
-<tr class="separator:ae09783555804e652287a4def3cfbe3fb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a34dc420a23295972ab73a0f2434b9e2e"><td class="memItemLeft" align="right" valign="top">virtual gtirb::Addr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a34dc420a23295972ab73a0f2434b9e2e">printBlockOrWarning</a> (std::ostream &amp;os, const gtirb::Block &amp;x, gtirb::Addr last)</td></tr>
+<tr class="separator:a34dc420a23295972ab73a0f2434b9e2e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a483cccbffd4939b98ed4c0cdda42f573"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a483cccbffd4939b98ed4c0cdda42f573">printComment</a> (std::ostream &amp;os, const gtirb::Addr ea)</td></tr>
 <tr class="separator:a483cccbffd4939b98ed4c0cdda42f573"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa9e02de1997adf5e30fdf9d65945185a"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#aa9e02de1997adf5e30fdf9d65945185a">printDataGroups</a> (std::ostream &amp;os)</td></tr>
-<tr class="separator:aa9e02de1997adf5e30fdf9d65945185a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2e17dc8fd59af023595abfcacd2893a8"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a2e17dc8fd59af023595abfcacd2893a8">printDataObject</a> (std::ostream &amp;os, const gtirb::DataObject &amp;dataGroup)</td></tr>
-<tr class="separator:a2e17dc8fd59af023595abfcacd2893a8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aaf0195168c38717a7642b3759fba6136"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#aaf0195168c38717a7642b3759fba6136">printDataObject</a> (std::ostream &amp;os, const gtirb::DataObject &amp;dataObject)</td></tr>
+<tr class="separator:aaf0195168c38717a7642b3759fba6136"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afae0f1f4aa01bb2e830ce45b17cbfe64"><td class="memItemLeft" align="right" valign="top">virtual gtirb::Addr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#afae0f1f4aa01bb2e830ce45b17cbfe64">printDataObjectOrWarning</a> (std::ostream &amp;os, const gtirb::DataObject &amp;x, gtirb::Addr last)</td></tr>
+<tr class="separator:afae0f1f4aa01bb2e830ce45b17cbfe64"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6598ba5c6266c5ba504859c3f335f61f"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a6598ba5c6266c5ba504859c3f335f61f">printEA</a> (std::ostream &amp;os, gtirb::Addr ea)</td></tr>
 <tr class="separator:a6598ba5c6266c5ba504859c3f335f61f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2d58fa3075d8ba897969bac4b1b70dc8"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a2d58fa3075d8ba897969bac4b1b70dc8">printFunctionHeader</a> (std::ostream &amp;os, gtirb::Addr ea)</td></tr>
@@ -151,6 +151,8 @@ Protected Member Functions</h2></td></tr>
 <tr class="separator:a656e465336adf10a9b27cb77ab7e429a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a997d1fc630ce7ea786a0d5e1abc53288"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a997d1fc630ce7ea786a0d5e1abc53288">printInstruction</a> (std::ostream &amp;os, const cs_insn &amp;inst)</td></tr>
 <tr class="separator:a997d1fc630ce7ea786a0d5e1abc53288"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6b822305c009dcd3d3c1af78cee7c9bc"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a6b822305c009dcd3d3c1af78cee7c9bc">printNonZeroDataObject</a> (std::ostream &amp;os, const gtirb::DataObject &amp;dataObject)</td></tr>
+<tr class="separator:a6b822305c009dcd3d3c1af78cee7c9bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8b567d8568ab26ba65bbce65dc87324b"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a8b567d8568ab26ba65bbce65dc87324b">printOperand</a> (std::ostream &amp;os, const gtirb::SymbolicExpression *symbolic, const cs_insn &amp;inst, uint64_t index)</td></tr>
 <tr class="separator:a8b567d8568ab26ba65bbce65dc87324b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a11b7be722804ab029fdbe8585dc358c2"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a11b7be722804ab029fdbe8585dc358c2">printOperandList</a> (std::ostream &amp;os, const gtirb::Addr ea, const cs_insn &amp;inst)</td></tr>
@@ -161,8 +163,10 @@ Protected Member Functions</h2></td></tr>
 <tr class="separator:acdac80ef9f5b688b6ad9c9f6fc718c10"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2bd0514067b729b84b22fb3d96d7b6f7"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a2bd0514067b729b84b22fb3d96d7b6f7">printOpRegdirect</a> (std::ostream &amp;os, const cs_insn &amp;inst, const cs_x86_op &amp;op)=0</td></tr>
 <tr class="separator:a2bd0514067b729b84b22fb3d96d7b6f7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae3d9db264ccb97492e70fe75d157b5c0"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#ae3d9db264ccb97492e70fe75d157b5c0">printSectionHeader</a> (std::ostream &amp;os, const std::string &amp;x, uint64_t alignment=0)</td></tr>
-<tr class="separator:ae3d9db264ccb97492e70fe75d157b5c0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a10f74511db0b13d086df1d3045d5f644"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a10f74511db0b13d086df1d3045d5f644">printOverlapWarning</a> (std::ostream &amp;os, gtirb::Addr ea)</td></tr>
+<tr class="separator:a10f74511db0b13d086df1d3045d5f644"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9c10838fdaa564579b19fb29d31847f0"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a9c10838fdaa564579b19fb29d31847f0">printSectionHeader</a> (std::ostream &amp;os, const gtirb::Addr addr)</td></tr>
+<tr class="separator:a9c10838fdaa564579b19fb29d31847f0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a26473e2b9c2348bff15ffa092e966474"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a26473e2b9c2348bff15ffa092e966474">printString</a> (std::ostream &amp;os, const gtirb::DataObject &amp;x)</td></tr>
 <tr class="separator:a26473e2b9c2348bff15ffa092e966474"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac8416276a9ec00682cd24695ff97d498"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#ac8416276a9ec00682cd24695ff97d498">printSymbolDefinitionsAtAddress</a> (std::ostream &amp;os, gtirb::Addr ea)</td></tr>
@@ -175,25 +179,48 @@ Protected Member Functions</h2></td></tr>
 <tr class="separator:abe36fe0dc633eb44916facadb432a2c2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9bfd31f31bebbe9a8848cb7cc6e5d7e8"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a9bfd31f31bebbe9a8848cb7cc6e5d7e8">printSymbolReference</a> (std::ostream &amp;os, const gtirb::Symbol *symbol, bool inData) const</td></tr>
 <tr class="separator:a9bfd31f31bebbe9a8848cb7cc6e5d7e8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a50ef985f704b18d28068b86244daa798"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a50ef985f704b18d28068b86244daa798">shouldExcludeDataElement</a> (const std::string &amp;sectionName, const gtirb::DataObject &amp;dataGroup)</td></tr>
-<tr class="separator:a50ef985f704b18d28068b86244daa798"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a201268ee094f72da47bc0b5772bdb3f5"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a201268ee094f72da47bc0b5772bdb3f5">printZeroDataObject</a> (std::ostream &amp;os, const gtirb::DataObject &amp;dataObject)</td></tr>
+<tr class="separator:a201268ee094f72da47bc0b5772bdb3f5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a54b5c6f828f6ffbe0100dba01bce3575"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a54b5c6f828f6ffbe0100dba01bce3575">shouldExcludeDataElement</a> (const gtirb::Section &amp;section, const gtirb::DataObject &amp;dataObject) const</td></tr>
+<tr class="separator:a54b5c6f828f6ffbe0100dba01bce3575"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5602ed1f3ca0746bde78e0b1a2149feb"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a5602ed1f3ca0746bde78e0b1a2149feb">skipEA</a> (const gtirb::Addr x) const</td></tr>
 <tr class="separator:a5602ed1f3ca0746bde78e0b1a2149feb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-static-methods"></a>
+Static Protected Member Functions</h2></td></tr>
+<tr class="memitem:a48e43f3081e0bdc5df7dbb4190b27799"><td class="memItemLeft" align="right" valign="top">static std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a48e43f3081e0bdc5df7dbb4190b27799">AdaptRegister</a> (const std::string &amp;x)</td></tr>
+<tr class="separator:a48e43f3081e0bdc5df7dbb4190b27799"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a81058fce708552d3b3cc31f6714a1e17"><td class="memItemLeft" align="right" valign="top">static std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a81058fce708552d3b3cc31f6714a1e17">AvoidRegNameConflicts</a> (const std::string &amp;x)</td></tr>
+<tr class="separator:a81058fce708552d3b3cc31f6714a1e17"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2e2c99e202e6f299cd3bbe42321a4fd5"><td class="memItemLeft" align="right" valign="top">static std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a2e2c99e202e6f299cd3bbe42321a4fd5">GetSizeName</a> (uint64_t x)</td></tr>
+<tr class="separator:a2e2c99e202e6f299cd3bbe42321a4fd5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a67ba41f5ca571be2f8f8255e360c9410"><td class="memItemLeft" align="right" valign="top">static std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a67ba41f5ca571be2f8f8255e360c9410">GetSizeName</a> (const std::string &amp;x)</td></tr>
+<tr class="separator:a67ba41f5ca571be2f8f8255e360c9410"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0087e00c7aabdef0365ecdbf67a54ce4"><td class="memItemLeft" align="right" valign="top">static std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a0087e00c7aabdef0365ecdbf67a54ce4">GetSizeSuffix</a> (uint64_t x)</td></tr>
+<tr class="separator:a0087e00c7aabdef0365ecdbf67a54ce4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac2f19ae3a474a1c8978cfcdb41fb9aa9"><td class="memItemLeft" align="right" valign="top">static std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#ac2f19ae3a474a1c8978cfcdb41fb9aa9">GetSizeSuffix</a> (const std::string &amp;x)</td></tr>
+<tr class="separator:ac2f19ae3a474a1c8978cfcdb41fb9aa9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a890b36345719ded682e684df9f09ee8f"><td class="memItemLeft" align="right" valign="top">static std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a890b36345719ded682e684df9f09ee8f">GetSymbolToPrint</a> (gtirb::Addr x)</td></tr>
+<tr class="separator:a890b36345719ded682e684df9f09ee8f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-attribs"></a>
 Protected Attributes</h2></td></tr>
+<tr class="memitem:a57dd45cc5164ec18867c7f2507c8362f"><td class="memItemLeft" align="right" valign="top">const std::unordered_set&lt; std::string &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a57dd45cc5164ec18867c7f2507c8362f">AsmArraySection</a></td></tr>
+<tr class="separator:a57dd45cc5164ec18867c7f2507c8362f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afb2dc0d3c3c510c34e7023560744c668"><td class="memItemLeft" align="right" valign="top">std::unordered_set&lt; std::string &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#afb2dc0d3c3c510c34e7023560744c668">AsmSkipFunction</a></td></tr>
 <tr class="memdesc:afb2dc0d3c3c510c34e7023560744c668"><td class="mdescLeft">&#160;</td><td class="mdescRight">Functions to avoid printing.  <a href="#afb2dc0d3c3c510c34e7023560744c668">More...</a><br /></td></tr>
 <tr class="separator:afb2dc0d3c3c510c34e7023560744c668"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8b90a8d4d800715bb4b123a595dc1a8a"><td class="memItemLeft" align="right" valign="top">std::unordered_set&lt; std::string &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a8b90a8d4d800715bb4b123a595dc1a8a">AsmSkipSection</a></td></tr>
 <tr class="memdesc:a8b90a8d4d800715bb4b123a595dc1a8a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sections to avoid printing.  <a href="#a8b90a8d4d800715bb4b123a595dc1a8a">More...</a><br /></td></tr>
 <tr class="separator:a8b90a8d4d800715bb4b123a595dc1a8a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2a613b211c56c223163de4f40d812575"><td class="memItemLeft" align="right" valign="top">gtirb::Context &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a2a613b211c56c223163de4f40d812575">context</a></td></tr>
+<tr class="separator:a2a613b211c56c223163de4f40d812575"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a88823e219a2795ec699962ff8e6d5792"><td class="memItemLeft" align="right" valign="top">csh&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a88823e219a2795ec699962ff8e6d5792">csHandle</a></td></tr>
 <tr class="separator:a88823e219a2795ec699962ff8e6d5792"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1572e9e50da3a2502db1b07d247ad8bb"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a1572e9e50da3a2502db1b07d247ad8bb">debug</a></td></tr>
 <tr class="separator:a1572e9e50da3a2502db1b07d247ad8bb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a671f4694fe93493131b6ed355ff7166a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="class_disasm_data.html">DisasmData</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a671f4694fe93493131b6ed355ff7166a">disasm</a></td></tr>
-<tr class="separator:a671f4694fe93493131b6ed355ff7166a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0fefce636980bffb730a60d148dba826"><td class="memItemLeft" align="right" valign="top">gtirb::IR &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a0fefce636980bffb730a60d148dba826">ir</a></td></tr>
+<tr class="separator:a0fefce636980bffb730a60d148dba826"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3a01c409d057c873e1f183fc753f3601"><td class="memItemLeft" align="right" valign="top">const std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#a3a01c409d057c873e1f183fc753f3601">StrNOP</a> {&quot;nop&quot;}</td></tr>
 <tr class="separator:a3a01c409d057c873e1f183fc753f3601"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab614362e964e5f08e9ad1869f306ee8f"><td class="memItemLeft" align="right" valign="top">const std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgtirb__pprint_1_1_pretty_printer_base.html#ab614362e964e5f08e9ad1869f306ee8f">StrSection</a> {&quot;.section&quot;}</td></tr>
@@ -281,6 +308,32 @@ Protected Attributes</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
+<a id="a48e43f3081e0bdc5df7dbb4190b27799"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a48e43f3081e0bdc5df7dbb4190b27799">&#9670;&nbsp;</a></span>AdaptRegister()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static std::string gtirb_pprint::PrettyPrinterBase::AdaptRegister </td>
+          <td>(</td>
+          <td class="paramtype">const std::string &amp;&#160;</td>
+          <td class="paramname"><em>x</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span><span class="mlabel">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="a568e14344950bf5c04b24e94ee4fdd66"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a568e14344950bf5c04b24e94ee4fdd66">&#9670;&nbsp;</a></span>avoidRegNameConflicts()</h2>
 
@@ -307,8 +360,8 @@ Protected Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="a3c892754519d64aa55038c3e1d2c1943"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3c892754519d64aa55038c3e1d2c1943">&#9670;&nbsp;</a></span>condPrintSectionHeader()</h2>
+<a id="a81058fce708552d3b3cc31f6714a1e17"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a81058fce708552d3b3cc31f6714a1e17">&#9670;&nbsp;</a></span>AvoidRegNameConflicts()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -317,26 +370,41 @@ Protected Attributes</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">void gtirb_pprint::PrettyPrinterBase::condPrintSectionHeader </td>
+          <td class="memname">std::string gtirb_pprint::PrettyPrinterBase::AvoidRegNameConflicts </td>
           <td>(</td>
-          <td class="paramtype">std::ostream &amp;&#160;</td>
-          <td class="paramname"><em>os</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
+          <td class="paramtype">const std::string &amp;&#160;</td>
+          <td class="paramname"><em>x</em></td><td>)</td>
           <td></td>
-          <td class="paramtype">const gtirb::Block &amp;&#160;</td>
-          <td class="paramname"><em>x</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
         </tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">protected</span><span class="mlabel">virtual</span></span>  </td>
+<span class="mlabels"><span class="mlabel">static</span><span class="mlabel">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ad1a5accc3e0d12d36dad6fbfe82bf042"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad1a5accc3e0d12d36dad6fbfe82bf042">&#9670;&nbsp;</a></span>getAmbiguousSymbol()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::vector&lt;std::string&gt;* gtirb_pprint::PrettyPrinterBase::getAmbiguousSymbol </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">protected</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -375,6 +443,94 @@ Protected Attributes</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>the name of the containing function if one is found. </dd></dl>
+
+</div>
+</div>
+<a id="a74249ae37228f36a4ad7bc8e19ba8b37"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a74249ae37228f36a4ad7bc8e19ba8b37">&#9670;&nbsp;</a></span>getContainerSection()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">const std::optional&lt; const gtirb::Section * &gt; gtirb_pprint::PrettyPrinterBase::getContainerSection </td>
+          <td>(</td>
+          <td class="paramtype">const gtirb::Addr&#160;</td>
+          <td class="paramname"><em>addr</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a9aa49ca249113dfc4490e4f2a6001858"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9aa49ca249113dfc4490e4f2a6001858">&#9670;&nbsp;</a></span>getForwardedSymbolName()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::optional&lt; std::string &gt; gtirb_pprint::PrettyPrinterBase::getForwardedSymbolName </td>
+          <td>(</td>
+          <td class="paramtype">const gtirb::Symbol *&#160;</td>
+          <td class="paramname"><em>symbol</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">bool&#160;</td>
+          <td class="paramname"><em>isAbsolute</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a7c6187f90d5e14e77f67964cbbc2a920"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7c6187f90d5e14e77f67964cbbc2a920">&#9670;&nbsp;</a></span>getFunctionName()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::string gtirb_pprint::PrettyPrinterBase::getFunctionName </td>
+          <td>(</td>
+          <td class="paramtype">gtirb::Addr&#160;</td>
+          <td class="paramname"><em>x</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
 
 </div>
 </div>
@@ -453,6 +609,110 @@ Protected Attributes</h2></td></tr>
 
 </div>
 </div>
+<a id="a2e2c99e202e6f299cd3bbe42321a4fd5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2e2c99e202e6f299cd3bbe42321a4fd5">&#9670;&nbsp;</a></span>GetSizeName() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::string gtirb_pprint::PrettyPrinterBase::GetSizeName </td>
+          <td>(</td>
+          <td class="paramtype">uint64_t&#160;</td>
+          <td class="paramname"><em>x</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span><span class="mlabel">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a67ba41f5ca571be2f8f8255e360c9410"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a67ba41f5ca571be2f8f8255e360c9410">&#9670;&nbsp;</a></span>GetSizeName() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::string gtirb_pprint::PrettyPrinterBase::GetSizeName </td>
+          <td>(</td>
+          <td class="paramtype">const std::string &amp;&#160;</td>
+          <td class="paramname"><em>x</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span><span class="mlabel">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a0087e00c7aabdef0365ecdbf67a54ce4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0087e00c7aabdef0365ecdbf67a54ce4">&#9670;&nbsp;</a></span>GetSizeSuffix() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::string gtirb_pprint::PrettyPrinterBase::GetSizeSuffix </td>
+          <td>(</td>
+          <td class="paramtype">uint64_t&#160;</td>
+          <td class="paramname"><em>x</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span><span class="mlabel">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ac2f19ae3a474a1c8978cfcdb41fb9aa9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac2f19ae3a474a1c8978cfcdb41fb9aa9">&#9670;&nbsp;</a></span>GetSizeSuffix() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::string gtirb_pprint::PrettyPrinterBase::GetSizeSuffix </td>
+          <td>(</td>
+          <td class="paramtype">const std::string &amp;&#160;</td>
+          <td class="paramname"><em>x</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span><span class="mlabel">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="ab4e09f54293ed4258f3fdcc34d80ab3f"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ab4e09f54293ed4258f3fdcc34d80ab3f">&#9670;&nbsp;</a></span>getSymbolicImmediate()</h2>
 
@@ -483,6 +743,58 @@ Protected Attributes</h2></td></tr>
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a id="a890b36345719ded682e684df9f09ee8f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a890b36345719ded682e684df9f09ee8f">&#9670;&nbsp;</a></span>GetSymbolToPrint()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::string gtirb_pprint::PrettyPrinterBase::GetSymbolToPrint </td>
+          <td>(</td>
+          <td class="paramtype">gtirb::Addr&#160;</td>
+          <td class="paramname"><em>x</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span><span class="mlabel">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a7ee18590a6cbe615bc50f72a09069ff8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7ee18590a6cbe615bc50f72a09069ff8">&#9670;&nbsp;</a></span>isAmbiguousSymbol()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool gtirb_pprint::PrettyPrinterBase::isAmbiguousSymbol </td>
+          <td>(</td>
+          <td class="paramtype">const std::string &amp;&#160;</td>
+          <td class="paramname"><em>ea</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
 
 </div>
 </div>
@@ -527,32 +839,6 @@ Protected Attributes</h2></td></tr>
           <td class="paramtype">const gtirb::Addr&#160;</td>
           <td class="paramname"><em>x</em></td><td>)</td>
           <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">protected</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a55da6988eb8d1c7972ea8b1fd00e043e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a55da6988eb8d1c7972ea8b1fd00e043e">&#9670;&nbsp;</a></span>isPointerToExcludedCode()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">bool gtirb_pprint::PrettyPrinterBase::isPointerToExcludedCode </td>
-          <td>(</td>
-          <td class="paramtype">const gtirb::DataObject &amp;&#160;</td>
-          <td class="paramname"><em>dataGroup</em></td><td>)</td>
-          <td></td>
         </tr>
       </table>
   </td>
@@ -658,6 +944,42 @@ Protected Attributes</h2></td></tr>
 
 </div>
 </div>
+<a id="ad877c74de9121aca9151e6f44f13f819"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad877c74de9121aca9151e6f44f13f819">&#9670;&nbsp;</a></span>printAlignment()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void gtirb_pprint::PrettyPrinterBase::printAlignment </td>
+          <td>(</td>
+          <td class="paramtype">std::ostream &amp;&#160;</td>
+          <td class="paramname"><em>os</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const gtirb::Addr&#160;</td>
+          <td class="paramname"><em>addr</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">protected</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="a865cec135c3d5de17a047baa5bdf11f0"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a865cec135c3d5de17a047baa5bdf11f0">&#9670;&nbsp;</a></span>printBar()</h2>
 
@@ -730,8 +1052,8 @@ Protected Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="ae09783555804e652287a4def3cfbe3fb"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae09783555804e652287a4def3cfbe3fb">&#9670;&nbsp;</a></span>printBSS()</h2>
+<a id="a34dc420a23295972ab73a0f2434b9e2e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a34dc420a23295972ab73a0f2434b9e2e">&#9670;&nbsp;</a></span>printBlockOrWarning()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -740,11 +1062,27 @@ Protected Attributes</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">void gtirb_pprint::PrettyPrinterBase::printBSS </td>
+          <td class="memname">gtirb::Addr gtirb_pprint::PrettyPrinterBase::printBlockOrWarning </td>
           <td>(</td>
           <td class="paramtype">std::ostream &amp;&#160;</td>
-          <td class="paramname"><em>os</em></td><td>)</td>
+          <td class="paramname"><em>os</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype">const gtirb::Block &amp;&#160;</td>
+          <td class="paramname"><em>x</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">gtirb::Addr&#160;</td>
+          <td class="paramname"><em>last</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
         </tr>
       </table>
   </td>
@@ -753,6 +1091,7 @@ Protected Attributes</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>Print the block as long as it does not overlap with the address last. If it overlaps, print a warning instead. Return the ending address of the block if this was printed. Otherwise return last. </p>
 
 </div>
 </div>
@@ -792,34 +1131,8 @@ Protected Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="aa9e02de1997adf5e30fdf9d65945185a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa9e02de1997adf5e30fdf9d65945185a">&#9670;&nbsp;</a></span>printDataGroups()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">void gtirb_pprint::PrettyPrinterBase::printDataGroups </td>
-          <td>(</td>
-          <td class="paramtype">std::ostream &amp;&#160;</td>
-          <td class="paramname"><em>os</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">protected</span><span class="mlabel">virtual</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a2e17dc8fd59af023595abfcacd2893a8"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a2e17dc8fd59af023595abfcacd2893a8">&#9670;&nbsp;</a></span>printDataObject()</h2>
+<a id="aaf0195168c38717a7642b3759fba6136"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aaf0195168c38717a7642b3759fba6136">&#9670;&nbsp;</a></span>printDataObject()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -837,7 +1150,7 @@ Protected Attributes</h2></td></tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">const gtirb::DataObject &amp;&#160;</td>
-          <td class="paramname"><em>dataGroup</em>&#160;</td>
+          <td class="paramname"><em>dataObject</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -851,6 +1164,49 @@ Protected Attributes</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
+
+</div>
+</div>
+<a id="afae0f1f4aa01bb2e830ce45b17cbfe64"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afae0f1f4aa01bb2e830ce45b17cbfe64">&#9670;&nbsp;</a></span>printDataObjectOrWarning()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">gtirb::Addr gtirb_pprint::PrettyPrinterBase::printDataObjectOrWarning </td>
+          <td>(</td>
+          <td class="paramtype">std::ostream &amp;&#160;</td>
+          <td class="paramname"><em>os</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const gtirb::DataObject &amp;&#160;</td>
+          <td class="paramname"><em>x</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">gtirb::Addr&#160;</td>
+          <td class="paramname"><em>last</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">protected</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Print the dataObject as long as it does not overlap with the address last. If it overlaps, print a warning instead. Return the ending address of the block if this was printed. Otherwise return last. </p>
 
 </div>
 </div>
@@ -995,6 +1351,42 @@ Protected Attributes</h2></td></tr>
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a id="a6b822305c009dcd3d3c1af78cee7c9bc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6b822305c009dcd3d3c1af78cee7c9bc">&#9670;&nbsp;</a></span>printNonZeroDataObject()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void gtirb_pprint::PrettyPrinterBase::printNonZeroDataObject </td>
+          <td>(</td>
+          <td class="paramtype">std::ostream &amp;&#160;</td>
+          <td class="paramname"><em>os</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const gtirb::DataObject &amp;&#160;</td>
+          <td class="paramname"><em>dataObject</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">protected</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
 
 </div>
 </div>
@@ -1232,8 +1624,44 @@ Protected Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="ae3d9db264ccb97492e70fe75d157b5c0"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae3d9db264ccb97492e70fe75d157b5c0">&#9670;&nbsp;</a></span>printSectionHeader()</h2>
+<a id="a10f74511db0b13d086df1d3045d5f644"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a10f74511db0b13d086df1d3045d5f644">&#9670;&nbsp;</a></span>printOverlapWarning()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void gtirb_pprint::PrettyPrinterBase::printOverlapWarning </td>
+          <td>(</td>
+          <td class="paramtype">std::ostream &amp;&#160;</td>
+          <td class="paramname"><em>os</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">gtirb::Addr&#160;</td>
+          <td class="paramname"><em>ea</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">protected</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a9c10838fdaa564579b19fb29d31847f0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9c10838fdaa564579b19fb29d31847f0">&#9670;&nbsp;</a></span>printSectionHeader()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1250,14 +1678,8 @@ Protected Attributes</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const std::string &amp;&#160;</td>
-          <td class="paramname"><em>x</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">uint64_t&#160;</td>
-          <td class="paramname"><em>alignment</em> = <code>0</code>&#160;</td>
+          <td class="paramtype">const gtirb::Addr&#160;</td>
+          <td class="paramname"><em>addr</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -1508,8 +1930,44 @@ Protected Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="a50ef985f704b18d28068b86244daa798"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a50ef985f704b18d28068b86244daa798">&#9670;&nbsp;</a></span>shouldExcludeDataElement()</h2>
+<a id="a201268ee094f72da47bc0b5772bdb3f5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a201268ee094f72da47bc0b5772bdb3f5">&#9670;&nbsp;</a></span>printZeroDataObject()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void gtirb_pprint::PrettyPrinterBase::printZeroDataObject </td>
+          <td>(</td>
+          <td class="paramtype">std::ostream &amp;&#160;</td>
+          <td class="paramname"><em>os</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const gtirb::DataObject &amp;&#160;</td>
+          <td class="paramname"><em>dataObject</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">protected</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a54b5c6f828f6ffbe0100dba01bce3575"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a54b5c6f828f6ffbe0100dba01bce3575">&#9670;&nbsp;</a></span>shouldExcludeDataElement()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1520,19 +1978,19 @@ Protected Attributes</h2></td></tr>
         <tr>
           <td class="memname">bool gtirb_pprint::PrettyPrinterBase::shouldExcludeDataElement </td>
           <td>(</td>
-          <td class="paramtype">const std::string &amp;&#160;</td>
-          <td class="paramname"><em>sectionName</em>, </td>
+          <td class="paramtype">const gtirb::Section &amp;&#160;</td>
+          <td class="paramname"><em>section</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">const gtirb::DataObject &amp;&#160;</td>
-          <td class="paramname"><em>dataGroup</em>&#160;</td>
+          <td class="paramname"><em>dataObject</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
           <td>)</td>
-          <td></td><td></td>
+          <td></td><td> const</td>
         </tr>
       </table>
   </td>
@@ -1571,6 +2029,28 @@ Protected Attributes</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Member Data Documentation</h2>
+<a id="a57dd45cc5164ec18867c7f2507c8362f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a57dd45cc5164ec18867c7f2507c8362f">&#9670;&nbsp;</a></span>AsmArraySection</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">const std::unordered_set&lt;std::string&gt; gtirb_pprint::PrettyPrinterBase::AsmArraySection</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<b>Initial value:</b><div class="fragment"><div class="line">{<span class="stringliteral">&quot;.init_array&quot;</span>,</div><div class="line">                                                        <span class="stringliteral">&quot;.fini_array&quot;</span>}</div></div><!-- fragment -->
+</div>
+</div>
 <a id="afb2dc0d3c3c510c34e7023560744c668"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#afb2dc0d3c3c510c34e7023560744c668">&#9670;&nbsp;</a></span>AsmSkipFunction</h2>
 
@@ -1614,8 +2094,30 @@ Protected Attributes</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
-<b>Initial value:</b><div class="fragment"><div class="line">{</div><div class="line">      {<span class="stringliteral">&quot;.comment&quot;</span>, <span class="stringliteral">&quot;.plt&quot;</span>, <span class="stringliteral">&quot;.init&quot;</span>, <span class="stringliteral">&quot;.fini&quot;</span>, <span class="stringliteral">&quot;.got&quot;</span>, <span class="stringliteral">&quot;.plt.got&quot;</span>, <span class="stringliteral">&quot;.got.plt&quot;</span>}}</div></div><!-- fragment -->
+<b>Initial value:</b><div class="fragment"><div class="line">{</div><div class="line">      <span class="stringliteral">&quot;.comment&quot;</span>, <span class="stringliteral">&quot;.plt&quot;</span>, <span class="stringliteral">&quot;.init&quot;</span>, <span class="stringliteral">&quot;.fini&quot;</span>, <span class="stringliteral">&quot;.got&quot;</span>, <span class="stringliteral">&quot;.plt.got&quot;</span>, <span class="stringliteral">&quot;.got.plt&quot;</span>}</div></div><!-- fragment -->
 <p>Sections to avoid printing. </p>
+
+</div>
+</div>
+<a id="a2a613b211c56c223163de4f40d812575"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2a613b211c56c223163de4f40d812575">&#9670;&nbsp;</a></span>context</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">gtirb::Context&amp; gtirb_pprint::PrettyPrinterBase::context</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
 
 </div>
 </div>
@@ -1663,8 +2165,8 @@ Protected Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="a671f4694fe93493131b6ed355ff7166a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a671f4694fe93493131b6ed355ff7166a">&#9670;&nbsp;</a></span>disasm</h2>
+<a id="a0fefce636980bffb730a60d148dba826"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0fefce636980bffb730a60d148dba826">&#9670;&nbsp;</a></span>ir</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1673,7 +2175,7 @@ Protected Attributes</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="class_disasm_data.html">DisasmData</a> gtirb_pprint::PrettyPrinterBase::disasm</td>
+          <td class="memname">gtirb::IR&amp; gtirb_pprint::PrettyPrinterBase::ir</td>
         </tr>
       </table>
   </td>

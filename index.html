@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">GTIRB-PPRINTER
-   &#160;<span id="projectnumber">v0.0</span>
+   &#160;<span id="projectnumber">v0.1.0</span>
    </div>
    <div id="projectbrief">GrammaTech Intermediate Representation for Binaries: Pretty Printer</div>
   </td>
@@ -90,7 +90,7 @@ $(function() {
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone">comments  </td><td class="markdownTableBodyNone"><code>std::map&lt;gtirb::Addr, std::string&gt;</code>  </td><td class="markdownTableBodyNone">Per-instruction comments.   </td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone">functionEntry  </td><td class="markdownTableBodyNone"><code>std::map&lt;gtirb::UUID, std::set&lt;gtirb::Addr&gt;&gt;</code>  </td><td class="markdownTableBodyNone">Addresses of entry points of functions.   </td></tr>
+<td class="markdownTableBodyNone">functionEntries  </td><td class="markdownTableBodyNone"><code>std::map&lt;gtirb::UUID, std::vector&lt;gtirb::UUID&gt;&gt;</code>  </td><td class="markdownTableBodyNone">UUIDs of the blocks that are entry points of functions.   </td></tr>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone">symbolForwarding  </td><td class="markdownTableBodyNone"><code>std::map&lt;gtirb::UUID, gtirb::UUID&gt;</code>  </td><td class="markdownTableBodyNone">Map from symbols to other symbols. This table is used to forward symbols due to relocations or due to the use of plt and got tables.   </td></tr>
 <tr class="markdownTableRowEven">
