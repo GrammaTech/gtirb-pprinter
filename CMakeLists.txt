@@ -255,4 +255,4 @@ if( ${GTIRB_PPRINTER_USE_SYSTEM_BOOST} MATCHES "OFF" )
   install(DIRECTORY "${Boost_LIBRARY_DIR}/" DESTINATION lib)
 endif()
 
-install(EXPORT gtirb_pprinterTargets DESTINATION lib/gtirb_pprinter)
+install(EXPORT gtirb_pprinterTargets DESTINATION lib/gtirb-pprinter)
