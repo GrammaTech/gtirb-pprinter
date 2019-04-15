@@ -1,14 +1,19 @@
 Contributing
 ============
 
-Code
-----
 
-- All code shall be formatted with clang-format.  A '.clang-format' is
+## Code of Conduct
+
+Please read the [GTIRB-pprinter Code of Conduct](CODE_OF_CONDUCT.md).
+
+
+## Code
+
+- All code shall be formatted with clang-format.  A `.clang-format` is
   provided in the root directory for the project.
 
-Testing Development
--------------------
+
+## Testing Development
 
 - All code you care about should be tested.
 - Any code you don't care about should be removed.
@@ -19,8 +24,9 @@ Testing Development
 - Do not use 'using namespace' inside test cases.  Fully qualify
   everything.
 
-Documentation
--------------
+
+## Documentation
+
 - Documentation for the gtirb-pprinter command is provided in
   man-page format in the `gtirb-pprinter.md` file in the root of this
   directory.
