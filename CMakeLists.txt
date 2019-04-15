@@ -196,7 +196,7 @@ if( ${GTIRB_PPRINTER_USE_SYSTEM_BOOST} MATCHES "OFF" )
       )
   endif()
 else()
-  find_package(Boost 1.59 REQUIRED COMPONENTS program_options)
+  find_package(Boost 1.67 REQUIRED COMPONENTS program_options)
   include_directories(${Boost_INCLUDE_DIRS})
 endif()
 
