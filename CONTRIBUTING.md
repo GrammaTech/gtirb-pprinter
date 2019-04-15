@@ -9,8 +9,8 @@ Please read the [GTIRB-pprinter Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Code
 
-- All code shall be formatted with clang-format.  A `.clang-format` is
-  provided in the root directory for the project.
+See the Code Requirements in
+[gtirb/CONTRIBUTING](https://github.com/GrammaTech/gtirb/blob/master/CONTRIBUTING.md#code-requirements).
 
 
 ## Testing Development
