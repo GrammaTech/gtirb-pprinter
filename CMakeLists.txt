@@ -6,7 +6,7 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.9.0)
 
 PROJECT(gtirb_pprinter)
-set(GTIRB_PPRINTER_VERSION "0.1.0" CACHE STRING "version of gtirb-pprinter" FORCE)
+set(GTIRB_PPRINTER_VERSION "0.1.1" CACHE STRING "version of gtirb-pprinter" FORCE)
 
 include(CheckFunctionExists)
 include(CheckCXXSourceCompiles)
