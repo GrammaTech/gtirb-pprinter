@@ -145,7 +145,7 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_, gtirb::IR& ir_,
   if (const auto* functionEntries =
           ir.modules()
               .begin()
-              ->getAuxData<std::map<gtirb::UUID, std::vector<gtirb::UUID>>>(
+              ->getAuxData<std::map<gtirb::UUID, std::set<gtirb::UUID>>>(
                   "functionEntries")) {
     for (auto const& function : *functionEntries) {
       for (auto& entryBlockUUID : function.second) {
