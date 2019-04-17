@@ -19,7 +19,7 @@ include(CheckIncludeFile)
 # This just sets the builtin BUILD_SHARED_LIBS, but if defaults to ON
 # instead of OFF.
 option(GTIRB_PPRINTER_BUILD_SHARED_LIBS "Build shared libraries." ON)
-option(GTIRB_PPRINTER_USE_SYSTEM_BOOST "Use system-wide installation of Boost." ON)
+option(GTIRB_PPRINTER_USE_SYSTEM_BOOST "Use system-wide installation of Boost." OFF)
 if(GTIRB_PPRINTER_BUILD_SHARED_LIBS)
   set(BUILD_SHARED_LIBS ON)
 else()
