@@ -19,7 +19,7 @@ include(CheckIncludeFile)
 # This just sets the builtin BUILD_SHARED_LIBS, but if defaults to ON
 # instead of OFF.
 option(GTIRB_PPRINTER_BUILD_SHARED_LIBS "Build shared libraries." ON)
-option(GTIRB_PPRINTER_USE_SYSTEM_BOOST "Use system-wide installation of Boost." OFF)
+option(GTIRB_PPRINTER_USE_SYSTEM_BOOST "Use system-wide installation of Boost." ON)
 if(GTIRB_PPRINTER_BUILD_SHARED_LIBS)
   set(BUILD_SHARED_LIBS ON)
 else()
@@ -249,10 +249,10 @@ write_basic_package_version_file(${version_file}
 install(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/export/gtirb_pprinterConfig.cmake
   ${version_file}
-  DESTINATION lib/gtirb-pprinter)
+  DESTINATION lib/gtirb_pprinter)
 # This exports the targets to the install location.
 if( ${GTIRB_PPRINTER_USE_SYSTEM_BOOST} MATCHES "OFF" )
   install(DIRECTORY "${Boost_LIBRARY_DIR}/" DESTINATION lib)
 endif()
 
-install(EXPORT gtirb_pprinterTargets DESTINATION lib/gtirb-pprinter)
+install(EXPORT gtirb_pprinterTargets DESTINATION lib/gtirb_pprinter)
