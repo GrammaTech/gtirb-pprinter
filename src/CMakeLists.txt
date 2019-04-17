@@ -76,5 +76,6 @@ install(TARGETS ${PROJECT_NAME} EXPORT gtirb_pprinterTargets
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib)
 set(PUBLIC_HEADERS
-        ${CMAKE_SOURCE_DIR}/src/PrettyPrinter.h)
+  ${CMAKE_SOURCE_DIR}/src/PrettyPrinter.h
+  ${CMAKE_SOURCE_DIR}/src/Export.h)
 install(FILES ${PUBLIC_HEADERS} DESTINATION include)
