@@ -749,8 +749,8 @@ std::string PrettyPrinterBase::GetSizeSuffix(const std::string& x) {
 }
 
 std::string PrettyPrinterBase::AvoidRegNameConflicts(const std::string& x) {
-  const std::vector<std::string> adapt{"FS",  "MOD", "DIV", "NOT", "mod",
-                                       "div", "not", "and", "or",  "shr"};
+  const std::vector<std::string> adapt{"FS",  "MOD", "DIV", "NOT", "mod", "div",
+                                       "not", "and", "or",  "shr", "Si"};
 
   if (const auto found = std::find(std::begin(adapt), std::end(adapt), x);
       found != std::end(adapt)) {
