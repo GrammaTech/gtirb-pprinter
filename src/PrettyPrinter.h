@@ -151,7 +151,8 @@ protected:
 
   /// Sections to avoid printing.
   std::unordered_set<std::string> AsmSkipSection{
-      ".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt"};
+      ".comment", ".plt",     ".init",    ".fini",
+      ".got",     ".plt.got", ".got.plt", ".plt.sec"};
 
   /// Functions to avoid printing.
   std::unordered_set<std::string> AsmSkipFunction;
