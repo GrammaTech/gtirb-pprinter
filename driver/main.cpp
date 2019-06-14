@@ -15,6 +15,8 @@ int main(int argc, char** argv) {
   desc.add_options()("ir,i", po::value<std::string>(), "gtirb file to print.");
   desc.add_options()("out,o", po::value<std::string>(),
                      "The name of the assembly output file.");
+  desc.add_options()("binary,o", po::value<std::string>(),
+                     "The name of the binary output file.");
   desc.add_options()("syntax,s",
                      po::value<std::string>()->default_value("intel"),
                      "The syntax of the assembly file to generate.");
@@ -93,9 +95,15 @@ int main(int argc, char** argv) {
     } else {
       LOG_ERROR << "Could not output assembly output file: " << asmPath << "\n";
     }
-  } else {
+  } else if (vm.count("binary") != 0) {
+    const auto binaryPath = fs::path(vm["binary"].as<std::string>());
+    pp.linkAssembly(binaryPath.string(), ctx, *ir);
+  }
+  else {
     pp.print(std::cout, ctx, *ir);
   }
+
+
 
   return EXIT_SUCCESS;
 }

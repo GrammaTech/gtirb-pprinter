@@ -29,7 +29,7 @@
 
 using namespace std::rel_ops;
 
-template <class T> T* nodeFromUUID(gtirb::Context& C, gtirb::UUID id) {
+template <class T> T *nodeFromUUID(gtirb::Context &C, gtirb::UUID id) {
   return dyn_cast_or_null<T>(gtirb::Node::getByUUID(C, id));
 }
 
@@ -38,7 +38,7 @@ template <class T> T* nodeFromUUID(gtirb::Context& C, gtirb::UUID id) {
 ///
 class BlockAreaComment {
 public:
-  BlockAreaComment(std::ostream& ss, std::string m = std::string{},
+  BlockAreaComment(std::ostream &ss, std::string m = std::string{},
                    std::function<void()> f = []() {})
       : ofs{ss}, message{std::move(m)}, func{std::move(f)} {
     ofs << '\n';
@@ -60,12 +60,12 @@ public:
     ofs << '\n';
   }
 
-  std::ostream& ofs;
+  std::ostream &ofs;
   const std::string message;
   std::function<void()> func;
 };
 
-static std::map<std::string, ::gtirb_pprint::factory>& getFactories() {
+static std::map<std::string, ::gtirb_pprint::factory> &getFactories() {
   static std::map<std::string, gtirb_pprint::factory> factories;
   return factories;
 }
@@ -75,14 +75,14 @@ namespace gtirb_pprint {
 bool registerPrinter(std::initializer_list<std::string> syntaxes, factory f) {
   assert(f && "Cannot register null factory!");
   assert(syntaxes.size() > 0 && "No syntaxes to register!");
-  for (const std::string& name : syntaxes)
+  for (const std::string &name : syntaxes)
     getFactories()[name] = f;
   return true;
 }
 
 std::set<std::string> getRegisteredSyntaxes() {
   std::set<std::string> syntaxes;
-  for (const std::pair<std::string, factory>& entry : getFactories())
+  for (const std::pair<std::string, factory> &entry : getFactories())
     syntaxes.insert(entry.first);
   return syntaxes;
 }
@@ -98,12 +98,12 @@ PrettyPrinter::PrettyPrinter()
                    "_dl_relocate_static_pie"},
       m_syntax{"intel"}, m_debug{NoDebug} {}
 
-void PrettyPrinter::setSyntax(const std::string& syntax) {
+void PrettyPrinter::setSyntax(const std::string &syntax) {
   assert(getFactories().find(syntax) != getFactories().end());
   m_syntax = syntax;
 }
 
-const std::string& PrettyPrinter::getSyntax() const { return m_syntax; }
+const std::string &PrettyPrinter::getSyntax() const { return m_syntax; }
 
 void PrettyPrinter::setDebug(bool do_debug) {
   m_debug = do_debug ? DebugMessages : NoDebug;
@@ -111,16 +111,46 @@ void PrettyPrinter::setDebug(bool do_debug) {
 
 bool PrettyPrinter::getDebug() const { return m_debug == DebugMessages; }
 
-const std::set<std::string>& PrettyPrinter::getSkippedFunctions() const {
+const std::set<std::string> &PrettyPrinter::getSkippedFunctions() const {
   return m_skip_funcs;
 }
 
-void PrettyPrinter::skipFunction(const std::string& functionName) {
+void PrettyPrinter::skipFunction(const std::string &functionName) {
   m_skip_funcs.insert(functionName);
 }
 
-void PrettyPrinter::keepFunction(const std::string& functionName) {
+void PrettyPrinter::keepFunction(const std::string &functionName) {
   m_skip_funcs.erase(functionName);
+}
+
+void PrettyPrinter::linkAssembly(std::string output_filename,
+                                 gtirb::Context &ctx, gtirb::IR &ir) const {
+  (void)output_filename;
+  // Write the assembly to a temp file
+  std::string t = "/tmp/fileXXXXXX.S";
+  char asmPath[PATH_MAX];
+  int fd;
+
+  strcpy(asmPath, t.c_str());/* Copy template */
+  fd = mkstemps(asmPath, 2);/* Create and open temp file */
+  close(fd); 
+
+  std::ofstream ofs;
+  ofs.open(asmPath);
+  if (ofs.is_open() == true) {
+    this->print(ofs, ctx, ir);
+    ofs.close();
+  }
+  std::cout << asmPath << "\n";
+  if( const auto* libraries=
+      ir.modules().begin()->getAuxData<std::map<std::string, std::string>>(
+          "libraries")) {
+      for( const auto &library : *libraries)
+          std::cout << library.first << "  -  " << library.second << "\n";
+  }
+
+  // construct the required link line
+  // gcc
 }
 
 std::error_condition PrettyPrinter::print(std::ostream& stream,
