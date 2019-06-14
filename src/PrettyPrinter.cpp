@@ -125,7 +125,7 @@ void PrettyPrinter::keepFunction(const std::string& functionName) {
 }
 
 void PrettyPrinter::linkAssembly(std::string output_filename,
-                                 gtirb::Context &ctx, gtirb::IR &ir) const {
+                                 gtirb::Context& ctx, gtirb::IR& ir) const {
   // Get a temp file to write assembly to
   std::string t = "/tmp/fileXXXXXX.S";
   std::string cmd = "";
@@ -133,7 +133,7 @@ void PrettyPrinter::linkAssembly(std::string output_filename,
 
   std::set<std::string> lib_paths, lib_flags;
 
-  strcpy(asmPath, t.c_str());  // Copy template 
+  strcpy(asmPath, t.c_str());  // Copy template
   close(mkstemps(asmPath, 2)); // Create and open temp file
 
   // Write the assembly to a temp file
@@ -144,12 +144,13 @@ void PrettyPrinter::linkAssembly(std::string output_filename,
     ofs.close();
   }
 
-  // Extract the library name to add an -l flag from the shared library and the library path to add the -L and "-Wl,-rpath," options
+  // Extract the library name to add an -l flag from the shared library and the
+  // library path to add the -L and "-Wl,-rpath," options
   std::regex r("^lib([\\s\\S]*)\\.so.*");
-  if (const auto *libraries =
+  if (const auto* libraries =
           ir.modules().begin()->getAuxData<std::map<std::string, std::string>>(
               "libraries")) {
-    for (const auto &library : *libraries) {
+    for (const auto& library : *libraries) {
       lib_paths.insert(library.second);
       std::smatch m;
       if (std::regex_search(library.first, m, r))
@@ -158,20 +159,21 @@ void PrettyPrinter::linkAssembly(std::string output_filename,
   }
 
   // Start constructing the compile command, of the form
-  //  gcc -lBar -lFOO -L/path/to/Bar/ -L/path/to/FOO/ -Wl,-rpath,/path/to/Bar -Wl,-rpath,/path/to/FOO fileAXADA.S -o <output_filename>
+  //  gcc -lBar -lFOO -L/path/to/Bar/ -L/path/to/FOO/ -Wl,-rpath,/path/to/Bar
+  //  -Wl,-rpath,/path/to/FOO fileAXADA.S -o <output_filename>
   cmd.append("gcc ");
   cmd.append("-o " + output_filename + " ");
   cmd.append(std::string(asmPath) + " ");
-  for (const auto &lib_path : lib_paths) {
+  for (const auto& lib_path : lib_paths) {
     cmd.append("-L" + lib_path + " ");
     cmd.append("-Wl,-rpath," + lib_path + " ");
   }
 
-  for (const auto &lib_flag : lib_flags) {
+  for (const auto& lib_flag : lib_flags) {
     cmd.append("-l" + lib_flag + " ");
   }
 
-  FILE *ldd = popen(cmd.c_str(), "r");
+  FILE* ldd = popen(cmd.c_str(), "r");
   std::string output;
   if (ldd) {
     char line[1024];
