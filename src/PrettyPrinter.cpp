@@ -126,22 +126,25 @@ void PrettyPrinter::keepFunction(const std::string& functionName) {
 
 void PrettyPrinter::linkAssembly(std::string output_filename,
                                  gtirb::Context &ctx, gtirb::IR &ir) const {
-  // Write the assembly to a temp file
+  // Get a temp file to write assembly to
   std::string t = "/tmp/fileXXXXXX.S";
   std::string cmd = "";
   char asmPath[PATH_MAX];
 
   std::set<std::string> lib_paths, lib_flags;
 
-  strcpy(asmPath, t.c_str());  /* Copy template */
-  close(mkstemps(asmPath, 2)); /* Create and open temp file */
+  strcpy(asmPath, t.c_str());  // Copy template 
+  close(mkstemps(asmPath, 2)); // Create and open temp file
 
+  // Write the assembly to a temp file
   std::ofstream ofs;
   ofs.open(asmPath);
   if (ofs.is_open() == true) {
     this->print(ofs, ctx, ir);
     ofs.close();
   }
+
+  // Extract the library name to add an -l flag from the shared library and the library path to add the -L and "-Wl,-rpath," options
   std::regex r("^lib([\\s\\S]*)\\.so.*");
   if (const auto *libraries =
           ir.modules().begin()->getAuxData<std::map<std::string, std::string>>(
@@ -153,7 +156,10 @@ void PrettyPrinter::linkAssembly(std::string output_filename,
         lib_flags.insert(m[1]);
     }
   }
-  cmd.append("g++ ");
+
+  // Start constructing the compile command, of the form
+  //  gcc -lBar -lFOO -L/path/to/Bar/ -L/path/to/FOO/ -Wl,-rpath,/path/to/Bar -Wl,-rpath,/path/to/FOO fileAXADA.S -o <output_filename>
+  cmd.append("gcc ");
   cmd.append("-o " + output_filename + " ");
   cmd.append(std::string(asmPath) + " ");
   for (const auto &lib_path : lib_paths) {
@@ -175,7 +181,7 @@ void PrettyPrinter::linkAssembly(std::string output_filename,
     int status = pclose(ldd);
     if (status < 0) {
       perror(NULL);
-      std::cout << "The g++ command failed with : \n" << output;
+      std::cout << "The gcc command failed with : \n" << output;
     }
   }
 
