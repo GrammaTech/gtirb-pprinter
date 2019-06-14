@@ -9,7 +9,7 @@
 namespace fs = std::experimental::filesystem;
 namespace po = boost::program_options;
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   po::options_description desc("Allowed options");
   desc.add_options()("help,h", "Produce help message.");
   desc.add_options()("ir,i", po::value<std::string>(), "gtirb file to print.");
@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
       std::cout << desc << "\n";
       return 1;
     }
-  } catch (std::exception &e) {
+  } catch (std::exception& e) {
     std::cerr << "Error: " << e.what() << "\nTry '" << argv[0]
               << " --help' for more information.\n";
     return 1;
@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
   po::notify(vm);
 
   gtirb::Context ctx;
-  gtirb::IR *ir;
+  gtirb::IR* ir;
 
   if (vm.count("ir") != 0) {
     fs::path irPath = vm["ir"].as<std::string>();
@@ -65,11 +65,11 @@ int main(int argc, char **argv) {
   gtirb_pprint::PrettyPrinter pp;
   pp.setDebug(vm.count("debug"));
   if (vm.count("syntax") != 0) {
-    const std::string &syntax = vm["syntax"].as<std::string>();
+    const std::string& syntax = vm["syntax"].as<std::string>();
     if (gtirb_pprint::getRegisteredSyntaxes().count(syntax) == 0) {
       LOG_ERROR << "Unknown assembly syntax: '" << syntax << "'\n";
       LOG_ERROR << "Available syntaxes:\n";
-      for (const std::string &s : gtirb_pprint::getRegisteredSyntaxes())
+      for (const std::string& s : gtirb_pprint::getRegisteredSyntaxes())
         LOG_ERROR << "    " << s << '\n';
       return EXIT_FAILURE;
     }
