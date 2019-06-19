@@ -17,8 +17,8 @@
 #include "string_utils.h"
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/process/args.hpp>
 #include <boost/process.hpp>
+#include <boost/process/args.hpp>
 #include <boost/range/algorithm/find_if.hpp>
 #include <capstone/capstone.h>
 #include <fstream>
@@ -128,18 +128,18 @@ void PrettyPrinter::keepFunction(const std::string& functionName) {
 }
 
 int PrettyPrinter::linkAssembly(std::string output_filename,
-				 gtirb::Context& ctx, gtirb::IR& ir) const {
+                                gtirb::Context& ctx, gtirb::IR& ir) const {
   // Get a temp file to write assembly to
   std::vector<std::string> args;
   char asmPath[] = "/tmp/fileXXXXXX.S";
-  
+
   std::set<std::string> lib_paths, lib_flags;
-  
+
   close(mkstemps(asmPath, 2)); // Create and open temp file
-  
+
   // Write the assembly to a temp file
   std::ofstream ofs(asmPath);
-  
+
   if (ofs) {
     this->print(ofs, ctx, ir);
     ofs.close();
@@ -147,18 +147,18 @@ int PrettyPrinter::linkAssembly(std::string output_filename,
     std::cout << "ERROR: Could not write assembly into a temporary file.\n";
     return -1;
   }
-  
+
   // Extract the library name to add an -l flag from the shared library and the
   // library path to add the -L and "-Wl,-rpath," options
   std::regex r("^lib([\\s\\S]*)\\.so.*");
   if (const auto* libraries =
-      ir.modules().begin()->getAuxData<std::map<std::string, std::string>>(
-									   "libraries")) {
+          ir.modules().begin()->getAuxData<std::map<std::string, std::string>>(
+              "libraries")) {
     for (const auto& library : *libraries) {
       lib_paths.insert(library.second);
       std::smatch m;
       if (std::regex_search(library.first, m, r))
-	lib_flags.insert(m[1]);
+        lib_flags.insert(m[1]);
     }
   }
 
@@ -166,41 +166,41 @@ int PrettyPrinter::linkAssembly(std::string output_filename,
   // gcc -o <output_filename> fileAXADA.S
   //  -lBar -lFOO -L/path/to/Bar/ -L/path/to/FOO/
   args.insert(args.end(), {"-o", output_filename, std::string(asmPath)});
-  
+
   for (const auto& lib_path : lib_paths) {
-    if(!lib_path.empty())
+    if (!lib_path.empty())
       args.insert(args.end(), {"-L", lib_path});
-  } 
-  
+  }
+
   for (const auto& lib_flag : lib_flags)
     args.insert(args.end(), {"-l", lib_flag});
-  
+
   std::vector<std::string> lines;
-  
+
   bp::ipstream is; // reading pipe-stream
   bp::child c(bp::search_path("gcc"), bp::args(args), bp::std_out > is);
-  
+
   std::string line;
-  
-  while(c.running() && std::getline(is, line) && !line.empty())
+
+  while (c.running() && std::getline(is, line) && !line.empty())
     lines.push_back(line);
-  
+
   c.wait();
   int status = c.exit_code();
-  for( const auto &line : lines )
+  for (const auto& line : lines)
     std::cout << line << std::endl;
 
   unlink(asmPath);
-  
-  if(status < 0) {
+
+  if (status < 0) {
     perror(NULL);
-    std::cout << "The gcc command failed with return code : "
-	      << status << std::endl;
-    for( const auto &line : lines )
+    std::cout << "The gcc command failed with return code : " << status
+              << std::endl;
+    for (const auto& line : lines)
       std::cout << line << std::endl;
     return status;
   }
-  
+
   return 0;
 }
 

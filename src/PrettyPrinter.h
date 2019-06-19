@@ -123,7 +123,7 @@ public:
                              gtirb::IR& ir) const;
 
   int linkAssembly(std::string output_filename, gtirb::Context& context,
-                    gtirb::IR& ir) const;
+                   gtirb::IR& ir) const;
 
 private:
   std::set<std::string> m_skip_funcs;
