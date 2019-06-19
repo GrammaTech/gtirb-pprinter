@@ -122,7 +122,7 @@ public:
   std::error_condition print(std::ostream& stream, gtirb::Context& context,
                              gtirb::IR& ir) const;
 
-  void linkAssembly(std::string output_filename, gtirb::Context& context,
+  int linkAssembly(std::string output_filename, gtirb::Context& context,
                     gtirb::IR& ir) const;
 
 private:

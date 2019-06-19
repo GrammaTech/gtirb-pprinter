@@ -17,6 +17,8 @@
 #include "string_utils.h"
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/process/args.hpp>
+#include <boost/process.hpp>
 #include <boost/range/algorithm/find_if.hpp>
 #include <capstone/capstone.h>
 #include <fstream>
@@ -28,6 +30,7 @@
 #include <utility>
 #include <variant>
 
+namespace bp = boost::process;
 using namespace std::rel_ops;
 
 template <class T> T* nodeFromUUID(gtirb::Context& C, gtirb::UUID id) {
@@ -124,70 +127,81 @@ void PrettyPrinter::keepFunction(const std::string& functionName) {
   m_skip_funcs.erase(functionName);
 }
 
-void PrettyPrinter::linkAssembly(std::string output_filename,
-                                 gtirb::Context& ctx, gtirb::IR& ir) const {
+int PrettyPrinter::linkAssembly(std::string output_filename,
+				 gtirb::Context& ctx, gtirb::IR& ir) const {
   // Get a temp file to write assembly to
-  std::string t = "/tmp/fileXXXXXX.S";
-  std::string cmd = "";
-  char asmPath[PATH_MAX];
-
+  std::vector<std::string> args;
+  char asmPath[] = "/tmp/fileXXXXXX.S";
+  
   std::set<std::string> lib_paths, lib_flags;
-
-  strcpy(asmPath, t.c_str());  // Copy template
+  
   close(mkstemps(asmPath, 2)); // Create and open temp file
-
+  
   // Write the assembly to a temp file
-  std::ofstream ofs;
-  ofs.open(asmPath);
-  if (ofs.is_open() == true) {
+  std::ofstream ofs(asmPath);
+  
+  if (ofs) {
     this->print(ofs, ctx, ir);
     ofs.close();
+  } else {
+    std::cout << "ERROR: Could not write assembly into a temporary file.\n";
+    return -1;
   }
-
+  
   // Extract the library name to add an -l flag from the shared library and the
   // library path to add the -L and "-Wl,-rpath," options
   std::regex r("^lib([\\s\\S]*)\\.so.*");
   if (const auto* libraries =
-          ir.modules().begin()->getAuxData<std::map<std::string, std::string>>(
-              "libraries")) {
+      ir.modules().begin()->getAuxData<std::map<std::string, std::string>>(
+									   "libraries")) {
     for (const auto& library : *libraries) {
       lib_paths.insert(library.second);
       std::smatch m;
       if (std::regex_search(library.first, m, r))
-        lib_flags.insert(m[1]);
+	lib_flags.insert(m[1]);
     }
   }
 
   // Start constructing the compile command, of the form
-  //  gcc -lBar -lFOO -L/path/to/Bar/ -L/path/to/FOO/ -Wl,-rpath,/path/to/Bar
-  //  -Wl,-rpath,/path/to/FOO fileAXADA.S -o <output_filename>
-  cmd.append("gcc ");
-  cmd.append("-o " + output_filename + " ");
-  cmd.append(std::string(asmPath) + " ");
+  // gcc -o <output_filename> fileAXADA.S
+  //  -lBar -lFOO -L/path/to/Bar/ -L/path/to/FOO/
+  args.insert(args.end(), {"-o", output_filename, std::string(asmPath)});
+  
   for (const auto& lib_path : lib_paths) {
-    cmd.append("-L" + lib_path + " ");
-    cmd.append("-Wl,-rpath," + lib_path + " ");
-  }
-
-  for (const auto& lib_flag : lib_flags) {
-    cmd.append("-l" + lib_flag + " ");
-  }
-
-  FILE* ldd = popen(cmd.c_str(), "r");
-  std::string output;
-  if (ldd) {
-    char line[1024];
-    while (!feof(ldd) && fgets(line, 1024, ldd))
-      output.append(line);
-
-    int status = pclose(ldd);
-    if (status < 0) {
-      perror(NULL);
-      std::cout << "The gcc command failed with : \n" << output;
-    }
-  }
+    if(!lib_path.empty())
+      args.insert(args.end(), {"-L", lib_path});
+  } 
+  
+  for (const auto& lib_flag : lib_flags)
+    args.insert(args.end(), {"-l", lib_flag});
+  
+  std::vector<std::string> lines;
+  
+  bp::ipstream is; // reading pipe-stream
+  bp::child c(bp::search_path("gcc"), bp::args(args), bp::std_out > is);
+  
+  std::string line;
+  
+  while(c.running() && std::getline(is, line) && !line.empty())
+    lines.push_back(line);
+  
+  c.wait();
+  int status = c.exit_code();
+  for( const auto &line : lines )
+    std::cout << line << std::endl;
 
   unlink(asmPath);
+  
+  if(status < 0) {
+    perror(NULL);
+    std::cout << "The gcc command failed with return code : "
+	      << status << std::endl;
+    for( const auto &line : lines )
+      std::cout << line << std::endl;
+    return status;
+  }
+  
+  return 0;
 }
 
 std::error_condition PrettyPrinter::print(std::ostream& stream,
