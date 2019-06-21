@@ -21,8 +21,11 @@ set(${PROJECT_NAME}_SRC
 
 # Unix, but not Cygwin.
 IF(UNIX)
-	SET(SYSLIBS
+    IF(${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
+        SET(SYSLIBS
 		stdc++fs)
+    ENDIF()
+
 	IF (NOT WIN32)
 		SET(SYSLIBS
 			${SYSLIBS}
