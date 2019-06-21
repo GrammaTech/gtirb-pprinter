@@ -23,10 +23,13 @@ set(${PROJECT_NAME}_SRC
 IF(UNIX)
     IF(${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
         SET(SYSLIBS
-		stdc++fs)
+        stdc++fs)
+    ELSEIF(${CMAKE_CXX_COMPILER_ID} STREQUAL Clang)
+        SET(SYSLIBS
+        c++experimental)
     ENDIF()
 
-	IF (NOT WIN32)
+    IF (NOT WIN32)
 		SET(SYSLIBS
 			${SYSLIBS}
 			dl
