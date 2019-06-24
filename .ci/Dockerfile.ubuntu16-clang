@@ -6,11 +6,11 @@ ARG CMAKE_VERSION=3.9
 # Install Clang++
 RUN apt-get -y update && \
     apt-get -y install software-properties-common wget curl make git \
-    build-essential binutils doxygen graphviz wget curl unzip libc++1 && \
+    build-essential binutils doxygen graphviz wget curl unzip && \
     wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|apt-key add - && \
     add-apt-repository 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-8 main' && \
     apt-get -y update && \
-    apt-get -y install clang-8 && \
+    apt-get -y install clang-8 libc++1-8 && \
     update-alternatives --install /usr/bin/clang clang /usr/bin/clang-8 60 \
                         --slave /usr/bin/clang++ clang++ /usr/bin/clang++-8 && \
     update-alternatives --install /usr/bin/cc cc /usr/bin/clang-8 60 && \
