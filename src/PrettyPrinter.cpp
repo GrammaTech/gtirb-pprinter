@@ -17,20 +17,17 @@
 #include "string_utils.h"
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/process.hpp>
-#include <boost/process/args.hpp>
 #include <boost/range/algorithm/find_if.hpp>
 #include <capstone/capstone.h>
+#include <experimental/filesystem>
 #include <fstream>
 #include <gtirb/gtirb.hpp>
 #include <iomanip>
 #include <iostream>
-#include <regex>
-#include <sstream>
 #include <utility>
 #include <variant>
 
-namespace bp = boost::process;
+namespace fs = std::experimental::filesystem;
 using namespace std::rel_ops;
 
 template <class T> T* nodeFromUUID(gtirb::Context& C, gtirb::UUID id) {
@@ -127,82 +124,6 @@ void PrettyPrinter::keepFunction(const std::string& functionName) {
   m_skip_funcs.erase(functionName);
 }
 
-int PrettyPrinter::linkAssembly(std::string output_filename,
-                                gtirb::Context& ctx, gtirb::IR& ir) const {
-  // Get a temp file to write assembly to
-  std::vector<std::string> args;
-  char asmPath[] = "/tmp/fileXXXXXX.S";
-
-  std::set<std::string> lib_paths, lib_flags;
-
-  close(mkstemps(asmPath, 2)); // Create and open temp file
-
-  // Write the assembly to a temp file
-  std::ofstream ofs(asmPath);
-
-  if (ofs) {
-    this->print(ofs, ctx, ir);
-    ofs.close();
-  } else {
-    std::cout << "ERROR: Could not write assembly into a temporary file.\n";
-    return -1;
-  }
-
-  // Extract the library name to add an -l flag from the shared library and the
-  // library path to add the -L and "-Wl,-rpath," options
-  std::regex r("^lib([\\s\\S]*)\\.so.*");
-  if (const auto* libraries =
-          ir.modules().begin()->getAuxData<std::map<std::string, std::string>>(
-              "libraries")) {
-    for (const auto& library : *libraries) {
-      lib_paths.insert(library.second);
-      std::smatch m;
-      if (std::regex_search(library.first, m, r))
-        lib_flags.insert(m[1]);
-    }
-  }
-
-  // Start constructing the compile command, of the form
-  // gcc -o <output_filename> fileAXADA.S
-  //  -lBar -lFOO -L/path/to/Bar/ -L/path/to/FOO/
-  args.insert(args.end(), {"-o", output_filename, std::string(asmPath)});
-
-  for (const auto& lib_path : lib_paths) {
-    if (!lib_path.empty())
-      args.insert(args.end(), {"-L", lib_path});
-  }
-
-  for (const auto& lib_flag : lib_flags)
-    args.insert(args.end(), {"-l", lib_flag});
-
-  std::vector<std::string> lines;
-
-  bp::ipstream is; // reading pipe-stream
-  bp::child c(bp::search_path("gcc"), bp::args(args), bp::std_out > is);
-
-  std::string line;
-
-  while (c.running() && std::getline(is, line) && !line.empty())
-    lines.push_back(line);
-
-  c.wait();
-  int status = c.exit_code();
-  for (const auto& line : lines)
-    std::cout << line << std::endl;
-
-  unlink(asmPath);
-
-  if (status < 0) {
-    perror(NULL);
-    std::cout << "The gcc command failed with return code : " << status
-              << std::endl;
-    for (const auto& line : lines)
-      std::cout << line << std::endl;
-    return status;
-  }
-
-  return 0;
-}
 
 std::error_condition PrettyPrinter::print(std::ostream& stream,
                                           gtirb::Context& context,

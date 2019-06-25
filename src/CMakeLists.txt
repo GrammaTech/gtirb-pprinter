@@ -18,6 +18,8 @@ set(${PROJECT_NAME}_H
 	Export.h
 	IntelPrinter.h
 	PrettyPrinter.h
+	BinaryPrinter.h
+	ElfBinaryPrinter.h
 	string_utils.h
 )
 
@@ -25,6 +27,7 @@ set(${PROJECT_NAME}_SRC
 	AttPrinter.cpp
 	IntelPrinter.cpp
 	PrettyPrinter.cpp
+	ElfBinaryPrinter.cpp
 	string_utils.cpp
 )
 
@@ -56,6 +59,7 @@ target_link_libraries(
 	${SYSLIBS}
 	${Boost_LIBRARIES}
     gtirb
+    stdc++fs
     ${CAPSTONE}
 )
 
@@ -77,5 +81,6 @@ install(TARGETS ${PROJECT_NAME} EXPORT gtirb_pprinterTargets
   LIBRARY DESTINATION lib)
 set(PUBLIC_HEADERS
   ${CMAKE_SOURCE_DIR}/src/PrettyPrinter.h
+  ${CMAKE_SOURCE_DIR}/src/BinaryPrinter.h
   ${CMAKE_SOURCE_DIR}/src/Export.h)
 install(FILES ${PUBLIC_HEADERS} DESTINATION include)
