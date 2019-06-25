@@ -149,7 +149,7 @@ elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
     add_compile_options(-fPIC)
 elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL Clang)
     add_compile_options(-Wall -Wextra -Wpointer-arith -Wshadow)
-    # add_compile_options(-Werror) # clang complains about some boost headers; disable for now
+    add_compile_options(-Werror)
 	add_compile_options(-fPIC)
 endif()
 
