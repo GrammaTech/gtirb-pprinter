@@ -69,7 +69,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   endif()
 endif()
 
-# Detect what C++ standard library we use
+# Detect what C++ standard library we use, and how to use <experimental/filesystem>
 
 check_cxx_source_compiles("
 #include <ciso646>
@@ -77,6 +77,35 @@ int main() {
     return _LIBCPP_VERSION;
 }
 " USING_LIBCPP)
+
+check_cxx_source_compiles("
+#include <string>
+int main() {
+    return __GLIBCXX__;
+}
+" USING_LIBSTDCPP)
+
+if(${USING_LIBCPP})
+    check_cxx_source_compiles("
+    #include <ciso646>
+    int main() {
+    #if _LIBCPP_VERSION >= 7000
+        #error
+    #endif
+        return 0;
+    }
+    " USING_LIBCPP_LT_VERSION_7)
+
+    if(${USING_LIBCPP_LT_VERSION_7})
+        set(EXPERIMENTAL_LIB c++experimental)
+    else()
+        set(EXPERIMENTAL_LIB c++fs)
+    endif()
+elseif(${USING_LIBSTDCPP})
+    set(EXPERIMENTAL_LIB stdc++fs)
+else()
+    # MSVC standard library; no extra libraries needed
+endif()
 
 # Base include path for the pretty-printer.
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
