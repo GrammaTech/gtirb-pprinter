@@ -20,6 +20,7 @@ include(CheckIncludeFile)
 # instead of OFF.
 option(GTIRB_PPRINTER_BUILD_SHARED_LIBS "Build shared libraries." ON)
 option(GTIRB_PPRINTER_USE_SYSTEM_BOOST "Use system-wide installation of Boost." OFF)
+
 if(GTIRB_PPRINTER_BUILD_SHARED_LIBS)
   set(BUILD_SHARED_LIBS ON)
 else()
@@ -67,6 +68,15 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     message(FATAL_ERROR "gcc 7 or later is required to build gtirb")
   endif()
 endif()
+
+# Detect what C++ standard library we use
+
+check_cxx_source_compiles("
+#include <ciso646>
+int main() {
+    return _LIBCPP_VERSION;
+}
+" USING_LIBCPP)
 
 # Base include path for the pretty-printer.
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -157,7 +167,7 @@ add_compile_options(-DBOOST_SYSTEM_NO_DEPRECATED)
 
 if( ${GTIRB_PPRINTER_USE_SYSTEM_BOOST} MATCHES "OFF" )
   #Attempt to configure/build boost locally.  
-  configure_file(CMakeLists.boost Boost/CMakeLists.txt)
+  configure_file(CMakeLists.boost Boost/CMakeLists.txt COPYONLY)
   
   # Initialize CMake files required to build/install boost.
   execute_process(COMMAND "${CMAKE_COMMAND}" -G "${CMAKE_GENERATOR}" . 

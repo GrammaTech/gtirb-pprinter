@@ -2,6 +2,14 @@ cmake_minimum_required(VERSION 2.8.11)
 
 include(ExternalProject)
 
+if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
+  set(Boost_toolset msvc)
+elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
+  set(Boost_toolset gcc)
+elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL Clang)
+  set(Boost_toolset clang)
+endif()
+
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   set(Boost_address_model 64)
 else()
@@ -13,8 +21,8 @@ ExternalProject_Add(Boost
   BUILD_IN_SOURCE 1
   PREFIX "${CMAKE_BINARY_DIR}/Boost-src"
   UPDATE_COMMAND ""
-  CONFIGURE_COMMAND ./bootstrap.sh  --prefix=${CMAKE_BINARY_DIR}/Boost-src/ --with-libraries=filesystem,program_options,system
-  BUILD_COMMAND ./b2 install --prefix=${CMAKE_BINARY_DIR}/Boost-src address-model=${Boost_address_model} link=static,shared
+  CONFIGURE_COMMAND ./bootstrap.sh  --prefix=${CMAKE_BINARY_DIR}/Boost-src/ --with-libraries=filesystem,program_options,system --with-toolset=${Boost_toolset}
+  BUILD_COMMAND ./b2 install --prefix=${CMAKE_BINARY_DIR}/Boost-src address-model=${Boost_address_model} link=static,shared toolset=${Boost_toolset}
   INSTALL_COMMAND  ""
   LOG_DOWNLOAD ON
   LOG_CONFIGURE ON

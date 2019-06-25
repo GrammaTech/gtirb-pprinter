@@ -21,15 +21,7 @@ set(${PROJECT_NAME}_SRC
 
 # Unix, but not Cygwin.
 IF(UNIX)
-    IF(${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
-        SET(SYSLIBS
-        stdc++fs)
-    ELSEIF(${CMAKE_CXX_COMPILER_ID} STREQUAL Clang)
-        SET(SYSLIBS
-        c++experimental)
-    ENDIF()
-
-    IF (NOT WIN32)
+	IF (NOT WIN32)
 		SET(SYSLIBS
 			${SYSLIBS}
 			dl
@@ -38,6 +30,12 @@ IF(UNIX)
 ELSE()
 	SET(SYSLIBS
 	)
+endif()
+
+if(${USING_LIBCPP})
+    set(EXPERIMENTAL_LIB c++experimental)
+else()
+    set(EXPERIMENTAL_LIB stdc++fs)
 endif()
 
 add_executable(${PROJECT_NAME} 
@@ -52,6 +50,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "debloat")
 target_link_libraries(
 	${PROJECT_NAME} 
 	${SYSLIBS}
+    ${EXPERIMENTAL_LIB}
 	${Boost_LIBRARIES}
         gtirb_pprinter
 )

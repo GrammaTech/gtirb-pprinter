@@ -43,7 +43,7 @@ RUN rm -rf /gt/gtirb-pprinter/gtirb/build /gt/gtirb-pprinter/gtirb/CMakeCache.tx
 RUN cd /gt/gtirb-pprinter/gtirb/ && cmake ./ -Bbuild -DCMAKE_CXX_COMPILER=g++-7 && cd build &&  make && make install
 
 # Build gtirb-pprinter
-ENV PATH=/gt/gtirb-pprinter/bin:/gt/gtirb-pprinter/datalog_disasm/build/bin/:$PATH
+ENV PATH=/gt/gtirb-pprinter/bin:$PATH
 RUN rm -rf /gt/gtirb-pprinter/build /gt/gtirb-pprinter/CMakeCache.txt /gt/gtirb-pprinter/CMakeFiles /gt/gtirb-pprinter/CMakeScripts
 RUN mkdir -p /gt/gtirb-pprinter/build
 WORKDIR /gt/gtirb-pprinter/build

@@ -3,14 +3,20 @@ FROM ubuntu:16.04
 # Minimum required version
 ARG CMAKE_VERSION=3.9
 
-# Install Clang++
+# Install common packages
 RUN apt-get -y update && \
-    apt-get -y install software-properties-common wget curl make git \
-    build-essential binutils doxygen graphviz wget curl unzip && \
-    wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|apt-key add - && \
+    apt-get -y install software-properties-common git wget curl make
+
+# Install libstdc++
+RUN add-apt-repository ppa:jonathonf/gcc-7.1 && \
+    apt-get -y update && \
+    apt-get -y install libstdc++-7-dev
+
+# Install Clang++
+RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|apt-key add - && \
     add-apt-repository 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-8 main' && \
     apt-get -y update && \
-    apt-get -y install clang-8 libc++1-8 && \
+    apt-get -y install clang-8 && \
     update-alternatives --install /usr/bin/clang clang /usr/bin/clang-8 60 \
                         --slave /usr/bin/clang++ clang++ /usr/bin/clang++-8 && \
     update-alternatives --install /usr/bin/cc cc /usr/bin/clang-8 60 && \
@@ -45,7 +51,7 @@ RUN rm -rf /gt/gtirb-pprinter/gtirb/build /gt/gtirb-pprinter/gtirb/CMakeCache.tx
 RUN cd /gt/gtirb-pprinter/gtirb/ && cmake ./ -Bbuild -DCMAKE_CXX_COMPILER=clang++-8 && cd build &&  make && make install
 
 # Build gtirb-pprinter
-ENV PATH=/gt/gtirb-pprinter/bin:/gt/gtirb-pprinter/datalog_disasm/build/bin/:$PATH
+ENV PATH=/gt/gtirb-pprinter/bin:$PATH
 RUN rm -rf /gt/gtirb-pprinter/build /gt/gtirb-pprinter/CMakeCache.txt /gt/gtirb-pprinter/CMakeFiles /gt/gtirb-pprinter/CMakeScripts
 RUN mkdir -p /gt/gtirb-pprinter/build
 WORKDIR /gt/gtirb-pprinter/build
