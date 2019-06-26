@@ -69,42 +69,36 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   endif()
 endif()
 
-# Detect what C++ standard library we use, and how to use <experimental/filesystem>
+# Detect how to use <experimental/filesystem>
 
-check_cxx_source_compiles("
-#include <ciso646>
+set(EXFS_CODE "
+#include <experimental/filesystem>
 int main() {
-    return _LIBCPP_VERSION;
+    std::experimental::filesystem::path p{\"an/example/path\"};
+    return std::experimental::filesystem::exists(p);
 }
-" USING_LIBCPP)
+")
 
-check_cxx_source_compiles("
-#include <string>
-int main() {
-    return __GLIBCXX__;
-}
-" USING_LIBSTDCPP)
+check_cxx_source_compiles("${EXFS_CODE}" EXFS_LINK_NONE)
 
-if(${USING_LIBCPP})
-    check_cxx_source_compiles("
-    #include <ciso646>
-    int main() {
-    #if _LIBCPP_VERSION >= 7000
-        #error
-    #endif
-        return 0;
-    }
-    " USING_LIBCPP_LT_VERSION_7)
+if("${EXFS_LINK_NONE}" STREQUAL "")
+    foreach(EXFS_LIB stdc++fs c++experimental c++fs)
+        set(OLD_CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES})
+        list(APPEND CMAKE_REQUIRED_LIBRARIES ${EXFS_LIB})
+        check_cxx_source_compiles("${EXFS_CODE}" EXFS_LINK_${EXFS_LIB}_OK)
+        set(CMAKE_REQUIRED_LIBRARIES ${OLD_CMAKE_REQUIRED_LIBRARIES})
 
-    if(${USING_LIBCPP_LT_VERSION_7})
-        set(EXPERIMENTAL_LIB c++experimental)
-    else()
-        set(EXPERIMENTAL_LIB c++fs)
+        if(${EXFS_LINK_${EXFS_LIB}_OK})
+            if(DEFINED EXPERIMENTAL_LIB)
+                message(FATAL_ERROR "multiple candidates for library to link for <experimental/filesystem>: ${EXPERIMENTAL_LIB} and ${EXFS_LIB}")
+            endif()
+            set(EXPERIMENTAL_LIB ${EXFS_LIB})
+        endif()
+    endforeach()
+
+    if (NOT DEFINED EXPERIMENTAL_LIB)
+        message(FATAL_ERROR "could not find library to link for <experimental/filesystem>")
     endif()
-elseif(${USING_LIBSTDCPP})
-    set(EXPERIMENTAL_LIB stdc++fs)
-else()
-    # MSVC standard library; no extra libraries needed
 endif()
 
 # Base include path for the pretty-printer.
