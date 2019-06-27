@@ -59,7 +59,6 @@ target_link_libraries(
 	${SYSLIBS}
 	${Boost_LIBRARIES}
     gtirb
-    stdc++fs
     ${CAPSTONE}
 )
 
