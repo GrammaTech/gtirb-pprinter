@@ -70,34 +70,37 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 endif()
 
 # Detect how to use <experimental/filesystem>
+set(EXPERIMENTAL_LIB "" CACHE STRING "The library to link with in order to use <experimental/filesystem>.")
 
-set(EXFS_CODE "
-#include <experimental/filesystem>
-int main() {
-    std::experimental::filesystem::path p{\"an/example/path\"};
-    return std::experimental::filesystem::exists(p);
-}
-")
+if ("${EXPERIMENTAL_LIB}" STREQUAL "")
+    set(EXFS_CODE "
+    #include <experimental/filesystem>
+    int main() {
+        std::experimental::filesystem::path p{\"an/example/path\"};
+        return std::experimental::filesystem::exists(p);
+    }
+    ")
 
-check_cxx_source_compiles("${EXFS_CODE}" EXFS_LINK_NONE)
+    check_cxx_source_compiles("${EXFS_CODE}" EXFS_LINK_NONE)
 
-if("${EXFS_LINK_NONE}" STREQUAL "")
-    foreach(EXFS_LIB stdc++fs c++experimental c++fs)
-        set(OLD_CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES})
-        list(APPEND CMAKE_REQUIRED_LIBRARIES ${EXFS_LIB})
-        check_cxx_source_compiles("${EXFS_CODE}" EXFS_LINK_${EXFS_LIB}_OK)
-        set(CMAKE_REQUIRED_LIBRARIES ${OLD_CMAKE_REQUIRED_LIBRARIES})
+    if("${EXFS_LINK_NONE}" STREQUAL "")
+        foreach(EXFS_LIB stdc++fs c++experimental c++fs)
+            set(OLD_CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES})
+            list(APPEND CMAKE_REQUIRED_LIBRARIES ${EXFS_LIB})
+            check_cxx_source_compiles("${EXFS_CODE}" EXFS_LINK_${EXFS_LIB}_OK)
+            set(CMAKE_REQUIRED_LIBRARIES ${OLD_CMAKE_REQUIRED_LIBRARIES})
 
-        if(${EXFS_LINK_${EXFS_LIB}_OK})
-            if(DEFINED EXPERIMENTAL_LIB)
-                message(FATAL_ERROR "multiple candidates for library to link for <experimental/filesystem>: ${EXPERIMENTAL_LIB} and ${EXFS_LIB}")
+            if(${EXFS_LINK_${EXFS_LIB}_OK})
+                if(NOT ("${EXPERIMENTAL_LIB}" STREQUAL ""))
+                    message(FATAL_ERROR "multiple candidates for library to link for <experimental/filesystem>: ${EXPERIMENTAL_LIB} and ${EXFS_LIB}. Try giving the correct one explicitly with -DEXPERIMENTAL_LIB.")
+                endif()
+                set(EXPERIMENTAL_LIB ${EXFS_LIB})
             endif()
-            set(EXPERIMENTAL_LIB ${EXFS_LIB})
-        endif()
-    endforeach()
+        endforeach()
 
-    if (NOT DEFINED EXPERIMENTAL_LIB)
-        message(FATAL_ERROR "could not find library to link for <experimental/filesystem>")
+        if ("${EXPERIMENTAL_LIB}" STREQUAL "")
+            message(FATAL_ERROR "could not find library to link for <experimental/filesystem>. Try giving it explicitly with -DEXPERIMENTAL_LIB.")
+        endif()
     endif()
 endif()
 
