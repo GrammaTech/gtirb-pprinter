@@ -24,11 +24,15 @@ namespace bp = boost::process;
 
 namespace gtirb_bprint {
 
-// This function assumes that library matches the regex "^lib(.*)\\.so.*"
-std::string
-ElfBinaryPrinter::getReducedLibraryName(const std::string& library) const {
-  size_t soPosition = library.rfind(".so");
-  return library.substr(3, soPosition - 3);
+std::optional<std::string>
+ElfBinaryPrinter::getInfixLibraryName(const std::string& library) const {
+  std::regex libsoRegex("^lib(.*)\\.so.*");
+  std::smatch m;
+  if (std::regex_match(library, m, libsoRegex)) {
+    size_t suffixPosition = library.rfind(".so");
+    return library.substr(3, suffixPosition - 3);
+  }
+  return std::nullopt;
 }
 
 std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
@@ -55,12 +59,11 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
 
   // add needed libraries
   if (libraries) {
-    std::regex libsoRegex("^lib(.*)\\.so.*");
     for (const auto& library : *libraries) {
-      std::smatch m;
       // if they match the lib*.so pattern we let the compiler look for them
-      if (std::regex_match(library, m, libsoRegex)) {
-        args.push_back("-l" + getReducedLibraryName(library));
+      auto infixLibraryName = getInfixLibraryName(library);
+      if (infixLibraryName) {
+        args.push_back("-l" + *infixLibraryName);
       } else {
         // otherwise we try to find them here
         auto libraryLocation = bp::search_path(library, allBinaryPaths);

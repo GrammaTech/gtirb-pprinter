@@ -27,7 +27,8 @@ namespace gtirb_bprint {
 class ElfBinaryPrinter : public BinaryPrinter {
 private:
   std::string compiler = "gcc";
-  std::string getReducedLibraryName(const std::string& library) const;
+  std::optional<std::string>
+  getInfixLibraryName(const std::string& library) const;
   std::vector<std::string>
   buildCompilerArgs(std::string outputFilename, std::string asmPath,
                     const std::vector<std::string>& userlibraryPaths,
