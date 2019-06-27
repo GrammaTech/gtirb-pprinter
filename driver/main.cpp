@@ -1,3 +1,4 @@
+#include "ElfBinaryPrinter.h"
 #include "Logger.h"
 #include "PrettyPrinter.h"
 #include <boost/program_options.hpp>
@@ -13,7 +14,7 @@ int main(int argc, char** argv) {
   po::options_description desc("Allowed options");
   desc.add_options()("help,h", "Produce help message.");
   desc.add_options()("ir,i", po::value<std::string>(), "gtirb file to print.");
-  desc.add_options()("out,o", po::value<std::string>(),
+  desc.add_options()("asm,a", po::value<std::string>(),
                      "The name of the assembly output file.");
   desc.add_options()("binary,b", po::value<std::string>(),
                      "The name of the binary output file.");
@@ -25,6 +26,9 @@ int main(int argc, char** argv) {
                      po::value<std::vector<std::string>>()->multitoken(),
                      "Print the given functions even if they are skipped by "
                      "default (e.g. _start)");
+  desc.add_options()("library-paths,L",
+                     po::value<std::vector<std::string>>()->multitoken(),
+                     "Library paths to be passed to the linker");
   po::positional_options_description pd;
   pd.add("ir", -1);
   po::variables_map vm;
@@ -83,7 +87,7 @@ int main(int argc, char** argv) {
   }
 
   // Do we write it to a file?
-  if (vm.count("out") != 0) {
+  if (vm.count("asm") != 0) {
     const auto asmPath = fs::path(vm["out"].as<std::string>());
     std::ofstream ofs;
     ofs.open(asmPath.string());
@@ -95,10 +99,17 @@ int main(int argc, char** argv) {
     } else {
       LOG_ERROR << "Could not output assembly output file: " << asmPath << "\n";
     }
-  } else if (vm.count("binary") != 0) {
+  }
+  if (vm.count("binary") != 0) {
+    gtirb_bprint::ElfBinaryPrinter binaryPrinter;
     const auto binaryPath = fs::path(vm["binary"].as<std::string>());
-    pp.linkAssembly(binaryPath.string(), ctx, *ir);
-  } else {
+    std::vector<std::string> libraryPaths;
+    if (vm.count("library-paths") != 0)
+      libraryPaths = vm["library-paths"].as<std::vector<std::string>>();
+    binaryPrinter.link(binaryPath.string(), libraryPaths, pp, ctx, *ir);
+  }
+
+  if (vm.count("asm") == 0 && vm.count("binary") == 0) {
     pp.print(std::cout, ctx, *ir);
   }
 

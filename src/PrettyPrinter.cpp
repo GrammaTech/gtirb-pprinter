@@ -19,7 +19,6 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/range/algorithm/find_if.hpp>
 #include <capstone/capstone.h>
-#include <experimental/filesystem>
 #include <fstream>
 #include <gtirb/gtirb.hpp>
 #include <iomanip>
@@ -27,7 +26,6 @@
 #include <utility>
 #include <variant>
 
-namespace fs = std::experimental::filesystem;
 using namespace std::rel_ops;
 
 template <class T> T* nodeFromUUID(gtirb::Context& C, gtirb::UUID id) {
@@ -123,7 +121,6 @@ void PrettyPrinter::skipFunction(const std::string& functionName) {
 void PrettyPrinter::keepFunction(const std::string& functionName) {
   m_skip_funcs.erase(functionName);
 }
-
 
 std::error_condition PrettyPrinter::print(std::ostream& stream,
                                           gtirb::Context& context,

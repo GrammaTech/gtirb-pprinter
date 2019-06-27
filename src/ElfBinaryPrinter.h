@@ -19,26 +19,34 @@
 
 #include <gtirb/gtirb.hpp>
 
-#include <vector>
 #include <string>
+#include <vector>
 
 /// \brief ElfBinary-print GTIRB representations.
 namespace gtirb_bprint {
-  class ElfBinaryPrinter : public BinaryPrinter {
-  public:
-    /// Construct a ElfBinaryPrinter with the default configuration.
-    ElfBinaryPrinter() {}
+class ElfBinaryPrinter : public BinaryPrinter {
+private:
+  std::string compiler = "gcc";
+  std::string getReducedLibraryName(const std::string& library) const;
+  std::vector<std::string>
+  buildCompilerArgs(std::string outputFilename, std::string asmPath,
+                    const std::vector<std::string>& userlibraryPaths,
+                    gtirb::IR& ir) const;
 
-    ElfBinaryPrinter(const ElfBinaryPrinter&) = default;
-    ElfBinaryPrinter(ElfBinaryPrinter&&) = default;
-    ElfBinaryPrinter& operator=(const ElfBinaryPrinter&) = default;
-    ElfBinaryPrinter& operator=(ElfBinaryPrinter&&) = default;
-    
-    int link(std::string output_filename,
-	     const std::vector<std::string>& library_paths,
-	     const gtirb_pprint::PrettyPrinter& pp,
-	     gtirb::Context& context, gtirb::IR& ir) const;    
-  };
+public:
+  /// Construct a ElfBinaryPrinter with the default configuration.
+  ElfBinaryPrinter() {}
+
+  ElfBinaryPrinter(const ElfBinaryPrinter&) = default;
+  ElfBinaryPrinter(ElfBinaryPrinter&&) = default;
+  ElfBinaryPrinter& operator=(const ElfBinaryPrinter&) = default;
+  ElfBinaryPrinter& operator=(ElfBinaryPrinter&&) = default;
+
+  int link(std::string outputFilename,
+           const std::vector<std::string>& userLibraryPaths,
+           const gtirb_pprint::PrettyPrinter& pp, gtirb::Context& context,
+           gtirb::IR& ir) const;
+};
 } // namespace gtirb_bprint
-  
+
 #endif /* GTIRB_PP_ELF_BINARY_PRINTER_H */

@@ -15,31 +15,29 @@
 #ifndef GTIRB_PP_BINARY_PRINTER_H
 #define GTIRB_PP_BINARY_PRINTER_H
 
-
 #include <gtirb/gtirb.hpp>
 
 #include "PrettyPrinter.h"
 
-#include <vector>
 #include <string>
+#include <vector>
 
 /// \brief Binary-print GTIRB representations.
 namespace gtirb_bprint {
-  class BinaryPrinter {
-  public:
-    /// Construct a BinaryPrinter with the default configuration.
-    BinaryPrinter() {}
-    BinaryPrinter(const BinaryPrinter&) = default;
-    BinaryPrinter(BinaryPrinter&&) = default;
-    BinaryPrinter& operator=(const BinaryPrinter&) = default;
-    BinaryPrinter& operator=(BinaryPrinter&&) = default;
-    
-    virtual int link(std::string output_filename,
-		     const std::vector<std::string>& library_paths,
-		     const gtirb_pprint::PrettyPrinter& pp,
-		     gtirb::Context& context, gtirb::IR& ir) const = 0;     
-    
-  };
+class BinaryPrinter {
+public:
+  /// Construct a BinaryPrinter with the default configuration.
+  BinaryPrinter() {}
+  BinaryPrinter(const BinaryPrinter&) = default;
+  BinaryPrinter(BinaryPrinter&&) = default;
+  BinaryPrinter& operator=(const BinaryPrinter&) = default;
+  BinaryPrinter& operator=(BinaryPrinter&&) = default;
+
+  virtual int link(std::string output_filename,
+                   const std::vector<std::string>& library_paths,
+                   const gtirb_pprint::PrettyPrinter& pp,
+                   gtirb::Context& context, gtirb::IR& ir) const = 0;
+};
 } // namespace gtirb_bprint
-  
+
 #endif /* GTIRB_PP_BINARY_PRINTER_H */
