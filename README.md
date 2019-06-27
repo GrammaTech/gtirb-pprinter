@@ -31,18 +31,32 @@ make
 
 ## Usage
 
+### Generate reassembleable assembly code
 Pretty print the GTIRB for a simple hello world executable to an
 assembly file named `hello.S`, assemble this file with the GNU
 assembler to an object file named `hello.o`, and link this object file
 into an executable.
 
 ```sh
-gtirb-pp hello.gtirb -o hello.S
+gtirb-pp hello.gtirb --asm hello.S
 as hello.S -o hello.o
 ld hello.o -o hello
 ./hello
 ```
+### Generate a new binary
+gtirb-pp can also generate a new binary by calling `gcc` directly.
 
+```sh
+gtirb-pp hello.gtirb --binary hello
+```
+
+This option admits an argument `--library-paths` or `-L` to
+specify additional paths where libraries might be located.
+
+For example:
+```sh
+gtirb-pp hello.gtirb --binary hello -L . -L /usr/local/lib
+```
 
 ## AuxData Used by the Pretty Printer
 
@@ -59,3 +73,12 @@ associated types and contents in this table.
 | functionEntries    | `std::map<gtirb::UUID, std::set<gtirb::UUID>>` | UUIDs of the blocks that are entry points of functions.                                                                                              |
 | symbolForwarding | `std::map<gtirb::UUID, gtirb::UUID>`           | Map from symbols to other symbols. This table is used to forward symbols due to relocations or due to the use of plt and got tables. |
 | types            | `std::map<gtirb::UUID,std::string>`            | Map from (typed) data objects to the type of the data,  expressed as a std::string containing a C++ type specifier.                  |
+
+## AuxData Used by the Binary Printer
+
+In order to generate new binaries, gtirb-pp also used the following tables:
+
+| Key              | Type                             | Purpose                                                                          |
+|------------------|----------------------------------|----------------------------------------------------------------------------------|
+| libraries        | `std::vector<std::string>`       | Names of the libraries that are needed.                                          |
+| libraryPaths     | `std::vector<std::string>`       | Paths contained in the rpath of the binary                                       |
