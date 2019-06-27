@@ -76,7 +76,7 @@ associated types and contents in this table.
 
 ## AuxData Used by the Binary Printer
 
-In order to generate new binaries, gtirb-pp also used the following tables:
+In order to generate new binaries, gtirb-pp also uses the following tables:
 
 | Key              | Type                             | Purpose                                                                          |
 |------------------|----------------------------------|----------------------------------------------------------------------------------|
