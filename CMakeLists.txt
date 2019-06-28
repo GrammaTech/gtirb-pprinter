@@ -73,35 +73,35 @@ endif()
 set(EXPERIMENTAL_LIB "" CACHE STRING "The library to link with in order to use <experimental/filesystem>.")
 
 if ("${EXPERIMENTAL_LIB}" STREQUAL "")
-    set(EXFS_CODE "
-    #include <experimental/filesystem>
-    int main() {
-        std::experimental::filesystem::path p{\"an/example/path\"};
-        return std::experimental::filesystem::exists(p);
-    }
-    ")
+  set(EXFS_CODE "
+  #include <experimental/filesystem>
+  int main() {
+    std::experimental::filesystem::path p{\"an/example/path\"};
+    return std::experimental::filesystem::exists(p);
+  }
+  ")
 
-    check_cxx_source_compiles("${EXFS_CODE}" EXFS_LINK_NONE)
+  check_cxx_source_compiles("${EXFS_CODE}" EXFS_LINK_NONE)
 
-    if("${EXFS_LINK_NONE}" STREQUAL "")
-        foreach(EXFS_LIB stdc++fs c++experimental c++fs)
-            set(OLD_CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES})
-            list(APPEND CMAKE_REQUIRED_LIBRARIES ${EXFS_LIB})
-            check_cxx_source_compiles("${EXFS_CODE}" EXFS_LINK_${EXFS_LIB}_OK)
-            set(CMAKE_REQUIRED_LIBRARIES ${OLD_CMAKE_REQUIRED_LIBRARIES})
+  if("${EXFS_LINK_NONE}" STREQUAL "")
+    foreach(EXFS_LIB stdc++fs c++experimental c++fs)
+      set(OLD_CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES})
+      list(APPEND CMAKE_REQUIRED_LIBRARIES ${EXFS_LIB})
+      check_cxx_source_compiles("${EXFS_CODE}" EXFS_LINK_${EXFS_LIB}_OK)
+      set(CMAKE_REQUIRED_LIBRARIES ${OLD_CMAKE_REQUIRED_LIBRARIES})
 
-            if(${EXFS_LINK_${EXFS_LIB}_OK})
-                if(NOT ("${EXPERIMENTAL_LIB}" STREQUAL ""))
-                    message(FATAL_ERROR "multiple candidates for library to link for <experimental/filesystem>: ${EXPERIMENTAL_LIB} and ${EXFS_LIB}. Try giving the correct one explicitly with -DEXPERIMENTAL_LIB.")
-                endif()
-                set(EXPERIMENTAL_LIB ${EXFS_LIB})
-            endif()
-        endforeach()
-
-        if ("${EXPERIMENTAL_LIB}" STREQUAL "")
-            message(FATAL_ERROR "could not find library to link for <experimental/filesystem>. Try giving it explicitly with -DEXPERIMENTAL_LIB.")
+      if(EXFS_LINK_${EXFS_LIB}_OK)
+        if(NOT ("${EXPERIMENTAL_LIB}" STREQUAL ""))
+          message(FATAL_ERROR "multiple candidates for library to link for <experimental/filesystem>: ${EXPERIMENTAL_LIB} and ${EXFS_LIB}. Try giving the correct one explicitly with -DEXPERIMENTAL_LIB.")
         endif()
+        set(EXPERIMENTAL_LIB ${EXFS_LIB})
+      endif()
+    endforeach()
+
+    if ("${EXPERIMENTAL_LIB}" STREQUAL "")
+      message(FATAL_ERROR "could not find library to link for <experimental/filesystem>. Try giving it explicitly with -DEXPERIMENTAL_LIB.")
     endif()
+  endif()
 endif()
 
 # Base include path for the pretty-printer.
@@ -110,73 +110,73 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_compile_options(-DBOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE)
 
 if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
-	add_compile_options(-D_CRT_SECURE_NO_WARNINGS)
-	add_compile_options(-D_MBCS)
-	add_compile_options(-D_SCL_SECURE_NO_WARNINGS)
-	add_compile_options(-D_WIN32)
-	add_compile_options(-D_WINDOWS)
-	add_compile_options(-D_WINSOCKAPI_)
-	add_compile_options(-DMBCS)
-	add_compile_options(-DNOMINMAX)
-	add_compile_options(-EHsc)
-	add_compile_options(-GR)
-	add_compile_options(-MP)
-	add_compile_options(-nologo)
-	add_compile_options(-W4)
-	add_compile_options(-WX)
+  add_compile_options(-D_CRT_SECURE_NO_WARNINGS)
+  add_compile_options(-D_MBCS)
+  add_compile_options(-D_SCL_SECURE_NO_WARNINGS)
+  add_compile_options(-D_WIN32)
+  add_compile_options(-D_WINDOWS)
+  add_compile_options(-D_WINSOCKAPI_)
+  add_compile_options(-DMBCS)
+  add_compile_options(-DNOMINMAX)
+  add_compile_options(-EHsc)
+  add_compile_options(-GR)
+  add_compile_options(-MP)
+  add_compile_options(-nologo)
+  add_compile_options(-W4)
+  add_compile_options(-WX)
 
-	add_compile_options(-wd4251) # 'identifier' : class 'type' needs to have dll-interface to be used by clients of class 'type2'
-	add_compile_options(-wd4275) # Non-dll interface base classes.
-	add_compile_options(-wd4996) # VC8: Deprecated libc functions.
-	add_compile_options(-wd4351) # This is a warning about a change in behavior from old versions of visual c++.  We want the new (standard-compliant) behavior, so we don't want the warning.  The warning is that using an array in a class initializer list will cause its elements to be default initialized.
+  add_compile_options(-wd4251) # 'identifier' : class 'type' needs to have dll-interface to be used by clients of class 'type2'
+  add_compile_options(-wd4275) # Non-dll interface base classes.
+  add_compile_options(-wd4996) # VC8: Deprecated libc functions.
+  add_compile_options(-wd4351) # This is a warning about a change in behavior from old versions of visual c++.  We want the new (standard-compliant) behavior, so we don't want the warning.  The warning is that using an array in a class initializer list will cause its elements to be default initialized.
 
-	# Per-configuration options
-	add_compile_options($<$<CONFIG:Debug>:-D_DEBUG>)
-	add_compile_options($<$<CONFIG:Debug>:-DDEBUG>)
-	add_compile_options($<$<CONFIG:Debug>:-MDd>)
-	add_compile_options($<$<CONFIG:Debug>:-Ob0>) # Disables inline expansion
-	add_compile_options($<$<CONFIG:Debug>:-Od>) # Disables optimization, speeding compilation and simplifying debugging. https://msdn.microsoft.com/en-us/library/k1ack8f1.aspx
-	add_compile_options($<$<CONFIG:Debug>:-RTC1>) # Enables run-time error checking.
-	add_compile_options($<$<CONFIG:Debug>:-W4>) # Sets warning level.
-	add_compile_options($<$<CONFIG:Debug>:-Zi>) # Generates complete debugging information.
-	add_compile_options($<$<CONFIG:Debug>:-bigobj>) # enables big obj compilation option
+  # Per-configuration options
+  add_compile_options($<$<CONFIG:Debug>:-D_DEBUG>)
+  add_compile_options($<$<CONFIG:Debug>:-DDEBUG>)
+  add_compile_options($<$<CONFIG:Debug>:-MDd>)
+  add_compile_options($<$<CONFIG:Debug>:-Ob0>) # Disables inline expansion
+  add_compile_options($<$<CONFIG:Debug>:-Od>) # Disables optimization, speeding compilation and simplifying debugging. https://msdn.microsoft.com/en-us/library/k1ack8f1.aspx
+  add_compile_options($<$<CONFIG:Debug>:-RTC1>) # Enables run-time error checking.
+  add_compile_options($<$<CONFIG:Debug>:-W4>) # Sets warning level.
+  add_compile_options($<$<CONFIG:Debug>:-Zi>) # Generates complete debugging information.
+  add_compile_options($<$<CONFIG:Debug>:-bigobj>) # enables big obj compilation option
 
-	add_compile_options($<$<CONFIG:RelWithDebInfo>:-D_NDEBUG>)
-	add_compile_options($<$<CONFIG:RelWithDebInfo>:-DNDEBUG>)
-	add_compile_options($<$<CONFIG:RelWithDebInfo>:-MD>)
-	add_compile_options($<$<CONFIG:RelWithDebInfo>:-O2>) # Creates fast code.
-	add_compile_options($<$<CONFIG:RelWithDebInfo>:-Ob2>) # The default value. Allows expansion of functions marked as inline, __inline, or __forceinline, and any other function that the compiler chooses.
-	add_compile_options($<$<CONFIG:RelWithDebInfo>:-Oi>) # Generates intrinsic functions.
-	add_compile_options($<$<CONFIG:RelWithDebInfo>:-Ot>) # Favors fast code.
-	add_compile_options($<$<CONFIG:RelWithDebInfo>:-W4>) # Sets warning level.
-	add_compile_options($<$<CONFIG:RelWithDebInfo>:-Zi>) # Generates complete debugging information.
-	add_compile_options($<$<CONFIG:RelWithDebInfo>:-bigobj>) # enables big obj compilation option
+  add_compile_options($<$<CONFIG:RelWithDebInfo>:-D_NDEBUG>)
+  add_compile_options($<$<CONFIG:RelWithDebInfo>:-DNDEBUG>)
+  add_compile_options($<$<CONFIG:RelWithDebInfo>:-MD>)
+  add_compile_options($<$<CONFIG:RelWithDebInfo>:-O2>) # Creates fast code.
+  add_compile_options($<$<CONFIG:RelWithDebInfo>:-Ob2>) # The default value. Allows expansion of functions marked as inline, __inline, or __forceinline, and any other function that the compiler chooses.
+  add_compile_options($<$<CONFIG:RelWithDebInfo>:-Oi>) # Generates intrinsic functions.
+  add_compile_options($<$<CONFIG:RelWithDebInfo>:-Ot>) # Favors fast code.
+  add_compile_options($<$<CONFIG:RelWithDebInfo>:-W4>) # Sets warning level.
+  add_compile_options($<$<CONFIG:RelWithDebInfo>:-Zi>) # Generates complete debugging information.
+  add_compile_options($<$<CONFIG:RelWithDebInfo>:-bigobj>) # enables big obj compilation option
 
-	add_compile_options($<$<CONFIG:Release>:-D_NDEBUG>)
-	add_compile_options($<$<CONFIG:Release>:-DNDEBUG>)
-	add_compile_options($<$<CONFIG:Release>:-MD>)
-	add_compile_options($<$<CONFIG:Release>:-O2>) # Creates fast code.
-	add_compile_options($<$<CONFIG:Release>:-Ob2>) # The default value. Allows expansion of functions marked as inline, __inline, or __forceinline, and any other function that the compiler chooses.
-	add_compile_options($<$<CONFIG:Release>:-Oi>) # Generates intrinsic functions.
-	add_compile_options($<$<CONFIG:Release>:-Ot>) # Favors fast code.
-	add_compile_options($<$<CONFIG:Release>:-W4>) # Sets warning level.
-	add_compile_options($<$<CONFIG:Release>:-bigobj>) # enables big obj compilation option
+  add_compile_options($<$<CONFIG:Release>:-D_NDEBUG>)
+  add_compile_options($<$<CONFIG:Release>:-DNDEBUG>)
+  add_compile_options($<$<CONFIG:Release>:-MD>)
+  add_compile_options($<$<CONFIG:Release>:-O2>) # Creates fast code.
+  add_compile_options($<$<CONFIG:Release>:-Ob2>) # The default value. Allows expansion of functions marked as inline, __inline, or __forceinline, and any other function that the compiler chooses.
+  add_compile_options($<$<CONFIG:Release>:-Oi>) # Generates intrinsic functions.
+  add_compile_options($<$<CONFIG:Release>:-Ot>) # Favors fast code.
+  add_compile_options($<$<CONFIG:Release>:-W4>) # Sets warning level.
+  add_compile_options($<$<CONFIG:Release>:-bigobj>) # enables big obj compilation option
 
-	# Shove in some linker flags to support using 64-bit memory.
-	# 4099 -PDB 'filename' was not found with 'object/library' or at 'path'; linking object as if no debug info
-	set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /LARGEADDRESSAWARE")
+  # Shove in some linker flags to support using 64-bit memory.
+  # 4099 -PDB 'filename' was not found with 'object/library' or at 'path'; linking object as if no debug info
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /LARGEADDRESSAWARE")
 
-	# Microsoft VCPKG
-	set(CMAKE_TOOLCHAIN_FILE "C:/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE PATH "")
-    include(${CMAKE_TOOLCHAIN_FILE})
+  # Microsoft VCPKG
+  set(CMAKE_TOOLCHAIN_FILE "C:/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE PATH "")
+  include(${CMAKE_TOOLCHAIN_FILE})
 elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
-    add_compile_options(-Wall -Wextra -Wpointer-arith -Wshadow)
-    add_compile_options(-Werror)
-    add_compile_options(-fPIC)
+  add_compile_options(-Wall -Wextra -Wpointer-arith -Wshadow)
+  add_compile_options(-Werror)
+  add_compile_options(-fPIC)
 elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL Clang)
-    add_compile_options(-Wall -Wextra -Wpointer-arith -Wshadow)
-    add_compile_options(-Werror)
-	add_compile_options(-fPIC)
+  add_compile_options(-Wall -Wextra -Wpointer-arith -Wshadow)
+  add_compile_options(-Werror)
+  add_compile_options(-fPIC)
 endif()
 
 # ---------------------------------------------------------------------------
