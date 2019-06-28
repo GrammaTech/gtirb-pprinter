@@ -27,6 +27,7 @@ namespace gtirb_bprint {
 class ElfBinaryPrinter : public BinaryPrinter {
 private:
   std::string compiler = "gcc";
+  bool debug = false;
   std::optional<std::string>
   getInfixLibraryName(const std::string& library) const;
   std::optional<std::string>
@@ -40,6 +41,7 @@ private:
 public:
   /// Construct a ElfBinaryPrinter with the default configuration.
   ElfBinaryPrinter() {}
+  ElfBinaryPrinter(bool debugFlag) : debug(debugFlag) {}
 
   ElfBinaryPrinter(const ElfBinaryPrinter&) = default;
   ElfBinaryPrinter(ElfBinaryPrinter&&) = default;

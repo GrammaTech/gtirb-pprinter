@@ -101,10 +101,13 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
       args.push_back("-Wl,-rpath," + libraryPath);
     }
   }
-  std::cout << "Compiler arguments: ";
-  for (auto i : args)
-    std::cout << i << ' ';
-  std::cout << std::endl;
+
+  if (debug) {
+    std::cout << "Compiler arguments: ";
+    for (auto i : args)
+      std::cout << i << ' ';
+    std::cout << std::endl;
+  }
   return args;
 }
 
@@ -112,13 +115,16 @@ int ElfBinaryPrinter::link(std::string outputFilename,
                            const std::vector<std::string>& userLibraryPaths,
                            const gtirb_pprint::PrettyPrinter& pp,
                            gtirb::Context& ctx, gtirb::IR& ir) const {
-  std::cout << "Generating binary file" << std::endl;
+  if (debug)
+    std::cout << "Generating binary file" << std::endl;
   // Write the assembly to a temp file
   char asmPath[] = "/tmp/fileXXXXXX.s";
   close(mkstemps(asmPath, 2)); // Create and open temp file
   std::ofstream ofs(asmPath);
   if (ofs) {
-    std::cout << "Printing assembly to temporary file " << asmPath << std::endl;
+    if (debug)
+      std::cout << "Printing assembly to temporary file " << asmPath
+                << std::endl;
     pp.print(ofs, ctx, ir);
     ofs.close();
   } else {
@@ -131,7 +137,8 @@ int ElfBinaryPrinter::link(std::string outputFilename,
     std::cerr << "ERROR: Could not find compiler" << this->compiler;
     return -1;
   }
-  std::cout << "Calling compiler" << std::endl;
+  if (debug)
+    std::cout << "Calling compiler" << std::endl;
   return bp::system(compilerPath, buildCompilerArgs(outputFilename, asmPath,
                                                     userLibraryPaths, ir));
 }

@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
     }
   }
   if (vm.count("binary") != 0) {
-    gtirb_bprint::ElfBinaryPrinter binaryPrinter;
+    gtirb_bprint::ElfBinaryPrinter binaryPrinter(true);
     const auto binaryPath = fs::path(vm["binary"].as<std::string>());
     std::vector<std::string> libraryPaths;
     if (vm.count("library-paths") != 0)
