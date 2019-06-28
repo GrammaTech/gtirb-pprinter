@@ -16,7 +16,10 @@
 #include "ElfBinaryPrinter.h"
 
 #include <boost/process/search_path.hpp>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
 #include <boost/process/system.hpp>
+#pragma GCC diagnostic pop
 #include <experimental/filesystem>
 #include <regex>
 #include <string>
