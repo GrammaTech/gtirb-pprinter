@@ -15,12 +15,15 @@
 //===----------------------------------------------------------------------===//
 #include "ElfBinaryPrinter.h"
 
-#include <boost/process.hpp>
+#include <boost/process/search_path.hpp>
+#include <boost/process/system.hpp>
+#include <experimental/filesystem>
 #include <regex>
 #include <string>
 #include <vector>
 
 namespace bp = boost::process;
+namespace fs = std::experimental::filesystem;
 
 namespace gtirb_bprint {
 
@@ -31,6 +34,18 @@ ElfBinaryPrinter::getInfixLibraryName(const std::string& library) const {
   if (std::regex_match(library, m, libsoRegex)) {
     size_t suffixPosition = library.rfind(".so");
     return library.substr(3, suffixPosition - 3);
+  }
+  return std::nullopt;
+}
+
+std::optional<std::string>
+ElfBinaryPrinter::findLibrary(const std::string& library,
+                              const std::vector<std::string>& paths) const {
+  for (const auto& path : paths) {
+    fs::path filePath(path);
+    filePath.append(library);
+    if (fs::is_regular_file(filePath) || fs::is_symlink(filePath))
+      return filePath.string();
   }
   return std::nullopt;
 }
@@ -50,13 +65,10 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
           "libraryPaths");
 
   // collect all the library paths
-  std::vector<boost::filesystem::path> allBinaryPaths;
-  for (const std::string& libraryPath : userLibraryPaths)
-    allBinaryPaths.push_back(boost::filesystem::path{libraryPath});
+  std::vector<std::string> allBinaryPaths = userLibraryPaths;
   if (binaryLibraryPaths)
-    for (const std::string& libraryPath : *binaryLibraryPaths)
-      allBinaryPaths.push_back(boost::filesystem::path{libraryPath});
-
+    allBinaryPaths.insert(allBinaryPaths.end(), binaryLibraryPaths->begin(),
+                          binaryLibraryPaths->end());
   // add needed libraries
   if (libraries) {
     for (const auto& library : *libraries) {
@@ -66,9 +78,9 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
         args.push_back("-l" + *infixLibraryName);
       } else {
         // otherwise we try to find them here
-        auto libraryLocation = bp::search_path(library, allBinaryPaths);
-        if (!libraryLocation.empty()) {
-          args.push_back(libraryLocation.string());
+        auto libraryLocation = findLibrary(library, allBinaryPaths);
+        if (libraryLocation) {
+          args.push_back(*libraryLocation);
         } else {
           std::cerr << "ERROR: Could not find library " << library << std::endl;
         }

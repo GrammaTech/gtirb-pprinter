@@ -29,6 +29,9 @@ private:
   std::string compiler = "gcc";
   std::optional<std::string>
   getInfixLibraryName(const std::string& library) const;
+  std::optional<std::string>
+  findLibrary(const std::string& library,
+              const std::vector<std::string>& paths) const;
   std::vector<std::string>
   buildCompilerArgs(std::string outputFilename, std::string asmPath,
                     const std::vector<std::string>& userlibraryPaths,
