@@ -15,19 +15,19 @@ endif()
 
 set(${PROJECT_NAME}_H
 	AttPrinter.h
+	BinaryPrinter.h
+	ElfBinaryPrinter.h
 	Export.h
 	IntelPrinter.h
 	PrettyPrinter.h
-	BinaryPrinter.h
-	ElfBinaryPrinter.h
 	string_utils.h
 )
 
 set(${PROJECT_NAME}_SRC
 	AttPrinter.cpp
+	ElfBinaryPrinter.cpp
 	IntelPrinter.cpp
 	PrettyPrinter.cpp
-	ElfBinaryPrinter.cpp
 	string_utils.cpp
 )
 
@@ -79,7 +79,8 @@ install(TARGETS ${PROJECT_NAME} EXPORT gtirb_pprinterTargets
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib)
 set(PUBLIC_HEADERS
-  ${CMAKE_SOURCE_DIR}/src/PrettyPrinter.h
   ${CMAKE_SOURCE_DIR}/src/BinaryPrinter.h
-  ${CMAKE_SOURCE_DIR}/src/Export.h)
+  ${CMAKE_SOURCE_DIR}/src/Export.h
+  ${CMAKE_SOURCE_DIR}/src/PrettyPrinter.h
+  )
 install(FILES ${PUBLIC_HEADERS} DESTINATION include)
