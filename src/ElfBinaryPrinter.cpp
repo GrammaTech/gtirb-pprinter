@@ -47,8 +47,15 @@ ElfBinaryPrinter::findLibrary(const std::string& library,
   for (const auto& path : paths) {
     fs::path filePath(path);
     filePath.append(library);
-    if (fs::is_regular_file(filePath) || fs::is_symlink(filePath))
+    // check that if filePath is a symbolic link, it eventually leads to a
+    // regular file.
+    fs::path resolvedFilePath(filePath);
+    while (fs::is_symlink(resolvedFilePath)) {
+      resolvedFilePath = fs::read_symlink(resolvedFilePath);
+    }
+    if (fs::is_regular_file(resolvedFilePath)) {
       return filePath.string();
+    }
   }
   return std::nullopt;
 }
