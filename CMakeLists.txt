@@ -183,18 +183,18 @@ if( ${GTIRB_PPRINTER_USE_SYSTEM_BOOST} MATCHES "OFF" )
   if(${BUILD_SHARED_LIBS} MATCHES OFF)
     set(Boost_LIBRARIES
       ${Boost_LIBRARY_DIR}/libboost_filesystem.a
-      ${Boost_LIBRARY_DIR}/libboost_system.a
       ${Boost_LIBRARY_DIR}/libboost_program_options.a
+      ${Boost_LIBRARY_DIR}/libboost_system.a
       )
   elseif(${BUILD_SHARED_LIBS} MATCHES ON)
     set(Boost_LIBRARIES
       ${Boost_LIBRARY_DIR}/libboost_filesystem.so
-      ${Boost_LIBRARY_DIR}/libboost_system.so
       ${Boost_LIBRARY_DIR}/libboost_program_options.so
+      ${Boost_LIBRARY_DIR}/libboost_system.so
       )
   endif()
 else()
-  find_package(Boost 1.67 REQUIRED COMPONENTS program_options filesystem system)
+  find_package(Boost 1.67 REQUIRED COMPONENTS filesystem program_options system)
   include_directories(${Boost_INCLUDE_DIRS})
 endif()
 
