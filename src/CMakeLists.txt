@@ -42,7 +42,7 @@ ELSE()
   )
 endif()
 
-add_library(${PROJECT_NAME} SHARED
+add_library(${PROJECT_NAME}
     ${${PROJECT_NAME}_H}
     ${${PROJECT_NAME}_SRC}
   )
