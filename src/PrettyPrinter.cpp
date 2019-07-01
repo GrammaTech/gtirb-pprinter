@@ -393,7 +393,7 @@ void PrettyPrinterBase::printInstruction(std::ostream& os, const cs_insn& inst,
 
   gtirb::Addr ea(inst.address);
   printSymbolDefinitionsAtAddress(os, ea);
-  printComment(os, ea);
+  printComment(os, offset);
   printCFIDirectives(os, offset);
   printEA(os, ea);
 
@@ -405,7 +405,6 @@ void PrettyPrinterBase::printInstruction(std::ostream& os, const cs_insn& inst,
     for (uint64_t i = 1; i < inst.size; ++i) {
       ea += 1;
       os << '\n';
-      printComment(os, ea);
       printEA(os, ea);
       os << "  " << PrettyPrinterBase::StrNOP;
     }
@@ -490,7 +489,7 @@ void PrettyPrinterBase::printDataObject(std::ostream& os,
   if (skipEA(addr)) {
     return;
   }
-  printComment(os, addr);
+  printComment(os, gtirb::Offset(dataObject.getUUID(), 0));
   printSymbolDefinitionsAtAddress(os, addr);
   os << PrettyPrinterBase::StrTab;
   if (this->debug)
@@ -536,15 +535,16 @@ void PrettyPrinterBase::printZeroDataObject(
   os << " .zero " << dataObject.getSize() << '\n';
 }
 
-void PrettyPrinterBase::printComment(std::ostream& os, const gtirb::Addr ea) {
+void PrettyPrinterBase::printComment(std::ostream& os,
+                                     const gtirb::Offset& offset) {
   if (!this->debug)
     return;
 
   if (const auto* comments =
           this->ir.modules()
               .begin()
-              ->getAuxData<std::map<gtirb::Addr, std::string>>("comments")) {
-    const auto p = comments->find(ea);
+              ->getAuxData<std::map<gtirb::Offset, std::string>>("comments")) {
+    const auto p = comments->find(offset);
     if (p != comments->end()) {
       os << "# " << p->second << '\n';
     }
