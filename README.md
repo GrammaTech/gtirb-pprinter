@@ -72,7 +72,7 @@ associated types and contents in this table.
 
 | Key              | Type                                           | Purpose                                                                                                                              |
 |------------------|------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
-| comments         | `std::map<gtirb::Addr, std::string>`           | Per-instruction comments.                                                                                                            |
+| comments         | `std::map<gtirb::Offset, std::string>`           | Per-instruction or data element comments.                                                                                          |
 | functionEntries    | `std::map<gtirb::UUID, std::set<gtirb::UUID>>` | UUIDs of the blocks that are entry points of functions.                                                                                              |
 | symbolForwarding | `std::map<gtirb::UUID, gtirb::UUID>`           | Map from symbols to other symbols. This table is used to forward symbols due to relocations or due to the use of plt and got tables. |
 | encodings            | `std::map<gtirb::UUID,std::string>`            | Map from (typed) data objects to the encoding of the data,  expressed as a std::string containing an assembler encoding specifier: "string", "uleb128" or "sleb128".     |
