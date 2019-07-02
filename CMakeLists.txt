@@ -72,7 +72,7 @@ endif()
 # Detect how to use <experimental/filesystem>
 set(EXPERIMENTAL_LIB "" CACHE STRING "The library to link with in order to use <experimental/filesystem>.")
 
-if ("${EXPERIMENTAL_LIB}" STREQUAL "")
+if (NOT EXPERIMENTAL_LIB)
   set(EXFS_CODE "
   #include <experimental/filesystem>
   int main() {
