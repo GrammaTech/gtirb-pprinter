@@ -122,8 +122,13 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
 class TempFile {
 public:
   std::string name;
-  std::ofstream ofs;
-  TempFile(std::string path) : name(path), ofs(path){};
+  std::ofstream fileStream;
+  TempFile() {
+    char tmpFileName[] = "/tmp/fileXXXXXX.s";
+    close(mkstemps(tmpFileName, 2)); // Create tmp file
+    name = tmpFileName;
+    fileStream.open(name);
+  };
   ~TempFile() {
     if (fs::exists(name))
       fs::remove(name);
@@ -136,16 +141,13 @@ int ElfBinaryPrinter::link(std::string outputFilename,
                            gtirb::Context& ctx, gtirb::IR& ir) const {
   if (debug)
     std::cout << "Generating binary file" << std::endl;
-  // Write the assembly to a temp file
-  char asmPath[] = "/tmp/fileXXXXXX.s";
-  close(mkstemps(asmPath, 2)); // Create and open temp file
-  TempFile tempFile(asmPath);
-  if (tempFile.ofs) {
+  TempFile tempFile;
+  if (tempFile.fileStream) {
     if (debug)
       std::cout << "Printing assembly to temporary file " << tempFile.name
                 << std::endl;
-    pp.print(tempFile.ofs, ctx, ir);
-    tempFile.ofs.close();
+    pp.print(tempFile.fileStream, ctx, ir);
+    tempFile.fileStream.close();
   } else {
     std::cerr << "ERROR: Could not write assembly into a temporary file.\n";
     return -1;
