@@ -35,8 +35,7 @@ ElfBinaryPrinter::getInfixLibraryName(const std::string& library) const {
   std::regex libsoRegex("^lib(.*)\\.so.*");
   std::smatch m;
   if (std::regex_match(library, m, libsoRegex)) {
-    size_t suffixPosition = library.rfind(".so");
-    return library.substr(3, suffixPosition - 3);
+    return m.str(1);
   }
   return std::nullopt;
 }
@@ -118,6 +117,19 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
   return args;
 }
 
+/// Auxiliary class to make sure we delete the temporary assembly file at the
+/// end
+class TempFile {
+public:
+  std::string name;
+  std::ofstream ofs;
+  TempFile(std::string path) : name(path), ofs(path){};
+  ~TempFile() {
+    if (fs::exists(name))
+      fs::remove(name);
+  };
+};
+
 int ElfBinaryPrinter::link(std::string outputFilename,
                            const std::vector<std::string>& userLibraryPaths,
                            const gtirb_pprint::PrettyPrinter& pp,
@@ -127,13 +139,13 @@ int ElfBinaryPrinter::link(std::string outputFilename,
   // Write the assembly to a temp file
   char asmPath[] = "/tmp/fileXXXXXX.s";
   close(mkstemps(asmPath, 2)); // Create and open temp file
-  std::ofstream ofs(asmPath);
-  if (ofs) {
+  TempFile tempFile(asmPath);
+  if (tempFile.ofs) {
     if (debug)
-      std::cout << "Printing assembly to temporary file " << asmPath
+      std::cout << "Printing assembly to temporary file " << tempFile.name
                 << std::endl;
-    pp.print(ofs, ctx, ir);
-    ofs.close();
+    pp.print(tempFile.ofs, ctx, ir);
+    tempFile.ofs.close();
   } else {
     std::cerr << "ERROR: Could not write assembly into a temporary file.\n";
     return -1;
@@ -146,8 +158,9 @@ int ElfBinaryPrinter::link(std::string outputFilename,
   }
   if (debug)
     std::cout << "Calling compiler" << std::endl;
-  return bp::system(compilerPath, buildCompilerArgs(outputFilename, asmPath,
-                                                    userLibraryPaths, ir));
+  return bp::system(
+      compilerPath,
+      buildCompilerArgs(outputFilename, tempFile.name, userLibraryPaths, ir));
 }
 
 } // namespace gtirb_bprint
