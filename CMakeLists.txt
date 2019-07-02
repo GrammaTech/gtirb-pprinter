@@ -91,7 +91,7 @@ if ("${EXPERIMENTAL_LIB}" STREQUAL "")
       set(CMAKE_REQUIRED_LIBRARIES ${OLD_CMAKE_REQUIRED_LIBRARIES})
 
       if(EXFS_LINK_${EXFS_LIB}_OK)
-        if(NOT EXPERIMENTAL_LIB)
+        if(EXPERIMENTAL_LIB)
           message(FATAL_ERROR "multiple candidates for library to link for <experimental/filesystem>: ${EXPERIMENTAL_LIB} and ${EXFS_LIB}. Try giving the correct one explicitly with -DEXPERIMENTAL_LIB.")
         endif()
         set(EXPERIMENTAL_LIB ${EXFS_LIB})
