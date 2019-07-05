@@ -121,6 +121,7 @@ public:
   /// there were no errors.
   std::error_condition print(std::ostream& stream, gtirb::Context& context,
                              gtirb::IR& ir) const;
+
 private:
   std::set<std::string> m_skip_funcs;
   std::string m_syntax;
@@ -206,6 +207,7 @@ protected:
   virtual void printEA(std::ostream& os, gtirb::Addr ea);
   virtual void printOperandList(std::ostream& os, const cs_insn& inst);
   virtual void printComment(std::ostream& os, const gtirb::Addr ea);
+  virtual void printCFIDirective(std::ostream& os, const gtirb::Addr ea);
   virtual void printSymbolicData(std::ostream& os,
                                  const gtirb::SymbolicExpression* symbolic);
   virtual void printSymbolicExpression(std::ostream& os,

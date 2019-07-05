@@ -208,8 +208,12 @@ gtirb::Addr PrettyPrinterBase::printBlockOrWarning(std::ostream& os,
     printOverlapWarning(os, nextAddr);
     return last;
   } else {
-    if (nextAddr > last)
+    if (nextAddr > last) {
       printSymbolDefinitionsAtAddress(os, last);
+      if (!skipEA(last - 1)) {
+        printCFIDirective(os, last);
+      }
+    }
     printBlock(os, block);
     return block.getAddress() + block.getSize();
   }
@@ -346,6 +350,7 @@ void PrettyPrinterBase::printInstruction(std::ostream& os,
                                          const cs_insn& inst) {
   gtirb::Addr ea(inst.address);
   printComment(os, ea);
+  printCFIDirective(os, ea);
   printEA(os, ea);
 
   ////////////////////////////////////////////////////////////////////
@@ -498,6 +503,33 @@ void PrettyPrinterBase::printComment(std::ostream& os, const gtirb::Addr ea) {
     const auto p = comments->find(ea);
     if (p != comments->end()) {
       os << "# " << p->second << '\n';
+    }
+  }
+}
+
+void PrettyPrinterBase::printCFIDirective(std::ostream& os,
+                                          const gtirb::Addr ea) {
+  if (const auto* cfiDirectives =
+          this->ir.modules()
+              .begin()
+              ->getAuxData<std::map<
+                  gtirb::Addr,
+                  std::vector<std::tuple<std::string, uint8_t, gtirb::UUID>>>>(
+                  "cfiDirectives")) {
+    const auto entry = cfiDirectives->find(ea);
+    if (entry != cfiDirectives->end()) {
+      for (const std::tuple<std::string, uint8_t, gtirb::UUID>& cfiDirective :
+           entry->second) {
+        os << std::get<0>(cfiDirective);
+        if (std::get<1>(cfiDirective)) {
+          gtirb::Symbol* symbol =
+              nodeFromUUID<gtirb::Symbol>(context, std::get<2>(cfiDirective));
+          os << " " << +std::get<1>(cfiDirective) << ", ";
+          if (symbol)
+            printSymbolReference(os, symbol, true);
+        }
+        os << std::endl;
+      }
     }
   }
 }
