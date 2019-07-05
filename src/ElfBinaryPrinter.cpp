@@ -17,6 +17,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
+#pragma GCC diagnostic warning "-Wall"
 #include <boost/process/search_path.hpp>
 #include <boost/process/system.hpp>
 #pragma GCC diagnostic pop
