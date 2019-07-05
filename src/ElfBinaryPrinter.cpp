@@ -18,7 +18,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
 #pragma GCC diagnostic warning "-Wall"
-#pragma GCC diagnostic warning "-Wdeprecated-copy"
+#pragma GCC diagnostic warning "-Wextra"
 #include <boost/process/search_path.hpp>
 #include <boost/process/system.hpp>
 #pragma GCC diagnostic pop
