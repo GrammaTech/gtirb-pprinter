@@ -88,7 +88,7 @@ int main(int argc, char** argv) {
 
   // Do we write it to a file?
   if (vm.count("asm") != 0) {
-    const auto asmPath = fs::path(vm["out"].as<std::string>());
+    const auto asmPath = fs::path(vm["asm"].as<std::string>());
     std::ofstream ofs;
     ofs.open(asmPath.string());
 
