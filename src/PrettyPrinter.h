@@ -151,8 +151,8 @@ protected:
 
   /// Sections to avoid printing.
   std::unordered_set<std::string> AsmSkipSection{
-      ".comment", ".plt",     ".init",    ".fini",
-      ".got",     ".plt.got", ".got.plt", ".plt.sec"};
+      ".comment", ".plt",     ".init",    ".fini",        ".got",
+      ".plt.got", ".got.plt", ".plt.sec", ".eh_frame_hdr"};
 
   /// Functions to avoid printing.
   std::unordered_set<std::string> AsmSkipFunction;
@@ -169,6 +169,8 @@ protected:
   virtual void printHeader(std::ostream& os) = 0;
   virtual void printAlignment(std::ostream& os, const gtirb::Addr addr);
   virtual void printSectionHeader(std::ostream& os, const gtirb::Addr addr);
+  virtual void printSectionProperties(std::ostream& os,
+                                      const gtirb::Section& addr);
   virtual void printFunctionHeader(std::ostream& os, gtirb::Addr ea);
 
   /// Print the block as long as it does not overlap with the address last.
@@ -209,7 +211,8 @@ protected:
   virtual void printComment(std::ostream& os, const gtirb::Addr ea);
   virtual void printCFIDirective(std::ostream& os, const gtirb::Addr ea);
   virtual void printSymbolicData(std::ostream& os,
-                                 const gtirb::SymbolicExpression* symbolic);
+                                 const gtirb::SymbolicExpression* symbolic,
+                                 const gtirb::DataObject& dataObject);
   virtual void printSymbolicExpression(std::ostream& os,
                                        const gtirb::SymAddrConst* sexpr,
                                        bool inData = false);
@@ -241,6 +244,8 @@ protected:
   virtual void printSymbolDefinitionsAtAddress(std::ostream& os,
                                                gtirb::Addr ea);
   virtual void printOverlapWarning(std::ostream& os, gtirb::Addr ea);
+  virtual void printDataObjectType(std::ostream& os,
+                                   const gtirb::DataObject& dataObject);
 
   // These sections have a couple of special cases for printing
   // They usually containt entries that need to be ignored (the compiler will

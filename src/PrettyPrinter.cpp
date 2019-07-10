@@ -19,6 +19,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/range/algorithm/find_if.hpp>
 #include <capstone/capstone.h>
+#include <elf.h>
 #include <fstream>
 #include <gtirb/gtirb.hpp>
 #include <iomanip>
@@ -154,6 +155,15 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_, gtirb::IR& ir_,
     }
     std::sort(functionEntry.begin(), functionEntry.end());
   }
+
+  if (this->ir.modules()
+          .begin()
+          ->getAuxData<std::map<
+              gtirb::Addr,
+              std::vector<std::tuple<std::string, uint8_t, gtirb::UUID>>>>(
+              "cfiDirectives")) {
+    AsmSkipSection.insert(".eh_frame");
+  }
 }
 
 PrettyPrinterBase::~PrettyPrinterBase() { cs_close(&this->csHandle); }
@@ -284,7 +294,9 @@ void PrettyPrinterBase::printSectionHeader(std::ostream& os,
   } else if (sectionName == PrettyPrinterBase::StrSectionBSS) {
     os << PrettyPrinterBase::StrSectionBSS << '\n';
   } else {
-    os << PrettyPrinterBase::StrSection << ' ' << sectionName << '\n';
+    os << PrettyPrinterBase::StrSection << ' ' << sectionName;
+    printSectionProperties(os, *(found_section.begin()));
+    os << std::endl;
   }
   if (AsmArraySection.count(sectionName))
     os << ".align 8\n";
@@ -292,6 +304,34 @@ void PrettyPrinterBase::printSectionHeader(std::ostream& os,
     printAlignment(os, addr);
   printBar(os);
   os << '\n';
+}
+
+void PrettyPrinterBase::printSectionProperties(std::ostream& os,
+                                               const gtirb::Section& section) {
+  const auto* elfSectionProperties =
+      this->ir.modules()
+          .begin()
+          ->getAuxData<std::map<gtirb::UUID, std::tuple<uint64_t, uint64_t>>>(
+              "elfSectionProperties");
+  if (!elfSectionProperties)
+    return;
+  const auto sectionProperties = elfSectionProperties->find(section.getUUID());
+  if (sectionProperties == elfSectionProperties->end())
+    return;
+  uint64_t type = std::get<0>(sectionProperties->second);
+  uint64_t flags = std::get<1>(sectionProperties->second);
+  os << " ,\"";
+  if (flags & SHF_WRITE)
+    os << "w";
+  if (flags & SHF_ALLOC)
+    os << "a";
+  if (flags & SHF_EXECINSTR)
+    os << "x";
+  os << "\"";
+  if (type == SHT_PROGBITS)
+    os << ",@progbits";
+  if (type == SHT_NOBITS)
+    os << ",@nobits";
 }
 
 void PrettyPrinterBase::printBar(std::ostream& os, bool heavy) {
@@ -467,7 +507,7 @@ void PrettyPrinterBase::printNonZeroDataObject(
   const auto& foundSymbolic =
       module.findSymbolicExpression(dataObject.getAddress());
   if (foundSymbolic != module.symbolic_expr_end()) {
-    printSymbolicData(os, &*foundSymbolic);
+    printSymbolicData(os, &*foundSymbolic, dataObject);
     os << '\n';
     return;
   }
@@ -509,42 +549,81 @@ void PrettyPrinterBase::printComment(std::ostream& os, const gtirb::Addr ea) {
 
 void PrettyPrinterBase::printCFIDirective(std::ostream& os,
                                           const gtirb::Addr ea) {
-  if (const auto* cfiDirectives =
-          this->ir.modules()
-              .begin()
-              ->getAuxData<std::map<
-                  gtirb::Addr,
-                  std::vector<std::tuple<std::string, uint8_t, gtirb::UUID>>>>(
-                  "cfiDirectives")) {
-    const auto entry = cfiDirectives->find(ea);
-    if (entry != cfiDirectives->end()) {
-      for (const std::tuple<std::string, uint8_t, gtirb::UUID>& cfiDirective :
-           entry->second) {
-        os << std::get<0>(cfiDirective);
-        if (std::get<1>(cfiDirective)) {
-          gtirb::Symbol* symbol =
-              nodeFromUUID<gtirb::Symbol>(context, std::get<2>(cfiDirective));
-          os << " " << +std::get<1>(cfiDirective) << ", ";
-          if (symbol)
-            printSymbolReference(os, symbol, true);
-        }
-        os << std::endl;
-      }
+  const auto* cfiDirectives =
+      this->ir.modules()
+          .begin()
+          ->getAuxData<std::map<
+              gtirb::Addr,
+              std::vector<std::tuple<std::string, uint8_t, gtirb::UUID>>>>(
+              "cfiDirectives");
+  if (!cfiDirectives)
+    return;
+  const auto entry = cfiDirectives->find(ea);
+  if (entry == cfiDirectives->end())
+    return;
+
+  for (const std::tuple<std::string, uint8_t, gtirb::UUID>& cfiDirective :
+       entry->second) {
+    os << std::get<0>(cfiDirective);
+    if (std::get<1>(cfiDirective)) {
+      gtirb::Symbol* symbol =
+          nodeFromUUID<gtirb::Symbol>(context, std::get<2>(cfiDirective));
+      os << " " << +std::get<1>(cfiDirective) << ", ";
+      if (symbol)
+        printSymbolReference(os, symbol, true);
     }
+    os << std::endl;
   }
 }
 
 void PrettyPrinterBase::printSymbolicData(
-    std::ostream& os, const gtirb::SymbolicExpression* symbolic) {
+    std::ostream& os, const gtirb::SymbolicExpression* symbolic,
+    const gtirb::DataObject& dataObject) {
+  printDataObjectType(os, dataObject);
+  os << " ";
   if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
-    os << ".quad ";
     printSymbolicExpression(os, s, true);
   } else if (const auto* sa = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
-    os << ".long ";
     printSymbolicExpression(os, sa, true);
   }
 }
 
+void PrettyPrinterBase::printDataObjectType(
+    std::ostream& os, const gtirb::DataObject& dataObject) {
+  const auto* types =
+      this->ir.modules()
+          .begin()
+          ->getAuxData<std::map<gtirb::UUID, std::string>>("types");
+  if (types) {
+    auto foundType = types->find(dataObject.getUUID());
+    if (foundType != types->end()) {
+      if (foundType->second == "uleb128") {
+        os << ".uleb128";
+        return;
+      }
+      if (foundType->second == "sleb128") {
+        os << ".sleb128";
+        return;
+      }
+    }
+  }
+  switch (dataObject.getSize()) {
+  case 1:
+    os << ".byte";
+    break;
+  case 2:
+    os << ".word";
+    break;
+  case 4:
+    os << ".long";
+    break;
+  case 8:
+    os << ".quad";
+    break;
+  default:
+    break;
+  }
+}
 void PrettyPrinterBase::printSymbolicExpression(
     std::ostream& os, const gtirb::SymAddrConst* sexpr, bool inData) {
   printSymbolReference(os, sexpr->Sym, inData);
