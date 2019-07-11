@@ -49,7 +49,7 @@ target_link_libraries(
         gtirb_pprinter
 )
 if(NOT BUILD_SHARED_LIBS)
-  target_link_libraries(${PROJECT_NAME} ${STATIC_LINK_LIBS} -static)
+  target_link_libraries(${PROJECT_NAME} ${STATIC_LINK_LIBS} -static -static-libgcc -static-libstdc++)
 endif()
 
 install(TARGETS gtirb-pprinter DESTINATION bin)
