@@ -192,21 +192,21 @@ find_package(gtirb REQUIRED)
 add_compile_options(-DBOOST_SYSTEM_NO_DEPRECATED)
 
 if( ${GTIRB_PPRINTER_USE_SYSTEM_BOOST} MATCHES "OFF" )
-  #Attempt to configure/build boost locally.  
+  #Attempt to configure/build boost locally.
   configure_file(CMakeLists.boost Boost/CMakeLists.txt COPYONLY)
-  
+
   # Initialize CMake files required to build/install boost.
-  execute_process(COMMAND "${CMAKE_COMMAND}" -G "${CMAKE_GENERATOR}" . 
+  execute_process(COMMAND "${CMAKE_COMMAND}" -G "${CMAKE_GENERATOR}" .
     RESULT_VARIABLE result
     WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/Boost"
     )
-  
+
   if(result)
     message(WARNING "CMake step for boost failed: ${result}")
   endif()
-  
+
   set(BOOST_INSTALL_DIR "${CMAKE_BINARY_DIR}/Boost-src")
-  
+
   add_subdirectory("${CMAKE_BINARY_DIR}/Boost/"
     "${BOOST_INSTALL_DIR}"
     EXCLUDE_FROM_ALL)
@@ -238,7 +238,12 @@ endif()
 # ---------------------------------------------------------------------------
 # capstone
 # ---------------------------------------------------------------------------
-find_library(CAPSTONE NAMES capstone)
+if (BUILD_SHARED_LIBS)
+  find_library(CAPSTONE NAMES capstone)
+else()
+  find_library(CAPSTONE NAMES libcapstone.a)
+endif()
+
 if(NOT CAPSTONE)
   message(FATAL_ERROR "capstone library not found")
 else()

@@ -32,7 +32,7 @@ ELSE()
   )
 endif()
 
-add_executable(${PROJECT_NAME} 
+add_executable(${PROJECT_NAME}
     ${${PROJECT_NAME}_H}
     ${${PROJECT_NAME}_SRC}
   )
@@ -48,4 +48,8 @@ target_link_libraries(
   ${Boost_LIBRARIES}
         gtirb_pprinter
 )
+if(NOT BUILD_SHARED_LIBS)
+  target_link_libraries(${PROJECT_NAME} -static)
+endif()
+
 install(TARGETS gtirb-pprinter DESTINATION bin)

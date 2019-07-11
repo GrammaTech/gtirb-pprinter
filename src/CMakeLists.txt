@@ -77,7 +77,8 @@ add_custom_command(
 install(TARGETS ${PROJECT_NAME} EXPORT gtirb_pprinterTargets
   INCLUDES DESTINATION include
   RUNTIME DESTINATION bin
-  LIBRARY DESTINATION lib)
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib)
 set(PUBLIC_HEADERS
   ${CMAKE_SOURCE_DIR}/src/BinaryPrinter.h
   ${CMAKE_SOURCE_DIR}/src/Export.h
