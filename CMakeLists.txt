@@ -69,6 +69,19 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   endif()
 endif()
 
+# If we're using libc++, we need to manually include libc++abi
+# (unlike with using libstdc++, which automatically does this)
+check_cxx_source_compiles("
+  #include <ciso646>
+  int main() {
+    return _LIBCPP_VERSION;
+  }
+" USING_LIBCPP)
+
+if(USING_LIBCPP)
+  set(STATIC_LINK_LIBS c++abi)
+endif()
+
 # Detect how to use <experimental/filesystem>
 set(EXPERIMENTAL_LIB "" CACHE STRING "The library to link with in order to use <experimental/filesystem>.")
 

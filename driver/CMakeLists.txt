@@ -49,7 +49,7 @@ target_link_libraries(
         gtirb_pprinter
 )
 if(NOT BUILD_SHARED_LIBS)
-  target_link_libraries(${PROJECT_NAME} -static)
+  target_link_libraries(${PROJECT_NAME} ${STATIC_LINK_LIBS} -static)
 endif()
 
 install(TARGETS gtirb-pprinter DESTINATION bin)
