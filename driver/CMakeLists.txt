@@ -46,7 +46,12 @@ target_link_libraries(
   ${SYSLIBS}
   ${EXPERIMENTAL_LIB}
   ${Boost_LIBRARIES}
-        gtirb_pprinter
+  ${LIBCPP_ABI}
+  gtirb_pprinter
 )
 
-install(TARGETS gtirb-pprinter DESTINATION bin)
+install(TARGETS ${PROJECT_NAME} DESTINATION bin)
+
+if(NOT BUILD_SHARED_LIBS)
+  target_link_libraries(${PROJECT_NAME} -static-libstdc++)
+endif()
