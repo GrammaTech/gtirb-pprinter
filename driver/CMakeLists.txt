@@ -24,7 +24,8 @@ IF(UNIX)
   IF (NOT WIN32)
     SET(SYSLIBS
       ${SYSLIBS}
-      dl)
+      dl
+      pthread)
   ENDIF()
 ELSE()
   SET(SYSLIBS
@@ -47,11 +48,5 @@ target_link_libraries(
   ${Boost_LIBRARIES}
         gtirb_pprinter
 )
-
-if(NOT BUILD_SHARED_LIBS)
-  target_link_libraries(${PROJECT_NAME} ${STATIC_LINK_LIBS} -static -Wl,--whole-archive -lpthread -Wl,--no-whole-archive)
-elseif(UNIX AND NOT WIN32)
-  target_link_libraries(${PROJECT_NAME} pthread)
-endif()
 
 install(TARGETS gtirb-pprinter DESTINATION bin)
