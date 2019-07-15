@@ -204,12 +204,13 @@ protected:
   ///
   /// \param os   the output stream to print to
   /// \param inst the instruction to print
-  virtual void printInstruction(std::ostream& os, const cs_insn& inst);
+  virtual void printInstruction(std::ostream& os, const cs_insn& inst,
+                                const gtirb::Offset& offset);
 
   virtual void printEA(std::ostream& os, gtirb::Addr ea);
   virtual void printOperandList(std::ostream& os, const cs_insn& inst);
   virtual void printComment(std::ostream& os, const gtirb::Addr ea);
-  virtual void printCFIDirective(std::ostream& os, const gtirb::Addr ea);
+  virtual void printCFIDirectives(std::ostream& os, const gtirb::Offset& ea);
   virtual void printSymbolicData(std::ostream& os,
                                  const gtirb::SymbolicExpression* symbolic,
                                  const gtirb::DataObject& dataObject);

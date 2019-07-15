@@ -158,9 +158,10 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_, gtirb::IR& ir_,
 
   if (this->ir.modules()
           .begin()
-          ->getAuxData<std::map<
-              gtirb::Addr,
-              std::vector<std::tuple<std::string, uint8_t, gtirb::UUID>>>>(
+          ->getAuxData<
+              std::map<gtirb::Offset,
+                       std::vector<std::tuple<std::string, std::vector<int64_t>,
+                                              gtirb::UUID>>>>(
               "cfiDirectives")) {
     AsmSkipSection.insert(".eh_frame");
   }
@@ -220,9 +221,6 @@ gtirb::Addr PrettyPrinterBase::printBlockOrWarning(std::ostream& os,
   } else {
     if (nextAddr > last) {
       printSymbolDefinitionsAtAddress(os, last);
-      if (!skipEA(last - 1)) {
-        printCFIDirective(os, last);
-      }
     }
     printBlock(os, block);
     return block.getAddress() + block.getSize();
@@ -255,7 +253,6 @@ void PrettyPrinterBase::printBlock(std::ostream& os, const gtirb::Block& x) {
     return;
   }
   printFunctionHeader(os, x.getAddress());
-  printSymbolDefinitionsAtAddress(os, x.getAddress());
   os << '\n';
 
   cs_insn* insn;
@@ -271,10 +268,13 @@ void PrettyPrinterBase::printBlock(std::ostream& os, const gtirb::Block& x) {
   std::unique_ptr<cs_insn, std::function<void(cs_insn*)>> freeInsn(
       insn, [count](cs_insn* i) { cs_free(i, count); });
 
+  gtirb::Offset offset(x.getUUID(), 0);
   for (size_t i = 0; i < count; i++) {
-    printInstruction(os, insn[i]);
+    printInstruction(os, insn[i], offset);
+    offset.Displacement += insn[i].size;
     os << '\n';
   }
+  printCFIDirectives(os, offset);
 }
 
 void PrettyPrinterBase::printSectionHeader(std::ostream& os,
@@ -386,11 +386,13 @@ void PrettyPrinterBase::printSymbolDefinitionsAtAddress(std::ostream& os,
   }
 }
 
-void PrettyPrinterBase::printInstruction(std::ostream& os,
-                                         const cs_insn& inst) {
+void PrettyPrinterBase::printInstruction(std::ostream& os, const cs_insn& inst,
+                                         const gtirb::Offset& offset) {
+
   gtirb::Addr ea(inst.address);
+  printSymbolDefinitionsAtAddress(os, ea);
   printComment(os, ea);
-  printCFIDirective(os, ea);
+  printCFIDirectives(os, offset);
   printEA(os, ea);
 
   ////////////////////////////////////////////////////////////////////
@@ -547,31 +549,38 @@ void PrettyPrinterBase::printComment(std::ostream& os, const gtirb::Addr ea) {
   }
 }
 
-void PrettyPrinterBase::printCFIDirective(std::ostream& os,
-                                          const gtirb::Addr ea) {
+void PrettyPrinterBase::printCFIDirectives(std::ostream& os,
+                                           const gtirb::Offset& offset) {
   const auto* cfiDirectives =
       this->ir.modules()
           .begin()
-          ->getAuxData<std::map<
-              gtirb::Addr,
-              std::vector<std::tuple<std::string, uint8_t, gtirb::UUID>>>>(
-              "cfiDirectives");
+          ->getAuxData<
+              std::map<gtirb::Offset,
+                       std::vector<std::tuple<std::string, std::vector<int64_t>,
+                                              gtirb::UUID>>>>("cfiDirectives");
   if (!cfiDirectives)
     return;
-  const auto entry = cfiDirectives->find(ea);
+  const auto entry = cfiDirectives->find(offset);
   if (entry == cfiDirectives->end())
     return;
 
-  for (const std::tuple<std::string, uint8_t, gtirb::UUID>& cfiDirective :
-       entry->second) {
-    os << std::get<0>(cfiDirective);
-    if (std::get<1>(cfiDirective)) {
-      gtirb::Symbol* symbol =
-          nodeFromUUID<gtirb::Symbol>(context, std::get<2>(cfiDirective));
-      os << " " << +std::get<1>(cfiDirective) << ", ";
-      if (symbol)
-        printSymbolReference(os, symbol, true);
+  for (auto& cfiDirective : entry->second) {
+    os << std::get<0>(cfiDirective) << " ";
+    const std::vector<int64_t>& operands = std::get<1>(cfiDirective);
+    for (auto it = operands.begin(); it != operands.end(); it++) {
+      if (it != operands.begin())
+        os << ", ";
+      os << *it;
     }
+
+    gtirb::Symbol* symbol =
+        nodeFromUUID<gtirb::Symbol>(context, std::get<2>(cfiDirective));
+    if (symbol) {
+      if (operands.size() > 0)
+        os << ", ";
+      printSymbolReference(os, symbol, true);
+    }
+
     os << std::endl;
   }
 }
