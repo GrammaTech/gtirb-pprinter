@@ -517,7 +517,7 @@ void PrettyPrinterBase::printNonZeroDataObject(
       module.getAuxData<std::map<gtirb::UUID, std::string>>("types");
   if (types) {
     auto foundType = types->find(dataObject.getUUID());
-    if (foundType != types->end() && foundType->second == "char[]") {
+    if (foundType != types->end() && foundType->second == "string") {
       printString(os, dataObject);
       os << '\n';
       return;
@@ -606,14 +606,8 @@ void PrettyPrinterBase::printDataObjectType(
   if (types) {
     auto foundType = types->find(dataObject.getUUID());
     if (foundType != types->end()) {
-      if (foundType->second == "uleb128") {
-        os << ".uleb128";
-        return;
-      }
-      if (foundType->second == "sleb128") {
-        os << ".sleb128";
-        return;
-      }
+      os << "." << foundType->second;
+      return;
     }
   }
   switch (dataObject.getSize()) {
@@ -630,9 +624,11 @@ void PrettyPrinterBase::printDataObjectType(
     os << ".quad";
     break;
   default:
+    assert("Data object with unknown type has incompatible size");
     break;
   }
 }
+
 void PrettyPrinterBase::printSymbolicExpression(
     std::ostream& os, const gtirb::SymAddrConst* sexpr, bool inData) {
   printSymbolReference(os, sexpr->Sym, inData);
