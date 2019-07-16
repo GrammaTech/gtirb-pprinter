@@ -19,6 +19,9 @@ Use the following options to configure cmake:
   `-DCMAKE_CXX_COMPILER=<compiler>`.
 - Normally CMake will find GTIRB automatically, but if it does not you
   can pass `-Dgtirb_DIR=<path-to-gtirb-build>`.
+- gtirb-pprinter can make use of GTIRB in static library form (instead of
+  shared library form, the default) if you use the flag
+  `-DGTIRB_PPRINTER_BUILD_SHARED_LIBS=OFF`.
 
 Once the dependencies are installed, you can configure and build as follows:
 
