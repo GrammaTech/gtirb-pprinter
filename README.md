@@ -75,7 +75,9 @@ associated types and contents in this table.
 | comments         | `std::map<gtirb::Addr, std::string>`           | Per-instruction comments.                                                                                                            |
 | functionEntries    | `std::map<gtirb::UUID, std::set<gtirb::UUID>>` | UUIDs of the blocks that are entry points of functions.                                                                                              |
 | symbolForwarding | `std::map<gtirb::UUID, gtirb::UUID>`           | Map from symbols to other symbols. This table is used to forward symbols due to relocations or due to the use of plt and got tables. |
-| types            | `std::map<gtirb::UUID,std::string>`            | Map from (typed) data objects to the type of the data,  expressed as a std::string containing a C++ type specifier.                  |
+| types            | `std::map<gtirb::UUID,std::string>`            | Map from (typed) data objects to the type of the data,  expressed as a std::string containing an assembler type specifier (e.g. "string", "uleb128" or "sleb128")     |
+| elfSectionProperties | `std::map<gtirb::UUID, std::tuple<uint64_t, uint64_t>>` | Map from section UUIDs to tuples with the ELF section types and flags. |
+| cfiDirectives   | std::map<gtirb::Offset, std::vector<std::tuple<std::string, std::vector<int64_t>, gtirb::UUID>>> | A table that contains a vector of cfi directives for each Offset. A cfi directive has a string describing the directive a vector  of numeric arguments and an optional symbolic argument (represented with the UUID of the symbol) |
 
 ## AuxData Used by the Binary Printer
 
