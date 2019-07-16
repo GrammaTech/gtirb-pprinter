@@ -78,11 +78,7 @@ associated types and contents in this table.
 | types            | `std::map<gtirb::UUID,std::string>`            | Map from (typed) data objects to the type of the data,  expressed as a std::string containing an assembler type specifier (e.g. "string", "uleb128" or "sleb128")     |
 | elfSectionProperties | `std::map<gtirb::UUID, std::tuple<uint64_t, uint64_t>>` | Map from section UUIDs to tuples with the ELF section types and flags. |
 | cfiDirectives   | `std::map<gtirb::Offset, std::vector<std::tuple<std::string, std::vector<int64_t>, gtirb::UUID>>>` | A table that contains a vector of cfi directives for each Offset. A cfi directive
-contains
-- a string describing the directive
-- a vector  of numeric arguments
-- and an optional symbolic argument (represented with the UUID of the symbol)
-|
+contains: a string describing the directive, a vector  of numeric arguments, and an optional symbolic argument (represented with the UUID of the symbol). |
 
 ## AuxData Used by the Binary Printer
 
