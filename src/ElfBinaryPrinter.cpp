@@ -16,9 +16,12 @@
 #include "ElfBinaryPrinter.h"
 
 #pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpragmas"
+#pragma GCC diagnostic ignored "-Wunknown-warning-option"
 #pragma GCC diagnostic ignored "-Wshadow"
-#pragma GCC diagnostic ignored "-Wall"
-#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wc++11-compat"
+#pragma GCC diagnostic ignored "-Wpessimizing-move"
+#pragma GCC diagnostic ignored "-Wdeprecated-copy"
 #include <boost/process/search_path.hpp>
 #include <boost/process/system.hpp>
 #pragma GCC diagnostic pop

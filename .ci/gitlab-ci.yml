@@ -22,12 +22,10 @@ check-format:
     - git clone https://git.grammatech.com/rewriting/gtirb.git
     - docker build -f .ci/Dockerfile.$OS-$COMPILER -t ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} .
 
-build-ubuntu16-gcc:
-  stage: build
-  variables:
-    OS: 'ubuntu16'
-    COMPILER: 'gcc'
-  <<: *build
+.cleanup-template: &cleanup
+  stage: cleanup
+  script:
+    - docker rmi -f ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER}
 
 run-ubuntu16-gcc:
   stage: test-and-tag
@@ -42,6 +40,13 @@ run-ubuntu16-gcc:
         docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH:latest;
       fi
 
+build-ubuntu16-gcc:
+  stage: build
+  variables:
+    OS: 'ubuntu16'
+    COMPILER: 'gcc'
+  <<: *build
+
 build-ubuntu16-clang:
   stage: build
   variables:
@@ -49,53 +54,76 @@ build-ubuntu16-clang:
     COMPILER: 'clang'
   <<: *build
 
-# build-ubuntu14:
-#   stage: build-test-ubuntu14-gcc
-#   variables:
-#     OS: 'ubuntu14'
-#   <<: *build
+build-ubuntu18-gcc:
+  stage: build
+  variables:
+    OS: 'ubuntu18'
+    COMPILER: 'gcc'
+  <<: *build
 
-# build-arch:
-#   stage: build-test-arch-gcc
-#   variables:
-#     OS: 'arch'
-#     COMPILER: 'gcc'
-#   <<: *build
+build-ubuntu18-clang:
+  stage: build
+  variables:
+    OS: 'ubuntu18'
+    COMPILER: 'clang'
+  <<: *build
+
+build-arch-gcc:
+   stage: build
+   variables:
+     OS: 'arch'
+     COMPILER: 'gcc'
+   <<: *build
+
+build-arch-clang:
+   stage: build
+   variables:
+     OS: 'arch'
+     COMPILER: 'clang'
+   <<: *build
+
 
 cleanup-ubuntu16-gcc:
   stage: cleanup
   variables:
     OS: 'ubuntu16'
     COMPILER: 'gcc'
-  script:
-    - docker rmi -f ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER}
+  <<: *cleanup
 
 cleanup-ubuntu16-clang:
   stage: cleanup
   variables:
     OS: 'ubuntu16'
     COMPILER: 'clang'
-  script:
-    - docker rmi -f ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER}
+  <<: *cleanup
 
-# cleanup-ubuntu14-gcc:
-#   stage: cleanup-ubuntu14-gcc
-#   variables:
-#     OS: 'ubuntu14'
-#     COMPILER: 'gcc'
-#   script:
-#     - docker rmi -f ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER}
+cleanup-ubuntu18-gcc:
+  stage: cleanup
+  variables:
+    OS: 'ubuntu18'
+    COMPILER: 'gcc'
+  <<: *cleanup
 
+cleanup-ubuntu18-clang:
+  stage: cleanup
+  variables:
+    OS: 'ubuntu18'
+    COMPILER: 'clang'
+  <<: *cleanup
 
-#cleanup-arch-gcc:
-#  stage: cleanup-arch-gcc
-#  variables:
-#    OS: 'arch'
-#    COMPILER: 'gcc'
-#  script:
-#    - docker rmi -f ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER}
-#  except:
-#    - master
+cleanup-arch-gcc:
+  stage: cleanup
+  variables:
+    OS: 'arch'
+    COMPILER: 'gcc'
+  <<: *cleanup
+
+cleanup-arch-clang:
+  stage: cleanup
+  variables:
+    OS: 'arch'
+    COMPILER: 'clang'
+  <<: *cleanup
 
 # pages:
 #   stage: cleanup-ubuntu16-gcc
