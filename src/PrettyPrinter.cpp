@@ -514,7 +514,7 @@ void PrettyPrinterBase::printNonZeroDataObject(
     return;
   }
   const auto* types =
-      module.getAuxData<std::map<gtirb::UUID, std::string>>("types");
+      module.getAuxData<std::map<gtirb::UUID, std::string>>("encodings");
   if (types) {
     auto foundType = types->find(dataObject.getUUID());
     if (foundType != types->end() && foundType->second == "string") {
@@ -602,7 +602,7 @@ void PrettyPrinterBase::printDataObjectType(
   const auto* types =
       this->ir.modules()
           .begin()
-          ->getAuxData<std::map<gtirb::UUID, std::string>>("types");
+          ->getAuxData<std::map<gtirb::UUID, std::string>>("encodings");
   if (types) {
     auto foundType = types->find(dataObject.getUUID());
     if (foundType != types->end()) {
