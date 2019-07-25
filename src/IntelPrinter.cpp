@@ -23,20 +23,6 @@ IntelPrettyPrinter::IntelPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
                                        DebugStyle dbg)
     : PrettyPrinterBase(context_, ir_, skip_funcs, dbg) {}
 
-int IntelPrettyPrinter::getGtirbOpIndex(int index, int opCount) const {
-  // The datalog disassembler always treats operand indices as if using this
-  // array:
-  //   {opcode, src1, src2, ..., dst}
-  // With CS_OP_SYNTAX_INTEL, Capstone operands are conceptually indexed as
-  //   {dst, src1, src2, ...}
-  // So to convert the Capstone index to an index into the gtirb, we need to
-  // map 0 to opCount (since dst should be at the end) and leave the other
-  // indices alone.
-  if (index == 0)
-    return opCount;
-  return index;
-}
-
 void IntelPrettyPrinter::printHeader(std::ostream& os) {
   this->printBar(os);
   os << ".intel_syntax noprefix\n";

@@ -25,8 +25,6 @@ public:
                      const string_range& skip_funcs, DebugStyle dbg);
 
 protected:
-  int getGtirbOpIndex(int index, int opCount) const override;
-
   void printHeader(std::ostream& os) override;
   void printOpRegdirect(std::ostream& os, const cs_insn& inst,
                         const cs_x86_op& op) override;

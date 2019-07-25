@@ -34,20 +34,6 @@ std::string AttPrettyPrinter::getRegisterName(unsigned int reg) const {
          ascii_str_tolower(PrettyPrinterBase::getRegisterName(reg));
 }
 
-int AttPrettyPrinter::getGtirbOpIndex(int index, int opCount) const {
-  // The datalog disassmbler always treats operand indices as if using this
-  // array:
-  //   {opcode, src1, src2, ..., dst}
-  // With CS_OPT_SYNTAX_ATT, Capstone operands are conceptually indexed as
-  //   {..., src2, src1, dst}
-  // So to convert the Capstone index to an index into the gtirb, we have to
-  // reverse the order by subtracting from opCount, then rotate dst to the end.
-  index = opCount - index;
-  if (index == 1)
-    return opCount;
-  return index - 1;
-}
-
 void AttPrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
                                         const cs_x86_op& op) {
   assert(op.type == X86_OP_REG &&

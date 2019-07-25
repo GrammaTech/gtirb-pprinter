@@ -25,7 +25,6 @@ public:
                    const string_range& skip_funcs, DebugStyle dbg);
 
 protected:
-  int getGtirbOpIndex(int index, int opCount) const override;
   std::string getRegisterName(unsigned int reg) const override;
 
   void printHeader(std::ostream& os) override;

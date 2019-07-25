@@ -162,15 +162,6 @@ protected:
   virtual const gtirb::SymAddrConst*
   getSymbolicImmediate(const gtirb::SymbolicExpression* symex);
 
-  /// Get the index of an operand in the GTIRB, given the index of the operand
-  /// in the Capstone instruction.
-  ///
-  /// NOTE: The GTIRB operands are indexed as if they were in an array:
-  ///   auto operands[] = {<unused>, src1, src2, ..., dst}
-  ///
-  /// \param index   the Capstone index of the operand
-  /// \param opCount the total number of operands in the instruction
-  virtual int getGtirbOpIndex(int index, int opCount) const = 0;
   virtual std::string getRegisterName(unsigned int reg) const;
 
   virtual void printBar(std::ostream& os, bool heavy = true);
@@ -235,8 +226,7 @@ protected:
                            bool first = false);
   virtual void printString(std::ostream& os, const gtirb::DataObject& x);
 
-  virtual void printOperand(std::ostream& os,
-                            const gtirb::SymbolicExpression* symbolic,
+  virtual void printOperand(std::ostream& os, const gtirb::Addr eax,
                             const cs_insn& inst, uint64_t index);
   virtual void printOpRegdirect(std::ostream& os, const cs_insn& inst,
                                 const cs_x86_op& op) = 0;

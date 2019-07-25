@@ -381,7 +381,6 @@ void PrettyPrinterBase::printEA(std::ostream& os, gtirb::Addr ea) {
 void PrettyPrinterBase::printOperandList(std::ostream& os, const gtirb::Addr ea,
                                          const cs_insn& inst) {
   cs_x86& detail = inst.detail->x86;
-  const gtirb::Module& module = *this->ir.modules().begin();
   uint8_t opCount = detail.op_count;
 
   // Operands are implicit for various MOVS* instructions. But there is also
@@ -396,27 +395,37 @@ void PrettyPrinterBase::printOperandList(std::ostream& os, const gtirb::Addr ea,
     if (i != 0) {
       os << ',';
     }
-    int index = getGtirbOpIndex(i, opCount);
-    const gtirb::SymbolicExpression* symbolic = nullptr;
-    auto found = module.findSymbolicExpression(ea + index);
-    if (found != module.symbolic_expr_end())
-      symbolic = &*found;
-    printOperand(os, symbolic, inst, i);
+    printOperand(os, ea, inst, i);
   }
 }
 
-void PrettyPrinterBase::printOperand(std::ostream& os,
-                                     const gtirb::SymbolicExpression* symbolic,
+void PrettyPrinterBase::printOperand(std::ostream& os, const gtirb::Addr ea,
                                      const cs_insn& inst, uint64_t index) {
+  const gtirb::Module& module = *this->ir.modules().begin();
   const cs_x86_op& op = inst.detail->x86.operands[index];
+
+  const gtirb::SymbolicExpression* symbolic = nullptr;
+  uint8_t immOffset = inst.detail->x86.encoding.imm_offset;
+  uint8_t dispOffset = inst.detail->x86.encoding.disp_offset;
+
   switch (op.type) {
   case X86_OP_REG:
     printOpRegdirect(os, inst, op);
     return;
   case X86_OP_IMM:
+    if (immOffset > 0) {
+      auto found = module.findSymbolicExpression(ea + immOffset);
+      if (found != module.symbolic_expr_end())
+        symbolic = &*found;
+    }
     printOpImmediate(os, symbolic, inst, index);
     return;
   case X86_OP_MEM:
+    if (dispOffset > 0) {
+      auto found = module.findSymbolicExpression(ea + dispOffset);
+      if (found != module.symbolic_expr_end())
+        symbolic = &*found;
+    }
     printOpIndirect(os, symbolic, inst, index);
     return;
   case X86_OP_INVALID:
