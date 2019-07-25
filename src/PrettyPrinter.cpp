@@ -378,7 +378,8 @@ void PrettyPrinterBase::printEA(std::ostream& os, gtirb::Addr ea) {
   }
 }
 
-void PrettyPrinterBase::printOperandList(std::ostream& os, const cs_insn& inst) {
+void PrettyPrinterBase::printOperandList(std::ostream& os,
+                                         const cs_insn& inst) {
   cs_x86& detail = inst.detail->x86;
   uint8_t opCount = detail.op_count;
 
@@ -412,12 +413,11 @@ void PrettyPrinterBase::printOperand(std::ostream& os, const cs_insn& inst,
   case X86_OP_REG:
     printOpRegdirect(os, inst, op);
     return;
-  case X86_OP_IMM:
-    {
-      auto found = module.findSymbolicExpression(ea + immOffset);
-      if (found != module.symbolic_expr_end())
-        symbolic = &*found;
-    }
+  case X86_OP_IMM: {
+    auto found = module.findSymbolicExpression(ea + immOffset);
+    if (found != module.symbolic_expr_end())
+      symbolic = &*found;
+  }
     printOpImmediate(os, symbolic, inst, index);
     return;
   case X86_OP_MEM:
