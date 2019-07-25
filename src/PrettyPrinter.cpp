@@ -368,7 +368,7 @@ void PrettyPrinterBase::printInstruction(std::ostream& os,
 
   std::string opcode = ascii_str_tolower(inst.mnemonic);
   os << "  " << opcode << ' ';
-  printOperandList(os, ea, inst);
+  printOperandList(os, inst);
 }
 
 void PrettyPrinterBase::printEA(std::ostream& os, gtirb::Addr ea) {
@@ -378,8 +378,7 @@ void PrettyPrinterBase::printEA(std::ostream& os, gtirb::Addr ea) {
   }
 }
 
-void PrettyPrinterBase::printOperandList(std::ostream& os, const gtirb::Addr ea,
-                                         const cs_insn& inst) {
+void PrettyPrinterBase::printOperandList(std::ostream& os, const cs_insn& inst) {
   cs_x86& detail = inst.detail->x86;
   uint8_t opCount = detail.op_count;
 
@@ -395,12 +394,13 @@ void PrettyPrinterBase::printOperandList(std::ostream& os, const gtirb::Addr ea,
     if (i != 0) {
       os << ',';
     }
-    printOperand(os, ea, inst, i);
+    printOperand(os, inst, i);
   }
 }
 
-void PrettyPrinterBase::printOperand(std::ostream& os, const gtirb::Addr ea,
-                                     const cs_insn& inst, uint64_t index) {
+void PrettyPrinterBase::printOperand(std::ostream& os, const cs_insn& inst,
+                                     uint64_t index) {
+  gtirb::Addr ea(inst.address);
   const gtirb::Module& module = *this->ir.modules().begin();
   const cs_x86_op& op = inst.detail->x86.operands[index];
 

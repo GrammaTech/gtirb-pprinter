@@ -204,8 +204,7 @@ protected:
   virtual void printInstruction(std::ostream& os, const cs_insn& inst);
 
   virtual void printEA(std::ostream& os, gtirb::Addr ea);
-  virtual void printOperandList(std::ostream& os, const gtirb::Addr ea,
-                                const cs_insn& inst);
+  virtual void printOperandList(std::ostream& os, const cs_insn& inst);
   virtual void printComment(std::ostream& os, const gtirb::Addr ea);
   virtual void printSymbolicData(std::ostream& os,
                                  const gtirb::SymbolicExpression* symbolic);
@@ -226,8 +225,8 @@ protected:
                            bool first = false);
   virtual void printString(std::ostream& os, const gtirb::DataObject& x);
 
-  virtual void printOperand(std::ostream& os, const gtirb::Addr eax,
-                            const cs_insn& inst, uint64_t index);
+  virtual void printOperand(std::ostream& os, const cs_insn& inst,
+                            uint64_t index);
   virtual void printOpRegdirect(std::ostream& os, const cs_insn& inst,
                                 const cs_x86_op& op) = 0;
   virtual void printOpImmediate(std::ostream& os,
