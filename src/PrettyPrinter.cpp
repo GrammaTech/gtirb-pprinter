@@ -274,6 +274,8 @@ void PrettyPrinterBase::printBlock(std::ostream& os, const gtirb::Block& x) {
     offset.Displacement += insn[i].size;
     os << '\n';
   }
+  // print any CFI directives located at the end of the block
+  // e.g. '.cfi_endproc' is usually attached to the end of the block
   printCFIDirectives(os, offset);
 }
 
