@@ -393,7 +393,7 @@ void PrettyPrinterBase::printInstruction(std::ostream& os, const cs_insn& inst,
 
   gtirb::Addr ea(inst.address);
   printSymbolDefinitionsAtAddress(os, ea);
-  printComment(os, offset, inst.size);
+  printComments(os, offset, inst.size);
   printCFIDirectives(os, offset);
   printEA(os, ea);
 
@@ -489,8 +489,8 @@ void PrettyPrinterBase::printDataObject(std::ostream& os,
   if (skipEA(addr)) {
     return;
   }
-  printComment(os, gtirb::Offset(dataObject.getUUID(), 0),
-               dataObject.getSize());
+  printComments(os, gtirb::Offset(dataObject.getUUID(), 0),
+                dataObject.getSize());
   printSymbolDefinitionsAtAddress(os, addr);
   os << PrettyPrinterBase::StrTab;
   if (this->debug)
@@ -536,9 +536,9 @@ void PrettyPrinterBase::printZeroDataObject(
   os << " .zero " << dataObject.getSize() << '\n';
 }
 
-void PrettyPrinterBase::printComment(std::ostream& os,
-                                     const gtirb::Offset& offset,
-                                     uint64_t range) {
+void PrettyPrinterBase::printComments(std::ostream& os,
+                                      const gtirb::Offset& offset,
+                                      uint64_t range) {
   if (!this->debug)
     return;
 
