@@ -210,7 +210,8 @@ protected:
 
   virtual void printEA(std::ostream& os, gtirb::Addr ea);
   virtual void printOperandList(std::ostream& os, const cs_insn& inst);
-  virtual void printComment(std::ostream& os, const gtirb::Offset& offset);
+  virtual void printComment(std::ostream& os, const gtirb::Offset& offset,
+                            uint64_t range);
   virtual void printCFIDirectives(std::ostream& os, const gtirb::Offset& ea);
   virtual void printSymbolicData(std::ostream& os,
                                  const gtirb::SymbolicExpression* symbolic,

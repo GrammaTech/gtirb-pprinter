@@ -393,7 +393,7 @@ void PrettyPrinterBase::printInstruction(std::ostream& os, const cs_insn& inst,
 
   gtirb::Addr ea(inst.address);
   printSymbolDefinitionsAtAddress(os, ea);
-  printComment(os, offset);
+  printComment(os, offset, inst.size);
   printCFIDirectives(os, offset);
   printEA(os, ea);
 
@@ -489,7 +489,8 @@ void PrettyPrinterBase::printDataObject(std::ostream& os,
   if (skipEA(addr)) {
     return;
   }
-  printComment(os, gtirb::Offset(dataObject.getUUID(), 0));
+  printComment(os, gtirb::Offset(dataObject.getUUID(), 0),
+               dataObject.getSize());
   printSymbolDefinitionsAtAddress(os, addr);
   os << PrettyPrinterBase::StrTab;
   if (this->debug)
@@ -536,7 +537,8 @@ void PrettyPrinterBase::printZeroDataObject(
 }
 
 void PrettyPrinterBase::printComment(std::ostream& os,
-                                     const gtirb::Offset& offset) {
+                                     const gtirb::Offset& offset,
+                                     uint64_t range) {
   if (!this->debug)
     return;
 
@@ -544,9 +546,13 @@ void PrettyPrinterBase::printComment(std::ostream& os,
           this->ir.modules()
               .begin()
               ->getAuxData<std::map<gtirb::Offset, std::string>>("comments")) {
-    const auto p = comments->find(offset);
-    if (p != comments->end()) {
-      os << "# " << p->second << '\n';
+    gtirb::Offset endOffset(offset.ElementId, offset.Displacement + range);
+    for (auto p = comments->lower_bound(offset);
+         p != comments->end() && p->first < endOffset; ++p) {
+      os << "#";
+      if (p->first.Displacement > offset.Displacement)
+        os << "+" << p->first.Displacement - offset.Displacement << ":";
+      os << " " << p->second << '\n';
     }
   }
 }
