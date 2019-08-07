@@ -19,7 +19,6 @@ include(CheckIncludeFile)
 # This just sets the builtin BUILD_SHARED_LIBS, but if defaults to ON
 # instead of OFF.
 option(GTIRB_PPRINTER_BUILD_SHARED_LIBS "Build shared libraries." ON)
-option(GTIRB_PPRINTER_USE_SYSTEM_BOOST "Use system-wide installation of Boost." OFF)
 
 if(GTIRB_PPRINTER_BUILD_SHARED_LIBS)
   set(BUILD_SHARED_LIBS ON)
@@ -130,8 +129,6 @@ endif()
 # Base include path for the pretty-printer.
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-add_compile_options(-DBOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE)
-
 if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
   add_compile_options(-D_CRT_SECURE_NO_WARNINGS)
   add_compile_options(-D_MBCS)
@@ -211,52 +208,27 @@ find_package(gtirb REQUIRED)
 # ---------------------------------------------------------------------------
 # Boost
 # ---------------------------------------------------------------------------
+set(Boost_NO_BOOST_CMAKE ON) # Boost version 1.70 and greater doesn't put results in ${Boost_LIBRARIES}, etc. unless you set this to ON
 
-add_compile_options(-DBOOST_SYSTEM_NO_DEPRECATED)
+set(BOOST_MIN_VERSION 1.67)
+set(BOOST_REQUIRED_COMPONENTS filesystem program_options system)
+find_package(Boost ${BOOST_MIN_VERSION} REQUIRED COMPONENTS ${BOOST_REQUIRED_COMPONENTS})
 
-if( ${GTIRB_PPRINTER_USE_SYSTEM_BOOST} MATCHES "OFF" )
-  #Attempt to configure/build boost locally.
-  configure_file(CMakeLists.boost Boost/CMakeLists.txt COPYONLY)
-
-  # Initialize CMake files required to build/install boost.
-  execute_process(COMMAND "${CMAKE_COMMAND}" -G "${CMAKE_GENERATOR}" .
-    RESULT_VARIABLE result
-    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/Boost"
-    )
-
-  if(result)
-    message(WARNING "CMake step for boost failed: ${result}")
-  endif()
-
-  set(BOOST_INSTALL_DIR "${CMAKE_BINARY_DIR}/Boost-src")
-
-  add_subdirectory("${CMAKE_BINARY_DIR}/Boost/"
-    "${BOOST_INSTALL_DIR}"
-    EXCLUDE_FROM_ALL)
-  set( Boost_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/Boost-src/include )
-
-  include_directories(${Boost_INCLUDE_DIRS})
-
-  set( Boost_LIBRARY_DIR ${CMAKE_BINARY_DIR}/Boost-src/lib )
-
-  if(${BUILD_SHARED_LIBS} MATCHES OFF)
-    set(Boost_LIBRARIES
-      ${Boost_LIBRARY_DIR}/libboost_filesystem.a
-      ${Boost_LIBRARY_DIR}/libboost_program_options.a
-      ${Boost_LIBRARY_DIR}/libboost_system.a
-      )
-  elseif(${BUILD_SHARED_LIBS} MATCHES ON)
-    set(Boost_LIBRARIES
-      ${Boost_LIBRARY_DIR}/libboost_filesystem.so
-      ${Boost_LIBRARY_DIR}/libboost_program_options.so
-      ${Boost_LIBRARY_DIR}/libboost_system.so
-      )
-  endif()
-else()
-  find_package(Boost 1.67 REQUIRED COMPONENTS filesystem program_options system)
-  include_directories(${Boost_INCLUDE_DIRS})
+if(NOT ${Boost_FOUND})
+  message(FATAL_ERROR
+  " No Boost installation found.\n"
+  " - If Boost is not installed, install it from souce.\n"
+  "   You can get the latest version of Boost at:\n"
+  "       https://www.boost.org/\n"
+  " - If Boost is installed, make sure the installation location is in your PATH,\n"
+  "   it is at least version ${BOOST_MIN_VERSION}, and it has the following libraries:\n"
+  "       ${BOOST_REQUIRED_COMPONENTS}\n"
+  )
 endif()
 
+add_compile_options(-DBOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE)
+add_compile_options(-DBOOST_SYSTEM_NO_DEPRECATED)
+include_directories(${Boost_INCLUDE_DIRS})
 
 # ---------------------------------------------------------------------------
 # capstone
@@ -312,9 +284,5 @@ install(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/export/gtirb_pprinterConfig.cmake
   ${version_file}
   DESTINATION lib/gtirb_pprinter)
-# This exports the targets to the install location.
-if( ${GTIRB_PPRINTER_USE_SYSTEM_BOOST} MATCHES "OFF" )
-  install(DIRECTORY "${Boost_LIBRARY_DIR}/" DESTINATION lib)
-endif()
 
 install(EXPORT gtirb_pprinterTargets DESTINATION lib/gtirb_pprinter)

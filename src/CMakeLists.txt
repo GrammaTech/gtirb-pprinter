@@ -50,16 +50,12 @@ add_library(${PROJECT_NAME}
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "debloat")
 
-if( ${GTIRB_PPRINTER_USE_SYSTEM_BOOST} MATCHES "OFF" )
-  add_dependencies(${PROJECT_NAME} Boost)
-endif()
-
 target_link_libraries(
   ${PROJECT_NAME}
   ${SYSLIBS}
   ${Boost_LIBRARIES}
-    gtirb
-    ${CAPSTONE}
+  gtirb
+  ${CAPSTONE}
 )
 
 # Copy headers into build directory
