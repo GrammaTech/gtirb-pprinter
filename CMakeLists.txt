@@ -240,12 +240,21 @@ else()
 endif()
 
 if(NOT CAPSTONE)
-  message(FATAL_ERROR "capstone library not found")
-else()
-  include_directories(${CAPSTONE_INCLUDE_DIRS})
+  message(FATAL_ERROR
+  " No Capstone installation found.\n"
+  " - If Capstone is not installed, install it from souce.\n"
+  "   You can get the latest version of Capstone at:\n"
+  "       http://www.capstone-engine.org/\n"
+  " - If Capstone is installed, make sure the installation location is in your PATH,\n"
+  "   and it is at least version 4.0.1.\n"
+  )
 endif()
 
+include_directories(${CAPSTONE_INCLUDE_DIRS})
 
+# ---------------------------------------------------------------------------
+# Source files
+# ---------------------------------------------------------------------------
 add_subdirectory(driver)
 add_subdirectory(src)
 
