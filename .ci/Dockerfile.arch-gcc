@@ -2,7 +2,7 @@ FROM archlinux/base
 
 RUN pacman -Syu --noconfirm git autoconf automake doxygen fakeroot libtool \
     make pkg-config zlib mcpp gcc  \
-    clang cmake wget
+    clang cmake wget boost
 
 # Install protobuf
 RUN cd /usr/local/src \

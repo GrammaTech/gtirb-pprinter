@@ -1,18 +1,28 @@
 FROM ubuntu:18.04
 
-RUN apt-get -y update && apt-get -y install make git \
-    build-essential binutils cmake clang curl doxygen graphviz wget unzip 
+RUN apt-get -y update && apt-get -y install autoconf make git \
+    build-essential binutils cmake clang curl doxygen graphviz wget unzip
+
+# Install Boost
+RUN curl -L https://dl.bintray.com/boostorg/release/1.67.0/source/boost_1_67_0.tar.gz > boost.tar.gz && \
+    tar vxfz boost.tar.gz && \
+    cd boost_1_67_0 && \
+    ./bootstrap.sh --prefix=/usr --with-libraries=filesystem,program_options,system && \
+    ./b2 install --prefix=/usr && \
+    rm ../boost.tar.gz && \
+    cd .. && \
+    rm -rf boost_1_67_0
 
 # Install protobuf
-RUN cd /usr/local/src \
-    && wget https://github.com/google/protobuf/releases/download/v3.6.0/protobuf-cpp-3.6.0.tar.gz \
-    && tar xf protobuf-cpp-3.6.0.tar.gz \
-    && cd protobuf-3.6.0 \
-    && ./configure \
-    && make \
-    && make install
+RUN git clone https://github.com/google/protobuf -b v3.7.0 && \
+    cd protobuf && \
+    sh ./autogen.sh && \
+    ./configure --prefix=/usr --enable-shared && \
+    make && \
+    make install && \
+    cd .. && \
+    rm -rf protobuf
 RUN ldconfig
-
 
 # Install capstone
 RUN cd /usr/local/src \
@@ -22,10 +32,9 @@ RUN cd /usr/local/src \
     && CAPSTONE_ARCHS=x86 ./make.sh \
     && CAPSTONE_ARCHS=x86 ./make.sh install
 
+# Install gtirb
 COPY . /gt/gtirb-pprinter/
 
-
-# Install gtirb
 RUN rm -rf /gt/gtirb-pprinter/gtirb/build /gt/gtirb-pprinter/gtirb/CMakeCache.txt /gt/gtirb-pprinter/gtirb/CMakeFiles /gt/gtirb-pprinter/gtirb/CMakeScripts
 RUN cd /gt/gtirb-pprinter/gtirb/ && cmake ./ -Bbuild -DCMAKE_CXX_COMPILER=clang++ && cd build &&  make && make install
 
