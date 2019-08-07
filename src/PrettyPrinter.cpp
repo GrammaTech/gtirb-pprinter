@@ -499,7 +499,9 @@ void PrettyPrinterBase::printDataObject(std::ostream& os,
   assert(section && "Found a data object outside all sections");
   if (shouldExcludeDataElement(**section, dataObject))
     return;
-  if ((*section)->getName() == StrSectionBSS)
+  gtirb::Module& module = *this->ir.modules().begin();
+  auto dataObjectBytes = getBytes(module.getImageByteMap(), dataObject);
+  if (dataObjectBytes.empty())
     printZeroDataObject(os, dataObject);
   else
     printNonZeroDataObject(os, dataObject);
