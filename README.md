@@ -11,8 +11,18 @@ engineering to gas-syntax assembly code.
 The pretty-printer uses C++17, and requires a compiler which supports
 that standard such as gcc 7, clang 6, or MSVC 2017.
 
-Boost (1.67 or later) and [GTIRB](https://github.com/grammatech/gtirb)
-are required.
+To build and install the pretty printer, the following requirements
+should be installed:
+
+* [GTIRB](https://github.com/grammatech/gtirb)
+* [Boost](https://www.boost.org/), version 1.67.0 or later, with the libararies:
+  * filesystem
+  * program_options
+  * system
+
+Note that this version of Boost is newer than what your package manager may provide
+by default: This is true on Ubuntu 18, Debian 10, and others. Prefer building
+Boost from sources to avoid versioning problems.
 
 Use the following options to configure cmake:
 - You can tell CMake which compiler to use with
