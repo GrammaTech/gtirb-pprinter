@@ -21,9 +21,9 @@ should be installed:
   * program_options
   * system
 
-Note that this version of Boost is newer than what your package manager may provide
+Note that these versions are newer than what your package manager may provide
 by default: This is true on Ubuntu 18, Debian 10, and others. Prefer building
-Boost from sources to avoid versioning problems.
+these dependencies from sources to avoid versioning problems.
 
 Use the following options to configure cmake:
 - You can tell CMake which compiler to use with
