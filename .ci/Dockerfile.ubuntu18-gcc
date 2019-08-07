@@ -1,6 +1,6 @@
 FROM ubuntu:18.04
 
-RUN apt-get -y update && apt-get -y install autoconf make git \
+RUN apt-get -y update && apt-get -y install make git \
     build-essential binutils cmake curl doxygen graphviz wget unzip
 
 # Install Boost
@@ -14,14 +14,15 @@ RUN curl -L https://dl.bintray.com/boostorg/release/1.67.0/source/boost_1_67_0.t
     rm -rf boost_1_67_0
 
 # Install protobuf
-RUN git clone https://github.com/google/protobuf -b v3.7.0 && \
-    cd protobuf && \
-    sh ./autogen.sh && \
-    ./configure --prefix=/usr --enable-shared && \
-    make && \
-    make install && \
-    cd .. && \
-    rm -rf protobuf
+RUN cd /usr/local/src \
+    && wget https://github.com/google/protobuf/releases/download/v3.7.0/protobuf-cpp-3.7.0.tar.gz \
+    && tar xf protobuf-cpp-3.7.0.tar.gz \
+    && cd protobuf-3.7.0 \
+    && ./configure \
+    && make \
+    && make install \
+    && cd .. \
+    && rm -rf protobuf-3.7.0 protobuf-cpp-3.7.0.tar.gz
 RUN ldconfig
 
 # Install capstone
