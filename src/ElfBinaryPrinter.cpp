@@ -26,6 +26,7 @@
 #include <boost/process/system.hpp>
 #pragma GCC diagnostic pop
 #include <experimental/filesystem>
+#include <iostream>
 #include <regex>
 #include <string>
 #include <vector>
