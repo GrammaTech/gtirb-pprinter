@@ -16,7 +16,7 @@ should be installed:
 
 * [GTIRB](https://github.com/grammatech/gtirb)
 * [Capstone](http://www.capstone-engine.org/), version 4.0.1 or later
-* [Boost](https://www.boost.org/), version 1.67.0 or later, with the libararies:
+* [Boost](https://www.boost.org/), version 1.67.0 or later, with the libraries:
   * filesystem
   * program_options
   * system
