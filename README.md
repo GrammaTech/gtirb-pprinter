@@ -14,12 +14,17 @@ that standard such as gcc 7, clang 6, or MSVC 2017.
 To build and install the pretty printer, the following requirements
 should be installed:
 
-* [GTIRB](https://github.com/grammatech/gtirb)
-* [Capstone](http://www.capstone-engine.org/), version 4.0.1 or later
-* [Boost](https://www.boost.org/), version 1.67.0 or later, with the libraries:
-  * filesystem
-  * program_options
-  * system
+* [GTIRB](https://github.com/grammatech/gtirb).
+* [Capstone](http://www.capstone-engine.org/), version 4.0.1 or later.
+  * Ubuntu 18 and earlier provide out of date versions;
+    build from source on those Ubuntu versions.
+* [Boost](https://www.boost.org/), version 1.67.0 or later.
+  * Requires the libraries:
+    * filesystem
+    * program_options
+    * system
+  * Ubuntu 18 and earlier provide out of date versions;
+    build from source on those Ubuntu versions.
 
 Note that these versions are newer than what your package manager may provide
 by default: This is true on Ubuntu 18, Debian 10, and others. Prefer building
