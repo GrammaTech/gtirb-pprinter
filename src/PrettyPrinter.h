@@ -202,6 +202,9 @@ protected:
   virtual void printHeader(std::ostream& os) = 0;
   virtual void printAlignment(std::ostream& os, const gtirb::Addr addr);
   virtual void printSectionHeader(std::ostream& os, const gtirb::Addr addr);
+  virtual void printSectionFooter(std::ostream& os,
+                                  const std::optional<const gtirb::Addr> addr,
+                                  const gtirb::Addr last);
   virtual void printSectionProperties(std::ostream& os,
                                       const gtirb::Section& addr) = 0;
   virtual void printFunctionHeader(std::ostream& os, gtirb::Addr ea) = 0;

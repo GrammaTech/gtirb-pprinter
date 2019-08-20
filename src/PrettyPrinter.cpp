@@ -184,6 +184,7 @@ std::ostream& PrettyPrinterBase::print(std::ostream& os) {
   for (; dataIt != module.data_end(); dataIt++)
     last = printDataObjectOrWarning(os, *dataIt, last);
   printSymbolDefinitionsAtAddress(os, last);
+  printSectionFooter(os, std::nullopt, last);
   return os;
 }
 
@@ -198,6 +199,8 @@ gtirb::Addr PrettyPrinterBase::printBlockOrWarning(std::ostream& os,
     if (nextAddr > last) {
       printSymbolDefinitionsAtAddress(os, last);
     }
+    printSectionFooter(os, nextAddr, last);
+    printSectionHeader(os, nextAddr);
     printBlock(os, block);
     return block.getAddress() + block.getSize();
   }
@@ -212,6 +215,8 @@ gtirb::Addr PrettyPrinterBase::printDataObjectOrWarning(
   } else {
     if (nextAddr > last)
       printSymbolDefinitionsAtAddress(os, last);
+    printSectionFooter(os, nextAddr, last);
+    printSectionHeader(os, nextAddr);
     printDataObject(os, dataObject);
     return dataObject.getAddress() + dataObject.getSize();
   }
@@ -225,7 +230,6 @@ void PrettyPrinterBase::printOverlapWarning(std::ostream& os,
 }
 
 void PrettyPrinterBase::printBlock(std::ostream& os, const gtirb::Block& x) {
-  printSectionHeader(os, x.getAddress());
   if (skipEA(x.getAddress())) {
     return;
   }
@@ -285,6 +289,32 @@ void PrettyPrinterBase::printSectionHeader(std::ostream& os,
     printAlignment(os, addr);
   printBar(os);
   os << '\n';
+}
+
+void PrettyPrinterBase::printSectionFooter(
+    std::ostream& /* os */, const std::optional<const gtirb::Addr> addr,
+    const gtirb::Addr last) {
+
+  const auto prev_section = getContainerSection(last - 1);
+  if (!prev_section.has_value())
+    return;
+
+  std::string section_name = (*prev_section)->getName();
+  if (skip_sects.count(section_name))
+    return;
+
+  const auto next_section = addr ? getContainerSection(*addr) : std::nullopt;
+  if (!next_section.has_value() || !(next_section == prev_section)) {
+    if (section_name == syntax[Asm::Section::Text]) {
+      return;
+    } else if (section_name == syntax[Asm::Section::Data]) {
+      return;
+    } else if (section_name == syntax[Asm::Section::BSS]) {
+      return;
+    } else {
+      /* TODO */
+    }
+  }
 }
 
 void PrettyPrinterBase::printBar(std::ostream& os, bool heavy) {
@@ -424,7 +454,6 @@ void PrettyPrinterBase::printOperand(std::ostream& os, const cs_insn& inst,
 void PrettyPrinterBase::printDataObject(std::ostream& os,
                                         const gtirb::DataObject& dataObject) {
   gtirb::Addr addr = dataObject.getAddress();
-  printSectionHeader(os, addr);
   if (skipEA(addr)) {
     return;
   }
