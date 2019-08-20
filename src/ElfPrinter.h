@@ -22,10 +22,27 @@ namespace gtirb_pprint {
 class ElfPrettyPrinter : public PrettyPrinterBase {
 public:
   ElfPrettyPrinter(gtirb::Context& context, gtirb::IR& ir,
-                   const string_range& skip_funcs, DebugStyle dbg);
+                   const string_range& keep_funcs, DebugStyle dbg);
 
 protected:
+  const std::unordered_set<std::string>& getSkippedSections() const override;
+  const std::unordered_set<std::string>& getSkippedFunctions() const override;
+
 private:
+  /// Sections to avoid printing.
+  std::unordered_set<std::string> m_skip_sects{
+      ".comment", ".plt",     ".init",    ".fini",        ".got",
+      ".plt.got", ".got.plt", ".plt.sec", ".eh_frame_hdr"};
+
+  /// Functions to avoid printing.
+  std::unordered_set<std::string> m_skip_funcs{"_start",
+                                               "deregister_tm_clones",
+                                               "register_tm_clones",
+                                               "__do_global_dtors_aux",
+                                               "frame_dummy",
+                                               "__libc_csu_fini",
+                                               "__libc_csu_init",
+                                               "_dl_relocate_static_pie"};
 };
 
 } // namespace gtirb_pprint

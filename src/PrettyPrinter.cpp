@@ -125,15 +125,7 @@ std::string getDefaultSyntax(const std::string& format) {
 }
 
 PrettyPrinter::PrettyPrinter()
-    : m_skip_funcs{"_start",
-                   "deregister_tm_clones",
-                   "register_tm_clones",
-                   "__do_global_dtors_aux",
-                   "frame_dummy",
-                   "__libc_csu_fini",
-                   "__libc_csu_init",
-                   "_dl_relocate_static_pie"},
-      m_format{"elf"}, m_syntax{"intel"}, m_debug{NoDebug} {}
+    : m_keep_funcs{}, m_format{"elf"}, m_syntax{"intel"}, m_debug{NoDebug} {}
 
 void PrettyPrinter::setTarget(
     const std::tuple<std::string, std::string>& target) {
@@ -149,31 +141,21 @@ void PrettyPrinter::setDebug(bool do_debug) {
 
 bool PrettyPrinter::getDebug() const { return m_debug == DebugMessages; }
 
-const std::set<std::string>& PrettyPrinter::getSkippedFunctions() const {
-  return m_skip_funcs;
-}
-
-void PrettyPrinter::skipFunction(const std::string& functionName) {
-  m_skip_funcs.insert(functionName);
-}
-
 void PrettyPrinter::keepFunction(const std::string& functionName) {
-  m_skip_funcs.erase(functionName);
+  m_keep_funcs.insert(functionName);
 }
 
 std::error_condition PrettyPrinter::print(std::ostream& stream,
                                           gtirb::Context& context,
                                           gtirb::IR& ir) const {
   const auto target = std::make_tuple(m_format, m_syntax);
-  getFactories().at(target)(context, ir, m_skip_funcs, m_debug)->print(stream);
+  getFactories().at(target)(context, ir, m_keep_funcs, m_debug)->print(stream);
   return std::error_condition{};
 }
 
 PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_, gtirb::IR& ir_,
-                                     const string_range& skip_funcs,
                                      DebugStyle dbg)
-    : AsmSkipFunction(skip_funcs.begin(), skip_funcs.end()),
-      debug(dbg == DebugMessages ? true : false), context(context_), ir(ir_),
+    : debug(dbg == DebugMessages ? true : false), context(context_), ir(ir_),
       functionEntry() {
   [[maybe_unused]] cs_err err =
       cs_open(CS_ARCH_X86, CS_MODE_64, &this->csHandle);
@@ -314,7 +296,7 @@ void PrettyPrinterBase::printSectionHeader(std::ostream& os,
   if (found_section.begin()->getAddress() != addr)
     return;
   std::string sectionName = found_section.begin()->getName();
-  if (AsmSkipSection.count(sectionName))
+  if (getSkippedSections().count(sectionName))
     return;
   os << '\n';
   printBar(os);
@@ -732,14 +714,14 @@ bool PrettyPrinterBase::isInSkippedSection(const gtirb::Addr addr) const {
   if (debug)
     return false;
   const auto section = getContainerSection(addr);
-  return section && AsmSkipSection.count((*section)->getName());
+  return section && getSkippedSections().count((*section)->getName());
 }
 
 bool PrettyPrinterBase::isInSkippedFunction(const gtirb::Addr x) const {
   std::optional<std::string> xFunctionName = getContainerFunctionName(x);
   if (!xFunctionName)
     return false;
-  return AsmSkipFunction.count(*xFunctionName);
+  return getSkippedFunctions().count(*xFunctionName);
 }
 
 std::optional<std::string>

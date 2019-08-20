@@ -130,7 +130,7 @@ public:
                              gtirb::IR& ir) const;
 
 private:
-  std::set<std::string> m_skip_funcs;
+  std::set<std::string> m_keep_funcs;
   std::string m_format;
   std::string m_syntax;
   DebugStyle m_debug;
@@ -140,8 +140,7 @@ private:
 /// print().
 class PrettyPrinterBase {
 public:
-  PrettyPrinterBase(gtirb::Context& context, gtirb::IR& ir,
-                    const string_range& skip_funcs, DebugStyle dbg);
+  PrettyPrinterBase(gtirb::Context& context, gtirb::IR& ir, DebugStyle dbg);
   virtual ~PrettyPrinterBase();
 
   virtual std::ostream& print(std::ostream& out);
@@ -157,13 +156,9 @@ protected:
   const std::string StrSectionType{".type"};
   const std::string StrTab{"          "};
 
-  /// Sections to avoid printing.
-  std::unordered_set<std::string> AsmSkipSection{
-      ".comment", ".plt",     ".init",    ".fini",        ".got",
-      ".plt.got", ".got.plt", ".plt.sec", ".eh_frame_hdr"};
-
-  /// Functions to avoid printing.
-  std::unordered_set<std::string> AsmSkipFunction;
+  virtual const std::unordered_set<std::string>& getSkippedSections() const = 0;
+  virtual const std::unordered_set<std::string>&
+  getSkippedFunctions() const = 0;
 
   /// Return the SymAddrConst expression if it refers to a printed symbol.
   ///

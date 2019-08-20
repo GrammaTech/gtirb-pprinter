@@ -21,9 +21,9 @@
 namespace gtirb_pprint {
 
 AttPrettyPrinter::AttPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
-                                   const string_range& skip_funcs,
+                                   const string_range& keep_funcs,
                                    DebugStyle dbg)
-    : ElfPrettyPrinter(context_, ir_, skip_funcs, dbg) {
+    : ElfPrettyPrinter(context_, ir_, keep_funcs, dbg) {
   cs_option(this->csHandle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
 }
 
@@ -119,9 +119,9 @@ void AttPrettyPrinter::printOpIndirect(
 
 volatile bool AttPrettyPrinter::registered = registerPrinter(
     {"elf"}, {"att"},
-    [](gtirb::Context& context, gtirb::IR& ir, const string_range& skip_funcs,
+    [](gtirb::Context& context, gtirb::IR& ir, const string_range& keep_funcs,
        DebugStyle dbg) {
-      return std::make_unique<AttPrettyPrinter>(context, ir, skip_funcs, dbg);
+      return std::make_unique<AttPrettyPrinter>(context, ir, keep_funcs, dbg);
     });
 
 } // namespace gtirb_pprint

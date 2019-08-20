@@ -22,7 +22,7 @@ namespace gtirb_pprint {
 class IntelPrettyPrinter : public ElfPrettyPrinter {
 public:
   IntelPrettyPrinter(gtirb::Context& context, gtirb::IR& ir,
-                     const string_range& skip_funcs, DebugStyle dbg);
+                     const string_range& keep_funcs, DebugStyle dbg);
 
 protected:
   void printHeader(std::ostream& os) override;

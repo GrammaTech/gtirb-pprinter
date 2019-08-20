@@ -16,9 +16,13 @@
 
 namespace gtirb_pprint {
 ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
-                                   const string_range& skip_funcs,
+                                   const string_range& keep_funcs,
                                    DebugStyle dbg_)
-    : PrettyPrinterBase(context_, ir_, skip_funcs, dbg_) {
+    : PrettyPrinterBase(context_, ir_, dbg_) {
+
+  for (const auto functionName : keep_funcs)
+    m_skip_funcs.erase(functionName);
+
   if (this->ir.modules()
           .begin()
           ->getAuxData<
@@ -26,7 +30,18 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
                        std::vector<std::tuple<std::string, std::vector<int64_t>,
                                               gtirb::UUID>>>>(
               "cfiDirectives")) {
-    AsmSkipSection.insert(".eh_frame");
+    m_skip_sects.insert(".eh_frame");
   }
 }
+
+const std::unordered_set<std::string>&
+ElfPrettyPrinter::getSkippedSections() const {
+  return m_skip_sects;
+}
+
+const std::unordered_set<std::string>&
+ElfPrettyPrinter::getSkippedFunctions() const {
+  return m_skip_funcs;
+}
+
 } // namespace gtirb_pprint
