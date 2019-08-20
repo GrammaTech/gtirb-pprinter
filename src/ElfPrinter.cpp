@@ -52,12 +52,6 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
                                    DebugStyle dbg_)
     : PrettyPrinterBase(context_, ir_, dbg_) {
 
-  for (const auto& [k, v] : m_syntax)
-    syntax[k] = v;
-
-  for (const auto functionName : keep_funcs)
-    m_skip_funcs.erase(functionName);
-
   if (this->ir.modules()
           .begin()
           ->getAuxData<
@@ -67,16 +61,17 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
               "cfiDirectives")) {
     m_skip_sects.insert(".eh_frame");
   }
-}
 
-const std::unordered_set<std::string>&
-ElfPrettyPrinter::getSkippedSections() const {
-  return m_skip_sects;
-}
-
-const std::unordered_set<std::string>&
-ElfPrettyPrinter::getSkippedFunctions() const {
-  return m_skip_funcs;
+  for (const auto& [k, v] : m_syntax)
+    syntax[k] = v;
+  for (const auto name : keep_funcs)
+    m_skip_funcs.erase(name);
+  for (const auto name : m_skip_sects)
+    skip_sects.insert(name);
+  for (const auto name : m_skip_funcs)
+    skip_funcs.insert(name);
+  for (const auto name : m_skip_data)
+    skip_data.insert(name);
 }
 
 void ElfPrettyPrinter::printFunctionHeader(std::ostream& os, gtirb::Addr addr) {

@@ -25,9 +25,6 @@ public:
                    const string_range& keep_funcs, DebugStyle dbg);
 
 protected:
-  const std::unordered_set<std::string>& getSkippedSections() const override;
-  const std::unordered_set<std::string>& getSkippedFunctions() const override;
-
   void printFunctionHeader(std::ostream& os, gtirb::Addr ea) override;
 
 private:
@@ -52,6 +49,9 @@ private:
                                                "__libc_csu_fini",
                                                "__libc_csu_init",
                                                "_dl_relocate_static_pie"};
+
+  // Data objects to avoid printing.
+  std::unordered_set<std::string> m_skip_data{".init_array", ".fini_array"};
 };
 
 } // namespace gtirb_pprint

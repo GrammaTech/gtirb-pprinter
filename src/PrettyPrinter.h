@@ -105,9 +105,6 @@ public:
   /// \c false.
   bool getDebug() const;
 
-  /// Set of functions to skip during printing.
-  const std::set<std::string>& getSkippedFunctions() const;
-
   /// Skip the named function when printing.
   ///
   /// \param functionName name of the function to skip
@@ -181,9 +178,17 @@ protected:
       {Asm::Directive::NOP, "nop"},    {Asm::Directive::ZeroByte, ".byte 0x00"},
   };
 
-  virtual const std::unordered_set<std::string>& getSkippedSections() const = 0;
-  virtual const std::unordered_set<std::string>&
-  getSkippedFunctions() const = 0;
+  /// Sections to avoid printing.
+  std::unordered_set<std::string> skip_sects;
+
+  /// Functions to avoid printing.
+  std::unordered_set<std::string> skip_funcs;
+
+  /// Data objects to avoid printing.
+  // These sections have a couple of special cases for data objects. They
+  // usually contain entries that need to be ignored (the compiler will add them
+  // again) and require special alignment of 8
+  std::unordered_set<std::string> skip_data;
 
   /// Return the SymAddrConst expression if it refers to a printed symbol.
   ///
@@ -278,13 +283,6 @@ protected:
   virtual void printDataObjectType(std::ostream& os,
                                    const gtirb::DataObject& dataObject);
 
-  // These sections have a couple of special cases for printing
-  // They usually containt entries that need to be ignored (the compiler will
-  // add them again) and require special alignment of 8
-  const std::unordered_set<std::string> AsmArraySection{".init_array",
-                                                        ".fini_array"};
-  // This method method checks in the dataObject is in AsmArraySection and
-  // has to be ignored
   bool shouldExcludeDataElement(const gtirb::Section& section,
                                 const gtirb::DataObject& dataObject) const;
 

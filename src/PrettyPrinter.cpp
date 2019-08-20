@@ -265,7 +265,7 @@ void PrettyPrinterBase::printSectionHeader(std::ostream& os,
   if (found_section.begin()->getAddress() != addr)
     return;
   std::string sectionName = found_section.begin()->getName();
-  if (getSkippedSections().count(sectionName))
+  if (skip_sects.count(sectionName))
     return;
   os << '\n';
   printBar(os);
@@ -278,7 +278,7 @@ void PrettyPrinterBase::printSectionHeader(std::ostream& os,
     printSectionProperties(os, *(found_section.begin()));
     os << std::endl;
   }
-  if (AsmArraySection.count(sectionName))
+  if (skip_data.count(sectionName))
     os << ".align 8\n";
   else
     printAlignment(os, addr);
@@ -651,7 +651,7 @@ void PrettyPrinterBase::printString(std::ostream& os,
 
 bool PrettyPrinterBase::shouldExcludeDataElement(
     const gtirb::Section& section, const gtirb::DataObject& dataObject) const {
-  if (!AsmArraySection.count(section.getName()))
+  if (!skip_data.count(section.getName()))
     return false;
   const gtirb::Module& module = *this->ir.modules().begin();
   auto foundSymbolic = module.findSymbolicExpression(dataObject.getAddress());
@@ -671,14 +671,14 @@ bool PrettyPrinterBase::isInSkippedSection(const gtirb::Addr addr) const {
   if (debug)
     return false;
   const auto section = getContainerSection(addr);
-  return section && getSkippedSections().count((*section)->getName());
+  return section && skip_sects.count((*section)->getName());
 }
 
 bool PrettyPrinterBase::isInSkippedFunction(const gtirb::Addr x) const {
   std::optional<std::string> xFunctionName = getContainerFunctionName(x);
   if (!xFunctionName)
     return false;
-  return getSkippedFunctions().count(*xFunctionName);
+  return skip_funcs.count(*xFunctionName);
 }
 
 std::optional<std::string>
