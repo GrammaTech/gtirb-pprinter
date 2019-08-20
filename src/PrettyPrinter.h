@@ -203,7 +203,7 @@ protected:
   virtual void printAlignment(std::ostream& os, const gtirb::Addr addr);
   virtual void printSectionHeader(std::ostream& os, const gtirb::Addr addr);
   virtual void printSectionProperties(std::ostream& os,
-                                      const gtirb::Section& addr);
+                                      const gtirb::Section& addr) = 0;
   virtual void printFunctionHeader(std::ostream& os, gtirb::Addr ea) = 0;
 
   /// Print the block as long as it does not overlap with the address last.

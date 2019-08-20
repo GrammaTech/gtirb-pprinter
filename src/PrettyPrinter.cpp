@@ -19,7 +19,6 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/range/algorithm/find_if.hpp>
 #include <capstone/capstone.h>
-#include <elf.h>
 #include <fstream>
 #include <gtirb/gtirb.hpp>
 #include <iomanip>
@@ -271,6 +270,8 @@ void PrettyPrinterBase::printSectionHeader(std::ostream& os,
   printBar(os);
   if (sectionName == syntax[Asm::Section::Text]) {
     os << syntax[Asm::Directive::Text] << '\n';
+  } else if (sectionName == syntax[Asm::Section::Data]) {
+    os << syntax[Asm::Directive::Data] << '\n';
   } else if (sectionName == syntax[Asm::Section::BSS]) {
     os << syntax[Asm::Directive::BSS] << '\n';
   } else {
@@ -284,34 +285,6 @@ void PrettyPrinterBase::printSectionHeader(std::ostream& os,
     printAlignment(os, addr);
   printBar(os);
   os << '\n';
-}
-
-void PrettyPrinterBase::printSectionProperties(std::ostream& os,
-                                               const gtirb::Section& section) {
-  const auto* elfSectionProperties =
-      this->ir.modules()
-          .begin()
-          ->getAuxData<std::map<gtirb::UUID, std::tuple<uint64_t, uint64_t>>>(
-              "elfSectionProperties");
-  if (!elfSectionProperties)
-    return;
-  const auto sectionProperties = elfSectionProperties->find(section.getUUID());
-  if (sectionProperties == elfSectionProperties->end())
-    return;
-  uint64_t type = std::get<0>(sectionProperties->second);
-  uint64_t flags = std::get<1>(sectionProperties->second);
-  os << " ,\"";
-  if (flags & SHF_WRITE)
-    os << "w";
-  if (flags & SHF_ALLOC)
-    os << "a";
-  if (flags & SHF_EXECINSTR)
-    os << "x";
-  os << "\"";
-  if (type == SHT_PROGBITS)
-    os << ",@progbits";
-  if (type == SHT_NOBITS)
-    os << ",@nobits";
 }
 
 void PrettyPrinterBase::printBar(std::ostream& os, bool heavy) {

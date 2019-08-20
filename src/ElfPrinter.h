@@ -25,14 +25,17 @@ public:
                    const string_range& keep_funcs, DebugStyle dbg);
 
 protected:
+  void printSectionProperties(std::ostream& os,
+                              const gtirb::Section& section) override;
   void printFunctionHeader(std::ostream& os, gtirb::Addr ea) override;
 
 private:
   /// Constants table of target-specific assembler syntax.
   Syntax m_syntax = {
-      {Asm::Style::Comment, "#"},        {Asm::Directive::Section, ".section"},
-      {Asm::Directive::Text, ".text"},   {Asm::Directive::BSS, ".bss"},
-      {Asm::Directive::Align, ".align"}, {Asm::Directive::Global, ".globl"},
+      {Asm::Style::Comment, "#"},         {Asm::Directive::Section, ".section"},
+      {Asm::Directive::Text, ".text"},    {Asm::Directive::Data, ".data"},
+      {Asm::Directive::BSS, ".bss"},      {Asm::Directive::Align, ".align"},
+      {Asm::Directive::Global, ".globl"},
   };
 
   /// Sections to avoid printing.

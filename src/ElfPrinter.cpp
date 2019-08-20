@@ -14,6 +14,8 @@
 //===----------------------------------------------------------------------===//
 #include "ElfPrinter.h"
 
+#include <elf.h>
+
 namespace gtirb_pprint {
 ///
 /// Print a comment that automatically scopes.
@@ -72,6 +74,34 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
     skip_funcs.insert(name);
   for (const auto name : m_skip_data)
     skip_data.insert(name);
+}
+
+void ElfPrettyPrinter::printSectionProperties(std::ostream& os,
+                                              const gtirb::Section& section) {
+  const auto* elfSectionProperties =
+      this->ir.modules()
+          .begin()
+          ->getAuxData<std::map<gtirb::UUID, std::tuple<uint64_t, uint64_t>>>(
+              "elfSectionProperties");
+  if (!elfSectionProperties)
+    return;
+  const auto sectionProperties = elfSectionProperties->find(section.getUUID());
+  if (sectionProperties == elfSectionProperties->end())
+    return;
+  uint64_t type = std::get<0>(sectionProperties->second);
+  uint64_t flags = std::get<1>(sectionProperties->second);
+  os << " ,\"";
+  if (flags & SHF_WRITE)
+    os << "w";
+  if (flags & SHF_ALLOC)
+    os << "a";
+  if (flags & SHF_EXECINSTR)
+    os << "x";
+  os << "\"";
+  if (type == SHT_PROGBITS)
+    os << ",@progbits";
+  if (type == SHT_NOBITS)
+    os << ",@nobits";
 }
 
 void ElfPrettyPrinter::printFunctionHeader(std::ostream& os, gtirb::Addr addr) {
