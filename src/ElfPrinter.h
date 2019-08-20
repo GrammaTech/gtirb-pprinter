@@ -29,6 +29,13 @@ protected:
   const std::unordered_set<std::string>& getSkippedFunctions() const override;
 
 private:
+  /// Constants table of target-specific assembler syntax.
+  Syntax m_syntax = {
+      {Asm::Style::Comment, "#"},         {Asm::Directive::Section, ".section"},
+      {Asm::Directive::Text, ".text"},    {Asm::Directive::BSS, ".bss"},
+      {Asm::Directive::Global, ".globl"},
+  };
+
   /// Sections to avoid printing.
   std::unordered_set<std::string> m_skip_sects{
       ".comment", ".plt",     ".init",    ".fini",        ".got",

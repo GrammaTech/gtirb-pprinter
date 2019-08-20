@@ -20,6 +20,9 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
                                    DebugStyle dbg_)
     : PrettyPrinterBase(context_, ir_, dbg_) {
 
+  for (const auto& [k, v] : m_syntax)
+    syntax[k] = v;
+
   for (const auto functionName : keep_funcs)
     m_skip_funcs.erase(functionName);
 

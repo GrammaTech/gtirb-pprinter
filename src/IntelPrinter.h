@@ -35,9 +35,12 @@ protected:
                        const gtirb::SymbolicExpression* symbolic,
                        const cs_insn& inst, uint64_t index) override;
 
-  static constexpr char StrOffset[]{"OFFSET"};
-
 private:
+  /// Constants table for intel-specific assembler syntax and directives.
+  Syntax m_syntax = {
+      {Asm::Directive::Offset, "OFFSET"},
+  };
+
   static volatile bool registered;
 };
 

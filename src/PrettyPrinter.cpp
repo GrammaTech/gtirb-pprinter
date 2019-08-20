@@ -300,12 +300,12 @@ void PrettyPrinterBase::printSectionHeader(std::ostream& os,
     return;
   os << '\n';
   printBar(os);
-  if (sectionName == PrettyPrinterBase::StrSectionText) {
-    os << PrettyPrinterBase::StrSectionText << '\n';
-  } else if (sectionName == PrettyPrinterBase::StrSectionBSS) {
-    os << PrettyPrinterBase::StrSectionBSS << '\n';
+  if (sectionName == syntax[Asm::Section::Text]) {
+    os << syntax[Asm::Directive::Text] << '\n';
+  } else if (sectionName == syntax[Asm::Section::BSS]) {
+    os << syntax[Asm::Directive::BSS] << '\n';
   } else {
-    os << PrettyPrinterBase::StrSection << ' ' << sectionName;
+    os << syntax[Asm::Directive::Section] << ' ' << sectionName;
     printSectionProperties(os, *(found_section.begin()));
     os << std::endl;
   }
@@ -361,8 +361,8 @@ void PrettyPrinterBase::printFunctionHeader(std::ostream& os,
     const BlockAreaComment bac(os, "Function Header",
                                [this, &os]() { printBar(os, false); });
     printAlignment(os, addr);
-    os << PrettyPrinterBase::StrSectionGlobal << ' ' << name << '\n';
-    os << PrettyPrinterBase::StrSectionType << ' ' << name << ", @function\n";
+    os << syntax[Asm::Directive::Global] << ' ' << name << '\n';
+    os << ".type" << ' ' << name << ", @function\n";
     os << name << ":\n";
   }
 }
@@ -410,12 +410,12 @@ void PrettyPrinterBase::printInstruction(std::ostream& os, const cs_insn& inst,
   // special cases
 
   if (inst.id == X86_INS_NOP) {
-    os << "  " << PrettyPrinterBase::StrNOP;
+    os << "  " << syntax[Asm::Directive::NOP];
     for (uint64_t i = 1; i < inst.size; ++i) {
       ea += 1;
       os << '\n';
       printEA(os, ea);
-      os << "  " << PrettyPrinterBase::StrNOP;
+      os << "  " << syntax[Asm::Directive::NOP];
     }
     return;
   }
@@ -429,7 +429,7 @@ void PrettyPrinterBase::printInstruction(std::ostream& os, const cs_insn& inst,
 }
 
 void PrettyPrinterBase::printEA(std::ostream& os, gtirb::Addr ea) {
-  os << StrTab;
+  os << syntax[Asm::Style::Tab];
   if (this->debug) {
     os << std::hex << static_cast<uint64_t>(ea) << ": " << std::dec;
   }
@@ -501,7 +501,7 @@ void PrettyPrinterBase::printDataObject(std::ostream& os,
   printComments(os, gtirb::Offset(dataObject.getUUID(), 0),
                 dataObject.getSize());
   printSymbolDefinitionsAtAddress(os, addr);
-  os << PrettyPrinterBase::StrTab;
+  os << syntax[Asm::Style::Tab];
   if (this->debug)
     os << std::hex << static_cast<uint64_t>(addr) << std::dec << ':';
   const auto section = getContainerSection(addr);

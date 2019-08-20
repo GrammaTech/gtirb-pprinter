@@ -136,6 +136,34 @@ private:
   DebugStyle m_debug;
 };
 
+/// Common assembler syntax and directives.
+namespace Asm {
+enum class Style {
+  Tab,
+  Comment,
+};
+enum class Section {
+  Text,
+  BSS,
+  Data,
+};
+enum class Directive {
+  NOP,
+  ZeroByte,
+  Text,
+  Data,
+  BSS,
+  Section,
+  Align,
+  Global,
+  Offset,
+};
+} // namespace Asm
+
+using Syntax =
+    std::unordered_map<std::variant<Asm::Style, Asm::Section, Asm::Directive>,
+                       std::string>;
+
 /// The pretty-printer interface. There is only one exposed function, \link
 /// print().
 class PrettyPrinterBase {
@@ -146,15 +174,12 @@ public:
   virtual std::ostream& print(std::ostream& out);
 
 protected:
-  /// Constants to reduce (eliminate) magical strings inside the printer.
-  const std::string StrZeroByte{".byte 0x00"};
-  const std::string StrNOP{"nop"};
-  const std::string StrSection{".section"};
-  const std::string StrSectionText{".text"};
-  const std::string StrSectionBSS{".bss"};
-  const std::string StrSectionGlobal{".globl"};
-  const std::string StrSectionType{".type"};
-  const std::string StrTab{"          "};
+  /// Constants table for common assembler directives and output formatting.
+  Syntax syntax = {
+      {Asm::Style::Tab, "          "}, {Asm::Section::Text, ".text"},
+      {Asm::Section::BSS, ".bss"},     {Asm::Section::Data, ".data"},
+      {Asm::Directive::NOP, "nop"},    {Asm::Directive::ZeroByte, ".byte 0x00"},
+  };
 
   virtual const std::unordered_set<std::string>& getSkippedSections() const = 0;
   virtual const std::unordered_set<std::string>&
