@@ -15,11 +15,11 @@
 #ifndef GTIRB_PP_GAS_PRINTER_H
 #define GTIRB_PP_GAS_PRINTER_H
 
-#include "PrettyPrinter.h"
+#include "ElfPrinter.h"
 
 namespace gtirb_pprint {
 
-class AttPrettyPrinter : public PrettyPrinterBase {
+class AttPrettyPrinter : public ElfPrettyPrinter {
 public:
   AttPrettyPrinter(gtirb::Context& context, gtirb::IR& ir,
                    const string_range& skip_funcs, DebugStyle dbg);

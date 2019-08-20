@@ -15,11 +15,11 @@
 #ifndef GTIRB_PP_NASM_PRINTER_H
 #define GTIRB_PP_NASM_PRINTER_H
 
-#include "PrettyPrinter.h"
+#include "ElfPrinter.h"
 
 namespace gtirb_pprint {
 
-class IntelPrettyPrinter : public PrettyPrinterBase {
+class IntelPrettyPrinter : public ElfPrettyPrinter {
 public:
   IntelPrettyPrinter(gtirb::Context& context, gtirb::IR& ir,
                      const string_range& skip_funcs, DebugStyle dbg);

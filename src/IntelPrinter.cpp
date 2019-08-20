@@ -21,7 +21,7 @@ namespace gtirb_pprint {
 IntelPrettyPrinter::IntelPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
                                        const string_range& skip_funcs,
                                        DebugStyle dbg)
-    : PrettyPrinterBase(context_, ir_, skip_funcs, dbg) {}
+    : ElfPrettyPrinter(context_, ir_, skip_funcs, dbg) {}
 
 void IntelPrettyPrinter::printHeader(std::ostream& os) {
   this->printBar(os);
@@ -100,8 +100,9 @@ void IntelPrettyPrinter::printOpIndirect(
 }
 
 volatile bool IntelPrettyPrinter::registered = registerPrinter(
-    {"intel"}, [](gtirb::Context& context, gtirb::IR& ir,
-                  const string_range& skip_funcs, DebugStyle dbg) {
+    {"elf"}, {"intel"},
+    [](gtirb::Context& context, gtirb::IR& ir, const string_range& skip_funcs,
+       DebugStyle dbg) {
       return std::make_unique<IntelPrettyPrinter>(context, ir, skip_funcs, dbg);
     });
 

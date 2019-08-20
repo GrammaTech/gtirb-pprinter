@@ -65,26 +65,63 @@ public:
   std::function<void()> func;
 };
 
-static std::map<std::string, ::gtirb_pprint::factory>& getFactories() {
-  static std::map<std::string, gtirb_pprint::factory> factories;
+static std::map<std::tuple<std::string, std::string>, ::gtirb_pprint::factory>&
+getFactories() {
+  static std::map<std::tuple<std::string, std::string>, gtirb_pprint::factory>
+      factories;
   return factories;
 }
 
 namespace gtirb_pprint {
 
-bool registerPrinter(std::initializer_list<std::string> syntaxes, factory f) {
+bool registerPrinter(std::initializer_list<std::string> formats,
+                     std::initializer_list<std::string> syntaxes, factory f) {
   assert(f && "Cannot register null factory!");
+  assert(formats.size() > 0 && "No formats to register!");
   assert(syntaxes.size() > 0 && "No syntaxes to register!");
-  for (const std::string& name : syntaxes)
-    getFactories()[name] = f;
+  for (const std::string& format : formats)
+    for (const std::string& syntax : syntaxes)
+      getFactories()[std::make_tuple(format, syntax)] = f;
   return true;
 }
 
-std::set<std::string> getRegisteredSyntaxes() {
-  std::set<std::string> syntaxes;
-  for (const std::pair<std::string, factory>& entry : getFactories())
-    syntaxes.insert(entry.first);
-  return syntaxes;
+std::set<std::tuple<std::string, std::string>> getRegisteredTargets() {
+  std::set<std::tuple<std::string, std::string>> targets;
+  for (const auto& entry : getFactories())
+    targets.insert(entry.first);
+  return targets;
+}
+
+std::string getIRFileFormat(const gtirb::IR& ir) {
+  switch ((*ir.modules().begin()).getFileFormat()) {
+  case gtirb::FileFormat::Undefined:
+    return "undefined";
+  case gtirb::FileFormat::COFF:
+    return "coff";
+  case gtirb::FileFormat::ELF:
+    return "elf";
+  case gtirb::FileFormat::PE:
+    return "pe";
+  case gtirb::FileFormat::IdaProDb32:
+  case gtirb::FileFormat::IdaProDb64:
+    return "idb";
+  case gtirb::FileFormat::XCOFF:
+    return "xcoff";
+  case gtirb::FileFormat::MACHO:
+    return "macho";
+  case gtirb::FileFormat::RAW:
+    return "raw";
+  }
+  return "undefined";
+}
+
+std::string getDefaultSyntax(const std::string& format) {
+  static const std::map<std::string, std::string> defaults = {
+      {"elf", "intel"},
+      {"pe", "masm"},
+  };
+  auto it = defaults.find(format);
+  return it != defaults.end() ? it->second : "???";
 }
 
 PrettyPrinter::PrettyPrinter()
@@ -96,14 +133,15 @@ PrettyPrinter::PrettyPrinter()
                    "__libc_csu_fini",
                    "__libc_csu_init",
                    "_dl_relocate_static_pie"},
-      m_syntax{"intel"}, m_debug{NoDebug} {}
+      m_format{"elf"}, m_syntax{"intel"}, m_debug{NoDebug} {}
 
-void PrettyPrinter::setSyntax(const std::string& syntax) {
-  assert(getFactories().find(syntax) != getFactories().end());
+void PrettyPrinter::setTarget(
+    const std::tuple<std::string, std::string>& target) {
+  assert(getFactories().find(target) != getFactories().end());
+  const auto [format, syntax] = target;
+  m_format = format;
   m_syntax = syntax;
 }
-
-const std::string& PrettyPrinter::getSyntax() const { return m_syntax; }
 
 void PrettyPrinter::setDebug(bool do_debug) {
   m_debug = do_debug ? DebugMessages : NoDebug;
@@ -126,9 +164,8 @@ void PrettyPrinter::keepFunction(const std::string& functionName) {
 std::error_condition PrettyPrinter::print(std::ostream& stream,
                                           gtirb::Context& context,
                                           gtirb::IR& ir) const {
-  getFactories()
-      .at(m_syntax)(context, ir, m_skip_funcs, m_debug)
-      ->print(stream);
+  const auto target = std::make_tuple(m_format, m_syntax);
+  getFactories().at(target)(context, ir, m_skip_funcs, m_debug)->print(stream);
   return std::error_condition{};
 }
 
@@ -154,16 +191,6 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_, gtirb::IR& ir_,
       }
     }
     std::sort(functionEntry.begin(), functionEntry.end());
-  }
-
-  if (this->ir.modules()
-          .begin()
-          ->getAuxData<
-              std::map<gtirb::Offset,
-                       std::vector<std::tuple<std::string, std::vector<int64_t>,
-                                              gtirb::UUID>>>>(
-              "cfiDirectives")) {
-    AsmSkipSection.insert(".eh_frame");
   }
 }
 

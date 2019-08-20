@@ -17,9 +17,10 @@ int main(int argc, char** argv) {
   desc.add_options()("asm,a", po::value<std::string>(),
                      "The name of the assembly output file.");
   desc.add_options()("binary,b", po::value<std::string>(),
-                     "The name of the binary output file.");
-  desc.add_options()("syntax,s",
-                     po::value<std::string>()->default_value("intel"),
+                     "The name of the binary output file.h");
+  desc.add_options()("format,f", po::value<std::string>(),
+                     "The format of the target binary object.");
+  desc.add_options()("syntax,s", po::value<std::string>(),
                      "The syntax of the assembly file to generate.");
   desc.add_options()("debug,d", "Turn on debugging (will break assembly)");
   desc.add_options()("keep-functions,k",
@@ -68,17 +69,21 @@ int main(int argc, char** argv) {
   // Perform the Pretty Printing step.
   gtirb_pprint::PrettyPrinter pp;
   pp.setDebug(vm.count("debug"));
-  if (vm.count("syntax") != 0) {
-    const std::string& syntax = vm["syntax"].as<std::string>();
-    if (gtirb_pprint::getRegisteredSyntaxes().count(syntax) == 0) {
-      LOG_ERROR << "Unknown assembly syntax: '" << syntax << "'\n";
-      LOG_ERROR << "Available syntaxes:\n";
-      for (const std::string& s : gtirb_pprint::getRegisteredSyntaxes())
-        LOG_ERROR << "    " << s << '\n';
-      return EXIT_FAILURE;
-    }
-    pp.setSyntax(syntax);
+  const std::string& format = vm.count("format")
+                                  ? vm["format"].as<std::string>()
+                                  : gtirb_pprint::getIRFileFormat(*ir);
+  const std::string& syntax = vm.count("syntax")
+                                  ? vm["syntax"].as<std::string>()
+                                  : gtirb_pprint::getDefaultSyntax(format);
+  const auto target = std::make_tuple(format, syntax);
+  if (gtirb_pprint::getRegisteredTargets().count(target) == 0) {
+    LOG_ERROR << "Unknown target: " << format << "-" << syntax << "\n";
+    LOG_ERROR << "Available formats:\n";
+    for (auto& [f, s] : gtirb_pprint::getRegisteredTargets())
+      LOG_ERROR << "    " << f << "-" << s << '\n';
+    return EXIT_FAILURE;
   }
+  pp.setTarget(target);
 
   if (vm.count("keep-functions") != 0) {
     for (auto keep : vm["keep-functions"].as<std::vector<std::string>>()) {

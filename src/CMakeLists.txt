@@ -16,6 +16,7 @@ endif()
 set(${PROJECT_NAME}_H
   AttPrinter.h
   BinaryPrinter.h
+  ElfPrinter.h
   ElfBinaryPrinter.h
   Export.h
   IntelPrinter.h
@@ -26,6 +27,7 @@ set(${PROJECT_NAME}_H
 set(${PROJECT_NAME}_SRC
   AttPrinter.cpp
   ElfBinaryPrinter.cpp
+  ElfPrinter.cpp
   IntelPrinter.cpp
   PrettyPrinter.cpp
   string_utils.cpp

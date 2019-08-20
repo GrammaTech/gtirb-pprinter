@@ -53,17 +53,27 @@ using factory = std::function<std::unique_ptr<PrettyPrinterBase>(
     gtirb::Context& context, gtirb::IR& ir, const string_range&, DebugStyle)>;
 
 /// Register a factory for creating pretty printer objects. The factory will
-/// be used to generate the syntaxes named in the initialization list. For
-/// example, \code registerPrinter({"foo", "bar"}, theFactory); \endcode
+/// be used to generate the formats and syntaxes named in the initialization
+/// /list. For example, \code registerPrinter({"foo"}, {"bar"}, theFactory);
+/// \endcode
 ///
+/// \param formats  the (non-empty) formats produced by the factory
 /// \param syntaxes the (non-empty) syntaxes produced by the factory
 /// \param f        the (non-empty) \link factory object
 ///
 /// \return \c true.
-bool registerPrinter(std::initializer_list<std::string> syntaxes, factory f);
+bool registerPrinter(std::initializer_list<std::string> formats,
+                     std::initializer_list<std::string> syntaxes, factory f);
 
 /// Return the current set of syntaxes with registered factories.
-std::set<std::string> getRegisteredSyntaxes();
+std::set<std::tuple<std::string, std::string>> getRegisteredTargets();
+
+/// Return the file format of a GTIRB IR. This function assumes that all modules
+/// in the IR have the same file format.
+std::string getIRFileFormat(const gtirb::IR& ir);
+
+/// Return the default syntax for a file format.
+std::string getDefaultSyntax(const std::string& format);
 
 /// The primary interface for pretty-printing GTIRB objects. The typical flow
 /// is to create a PrettyPrinter, configure it (e.g., set the output syntax,
@@ -78,14 +88,11 @@ public:
   PrettyPrinter& operator=(const PrettyPrinter&) = default;
   PrettyPrinter& operator=(PrettyPrinter&&) = default;
 
-  /// Set the syntax with in which to pretty print. It is the caller's
-  /// responsibility to ensure that the syntax name has been registered.
+  /// Set the target for which to pretty print. It is the caller's
+  /// responsibility to ensure that the target name has been registered.
   ///
-  /// \param syntax name of the syntax to use
-  void setSyntax(const std::string& syntax);
-
-  /// Return the syntax that will be used for pretty printing.
-  const std::string& getSyntax() const;
+  /// \param target compound indentifier of target format and syntax
+  void setTarget(const std::tuple<std::string, std::string>& target);
 
   /// Enable or disable debugging messages inside the pretty-printed code.
   ///
@@ -124,6 +131,7 @@ public:
 
 private:
   std::set<std::string> m_skip_funcs;
+  std::string m_format;
   std::string m_syntax;
   DebugStyle m_debug;
 };
