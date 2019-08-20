@@ -279,7 +279,7 @@ void PrettyPrinterBase::printSectionHeader(std::ostream& os,
     os << std::endl;
   }
   if (skip_data.count(sectionName))
-    os << ".align 8\n";
+    os << syntax[Asm::Directive::Align] << " 8\n";
   else
     printAlignment(os, addr);
   printBar(os);
@@ -720,19 +720,19 @@ void PrettyPrinterBase::printAlignment(std::ostream& os, gtirb::Addr addr) {
   // Enforce maximum alignment
   uint64_t x{addr};
   if (x % 16 == 0) {
-    os << ".align 16\n";
+    os << syntax[Asm::Directive::Align] << " 16\n";
     return;
   }
   if (x % 8 == 0) {
-    os << ".align 8\n";
+    os << syntax[Asm::Directive::Align] << " 8\n";
     return;
   }
   if (x % 4 == 0) {
-    os << ".align 4\n";
+    os << syntax[Asm::Directive::Align] << " 4\n";
     return;
   }
   if (x % 2 == 0) {
-    os << ".align 2\n";
+    os << syntax[Asm::Directive::Align] << " 2\n";
     return;
   }
 }

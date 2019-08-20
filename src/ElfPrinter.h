@@ -30,9 +30,9 @@ protected:
 private:
   /// Constants table of target-specific assembler syntax.
   Syntax m_syntax = {
-      {Asm::Style::Comment, "#"},         {Asm::Directive::Section, ".section"},
-      {Asm::Directive::Text, ".text"},    {Asm::Directive::BSS, ".bss"},
-      {Asm::Directive::Global, ".globl"},
+      {Asm::Style::Comment, "#"},        {Asm::Directive::Section, ".section"},
+      {Asm::Directive::Text, ".text"},   {Asm::Directive::BSS, ".bss"},
+      {Asm::Directive::Align, ".align"}, {Asm::Directive::Global, ".globl"},
   };
 
   /// Sections to avoid printing.
