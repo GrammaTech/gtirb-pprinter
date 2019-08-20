@@ -33,38 +33,6 @@ template <class T> T* nodeFromUUID(gtirb::Context& C, gtirb::UUID id) {
   return dyn_cast_or_null<T>(gtirb::Node::getByUUID(C, id));
 }
 
-///
-/// Print a comment that automatically scopes.
-///
-class BlockAreaComment {
-public:
-  BlockAreaComment(std::ostream& ss, std::string m = std::string{},
-                   std::function<void()> f = []() {})
-      : ofs{ss}, message{std::move(m)}, func{std::move(f)} {
-    ofs << '\n';
-
-    if (!message.empty()) {
-      ofs << "# BEGIN - " << this->message << '\n';
-    }
-
-    func();
-  }
-
-  ~BlockAreaComment() {
-    func();
-
-    if (!message.empty()) {
-      ofs << "# END   - " << this->message << '\n';
-    }
-
-    ofs << '\n';
-  }
-
-  std::ostream& ofs;
-  const std::string message;
-  std::function<void()> func;
-};
-
 static std::map<std::tuple<std::string, std::string>, ::gtirb_pprint::factory>&
 getFactories() {
   static std::map<std::tuple<std::string, std::string>, gtirb_pprint::factory>
@@ -252,7 +220,8 @@ gtirb::Addr PrettyPrinterBase::printDataObjectOrWarning(
 
 void PrettyPrinterBase::printOverlapWarning(std::ostream& os,
                                             const gtirb::Addr addr) {
-  os << "# WARNING: found overlapping element at address " << std::hex
+  os << syntax[Asm::Style::Comment]
+     << " WARNING: found overlapping element at address " << std::hex
      << static_cast<uint64_t>(addr) << ": " << std::dec;
 }
 
@@ -347,23 +316,11 @@ void PrettyPrinterBase::printSectionProperties(std::ostream& os,
 
 void PrettyPrinterBase::printBar(std::ostream& os, bool heavy) {
   if (heavy) {
-    os << "#===================================\n";
+    os << syntax[Asm::Style::Comment]
+       << "===================================\n";
   } else {
-    os << "#-----------------------------------\n";
-  }
-}
-
-void PrettyPrinterBase::printFunctionHeader(std::ostream& os,
-                                            gtirb::Addr addr) {
-  const std::string& name = this->getFunctionName(addr);
-
-  if (!name.empty()) {
-    const BlockAreaComment bac(os, "Function Header",
-                               [this, &os]() { printBar(os, false); });
-    printAlignment(os, addr);
-    os << syntax[Asm::Directive::Global] << ' ' << name << '\n';
-    os << ".type" << ' ' << name << ", @function\n";
-    os << name << ":\n";
+    os << syntax[Asm::Style::Comment]
+       << "===================================\n";
   }
 }
 
@@ -560,7 +517,7 @@ void PrettyPrinterBase::printComments(std::ostream& os,
     gtirb::Offset endOffset(offset.ElementId, offset.Displacement + range);
     for (auto p = comments->lower_bound(offset);
          p != comments->end() && p->first < endOffset; ++p) {
-      os << "#";
+      os << syntax[Asm::Style::Comment];
       if (p->first.Displacement > offset.Displacement)
         os << "+" << p->first.Displacement - offset.Displacement << ":";
       os << " " << p->second << '\n';

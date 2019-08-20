@@ -199,7 +199,7 @@ protected:
   virtual void printSectionHeader(std::ostream& os, const gtirb::Addr addr);
   virtual void printSectionProperties(std::ostream& os,
                                       const gtirb::Section& addr);
-  virtual void printFunctionHeader(std::ostream& os, gtirb::Addr ea);
+  virtual void printFunctionHeader(std::ostream& os, gtirb::Addr ea) = 0;
 
   /// Print the block as long as it does not overlap with the address last.
   /// If it overlaps, print a warning instead.

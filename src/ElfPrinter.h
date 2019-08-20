@@ -28,6 +28,8 @@ protected:
   const std::unordered_set<std::string>& getSkippedSections() const override;
   const std::unordered_set<std::string>& getSkippedFunctions() const override;
 
+  void printFunctionHeader(std::ostream& os, gtirb::Addr ea) override;
+
 private:
   /// Constants table of target-specific assembler syntax.
   Syntax m_syntax = {
