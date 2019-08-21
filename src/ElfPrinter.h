@@ -36,13 +36,15 @@ protected:
                                    const gtirb::Section& addr) override;
   void printFunctionHeader(std::ostream& os, gtirb::Addr ea) override;
 
+  void printByte(std::ostream& os, std::byte byte) override;
+
 private:
   /// Constants table of target-specific assembler syntax.
   Syntax m_syntax = {
       {Asm::Style::Comment, "#"},         {Asm::Directive::Section, ".section"},
       {Asm::Directive::Text, ".text"},    {Asm::Directive::Data, ".data"},
       {Asm::Directive::BSS, ".bss"},      {Asm::Directive::Align, ".align"},
-      {Asm::Directive::Global, ".globl"},
+      {Asm::Directive::Global, ".globl"}, {Asm::Directive::Byte, ".byte"},
   };
 
   /// Sections to avoid printing.

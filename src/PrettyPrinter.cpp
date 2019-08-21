@@ -464,7 +464,6 @@ void PrettyPrinterBase::printDataObject(std::ostream& os,
   printComments(os, gtirb::Offset(dataObject.getUUID(), 0),
                 dataObject.getSize());
   printSymbolDefinitionsAtAddress(os, addr);
-  os << syntax[Asm::Style::Tab];
   if (this->debug)
     os << std::hex << static_cast<uint64_t>(addr) << std::dec << ':';
   const auto section = getContainerSection(addr);
@@ -500,8 +499,7 @@ void PrettyPrinterBase::printNonZeroDataObject(
     }
   }
   for (std::byte byte : getBytes(module.getImageByteMap(), dataObject)) {
-    os << ".byte 0x" << std::hex << static_cast<uint32_t>(byte) << std::dec
-       << '\n';
+    printByte(os, byte);
   }
 }
 

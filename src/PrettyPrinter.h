@@ -154,6 +154,7 @@ enum class Directive {
   Align,
   Global,
   Offset,
+  Byte,
 };
 } // namespace Asm
 
@@ -236,6 +237,7 @@ protected:
                                       const gtirb::DataObject& dataObject);
   virtual void printZeroDataObject(std::ostream& os,
                                    const gtirb::DataObject& dataObject);
+  virtual void printByte(std::ostream& os, std::byte byte) = 0;
 
   /// Print a single instruction to the stream. This implementation prints the
   /// mnemonic provided by Capstone, then calls printOperandList(). Thus, it is

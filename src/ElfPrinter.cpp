@@ -126,6 +126,11 @@ void ElfPrettyPrinter::printFunctionHeader(std::ostream& os, gtirb::Addr addr) {
   }
 }
 
+void ElfPrettyPrinter::printByte(std::ostream& os, std::byte byte) {
+  os << ".byte 0x" << std::hex << static_cast<uint32_t>(byte) << std::dec
+     << '\n';
+}
+
 void ElfPrettyPrinter::printFooter(std::ostream& /* os */){};
 
 } // namespace gtirb_pprint
