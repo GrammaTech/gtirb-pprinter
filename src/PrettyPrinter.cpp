@@ -185,6 +185,7 @@ std::ostream& PrettyPrinterBase::print(std::ostream& os) {
     last = printDataObjectOrWarning(os, *dataIt, last);
   printSymbolDefinitionsAtAddress(os, last);
   printSectionFooter(os, std::nullopt, last);
+  printFooter(os);
   return os;
 }
 

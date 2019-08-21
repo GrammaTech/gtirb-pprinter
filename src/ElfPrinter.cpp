@@ -126,4 +126,6 @@ void ElfPrettyPrinter::printFunctionHeader(std::ostream& os, gtirb::Addr addr) {
   }
 }
 
+void ElfPrettyPrinter::printFooter(std::ostream& /* os */){};
+
 } // namespace gtirb_pprint

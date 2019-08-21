@@ -200,6 +200,7 @@ protected:
 
   virtual void printBar(std::ostream& os, bool heavy = true);
   virtual void printHeader(std::ostream& os) = 0;
+  virtual void printFooter(std::ostream& os) = 0;
   virtual void printAlignment(std::ostream& os, const gtirb::Addr addr);
   virtual void printSectionHeader(std::ostream& os, const gtirb::Addr addr);
   virtual void printSectionHeaderDirective(std::ostream& os,
