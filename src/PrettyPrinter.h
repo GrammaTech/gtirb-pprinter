@@ -155,6 +155,9 @@ enum class Directive {
   Global,
   Offset,
   Byte,
+  Word,
+  Long,
+  Quad,
 };
 } // namespace Asm
 
@@ -177,6 +180,8 @@ protected:
       {Asm::Style::Tab, "          "}, {Asm::Section::Text, ".text"},
       {Asm::Section::BSS, ".bss"},     {Asm::Section::Data, ".data"},
       {Asm::Directive::NOP, "nop"},    {Asm::Directive::ZeroByte, ".byte 0x00"},
+      {Asm::Directive::Byte, ".byte"}, {Asm::Directive::Word, ".word"},
+      {Asm::Directive::Long, ".long"}, {Asm::Directive::Quad, ".quad"},
   };
 
   /// Sections to avoid printing.

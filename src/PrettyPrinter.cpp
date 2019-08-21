@@ -592,16 +592,16 @@ void PrettyPrinterBase::printDataObjectType(
   }
   switch (dataObject.getSize()) {
   case 1:
-    os << ".byte";
+    os << syntax[Asm::Directive::Byte];
     break;
   case 2:
-    os << ".word";
+    os << syntax[Asm::Directive::Word];
     break;
   case 4:
-    os << ".long";
+    os << syntax[Asm::Directive::Long];
     break;
   case 8:
-    os << ".quad";
+    os << syntax[Asm::Directive::Quad];
     break;
   default:
     assert("Data object with unknown type has incompatible size");
