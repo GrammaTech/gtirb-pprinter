@@ -25,8 +25,12 @@ public:
                    const string_range& keep_funcs, DebugStyle dbg);
 
 protected:
+  void printSectionHeaderDirective(std::ostream& os,
+                                   const gtirb::Section& section) override;
   void printSectionProperties(std::ostream& os,
                               const gtirb::Section& section) override;
+  void printSectionFooterDirective(std::ostream& os,
+                                   const gtirb::Section& addr) override;
   void printFunctionHeader(std::ostream& os, gtirb::Addr ea) override;
 
 private:

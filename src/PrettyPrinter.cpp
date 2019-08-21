@@ -279,7 +279,7 @@ void PrettyPrinterBase::printSectionHeader(std::ostream& os,
   } else if (sectionName == syntax[Asm::Section::BSS]) {
     os << syntax[Asm::Directive::BSS] << '\n';
   } else {
-    os << syntax[Asm::Directive::Section] << ' ' << sectionName;
+    printSectionHeaderDirective(os, *(found_section.begin()));
     printSectionProperties(os, *(found_section.begin()));
     os << std::endl;
   }
@@ -292,7 +292,7 @@ void PrettyPrinterBase::printSectionHeader(std::ostream& os,
 }
 
 void PrettyPrinterBase::printSectionFooter(
-    std::ostream& /* os */, const std::optional<const gtirb::Addr> addr,
+    std::ostream& os, const std::optional<const gtirb::Addr> addr,
     const gtirb::Addr last) {
 
   const auto prev_section = getContainerSection(last - 1);
@@ -312,7 +312,10 @@ void PrettyPrinterBase::printSectionFooter(
     } else if (section_name == syntax[Asm::Section::BSS]) {
       return;
     } else {
-      /* TODO */
+      printBar(os);
+      printSectionFooterDirective(os, **prev_section);
+      os << std::endl;
+      printBar(os);
     }
   }
 }

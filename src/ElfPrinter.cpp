@@ -76,6 +76,12 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
     skip_data.insert(name);
 }
 
+void ElfPrettyPrinter::printSectionHeaderDirective(
+    std::ostream& os, const gtirb::Section& section) {
+  std::string sectionName = section.getName();
+  os << syntax[Asm::Directive::Section] << ' ' << sectionName;
+}
+
 void ElfPrettyPrinter::printSectionProperties(std::ostream& os,
                                               const gtirb::Section& section) {
   const auto* elfSectionProperties =
@@ -103,6 +109,9 @@ void ElfPrettyPrinter::printSectionProperties(std::ostream& os,
   if (type == SHT_NOBITS)
     os << ",@nobits";
 }
+
+void ElfPrettyPrinter::printSectionFooterDirective(
+    std::ostream& /* os */, const gtirb::Section& /* section */) {}
 
 void ElfPrettyPrinter::printFunctionHeader(std::ostream& os, gtirb::Addr addr) {
   const std::string& name = this->getFunctionName(addr);
