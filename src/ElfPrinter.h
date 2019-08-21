@@ -25,7 +25,7 @@ public:
                    const string_range& keep_funcs, DebugStyle dbg);
 
 protected:
-  virtual void printHeader(std::ostream& os) = 0;
+  virtual void printHeader(std::ostream& os) override = 0;
   void printFooter(std::ostream& os) override;
 
   void printSectionHeaderDirective(std::ostream& os,
