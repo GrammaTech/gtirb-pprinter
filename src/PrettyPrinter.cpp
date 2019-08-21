@@ -123,7 +123,7 @@ std::error_condition PrettyPrinter::print(std::ostream& stream,
 PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_, gtirb::IR& ir_,
                                      DebugStyle dbg)
     : debug(dbg == DebugMessages ? true : false), context(context_), ir(ir_),
-      functionEntry() {
+      m_function_entries(), m_function_ends() {
   [[maybe_unused]] cs_err err =
       cs_open(CS_ARCH_X86, CS_MODE_64, &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
@@ -136,10 +136,24 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_, gtirb::IR& ir_,
     for (auto const& function : *functionEntries) {
       for (auto& entryBlockUUID : function.second) {
         auto block = nodeFromUUID<gtirb::Block>(context, entryBlockUUID);
-        functionEntry.push_back(block->getAddress());
+        m_function_entries.insert(block->getAddress());
       }
     }
-    std::sort(functionEntry.begin(), functionEntry.end());
+  }
+
+  if (const auto* functionBlocks =
+          ir.modules()
+              .begin()
+              ->getAuxData<std::map<gtirb::UUID, std::set<gtirb::UUID>>>(
+                  "functionBlocks")) {
+    for (auto const& function : *functionBlocks) {
+      std::set<gtirb::Addr> addrs;
+      for (auto& blockUUID : function.second) {
+        auto block = nodeFromUUID<gtirb::Block>(context, blockUUID);
+        addrs.insert(block->getAddress());
+      }
+      m_function_ends.insert(*addrs.rbegin());
+    }
   }
 }
 
@@ -259,6 +273,7 @@ void PrettyPrinterBase::printBlock(std::ostream& os, const gtirb::Block& x) {
   // print any CFI directives located at the end of the block
   // e.g. '.cfi_endproc' is usually attached to the end of the block
   printCFIDirectives(os, offset);
+  printFunctionFooter(os, x.getAddress());
 }
 
 void PrettyPrinterBase::printSectionHeader(std::ostream& os,
@@ -685,11 +700,14 @@ bool PrettyPrinterBase::isInSkippedFunction(const gtirb::Addr x) const {
   return skip_funcs.count(*xFunctionName);
 }
 
+bool PrettyPrinterBase::isFunctionEnd(const gtirb::Addr x) const {
+  return m_function_ends.count(x) > 0;
+}
+
 std::optional<std::string>
 PrettyPrinterBase::getContainerFunctionName(const gtirb::Addr x) const {
-  auto it = std::upper_bound(this->functionEntry.begin(),
-                             this->functionEntry.end(), x);
-  if (it == this->functionEntry.begin())
+  auto it = m_function_entries.upper_bound(x);
+  if (it == m_function_entries.begin())
     return std::nullopt;
   it--;
   return this->getFunctionName(*it);
@@ -743,8 +761,8 @@ void PrettyPrinterBase::printAlignment(std::ostream& os, gtirb::Addr addr) {
 
 std::string PrettyPrinterBase::getFunctionName(gtirb::Addr x) const {
   // Is this address an entry point to a function with a symbol?
-  bool entry_point = std::binary_search(this->functionEntry.begin(),
-                                        this->functionEntry.end(), x);
+  bool entry_point = m_function_entries.count(x) > 0;
+
   if (entry_point) {
     for (gtirb::Symbol& s : this->ir.modules().begin()->findSymbols(x)) {
       std::stringstream name(s.getName());

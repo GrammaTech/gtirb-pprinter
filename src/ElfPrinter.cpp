@@ -126,6 +126,9 @@ void ElfPrettyPrinter::printFunctionHeader(std::ostream& os, gtirb::Addr addr) {
   }
 }
 
+void ElfPrettyPrinter::printFunctionFooter(std::ostream& /* os */,
+                                           gtirb::Addr /* addr */) {}
+
 void ElfPrettyPrinter::printByte(std::ostream& os, std::byte byte) {
   os << syntax[Asm::Directive::Byte] << " 0x" << std::hex
      << static_cast<uint32_t>(byte) << std::dec << '\n';

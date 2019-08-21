@@ -218,7 +218,8 @@ protected:
                                   const gtirb::Addr last);
   virtual void printSectionFooterDirective(std::ostream& os,
                                            const gtirb::Section& addr) = 0;
-  virtual void printFunctionHeader(std::ostream& os, gtirb::Addr ea) = 0;
+  virtual void printFunctionHeader(std::ostream& os, gtirb::Addr addr) = 0;
+  virtual void printFunctionFooter(std::ostream& os, gtirb::Addr addr) = 0;
 
   /// Print the block as long as it does not overlap with the address last.
   /// If it overlaps, print a warning instead.
@@ -324,6 +325,9 @@ protected:
   /// \return the name of the containing function if one is found.
   std::optional<std::string>
   getContainerFunctionName(const gtirb::Addr x) const;
+
+  bool isFunctionEnd(const gtirb::Addr x) const;
+
   bool isSectionSkipped(const std::string& name);
 
   std::string avoidRegNameConflicts(const std::string& x);
@@ -350,8 +354,8 @@ protected:
   static std::string AvoidRegNameConflicts(const std::string& x);
 
 private:
-  // This should be kept sorted to enable fast searches.
-  std::vector<gtirb::Addr> functionEntry;
+  std::set<gtirb::Addr> m_function_entries;
+  std::set<gtirb::Addr> m_function_ends;
 
   std::string getForwardedSymbolEnding(const gtirb::Symbol* symbol,
                                        bool isAbsolute) const;
