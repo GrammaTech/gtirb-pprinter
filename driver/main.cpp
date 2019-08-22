@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
   desc.add_options()("asm,a", po::value<std::string>(),
                      "The name of the assembly output file.");
   desc.add_options()("binary,b", po::value<std::string>(),
-                     "The name of the binary output file.h");
+                     "The name of the binary output file.");
   desc.add_options()("format,f", po::value<std::string>(),
                      "The format of the target binary object.");
   desc.add_options()("syntax,s", po::value<std::string>(),
