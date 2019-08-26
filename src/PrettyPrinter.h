@@ -136,28 +136,28 @@ private:
 /// Common assembler syntax and directives.
 namespace Asm {
 enum class Style {
-  Tab,
   Comment,
+  Tab,
 };
 enum class Section {
-  Text,
   BSS,
   Data,
+  Text,
 };
 enum class Directive {
-  NOP,
-  ZeroByte,
-  Text,
-  Data,
-  BSS,
-  Section,
   Align,
-  Global,
-  Offset,
+  BSS,
   Byte,
-  Word,
+  Data,
+  Global,
   Long,
+  NOP,
+  Offset,
   Quad,
+  Section,
+  Text,
+  Word,
+  ZeroByte,
 };
 } // namespace Asm
 
