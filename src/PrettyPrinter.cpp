@@ -499,6 +499,7 @@ void PrettyPrinterBase::printNonZeroDataObject(
   const auto& foundSymbolic =
       module.findSymbolicExpression(dataObject.getAddress());
   if (foundSymbolic != module.symbolic_expr_end()) {
+    os << syntax[Asm::Style::Tab];
     printSymbolicData(os, &*foundSymbolic, dataObject);
     os << '\n';
     return;
@@ -508,18 +509,21 @@ void PrettyPrinterBase::printNonZeroDataObject(
   if (types) {
     auto foundType = types->find(dataObject.getUUID());
     if (foundType != types->end() && foundType->second == "string") {
+      os << syntax[Asm::Style::Tab];
       printString(os, dataObject);
       os << '\n';
       return;
     }
   }
   for (std::byte byte : getBytes(module.getImageByteMap(), dataObject)) {
+    os << syntax[Asm::Style::Tab];
     printByte(os, byte);
   }
 }
 
 void PrettyPrinterBase::printZeroDataObject(
     std::ostream& os, const gtirb::DataObject& dataObject) {
+  os << syntax[Asm::Style::Tab];
   os << " .zero " << dataObject.getSize() << '\n';
 }
 
