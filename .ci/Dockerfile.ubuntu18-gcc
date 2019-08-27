@@ -2,18 +2,25 @@ FROM ubuntu:18.04
 
 ENV LD_LIBRARY_PATH /usr/local/lib:$LD_LIBRARY_PATH
 
+# Minimum required version
+ARG BOOST_VERSION=1.67.0
+
+# Use bash for more convenient variable substitution syntax
+SHELL ["/bin/bash", "-c"]
+
+# install common packages
 RUN apt-get -y update && apt-get -y install build-essential binutils cmake \
     clang curl doxygen git graphviz libprotobuf-dev make protobuf-compiler unzip wget
 
 # Install Boost
-RUN curl -L https://dl.bintray.com/boostorg/release/1.67.0/source/boost_1_67_0.tar.gz > boost.tar.gz && \
+RUN curl -L https://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION//./_}.tar.gz > boost.tar.gz && \
     tar vxfz boost.tar.gz > /dev/null && \
-    cd boost_1_67_0 && \
+    cd boost_${BOOST_VERSION//./_} && \
     ./bootstrap.sh --prefix=/usr/local --with-libraries=filesystem,program_options,system > /dev/null && \
     ./b2 install --prefix=/usr/local > /dev/null && \
     rm ../boost.tar.gz && \
     cd .. && \
-    rm -rf boost_1_67_0
+    rm -rf boost_${BOOST_VERSION//./_}
 
 # Install capstone
 RUN cd /usr/local/src \
