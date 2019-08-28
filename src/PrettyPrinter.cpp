@@ -310,7 +310,8 @@ void PrettyPrinterBase::printSectionFooter(
     std::ostream& os, const std::optional<const gtirb::Addr> addr,
     const gtirb::Addr last) {
 
-  const auto prev_section = getContainerSection(last - 1);
+  const std::optional<const gtirb::Section*> prev_section =
+      getContainerSection(last - 1);
   if (!prev_section)
     return;
 
