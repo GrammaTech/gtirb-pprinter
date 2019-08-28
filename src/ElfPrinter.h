@@ -42,6 +42,10 @@ protected:
   bool
   shouldExcludeDataElement(const gtirb::Section& section,
                            const gtirb::DataObject& dataObject) const override;
+
+private:
+  /// Elf-specific assembler directives.
+  std::string elfDirectiveType{".type"};
 };
 
 } // namespace gtirb_pprint

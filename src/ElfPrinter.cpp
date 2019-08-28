@@ -136,7 +136,7 @@ void ElfPrettyPrinter::printFunctionHeader(std::ostream& os, gtirb::Addr addr) {
                                [this, &os]() { printBar(os, false); });
     printAlignment(os, addr);
     os << asmDirectiveGlobal << ' ' << name << '\n';
-    os << ".type" << ' ' << name << ", @function\n";
+    os << elfDirectiveType << ' ' << name << ", @function\n";
     os << name << ":\n";
   }
 }
