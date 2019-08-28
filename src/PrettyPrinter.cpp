@@ -311,27 +311,22 @@ void PrettyPrinterBase::printSectionFooter(
     const gtirb::Addr last) {
 
   const auto prev_section = getContainerSection(last - 1);
-  if (!prev_section.has_value())
+  if (!prev_section)
     return;
 
   std::string section_name = (*prev_section)->getName();
   if (skipSections.count(section_name))
     return;
 
-  const auto next_section = addr ? getContainerSection(*addr) : std::nullopt;
-  if (!next_section.has_value() || !(next_section == prev_section)) {
-    if (section_name == asmSectionText) {
-      return;
-    } else if (section_name == asmSectionData) {
-      return;
-    } else if (section_name == asmSectionBss) {
-      return;
-    } else {
-      printBar(os);
-      printSectionFooterDirective(os, **prev_section);
-      os << std::endl;
-      printBar(os);
-    }
+  const std::optional<const gtirb::Section*> next_section =
+      addr ? getContainerSection(*addr) : std::nullopt;
+  if (next_section && !(next_section == prev_section) &&
+      section_name != asmSectionText && section_name != asmSectionData &&
+      section_name != asmSectionBss) {
+    printBar(os);
+    printSectionFooterDirective(os, **prev_section);
+    os << '\n';
+    printBar(os);
   }
 }
 
