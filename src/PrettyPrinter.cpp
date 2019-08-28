@@ -239,9 +239,8 @@ gtirb::Addr PrettyPrinterBase::printDataObjectOrWarning(
 
 void PrettyPrinterBase::printOverlapWarning(std::ostream& os,
                                             const gtirb::Addr addr) {
-  os << syntax[Asm::Style::Comment]
-     << " WARNING: found overlapping element at address " << std::hex
-     << static_cast<uint64_t>(addr) << ": " << std::dec;
+  os << asmStyleComment << " WARNING: found overlapping element at address "
+     << std::hex << static_cast<uint64_t>(addr) << ": " << std::dec;
 }
 
 void PrettyPrinterBase::printBlock(std::ostream& os, const gtirb::Block& x) {
@@ -288,19 +287,19 @@ void PrettyPrinterBase::printSectionHeader(std::ostream& os,
     return;
   os << '\n';
   printBar(os);
-  if (sectionName == syntax[Asm::Section::Text]) {
-    os << syntax[Asm::Directive::Text] << '\n';
-  } else if (sectionName == syntax[Asm::Section::Data]) {
-    os << syntax[Asm::Directive::Data] << '\n';
-  } else if (sectionName == syntax[Asm::Section::BSS]) {
-    os << syntax[Asm::Directive::BSS] << '\n';
+  if (sectionName == asmSectionText) {
+    os << asmDirectiveText << '\n';
+  } else if (sectionName == asmSectionData) {
+    os << asmDirectiveData << '\n';
+  } else if (sectionName == asmSectionBss) {
+    os << asmDirectiveBss << '\n';
   } else {
     printSectionHeaderDirective(os, *(found_section.begin()));
     printSectionProperties(os, *(found_section.begin()));
     os << std::endl;
   }
   if (skip_data.count(sectionName))
-    os << syntax[Asm::Directive::Align] << " 8\n";
+    os << asmDirectiveAlign << " 8\n";
   else
     printAlignment(os, addr);
   printBar(os);
@@ -321,11 +320,11 @@ void PrettyPrinterBase::printSectionFooter(
 
   const auto next_section = addr ? getContainerSection(*addr) : std::nullopt;
   if (!next_section.has_value() || !(next_section == prev_section)) {
-    if (section_name == syntax[Asm::Section::Text]) {
+    if (section_name == asmSectionText) {
       return;
-    } else if (section_name == syntax[Asm::Section::Data]) {
+    } else if (section_name == asmSectionData) {
       return;
-    } else if (section_name == syntax[Asm::Section::BSS]) {
+    } else if (section_name == asmSectionBss) {
       return;
     } else {
       printBar(os);
@@ -338,11 +337,9 @@ void PrettyPrinterBase::printSectionFooter(
 
 void PrettyPrinterBase::printBar(std::ostream& os, bool heavy) {
   if (heavy) {
-    os << syntax[Asm::Style::Comment]
-       << "===================================\n";
+    os << asmStyleComment << "===================================\n";
   } else {
-    os << syntax[Asm::Style::Comment]
-       << "===================================\n";
+    os << asmStyleComment << "===================================\n";
   }
 }
 
@@ -389,12 +386,12 @@ void PrettyPrinterBase::printInstruction(std::ostream& os, const cs_insn& inst,
   // special cases
 
   if (inst.id == X86_INS_NOP) {
-    os << "  " << syntax[Asm::Directive::NOP];
+    os << "  " << asmDirectiveNop;
     for (uint64_t i = 1; i < inst.size; ++i) {
       ea += 1;
       os << '\n';
       printEA(os, ea);
-      os << "  " << syntax[Asm::Directive::NOP];
+      os << "  " << asmDirectiveNop;
     }
     return;
   }
@@ -408,7 +405,7 @@ void PrettyPrinterBase::printInstruction(std::ostream& os, const cs_insn& inst,
 }
 
 void PrettyPrinterBase::printEA(std::ostream& os, gtirb::Addr ea) {
-  os << syntax[Asm::Style::Tab];
+  os << asmStyleTab;
   if (this->debug) {
     os << std::hex << static_cast<uint64_t>(ea) << ": " << std::dec;
   }
@@ -499,7 +496,7 @@ void PrettyPrinterBase::printNonZeroDataObject(
   const auto& foundSymbolic =
       module.findSymbolicExpression(dataObject.getAddress());
   if (foundSymbolic != module.symbolic_expr_end()) {
-    os << syntax[Asm::Style::Tab];
+    os << asmStyleTab;
     printSymbolicData(os, &*foundSymbolic, dataObject);
     os << '\n';
     return;
@@ -509,21 +506,21 @@ void PrettyPrinterBase::printNonZeroDataObject(
   if (types) {
     auto foundType = types->find(dataObject.getUUID());
     if (foundType != types->end() && foundType->second == "string") {
-      os << syntax[Asm::Style::Tab];
+      os << asmStyleTab;
       printString(os, dataObject);
       os << '\n';
       return;
     }
   }
   for (std::byte byte : getBytes(module.getImageByteMap(), dataObject)) {
-    os << syntax[Asm::Style::Tab];
+    os << asmStyleTab;
     printByte(os, byte);
   }
 }
 
 void PrettyPrinterBase::printZeroDataObject(
     std::ostream& os, const gtirb::DataObject& dataObject) {
-  os << syntax[Asm::Style::Tab];
+  os << asmStyleTab;
   os << " .zero " << dataObject.getSize() << '\n';
 }
 
@@ -540,7 +537,7 @@ void PrettyPrinterBase::printComments(std::ostream& os,
     gtirb::Offset endOffset(offset.ElementId, offset.Displacement + range);
     for (auto p = comments->lower_bound(offset);
          p != comments->end() && p->first < endOffset; ++p) {
-      os << syntax[Asm::Style::Comment];
+      os << asmStyleComment;
       if (p->first.Displacement > offset.Displacement)
         os << "+" << p->first.Displacement - offset.Displacement << ":";
       os << " " << p->second << '\n';
@@ -611,16 +608,16 @@ void PrettyPrinterBase::printDataObjectType(
   }
   switch (dataObject.getSize()) {
   case 1:
-    os << syntax[Asm::Directive::Byte];
+    os << asmDirectiveByte;
     break;
   case 2:
-    os << syntax[Asm::Directive::Word];
+    os << asmDirectiveWord;
     break;
   case 4:
-    os << syntax[Asm::Directive::Long];
+    os << asmDirectiveLong;
     break;
   case 8:
-    os << syntax[Asm::Directive::Quad];
+    os << asmDirectiveQuad;
     break;
   default:
     assert("Data object with unknown type has incompatible size");
@@ -746,19 +743,19 @@ void PrettyPrinterBase::printAlignment(std::ostream& os, gtirb::Addr addr) {
   // Enforce maximum alignment
   uint64_t x{addr};
   if (x % 16 == 0) {
-    os << syntax[Asm::Directive::Align] << " 16\n";
+    os << asmDirectiveAlign << " 16\n";
     return;
   }
   if (x % 8 == 0) {
-    os << syntax[Asm::Directive::Align] << " 8\n";
+    os << asmDirectiveAlign << " 8\n";
     return;
   }
   if (x % 4 == 0) {
-    os << syntax[Asm::Directive::Align] << " 4\n";
+    os << asmDirectiveAlign << " 4\n";
     return;
   }
   if (x % 2 == 0) {
-    os << syntax[Asm::Directive::Align] << " 2\n";
+    os << asmDirectiveAlign << " 2\n";
     return;
   }
 }

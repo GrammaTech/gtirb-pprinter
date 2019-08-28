@@ -133,38 +133,6 @@ private:
   DebugStyle m_debug;
 };
 
-/// Common assembler syntax and directives.
-namespace Asm {
-enum class Style {
-  Comment,
-  Tab,
-};
-enum class Section {
-  BSS,
-  Data,
-  Text,
-};
-enum class Directive {
-  Align,
-  BSS,
-  Byte,
-  Data,
-  Global,
-  Long,
-  NOP,
-  Offset,
-  Quad,
-  Section,
-  Text,
-  Word,
-  ZeroByte,
-};
-} // namespace Asm
-
-using Syntax =
-    std::unordered_map<std::variant<Asm::Style, Asm::Section, Asm::Directive>,
-                       std::string>;
-
 /// The pretty-printer interface. There is only one exposed function, \link
 /// print().
 class PrettyPrinterBase {
@@ -175,14 +143,29 @@ public:
   virtual std::ostream& print(std::ostream& out);
 
 protected:
-  /// Constants table for common assembler directives and output formatting.
-  Syntax syntax = {
-      {Asm::Style::Tab, "          "}, {Asm::Section::Text, ".text"},
-      {Asm::Section::BSS, ".bss"},     {Asm::Section::Data, ".data"},
-      {Asm::Directive::NOP, "nop"},    {Asm::Directive::ZeroByte, ".byte 0x00"},
-      {Asm::Directive::Byte, ".byte"}, {Asm::Directive::Word, ".word"},
-      {Asm::Directive::Long, ".long"}, {Asm::Directive::Quad, ".quad"},
-  };
+  /// Shared assembler directives and output formatting.
+  std::string asmStyleComment;
+  std::string asmStyleTab{"          "};
+
+  std::string asmSectionText{".text"};
+  std::string asmSectionData{".data"};
+  std::string asmSectionBss{".bss"};
+
+  std::string asmDirectiveNop{"nop"};
+  std::string asmDirectiveZerobyte{".byte 0x00"};
+
+  std::string asmDirectiveByte{".byte"};
+  std::string asmDirectiveLong{".long"};
+  std::string asmDirectiveQuad{".quad"};
+  std::string asmDirectiveWord{".word"};
+
+  std::string asmDirectiveText;
+  std::string asmDirectiveBss;
+  std::string asmDirectiveData;
+  std::string asmDirectiveOffset;
+  std::string asmDirectiveAlign;
+  std::string asmDirectiveGlobal;
+  std::string asmDirectiveSection;
 
   /// Sections to avoid printing.
   std::unordered_set<std::string> skip_sects;

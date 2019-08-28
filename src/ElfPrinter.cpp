@@ -54,6 +54,15 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
                                    DebugStyle dbg_)
     : PrettyPrinterBase(context_, ir_, dbg_) {
 
+  asmStyleComment = "#";
+  asmDirectiveSection = ".section";
+  asmDirectiveText = ".text";
+  asmDirectiveData = ".data";
+  asmDirectiveBss = ".bss";
+  asmDirectiveAlign = ".align";
+  asmDirectiveGlobal = ".globl";
+  asmDirectiveByte = ".byte";
+
   if (this->ir.modules()
           .begin()
           ->getAuxData<
@@ -64,8 +73,6 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
     m_skip_sects.insert(".eh_frame");
   }
 
-  for (const auto& [k, v] : m_syntax)
-    syntax[k] = v;
   for (const auto name : keep_funcs)
     m_skip_funcs.erase(name);
   for (const auto name : m_skip_sects)
@@ -79,7 +86,7 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
 void ElfPrettyPrinter::printSectionHeaderDirective(
     std::ostream& os, const gtirb::Section& section) {
   std::string sectionName = section.getName();
-  os << syntax[Asm::Directive::Section] << ' ' << sectionName;
+  os << asmDirectiveSection << ' ' << sectionName;
 }
 
 void ElfPrettyPrinter::printSectionProperties(std::ostream& os,
@@ -120,7 +127,7 @@ void ElfPrettyPrinter::printFunctionHeader(std::ostream& os, gtirb::Addr addr) {
     const BlockAreaComment bac(os, "Function Header",
                                [this, &os]() { printBar(os, false); });
     printAlignment(os, addr);
-    os << syntax[Asm::Directive::Global] << ' ' << name << '\n';
+    os << asmDirectiveGlobal << ' ' << name << '\n';
     os << ".type" << ' ' << name << ", @function\n";
     os << name << ":\n";
   }
@@ -130,8 +137,8 @@ void ElfPrettyPrinter::printFunctionFooter(std::ostream& /* os */,
                                            gtirb::Addr /* addr */) {}
 
 void ElfPrettyPrinter::printByte(std::ostream& os, std::byte byte) {
-  os << syntax[Asm::Directive::Byte] << " 0x" << std::hex
-     << static_cast<uint32_t>(byte) << std::dec << '\n';
+  os << asmDirectiveByte << " 0x" << std::hex << static_cast<uint32_t>(byte)
+     << std::dec << '\n';
 }
 
 void ElfPrettyPrinter::printFooter(std::ostream& /* os */){};
