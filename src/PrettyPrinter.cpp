@@ -334,7 +334,7 @@ void PrettyPrinterBase::printBar(std::ostream& os, bool heavy) {
   if (heavy) {
     os << asmStyleComment << "===================================\n";
   } else {
-    os << asmStyleComment << "===================================\n";
+    os << asmStyleComment << "-----------------------------------\n";
   }
 }
 
