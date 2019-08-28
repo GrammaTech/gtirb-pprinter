@@ -39,6 +39,10 @@ protected:
 
   void printByte(std::ostream& os, std::byte byte) override;
 
+  bool
+  shouldExcludeDataElement(const gtirb::Section& section,
+                           const gtirb::DataObject& dataObject) const override;
+
 private:
   /// Sections to avoid printing.
   std::unordered_set<std::string> m_skip_sects{
@@ -54,9 +58,6 @@ private:
                                                "__libc_csu_fini",
                                                "__libc_csu_init",
                                                "_dl_relocate_static_pie"};
-
-  // Data objects to avoid printing.
-  std::unordered_set<std::string> m_skip_data{".init_array", ".fini_array"};
 };
 
 } // namespace gtirb_pprint

@@ -173,11 +173,10 @@ protected:
   /// Functions to avoid printing.
   std::unordered_set<std::string> skip_funcs;
 
-  /// Data objects to avoid printing.
   // These sections have a couple of special cases for data objects. They
   // usually contain entries that need to be ignored (the compiler will add them
   // again) and require special alignment of 8
-  std::unordered_set<std::string> skip_data;
+  std::unordered_set<std::string> arraySections;
 
   /// Return the SymAddrConst expression if it refers to a printed symbol.
   ///
@@ -282,8 +281,9 @@ protected:
   virtual void printDataObjectType(std::ostream& os,
                                    const gtirb::DataObject& dataObject);
 
-  bool shouldExcludeDataElement(const gtirb::Section& section,
-                                const gtirb::DataObject& dataObject) const;
+  virtual bool
+  shouldExcludeDataElement(const gtirb::Section& section,
+                           const gtirb::DataObject& dataObject) const;
 
   bool skipEA(const gtirb::Addr x) const;
 

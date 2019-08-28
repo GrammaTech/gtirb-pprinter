@@ -298,7 +298,7 @@ void PrettyPrinterBase::printSectionHeader(std::ostream& os,
     printSectionProperties(os, *(found_section.begin()));
     os << std::endl;
   }
-  if (skip_data.count(sectionName))
+  if (arraySections.count(sectionName))
     os << asmDirectiveAlign << " 8\n";
   else
     printAlignment(os, addr);
@@ -670,16 +670,8 @@ void PrettyPrinterBase::printString(std::ostream& os,
 }
 
 bool PrettyPrinterBase::shouldExcludeDataElement(
-    const gtirb::Section& section, const gtirb::DataObject& dataObject) const {
-  if (!skip_data.count(section.getName()))
-    return false;
-  const gtirb::Module& module = *this->ir.modules().begin();
-  auto foundSymbolic = module.findSymbolicExpression(dataObject.getAddress());
-  if (foundSymbolic != module.symbolic_expr_end()) {
-    if (const auto* s = std::get_if<gtirb::SymAddrConst>(&*foundSymbolic)) {
-      return skipEA(*s->Sym->getAddress());
-    }
-  }
+    const gtirb::Section& /* section */,
+    const gtirb::DataObject& /* dataObject */) const {
   return false;
 }
 

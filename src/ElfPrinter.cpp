@@ -63,6 +63,8 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
   asmDirectiveGlobal = ".globl";
   asmDirectiveByte = ".byte";
 
+  arraySections = {".init_array", ".fini_array"};
+
   if (this->ir.modules()
           .begin()
           ->getAuxData<
@@ -79,8 +81,6 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
     skip_sects.insert(name);
   for (const auto name : m_skip_funcs)
     skip_funcs.insert(name);
-  for (const auto name : m_skip_data)
-    skip_data.insert(name);
 }
 
 void ElfPrettyPrinter::printSectionHeaderDirective(
@@ -142,5 +142,19 @@ void ElfPrettyPrinter::printByte(std::ostream& os, std::byte byte) {
 }
 
 void ElfPrettyPrinter::printFooter(std::ostream& /* os */){};
+
+bool ElfPrettyPrinter::shouldExcludeDataElement(
+    const gtirb::Section& section, const gtirb::DataObject& dataObject) const {
+  if (!arraySections.count(section.getName()))
+    return false;
+  const gtirb::Module& module = *this->ir.modules().begin();
+  auto foundSymbolic = module.findSymbolicExpression(dataObject.getAddress());
+  if (foundSymbolic != module.symbolic_expr_end()) {
+    if (const auto* s = std::get_if<gtirb::SymAddrConst>(&*foundSymbolic)) {
+      return skipEA(*s->Sym->getAddress());
+    }
+  }
+  return false;
+}
 
 } // namespace gtirb_pprint
