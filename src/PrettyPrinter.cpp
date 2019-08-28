@@ -283,7 +283,7 @@ void PrettyPrinterBase::printSectionHeader(std::ostream& os,
   if (found_section.begin()->getAddress() != addr)
     return;
   std::string sectionName = found_section.begin()->getName();
-  if (skip_sects.count(sectionName))
+  if (skipSections.count(sectionName))
     return;
   os << '\n';
   printBar(os);
@@ -315,7 +315,7 @@ void PrettyPrinterBase::printSectionFooter(
     return;
 
   std::string section_name = (*prev_section)->getName();
-  if (skip_sects.count(section_name))
+  if (skipSections.count(section_name))
     return;
 
   const auto next_section = addr ? getContainerSection(*addr) : std::nullopt;
@@ -683,14 +683,14 @@ bool PrettyPrinterBase::isInSkippedSection(const gtirb::Addr addr) const {
   if (debug)
     return false;
   const auto section = getContainerSection(addr);
-  return section && skip_sects.count((*section)->getName());
+  return section && skipSections.count((*section)->getName());
 }
 
 bool PrettyPrinterBase::isInSkippedFunction(const gtirb::Addr x) const {
   std::optional<std::string> xFunctionName = getContainerFunctionName(x);
   if (!xFunctionName)
     return false;
-  return skip_funcs.count(*xFunctionName);
+  return skipFunctions.count(*xFunctionName);
 }
 
 bool PrettyPrinterBase::isFunctionEnd(const gtirb::Addr x) const {

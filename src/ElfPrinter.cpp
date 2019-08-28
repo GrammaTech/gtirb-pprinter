@@ -54,6 +54,7 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
                                    DebugStyle dbg_)
     : PrettyPrinterBase(context_, ir_, dbg_) {
 
+  // Target-specific assembly directives and formatting.
   asmStyleComment = "#";
   asmDirectiveSection = ".section";
   asmDirectiveText = ".text";
@@ -63,6 +64,17 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
   asmDirectiveGlobal = ".globl";
   asmDirectiveByte = ".byte";
 
+  /// Sections to avoid printing.
+  skipSections.insert({".comment", ".plt", ".init", ".fini", ".got", ".plt.got",
+                       ".got.plt", ".plt.sec", ".eh_frame_hdr"});
+
+  /// Functions to avoid printing.
+  skipFunctions.insert({"_start", "deregister_tm_clones", "register_tm_clones",
+                        "__do_global_dtors_aux", "frame_dummy",
+                        "__libc_csu_fini", "__libc_csu_init",
+                        "_dl_relocate_static_pie"});
+
+  /// Sections with possible data object exclusion.
   arraySections = {".init_array", ".fini_array"};
 
   if (this->ir.modules()
@@ -72,15 +84,11 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
                        std::vector<std::tuple<std::string, std::vector<int64_t>,
                                               gtirb::UUID>>>>(
               "cfiDirectives")) {
-    m_skip_sects.insert(".eh_frame");
+    skipSections.insert(".eh_frame");
   }
 
-  for (const auto name : keep_funcs)
-    m_skip_funcs.erase(name);
-  for (const auto name : m_skip_sects)
-    skip_sects.insert(name);
-  for (const auto name : m_skip_funcs)
-    skip_funcs.insert(name);
+  for (const auto& name : keep_funcs)
+    skipFunctions.erase(name);
 }
 
 void ElfPrettyPrinter::printSectionHeaderDirective(

@@ -168,10 +168,10 @@ protected:
   std::string asmDirectiveSection;
 
   /// Sections to avoid printing.
-  std::unordered_set<std::string> skip_sects;
+  std::unordered_set<std::string> skipSections;
 
   /// Functions to avoid printing.
-  std::unordered_set<std::string> skip_funcs;
+  std::unordered_set<std::string> skipFunctions;
 
   // These sections have a couple of special cases for data objects. They
   // usually contain entries that need to be ignored (the compiler will add them
