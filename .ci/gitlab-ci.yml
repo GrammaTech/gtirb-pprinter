@@ -22,7 +22,7 @@ check-format:
       else
           PUSH_TAG=$CI_COMMIT_REF_SLUG;
       fi
-    - IMAGE_NAME=${DOCKER_REGISTRY}/{$CI_PROJECT_PATH}/${OS}-${COMPILER}:${PUSH_TAG}
+    - IMAGE_NAME=${DOCKER_REGISTRY}/${CI_PROJECT_PATH}/${OS}-${COMPILER}:${PUSH_TAG}
     - git clone https://git.grammatech.com/rewriting/gtirb.git
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY;
     - docker build -f .ci/Dockerfile.$OS-$COMPILER -t $IMAGE_NAME .
