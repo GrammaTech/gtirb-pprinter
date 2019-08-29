@@ -86,7 +86,7 @@ int main(int argc, char** argv) {
   pp.setTarget(target);
 
   if (vm.count("keep-functions") != 0) {
-    for (auto keep : vm["keep-functions"].as<std::vector<std::string>>()) {
+    for (const auto& keep : vm["keep-functions"].as<std::vector<std::string>>()) {
       pp.keepFunction(keep);
     }
   }
