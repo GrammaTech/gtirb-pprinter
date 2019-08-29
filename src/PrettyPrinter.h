@@ -309,7 +309,7 @@ protected:
   std::optional<std::string>
   getContainerFunctionName(const gtirb::Addr x) const;
 
-  bool isFunctionEnd(const gtirb::Addr x) const;
+  bool isFunctionLastBlock(const gtirb::Addr x) const;
 
   bool isSectionSkipped(const std::string& name);
 
@@ -337,8 +337,8 @@ protected:
   static std::string AvoidRegNameConflicts(const std::string& x);
 
 private:
-  std::set<gtirb::Addr> m_function_entries;
-  std::set<gtirb::Addr> m_function_ends;
+  std::set<gtirb::Addr> functionEntry;
+  std::set<gtirb::Addr> functionLastBlock;
 
   std::string getForwardedSymbolEnding(const gtirb::Symbol* symbol,
                                        bool isAbsolute) const;
