@@ -73,7 +73,7 @@ std::set<std::tuple<std::string, std::string>> getRegisteredTargets();
 std::string getIRFileFormat(const gtirb::IR& ir);
 
 /// Return the default syntax for a file format.
-std::string getDefaultSyntax(const std::string& format);
+std::optional<std::string> getDefaultSyntax(const std::string& format);
 
 /// The primary interface for pretty-printing GTIRB objects. The typical flow
 /// is to create a PrettyPrinter, configure it (e.g., set the output syntax,

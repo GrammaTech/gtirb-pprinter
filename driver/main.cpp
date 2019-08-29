@@ -74,7 +74,7 @@ int main(int argc, char** argv) {
                                   : gtirb_pprint::getIRFileFormat(*ir);
   const std::string& syntax = vm.count("syntax")
                                   ? vm["syntax"].as<std::string>()
-                                  : gtirb_pprint::getDefaultSyntax(format);
+                                  : *gtirb_pprint::getDefaultSyntax(format);
   const auto target = std::make_tuple(format, syntax);
   if (gtirb_pprint::getRegisteredTargets().count(target) == 0) {
     LOG_ERROR << "Unknown target: " << format << "-" << syntax << "\n";

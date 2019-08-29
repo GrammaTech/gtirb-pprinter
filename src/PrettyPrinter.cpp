@@ -82,13 +82,13 @@ std::string getIRFileFormat(const gtirb::IR& ir) {
   return "undefined";
 }
 
-std::string getDefaultSyntax(const std::string& format) {
+std::optional<std::string> getDefaultSyntax(const std::string& format) {
   static const std::map<std::string, std::string> defaults = {
       {"elf", "intel"},
       {"pe", "masm"},
   };
   auto it = defaults.find(format);
-  return it != defaults.end() ? it->second : "???";
+  return it != defaults.end() ? std::optional(it->second) : std::nullopt;
 }
 
 PrettyPrinter::PrettyPrinter()
