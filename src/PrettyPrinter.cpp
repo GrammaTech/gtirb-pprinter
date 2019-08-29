@@ -323,6 +323,8 @@ void PrettyPrinterBase::printSectionFooter(
 
   const std::optional<const gtirb::Section*> next_section =
       addr ? getContainerSection(*addr) : std::nullopt;
+  // XXX: Using !(a == b) because an ambiguous overload for the != operator on
+  //      std::optional<const gtirb::Section*> is causing a compiler error.
   if (next_section && !(next_section == prev_section) &&
       section_name != asmSectionText && section_name != asmSectionData &&
       section_name != asmSectionBss) {
