@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
       LOG_ERROR << "    " << f << "-" << s << '\n';
     return EXIT_FAILURE;
   }
-  pp.setTarget(target);
+  pp.setTarget(std::move(target));
 
   if (vm.count("keep-functions") != 0) {
     for (const auto& keep : vm["keep-functions"].as<std::vector<std::string>>()) {

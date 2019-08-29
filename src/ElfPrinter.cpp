@@ -93,7 +93,7 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
 
 void ElfPrettyPrinter::printSectionHeaderDirective(
     std::ostream& os, const gtirb::Section& section) {
-  std::string sectionName = section.getName();
+  const std::string& sectionName = section.getName();
   os << asmDirectiveSection << ' ' << sectionName;
 }
 
