@@ -39,16 +39,26 @@ getFactories() {
   return factories;
 }
 
+static std::map<std::string, std::string>& getSyntaxes() {
+  static std::map<std::string, std::string> defaults;
+  return defaults;
+}
+
 namespace gtirb_pprint {
 
 bool registerPrinter(std::initializer_list<std::string> formats,
-                     std::initializer_list<std::string> syntaxes, factory f) {
+                     std::initializer_list<std::string> syntaxes, factory f,
+                     bool isDefault) {
   assert(f && "Cannot register null factory!");
   assert(formats.size() > 0 && "No formats to register!");
   assert(syntaxes.size() > 0 && "No syntaxes to register!");
-  for (const std::string& format : formats)
-    for (const std::string& syntax : syntaxes)
+  for (const std::string& format : formats) {
+    for (const std::string& syntax : syntaxes) {
       getFactories()[std::make_tuple(format, syntax)] = f;
+      if (isDefault)
+        setDefaultSyntax(format, syntax);
+    }
+  }
   return true;
 }
 
@@ -82,13 +92,14 @@ std::string getIRFileFormat(const gtirb::IR& ir) {
   return "undefined";
 }
 
+void setDefaultSyntax(const std::string& format, const std::string& syntax) {
+  getSyntaxes()[format] = syntax;
+}
+
 std::optional<std::string> getDefaultSyntax(const std::string& format) {
-  static const std::map<std::string, std::string> defaults = {
-      {"elf", "intel"},
-      {"pe", "masm"},
-  };
+  std::map<std::string, std::string> defaults = getSyntaxes();
   auto it = defaults.find(format);
-  return it != defaults.end() ? std::optional(it->second) : std::nullopt;
+  return it != defaults.end() ? std::make_optional(it->second) : std::nullopt;
 }
 
 PrettyPrinter::PrettyPrinter()

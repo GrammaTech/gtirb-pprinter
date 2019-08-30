@@ -63,7 +63,8 @@ using factory = std::function<std::unique_ptr<PrettyPrinterBase>(
 ///
 /// \return \c true.
 bool registerPrinter(std::initializer_list<std::string> formats,
-                     std::initializer_list<std::string> syntaxes, factory f);
+                     std::initializer_list<std::string> syntaxes, factory f,
+                     bool isDefault = false);
 
 /// Return the current set of syntaxes with registered factories.
 std::set<std::tuple<std::string, std::string>> getRegisteredTargets();
@@ -71,6 +72,9 @@ std::set<std::tuple<std::string, std::string>> getRegisteredTargets();
 /// Return the file format of a GTIRB IR. This function assumes that all modules
 /// in the IR have the same file format.
 std::string getIRFileFormat(const gtirb::IR& ir);
+
+/// Set the default syntax for a file format.
+void setDefaultSyntax(const std::string& format, const std::string& syntax);
 
 /// Return the default syntax for a file format.
 std::optional<std::string> getDefaultSyntax(const std::string& format);

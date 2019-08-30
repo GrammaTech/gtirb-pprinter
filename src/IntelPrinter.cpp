@@ -106,6 +106,7 @@ volatile bool IntelPrettyPrinter::registered = registerPrinter(
     [](gtirb::Context& context, gtirb::IR& ir, const string_range& keep_funcs,
        DebugStyle dbg) {
       return std::make_unique<IntelPrettyPrinter>(context, ir, keep_funcs, dbg);
-    });
+    },
+    true);
 
 } // namespace gtirb_pprint
