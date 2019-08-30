@@ -72,9 +72,9 @@ int main(int argc, char** argv) {
   const std::string& format = vm.count("format")
                                   ? vm["format"].as<std::string>()
                                   : gtirb_pprint::getIRFileFormat(*ir);
-  const std::string& syntax = vm.count("syntax")
-                                  ? vm["syntax"].as<std::string>()
-                                  : *gtirb_pprint::getDefaultSyntax(format);
+  const std::string& syntax =
+      vm.count("syntax") ? vm["syntax"].as<std::string>()
+                         : gtirb_pprint::getDefaultSyntax(format).value_or("");
   const auto target = std::make_tuple(format, syntax);
   if (gtirb_pprint::getRegisteredTargets().count(target) == 0) {
     LOG_ERROR << "Unsupported combination: format '" << format
