@@ -77,16 +77,20 @@ int main(int argc, char** argv) {
                                   : *gtirb_pprint::getDefaultSyntax(format);
   const auto target = std::make_tuple(format, syntax);
   if (gtirb_pprint::getRegisteredTargets().count(target) == 0) {
-    LOG_ERROR << "Unknown target: " << format << "-" << syntax << "\n";
-    LOG_ERROR << "Available formats:\n";
-    for (auto& [f, s] : gtirb_pprint::getRegisteredTargets())
-      LOG_ERROR << "    " << f << "-" << s << '\n';
+    LOG_ERROR << "Unsupported combination: format '" << format
+              << "' and syntax '" << syntax << "'\n";
+    LOG_ERROR << "Available combinations:\n";
+    LOG_ERROR << "    " << std::setw(10) << "format"
+              << "syntax\n";
+    for (const auto& [f, s] : gtirb_pprint::getRegisteredTargets())
+      LOG_ERROR << "    " << std::setw(10) << f << s << '\n';
     return EXIT_FAILURE;
   }
   pp.setTarget(std::move(target));
 
   if (vm.count("keep-functions") != 0) {
-    for (const auto& keep : vm["keep-functions"].as<std::vector<std::string>>()) {
+    for (const auto& keep :
+         vm["keep-functions"].as<std::vector<std::string>>()) {
       pp.keepFunction(keep);
     }
   }
