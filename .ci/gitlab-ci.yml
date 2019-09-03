@@ -1,5 +1,6 @@
 variables:
   DOCKER_REGISTRY: "docker.grammatech.com"
+  LOCAL_IMAGE_NAME: '$CI_BUILD_REF_NAME-$CI_PIPELINE_ID'
   GIT_SUBMODULE_STRATEGY: recursive
 
 before_script:
@@ -8,6 +9,8 @@ before_script:
 stages:
   - check-format
   - build
+  - test-and-tag
+  - cleanup
 
 check-format:
   stage: check-format
@@ -15,6 +18,13 @@ check-format:
     - docker build --rm -f .ci/Dockerfile.formatter .
 
 .build-template: &build
+  stage: build
+  script:
+    - git clone https://git.grammatech.com/rewriting/gtirb.git
+    - docker build -f .ci/Dockerfile.$OS-$COMPILER -t ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} .
+
+.test-and-tag-template: &test-and-tag
+  stage: test-and-tag
   script:
     - if [ "$CI_COMMIT_REF_SLUG" = "master" ];
       then
@@ -22,53 +32,123 @@ check-format:
       else
           PUSH_TAG=$CI_COMMIT_REF_SLUG;
       fi
-    - IMAGE_NAME=${DOCKER_REGISTRY}/${CI_PROJECT_PATH}/${OS}-${COMPILER}:${PUSH_TAG}
-    - git clone https://git.grammatech.com/rewriting/gtirb.git
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY;
-    - docker build -f .ci/Dockerfile.$OS-$COMPILER -t $IMAGE_NAME .
-    - docker push $IMAGE_NAME;
+    - docker tag ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} ${DOCKER_REGISTRY}/${CI_PROJECT_PATH}/${OS}-${COMPILER}:${PUSH_TAG}
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
+    - docker push ${DOCKER_REGISTRY}/${CI_PROJECT_PATH}/${OS}-${COMPILER}:${PUSH_TAG}
+
+.cleanup-template: &cleanup
+  stage: cleanup
+  when: always
+  script:
+    - docker rmi -f ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER}
 
 build-ubuntu16-gcc:
-  stage: build
   variables:
     OS: 'ubuntu16'
     COMPILER: 'gcc'
   <<: *build
 
 build-ubuntu16-clang:
-  stage: build
   variables:
     OS: 'ubuntu16'
     COMPILER: 'clang'
   <<: *build
 
 build-ubuntu18-gcc:
-  stage: build
   variables:
     OS: 'ubuntu18'
     COMPILER: 'gcc'
   <<: *build
 
 build-ubuntu18-clang:
-  stage: build
   variables:
     OS: 'ubuntu18'
     COMPILER: 'clang'
   <<: *build
 
 build-arch-gcc:
-   stage: build
    variables:
      OS: 'arch'
      COMPILER: 'gcc'
    <<: *build
 
 build-arch-clang:
-   stage: build
    variables:
      OS: 'arch'
      COMPILER: 'clang'
    <<: *build
+
+test-and-tag-ubuntu16-gcc:
+  variables:
+    OS: 'ubuntu16'
+    COMPILER: 'gcc'
+  <<: *test-and-tag
+
+test-and-tag-ubuntu16-clang:
+  variables:
+    OS: 'ubuntu16'
+    COMPILER: 'clang'
+  <<: *test-and-tag
+
+test-and-tag-ubuntu18-gcc:
+  variables:
+    OS: 'ubuntu18'
+    COMPILER: 'gcc'
+  <<: *test-and-tag
+
+test-and-tag-ubuntu18-clang:
+  variables:
+    OS: 'ubuntu18'
+    COMPILER: 'clang'
+  <<: *test-and-tag
+
+test-and-tag-arch-gcc:
+   variables:
+     OS: 'arch'
+     COMPILER: 'gcc'
+   <<: *test-and-tag
+
+test-and-tag-arch-clang:
+   variables:
+     OS: 'arch'
+     COMPILER: 'clang'
+   <<: *test-and-tag
+
+cleanup-ubuntu16-gcc:
+  variables:
+    OS: 'ubuntu16'
+    COMPILER: 'gcc'
+  <<: *cleanup
+
+cleanup-ubuntu16-clang:
+  variables:
+    OS: 'ubuntu16'
+    COMPILER: 'clang'
+  <<: *cleanup
+
+cleanup-ubuntu18-gcc:
+  variables:
+    OS: 'ubuntu18'
+    COMPILER: 'gcc'
+  <<: *cleanup
+
+cleanup-ubuntu18-clang:
+  variables:
+    OS: 'ubuntu18'
+    COMPILER: 'clang'
+  <<: *cleanup
+
+cleanup-arch-gcc:
+   variables:
+     OS: 'arch'
+     COMPILER: 'gcc'
+   <<: *cleanup
+
+cleanup-arch-clang:
+   variables:
+     OS: 'arch'
+     COMPILER: 'clang'
+   <<: *cleanup
 
 # pages:
 #   stage: cleanup-ubuntu16-gcc
