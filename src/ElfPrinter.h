@@ -24,6 +24,8 @@ public:
   ElfPrettyPrinter(gtirb::Context& context, gtirb::IR& ir,
                    const string_range& keep_funcs, DebugStyle dbg);
 
+  static const PrintingPolicy& DefaultPrintingPolicy();
+
 protected:
   void printFooter(std::ostream& os) override;
 

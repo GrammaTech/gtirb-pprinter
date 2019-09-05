@@ -117,6 +117,10 @@ void AttPrettyPrinter::printOpIndirect(
   }
 }
 
+const PrintingPolicy& AttPrettyPrinterFactory::DefaultPrintingPolicy() {
+  return AttPrettyPrinter::DefaultPrintingPolicy();
+}
+
 std::unique_ptr<PrettyPrinterBase>
 AttPrettyPrinterFactory::Create(gtirb::Context& context, gtirb::IR& ir,
                                 const string_range& keep_funcs,

@@ -133,12 +133,27 @@ private:
   DebugStyle m_debug;
 };
 
+struct PrintingPolicy {
+  /// Sections to avoid printing.
+  std::unordered_set<std::string> skipSections;
+
+  /// Functions to avoid printing.
+  std::unordered_set<std::string> skipFunctions;
+
+  // These sections have a couple of special cases for data objects. They
+  // usually contain entries that need to be ignored (the compiler will add them
+  // again) and require special alignment of 8
+  std::unordered_set<std::string> arraySections;
+
+  DebugStyle debug = NoDebug;
+};
+
 /// Abstract factory - encloses default printing configuration and a method for
 /// building the target pretty printer.
 class PrettyPrinterFactory {
 public:
   /// Load the default printing policy.
-  // virtual const PrintingPolicy& DefaultPrintingPolicy() = 0;
+  virtual const PrintingPolicy& DefaultPrintingPolicy() = 0;
 
   /// Create the pretty printer instance.
   virtual std::unique_ptr<PrettyPrinterBase>

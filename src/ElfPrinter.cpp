@@ -91,6 +91,22 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
     skipFunctions.erase(name);
 }
 
+const PrintingPolicy& ElfPrettyPrinter::DefaultPrintingPolicy() {
+  return std::move(PrintingPolicy{
+      /// Sections to avoid printing.
+      {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
+       ".plt.sec", ".eh_frame_hdr"},
+
+      /// Functions to avoid printing.
+      {"_start", "deregister_tm_clones", "register_tm_clones",
+       "__do_global_dtors_aux", "frame_dummy", "__libc_csu_fini",
+       "__libc_csu_init", "_dl_relocate_static_pie"},
+
+      /// Sections with possible data object exclusion.
+      {".init_array", ".fini_array"},
+  });
+}
+
 void ElfPrettyPrinter::printSectionHeaderDirective(
     std::ostream& os, const gtirb::Section& section) {
   const std::string& sectionName = section.getName();

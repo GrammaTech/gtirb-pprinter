@@ -101,6 +101,10 @@ void IntelPrettyPrinter::printOpIndirect(
   os << ']';
 }
 
+const PrintingPolicy& IntelPrettyPrinterFactory::DefaultPrintingPolicy() {
+  return IntelPrettyPrinter::DefaultPrintingPolicy();
+}
+
 std::unique_ptr<PrettyPrinterBase>
 IntelPrettyPrinterFactory::Create(gtirb::Context& context, gtirb::IR& ir,
                                   const string_range& keep_funcs,

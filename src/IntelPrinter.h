@@ -41,6 +41,7 @@ private:
 
 class IntelPrettyPrinterFactory : public PrettyPrinterFactory {
 public:
+  const PrintingPolicy& DefaultPrintingPolicy() override;
   std::unique_ptr<PrettyPrinterBase> Create(gtirb::Context& context,
                                             gtirb::IR& ir,
                                             const string_range& keep_funcs,
