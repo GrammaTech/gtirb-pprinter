@@ -41,6 +41,14 @@ private:
   static volatile bool registered;
 };
 
+class AttPrettyPrinterFactory : public PrettyPrinterFactory {
+public:
+  std::unique_ptr<PrettyPrinterBase> Create(gtirb::Context& context,
+                                            gtirb::IR& ir,
+                                            const string_range& keep_funcs,
+                                            DebugStyle dbg) override;
+};
+
 } // namespace gtirb_pprint
 
 #endif /* GTIRB_PP_GAS_PRINTER_H */

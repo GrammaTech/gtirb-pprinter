@@ -35,6 +35,8 @@
 /// \brief Pretty-print GTIRB representations.
 namespace gtirb_pprint {
 
+struct PrintingPolicy;
+class PrettyPrinterFactory;
 class PrettyPrinterBase;
 
 /// Whether a pretty printer should include debugging messages in it output.
@@ -44,13 +46,6 @@ enum DebugStyle { NoDebug, DebugMessages };
 /// pairs of iterators, for example.
 using string_range = boost::any_range<std::string, boost::forward_traversal_tag,
                                       std::string&, std::ptrdiff_t>;
-
-/// The type of the factories that may be registered. A factory is simply
-/// something that can be called with an allocation context, the IR to
-/// pretty print, the set of function names to skip during printing, and a
-/// boolean indicating whether to include debugging output.
-using factory = std::function<std::unique_ptr<PrettyPrinterBase>(
-    gtirb::Context& context, gtirb::IR& ir, const string_range&, DebugStyle)>;
 
 /// Register a factory for creating pretty printer objects. The factory will
 /// be used to generate the formats and syntaxes named in the initialization
@@ -63,7 +58,8 @@ using factory = std::function<std::unique_ptr<PrettyPrinterBase>(
 ///
 /// \return \c true.
 bool registerPrinter(std::initializer_list<std::string> formats,
-                     std::initializer_list<std::string> syntaxes, factory f,
+                     std::initializer_list<std::string> syntaxes,
+                     std::shared_ptr<PrettyPrinterFactory> f,
                      bool isDefault = false);
 
 /// Return the current set of syntaxes with registered factories.
@@ -135,6 +131,19 @@ private:
   std::string m_format;
   std::string m_syntax;
   DebugStyle m_debug;
+};
+
+/// Abstract factory - encloses default printing configuration and a method for
+/// building the target pretty printer.
+class PrettyPrinterFactory {
+public:
+  /// Load the default printing policy.
+  // virtual const PrintingPolicy& DefaultPrintingPolicy() = 0;
+
+  /// Create the pretty printer instance.
+  virtual std::unique_ptr<PrettyPrinterBase>
+  Create(gtirb::Context& context, gtirb::IR& ir, const string_range& keep_funcs,
+         DebugStyle dbg) = 0;
 };
 
 /// The pretty-printer interface. There is only one exposed function, \link

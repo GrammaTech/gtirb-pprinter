@@ -101,12 +101,14 @@ void IntelPrettyPrinter::printOpIndirect(
   os << ']';
 }
 
+std::unique_ptr<PrettyPrinterBase>
+IntelPrettyPrinterFactory::Create(gtirb::Context& context, gtirb::IR& ir,
+                                  const string_range& keep_funcs,
+                                  DebugStyle dbg) {
+  return std::make_unique<IntelPrettyPrinter>(context, ir, keep_funcs, dbg);
+}
+
 volatile bool IntelPrettyPrinter::registered = registerPrinter(
-    {"elf"}, {"intel"},
-    [](gtirb::Context& context, gtirb::IR& ir, const string_range& keep_funcs,
-       DebugStyle dbg) {
-      return std::make_unique<IntelPrettyPrinter>(context, ir, keep_funcs, dbg);
-    },
-    true);
+    {"elf"}, {"intel"}, std::make_shared<IntelPrettyPrinterFactory>(), true);
 
 } // namespace gtirb_pprint

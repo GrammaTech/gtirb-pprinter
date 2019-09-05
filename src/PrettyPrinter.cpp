@@ -32,9 +32,11 @@ template <class T> T* nodeFromUUID(gtirb::Context& C, gtirb::UUID id) {
   return dyn_cast_or_null<T>(gtirb::Node::getByUUID(C, id));
 }
 
-static std::map<std::tuple<std::string, std::string>, ::gtirb_pprint::factory>&
+static std::map<std::tuple<std::string, std::string>,
+                std::shared_ptr<::gtirb_pprint::PrettyPrinterFactory>>&
 getFactories() {
-  static std::map<std::tuple<std::string, std::string>, gtirb_pprint::factory>
+  static std::map<std::tuple<std::string, std::string>,
+                  std::shared_ptr<::gtirb_pprint::PrettyPrinterFactory>>
       factories;
   return factories;
 }
@@ -47,14 +49,13 @@ static std::map<std::string, std::string>& getSyntaxes() {
 namespace gtirb_pprint {
 
 bool registerPrinter(std::initializer_list<std::string> formats,
-                     std::initializer_list<std::string> syntaxes, factory f,
-                     bool isDefault) {
-  assert(f && "Cannot register null factory!");
+                     std::initializer_list<std::string> syntaxes,
+                     std::shared_ptr<PrettyPrinterFactory> f, bool isDefault) {
   assert(formats.size() > 0 && "No formats to register!");
   assert(syntaxes.size() > 0 && "No syntaxes to register!");
   for (const std::string& format : formats) {
     for (const std::string& syntax : syntaxes) {
-      getFactories()[std::make_tuple(format, syntax)] = f;
+      getFactories()[std::make_tuple(format, syntax)] = std::move(f);
       if (isDefault)
         setDefaultSyntax(format, syntax);
     }
@@ -127,7 +128,15 @@ std::error_condition PrettyPrinter::print(std::ostream& stream,
                                           gtirb::Context& context,
                                           gtirb::IR& ir) const {
   const auto target = std::make_tuple(m_format, m_syntax);
-  getFactories().at(target)(context, ir, m_keep_funcs, m_debug)->print(stream);
+
+  const std::shared_ptr<PrettyPrinterFactory> factory =
+      getFactories().at(target);
+
+  const std::unique_ptr<PrettyPrinterBase> printer =
+      factory->Create(context, ir, m_keep_funcs, m_debug);
+
+  printer->print(stream);
+
   return std::error_condition{};
 }
 

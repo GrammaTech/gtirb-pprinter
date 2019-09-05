@@ -117,11 +117,14 @@ void AttPrettyPrinter::printOpIndirect(
   }
 }
 
+std::unique_ptr<PrettyPrinterBase>
+AttPrettyPrinterFactory::Create(gtirb::Context& context, gtirb::IR& ir,
+                                const string_range& keep_funcs,
+                                DebugStyle dbg) {
+  return std::make_unique<AttPrettyPrinter>(context, ir, keep_funcs, dbg);
+}
+
 volatile bool AttPrettyPrinter::registered = registerPrinter(
-    {"elf"}, {"att"},
-    [](gtirb::Context& context, gtirb::IR& ir, const string_range& keep_funcs,
-       DebugStyle dbg) {
-      return std::make_unique<AttPrettyPrinter>(context, ir, keep_funcs, dbg);
-    });
+    {"elf"}, {"att"}, std::make_shared<AttPrettyPrinterFactory>());
 
 } // namespace gtirb_pprint
