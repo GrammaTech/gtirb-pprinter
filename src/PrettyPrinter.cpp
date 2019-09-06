@@ -166,7 +166,9 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_, gtirb::IR& ir_,
     for (auto const& function : *functionEntries) {
       for (auto& entryBlockUUID : function.second) {
         const auto* block = nodeFromUUID<gtirb::Block>(context, entryBlockUUID);
-        functionEntry.insert(block->getAddress());
+        assert(block && "UUID references non-existent block.");
+        if (block)
+          functionEntry.insert(block->getAddress());
       }
     }
   }
@@ -181,7 +183,8 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_, gtirb::IR& ir_,
       gtirb::Addr lastAddr{0};
       for (auto& blockUUID : function.second) {
         const auto* block = nodeFromUUID<gtirb::Block>(context, blockUUID);
-        if (block->getAddress() > lastAddr)
+        assert(block && "UUID references non-existent block.");
+        if (block && block->getAddress() > lastAddr)
           lastAddr = block->getAddress();
       }
       functionLastBlock.insert(lastAddr);
