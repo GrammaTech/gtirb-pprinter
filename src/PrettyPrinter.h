@@ -47,14 +47,18 @@ enum DebugStyle { NoDebug, DebugMessages };
 using string_range = boost::any_range<std::string, boost::forward_traversal_tag,
                                       std::string&, std::ptrdiff_t>;
 
-/// Register a factory for creating pretty printer objects. The factory will
-/// be used to generate the formats and syntaxes named in the initialization
-/// /list. For example, \code registerPrinter({"foo"}, {"bar"}, theFactory);
+/// Register a factory for creating pretty printer objects. The factory will be
+/// used to load a default \link PrintingPolicy and create a pretty printer for
+/// the formats and syntaxes named in the initialization lists.
+///
+/// For example, \code registerPrinter({"foo"}, {"bar"}, theFactory);
 /// \endcode
 ///
-/// \param formats  the (non-empty) formats produced by the factory
-/// \param syntaxes the (non-empty) syntaxes produced by the factory
-/// \param f        the (non-empty) \link factory object
+/// \param formats    the (non-empty) formats produced by the factory
+/// \param syntaxes   the (non-empty) syntaxes produced by the factory
+/// \param f          the (non-empty) \link PrettyPrinterFactory object
+/// \param isDefault  optionally make this the default factory for the
+///                   named format and syntax parameters
 ///
 /// \return \c true.
 bool registerPrinter(std::initializer_list<std::string> formats,
