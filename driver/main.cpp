@@ -82,11 +82,15 @@ int main(int argc, char** argv) {
   if (gtirb_pprint::getRegisteredTargets().count(target) == 0) {
     LOG_ERROR << "Unsupported combination: format '" << format
               << "' and syntax '" << syntax << "'\n";
+    std::string::size_type width = 0;
+    for (const auto& [f, s] : gtirb_pprint::getRegisteredTargets())
+      width = std::max({width, f.size(), s.size()});
+    width += 2; // add "gutter" between columns
     LOG_ERROR << "Available combinations:\n";
-    LOG_ERROR << "    " << std::setw(10) << "format"
+    LOG_ERROR << "    " << std::setw(width) << "format"
               << "syntax\n";
     for (const auto& [f, s] : gtirb_pprint::getRegisteredTargets())
-      LOG_ERROR << "    " << std::setw(10) << f << s << '\n';
+      LOG_ERROR << "    " << std::setw(width) << f << s << '\n';
     return EXIT_FAILURE;
   }
   pp.setTarget(std::move(target));
