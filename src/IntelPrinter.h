@@ -22,7 +22,7 @@ namespace gtirb_pprint {
 class IntelPrettyPrinter : public ElfPrettyPrinter {
 public:
   IntelPrettyPrinter(gtirb::Context& context, gtirb::IR& ir,
-                     const string_range& keep_funcs, DebugStyle dbg);
+                     const PrintingPolicy& policy);
 
 protected:
   void printHeader(std::ostream& os) override;
@@ -42,10 +42,9 @@ private:
 class IntelPrettyPrinterFactory : public PrettyPrinterFactory {
 public:
   const PrintingPolicy& DefaultPrintingPolicy() override;
-  std::unique_ptr<PrettyPrinterBase> Create(gtirb::Context& context,
-                                            gtirb::IR& ir,
-                                            const string_range& keep_funcs,
-                                            DebugStyle dbg) override;
+  std::unique_ptr<PrettyPrinterBase>
+  Create(gtirb::Context& context, gtirb::IR& ir,
+         const PrintingPolicy& policy) override;
 };
 
 } // namespace gtirb_pprint

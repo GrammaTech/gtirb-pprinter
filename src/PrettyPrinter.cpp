@@ -127,23 +127,26 @@ void PrettyPrinter::keepFunction(const std::string& functionName) {
 std::error_condition PrettyPrinter::print(std::ostream& stream,
                                           gtirb::Context& context,
                                           gtirb::IR& ir) const {
+  // Find pretty printer factory.
   const auto target = std::make_tuple(m_format, m_syntax);
-
   const std::shared_ptr<PrettyPrinterFactory> factory =
       getFactories().at(target);
 
-  const std::unique_ptr<PrettyPrinterBase> printer =
-      factory->Create(context, ir, m_keep_funcs, m_debug);
+  // Configure printing policy.
+  PrintingPolicy policy(factory->DefaultPrintingPolicy());
+  policy.debug = m_debug;
+  // TODO: Handle skip/keep functions
 
-  printer->print(stream);
+  // Create the pretty printer and print the IR.
+  factory->Create(context, ir, policy)->print(stream);
 
   return std::error_condition{};
 }
 
 PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_, gtirb::IR& ir_,
-                                     DebugStyle dbg)
-    : debug(dbg == DebugMessages ? true : false), context(context_), ir(ir_),
-      functionEntry(), functionLastBlock() {
+                                     const PrintingPolicy& policy_)
+    : policy(policy_), debug(policy.debug == DebugMessages ? true : false),
+      context(context_), ir(ir_), functionEntry(), functionLastBlock() {
   [[maybe_unused]] cs_err err =
       cs_open(CS_ARCH_X86, CS_MODE_64, &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
@@ -305,7 +308,7 @@ void PrettyPrinterBase::printSectionHeader(std::ostream& os,
   if (found_section.begin()->getAddress() != addr)
     return;
   std::string sectionName = found_section.begin()->getName();
-  if (skipSections.count(sectionName))
+  if (policy.skipSections.count(sectionName))
     return;
   os << '\n';
   printBar(os);
@@ -320,7 +323,7 @@ void PrettyPrinterBase::printSectionHeader(std::ostream& os,
     printSectionProperties(os, *(found_section.begin()));
     os << std::endl;
   }
-  if (arraySections.count(sectionName))
+  if (policy.arraySections.count(sectionName))
     os << asmDirectiveAlign << " 8\n";
   else
     printAlignment(os, addr);
@@ -338,7 +341,7 @@ void PrettyPrinterBase::printSectionFooter(
     return;
 
   std::string section_name = (*prev_section)->getName();
-  if (skipSections.count(section_name))
+  if (policy.skipSections.count(section_name))
     return;
 
   const std::optional<const gtirb::Section*> next_section =
@@ -703,14 +706,14 @@ bool PrettyPrinterBase::isInSkippedSection(const gtirb::Addr addr) const {
   if (debug)
     return false;
   const auto section = getContainerSection(addr);
-  return section && skipSections.count((*section)->getName());
+  return section && policy.skipSections.count((*section)->getName());
 }
 
 bool PrettyPrinterBase::isInSkippedFunction(const gtirb::Addr x) const {
   std::optional<std::string> xFunctionName = getContainerFunctionName(x);
   if (!xFunctionName)
     return false;
-  return skipFunctions.count(*xFunctionName);
+  return policy.skipFunctions.count(*xFunctionName);
 }
 
 bool PrettyPrinterBase::isFunctionLastBlock(const gtirb::Addr x) const {

@@ -22,7 +22,7 @@ namespace gtirb_pprint {
 class AttPrettyPrinter : public ElfPrettyPrinter {
 public:
   AttPrettyPrinter(gtirb::Context& context, gtirb::IR& ir,
-                   const string_range& keep_funcs, DebugStyle dbg);
+                   const PrintingPolicy& policy);
 
 protected:
   std::string getRegisterName(unsigned int reg) const override;
@@ -44,10 +44,9 @@ private:
 class AttPrettyPrinterFactory : public PrettyPrinterFactory {
 public:
   const PrintingPolicy& DefaultPrintingPolicy() override;
-  std::unique_ptr<PrettyPrinterBase> Create(gtirb::Context& context,
-                                            gtirb::IR& ir,
-                                            const string_range& keep_funcs,
-                                            DebugStyle dbg) override;
+  std::unique_ptr<PrettyPrinterBase>
+  Create(gtirb::Context& context, gtirb::IR& ir,
+         const PrintingPolicy& policy) override;
 };
 
 } // namespace gtirb_pprint

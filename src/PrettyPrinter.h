@@ -157,20 +157,23 @@ public:
 
   /// Create the pretty printer instance.
   virtual std::unique_ptr<PrettyPrinterBase>
-  Create(gtirb::Context& context, gtirb::IR& ir, const string_range& keep_funcs,
-         DebugStyle dbg) = 0;
+  Create(gtirb::Context& context, gtirb::IR& ir,
+         const PrintingPolicy& policy) = 0;
 };
 
 /// The pretty-printer interface. There is only one exposed function, \link
 /// print().
 class PrettyPrinterBase {
 public:
-  PrettyPrinterBase(gtirb::Context& context, gtirb::IR& ir, DebugStyle dbg);
+  PrettyPrinterBase(gtirb::Context& context, gtirb::IR& ir,
+                    const PrintingPolicy& policy);
   virtual ~PrettyPrinterBase();
 
   virtual std::ostream& print(std::ostream& out);
 
 protected:
+  PrintingPolicy policy;
+
   /// Shared assembler directives and output formatting.
   std::string asmStyleComment;
   std::string asmStyleTab{"          "};
@@ -194,17 +197,6 @@ protected:
   std::string asmDirectiveAlign;
   std::string asmDirectiveGlobal;
   std::string asmDirectiveSection;
-
-  /// Sections to avoid printing.
-  std::unordered_set<std::string> skipSections;
-
-  /// Functions to avoid printing.
-  std::unordered_set<std::string> skipFunctions;
-
-  // These sections have a couple of special cases for data objects. They
-  // usually contain entries that need to be ignored (the compiler will add them
-  // again) and require special alignment of 8
-  std::unordered_set<std::string> arraySections;
 
   /// Return the SymAddrConst expression if it refers to a printed symbol.
   ///

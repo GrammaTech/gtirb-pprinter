@@ -22,7 +22,7 @@ namespace gtirb_pprint {
 class ElfPrettyPrinter : public PrettyPrinterBase {
 public:
   ElfPrettyPrinter(gtirb::Context& context, gtirb::IR& ir,
-                   const string_range& keep_funcs, DebugStyle dbg);
+                   const PrintingPolicy& policy);
 
   static const PrintingPolicy& DefaultPrintingPolicy();
 

@@ -50,9 +50,8 @@ public:
 };
 
 ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
-                                   const string_range& keep_funcs,
-                                   DebugStyle dbg_)
-    : PrettyPrinterBase(context_, ir_, dbg_) {
+                                   const PrintingPolicy& policy_)
+    : PrettyPrinterBase(context_, ir_, policy_) {
 
   // Target-specific assembly directives and formatting.
   asmStyleComment = "#";
@@ -64,19 +63,6 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
   asmDirectiveGlobal = ".globl";
   asmDirectiveByte = ".byte";
 
-  /// Sections to avoid printing.
-  skipSections.insert({".comment", ".plt", ".init", ".fini", ".got", ".plt.got",
-                       ".got.plt", ".plt.sec", ".eh_frame_hdr"});
-
-  /// Functions to avoid printing.
-  skipFunctions.insert({"_start", "deregister_tm_clones", "register_tm_clones",
-                        "__do_global_dtors_aux", "frame_dummy",
-                        "__libc_csu_fini", "__libc_csu_init",
-                        "_dl_relocate_static_pie"});
-
-  /// Sections with possible data object exclusion.
-  arraySections = {".init_array", ".fini_array"};
-
   if (this->ir.modules()
           .begin()
           ->getAuxData<
@@ -84,15 +70,12 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
                        std::vector<std::tuple<std::string, std::vector<int64_t>,
                                               gtirb::UUID>>>>(
               "cfiDirectives")) {
-    skipSections.insert(".eh_frame");
+    policy.skipSections.insert(".eh_frame");
   }
-
-  for (const auto& name : keep_funcs)
-    skipFunctions.erase(name);
 }
 
 const PrintingPolicy& ElfPrettyPrinter::DefaultPrintingPolicy() {
-  return std::move(PrintingPolicy{
+  static PrintingPolicy defaultPolicy{
       /// Sections to avoid printing.
       {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
        ".plt.sec", ".eh_frame_hdr"},
@@ -104,7 +87,8 @@ const PrintingPolicy& ElfPrettyPrinter::DefaultPrintingPolicy() {
 
       /// Sections with possible data object exclusion.
       {".init_array", ".fini_array"},
-  });
+  };
+  return defaultPolicy;
 }
 
 void ElfPrettyPrinter::printSectionHeaderDirective(
@@ -169,7 +153,7 @@ void ElfPrettyPrinter::printFooter(std::ostream& /* os */){};
 
 bool ElfPrettyPrinter::shouldExcludeDataElement(
     const gtirb::Section& section, const gtirb::DataObject& dataObject) const {
-  if (!arraySections.count(section.getName()))
+  if (!policy.arraySections.count(section.getName()))
     return false;
   const gtirb::Module& module = *this->ir.modules().begin();
   auto foundSymbolic = module.findSymbolicExpression(dataObject.getAddress());

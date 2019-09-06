@@ -19,9 +19,8 @@
 namespace gtirb_pprint {
 
 IntelPrettyPrinter::IntelPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
-                                       const string_range& keep_funcs,
-                                       DebugStyle dbg)
-    : ElfPrettyPrinter(context_, ir_, keep_funcs, dbg) {
+                                       const PrintingPolicy& policy_)
+    : ElfPrettyPrinter(context_, ir_, policy_) {
   asmDirectiveOffset = "OFFSET";
 }
 
@@ -107,9 +106,8 @@ const PrintingPolicy& IntelPrettyPrinterFactory::DefaultPrintingPolicy() {
 
 std::unique_ptr<PrettyPrinterBase>
 IntelPrettyPrinterFactory::Create(gtirb::Context& context, gtirb::IR& ir,
-                                  const string_range& keep_funcs,
-                                  DebugStyle dbg) {
-  return std::make_unique<IntelPrettyPrinter>(context, ir, keep_funcs, dbg);
+                                  const PrintingPolicy& policy) {
+  return std::make_unique<IntelPrettyPrinter>(context, ir, policy);
 }
 
 volatile bool IntelPrettyPrinter::registered = registerPrinter(
