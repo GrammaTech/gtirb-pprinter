@@ -27,6 +27,9 @@ int main(int argc, char** argv) {
                      po::value<std::vector<std::string>>()->multitoken(),
                      "Print the given functions even if they are skipped by "
                      "default (e.g. _start)");
+  desc.add_options()("skip-functions,n",
+                     po::value<std::vector<std::string>>()->multitoken(),
+                     "Do not print the given functions.");
   desc.add_options()("library-paths,L",
                      po::value<std::vector<std::string>>()->multitoken(),
                      "Library paths to be passed to the linker");
@@ -92,6 +95,13 @@ int main(int argc, char** argv) {
     for (const auto& keep :
          vm["keep-functions"].as<std::vector<std::string>>()) {
       pp.keepFunction(keep);
+    }
+  }
+
+  if (vm.count("skip-functions") != 0) {
+    for (const auto& skip :
+         vm["skip-functions"].as<std::vector<std::string>>()) {
+      pp.skipFunction(skip);
     }
   }
 

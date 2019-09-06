@@ -127,6 +127,7 @@ public:
                              gtirb::IR& ir) const;
 
 private:
+  std::set<std::string> m_skip_funcs;
   std::set<std::string> m_keep_funcs;
   std::string m_format;
   std::string m_syntax;

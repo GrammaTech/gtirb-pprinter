@@ -120,6 +120,10 @@ void PrettyPrinter::setDebug(bool do_debug) {
 
 bool PrettyPrinter::getDebug() const { return m_debug == DebugMessages; }
 
+void PrettyPrinter::skipFunction(const std::string& functionName) {
+  m_skip_funcs.insert(functionName);
+}
+
 void PrettyPrinter::keepFunction(const std::string& functionName) {
   m_keep_funcs.insert(functionName);
 }
@@ -135,7 +139,10 @@ std::error_condition PrettyPrinter::print(std::ostream& stream,
   // Configure printing policy.
   PrintingPolicy policy(factory->DefaultPrintingPolicy());
   policy.debug = m_debug;
-  // TODO: Handle skip/keep functions
+  for (auto& name : m_skip_funcs)
+    policy.skipFunctions.insert(name);
+  for (auto& name : m_keep_funcs)
+    policy.skipFunctions.erase(name);
 
   // Create the pretty printer and print the IR.
   factory->Create(context, ir, policy)->print(stream);
