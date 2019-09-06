@@ -271,8 +271,10 @@ gtirb::Addr PrettyPrinterBase::printDataObjectOrWarning(
 
 void PrettyPrinterBase::printOverlapWarning(std::ostream& os,
                                             const gtirb::Addr addr) {
+  auto flags = os.flags();
   os << asmStyleComment << " WARNING: found overlapping element at address "
-     << std::hex << static_cast<uint64_t>(addr) << ": " << std::dec;
+     << std::hex << static_cast<uint64_t>(addr) << ": ";
+  os.flags(flags);
 }
 
 void PrettyPrinterBase::printBlock(std::ostream& os, const gtirb::Block& x) {

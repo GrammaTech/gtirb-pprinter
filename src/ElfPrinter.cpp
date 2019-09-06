@@ -145,8 +145,10 @@ void ElfPrettyPrinter::printFunctionFooter(std::ostream& /* os */,
                                            gtirb::Addr /* addr */) {}
 
 void ElfPrettyPrinter::printByte(std::ostream& os, std::byte byte) {
+  auto flags = os.flags();
   os << asmDirectiveByte << " 0x" << std::hex << static_cast<uint32_t>(byte)
-     << std::dec << '\n';
+     << '\n';
+  os.flags(flags);
 }
 
 void ElfPrettyPrinter::printFooter(std::ostream& /* os */){};
