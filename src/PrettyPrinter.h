@@ -19,6 +19,8 @@
 
 #include <gtirb/gtirb.hpp>
 
+#include <Syntax.h>
+
 #include <boost/range/any_range.hpp>
 #include <capstone/capstone.h>
 #include <cstdint>
@@ -173,37 +175,14 @@ public:
 class PrettyPrinterBase {
 public:
   PrettyPrinterBase(gtirb::Context& context, gtirb::IR& ir,
-                    const PrintingPolicy& policy);
+                    const Syntax& syntax, const PrintingPolicy& policy);
   virtual ~PrettyPrinterBase();
 
   virtual std::ostream& print(std::ostream& out);
 
 protected:
+  Syntax syntax;
   PrintingPolicy policy;
-
-  /// Shared assembler directives and output formatting.
-  std::string asmStyleComment;
-  std::string asmStyleTab{"          "};
-
-  std::string asmSectionText{".text"};
-  std::string asmSectionData{".data"};
-  std::string asmSectionBss{".bss"};
-
-  std::string asmDirectiveNop{"nop"};
-  std::string asmDirectiveZerobyte{".byte 0x00"};
-
-  std::string asmDirectiveByte{".byte"};
-  std::string asmDirectiveLong{".long"};
-  std::string asmDirectiveQuad{".quad"};
-  std::string asmDirectiveWord{".word"};
-
-  std::string asmDirectiveText;
-  std::string asmDirectiveBss;
-  std::string asmDirectiveData;
-  std::string asmDirectiveOffset;
-  std::string asmDirectiveAlign;
-  std::string asmDirectiveGlobal;
-  std::string asmDirectiveSection;
 
   /// Return the SymAddrConst expression if it refers to a printed symbol.
   ///

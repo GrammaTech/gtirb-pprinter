@@ -22,7 +22,7 @@ namespace gtirb_pprint {
 class AttPrettyPrinter : public ElfPrettyPrinter {
 public:
   AttPrettyPrinter(gtirb::Context& context, gtirb::IR& ir,
-                   const PrintingPolicy& policy);
+                   const ElfSyntax& syntax, const PrintingPolicy& policy);
 
 protected:
   std::string getRegisterName(unsigned int reg) const override;

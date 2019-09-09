@@ -151,9 +151,11 @@ std::error_condition PrettyPrinter::print(std::ostream& stream,
 }
 
 PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_, gtirb::IR& ir_,
+                                     const Syntax& syntax_,
                                      const PrintingPolicy& policy_)
-    : policy(policy_), debug(policy.debug == DebugMessages ? true : false),
-      context(context_), ir(ir_), functionEntry(), functionLastBlock() {
+    : syntax(syntax_), policy(policy_),
+      debug(policy.debug == DebugMessages ? true : false), context(context_),
+      ir(ir_), functionEntry(), functionLastBlock() {
   [[maybe_unused]] cs_err err =
       cs_open(CS_ARCH_X86, CS_MODE_64, &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
@@ -275,7 +277,7 @@ gtirb::Addr PrettyPrinterBase::printDataObjectOrWarning(
 void PrettyPrinterBase::printOverlapWarning(std::ostream& os,
                                             const gtirb::Addr addr) {
   auto flags = os.flags();
-  os << asmStyleComment << " WARNING: found overlapping element at address "
+  os << syntax.Comment() << " WARNING: found overlapping element at address "
      << std::hex << static_cast<uint64_t>(addr) << ": ";
   os.flags(flags);
 }
@@ -324,19 +326,19 @@ void PrettyPrinterBase::printSectionHeader(std::ostream& os,
     return;
   os << '\n';
   printBar(os);
-  if (sectionName == asmSectionText) {
-    os << asmDirectiveText << '\n';
-  } else if (sectionName == asmSectionData) {
-    os << asmDirectiveData << '\n';
-  } else if (sectionName == asmSectionBss) {
-    os << asmDirectiveBss << '\n';
+  if (sectionName == syntax.TextSection()) {
+    os << syntax.Text() << '\n';
+  } else if (sectionName == syntax.DataSection()) {
+    os << syntax.Data() << '\n';
+  } else if (sectionName == syntax.BssSection()) {
+    os << syntax.Bss() << '\n';
   } else {
     printSectionHeaderDirective(os, *(found_section.begin()));
     printSectionProperties(os, *(found_section.begin()));
     os << std::endl;
   }
   if (policy.arraySections.count(sectionName))
-    os << asmDirectiveAlign << " 8\n";
+    os << syntax.Align() << " 8\n";
   else
     printAlignment(os, addr);
   printBar(os);
@@ -361,8 +363,9 @@ void PrettyPrinterBase::printSectionFooter(
   // XXX: Using !(a == b) because an ambiguous overload for the != operator on
   //      std::optional<const gtirb::Section*> is causing a compiler error.
   if (next_section && !(next_section == prev_section) &&
-      section_name != asmSectionText && section_name != asmSectionData &&
-      section_name != asmSectionBss) {
+      section_name != syntax.TextSection() &&
+      section_name != syntax.DataSection() &&
+      section_name != syntax.BssSection()) {
     printBar(os);
     printSectionFooterDirective(os, **prev_section);
     os << '\n';
@@ -372,9 +375,9 @@ void PrettyPrinterBase::printSectionFooter(
 
 void PrettyPrinterBase::printBar(std::ostream& os, bool heavy) {
   if (heavy) {
-    os << asmStyleComment << "===================================\n";
+    os << syntax.Comment() << "===================================\n";
   } else {
-    os << asmStyleComment << "-----------------------------------\n";
+    os << syntax.Comment() << "-----------------------------------\n";
   }
 }
 
@@ -421,12 +424,12 @@ void PrettyPrinterBase::printInstruction(std::ostream& os, const cs_insn& inst,
   // special cases
 
   if (inst.id == X86_INS_NOP) {
-    os << "  " << asmDirectiveNop;
+    os << "  " << syntax.Nop();
     for (uint64_t i = 1; i < inst.size; ++i) {
       ea += 1;
       os << '\n';
       printEA(os, ea);
-      os << "  " << asmDirectiveNop;
+      os << "  " << syntax.Nop();
     }
     return;
   }
@@ -440,7 +443,7 @@ void PrettyPrinterBase::printInstruction(std::ostream& os, const cs_insn& inst,
 }
 
 void PrettyPrinterBase::printEA(std::ostream& os, gtirb::Addr ea) {
-  os << asmStyleTab;
+  os << syntax.Tab();
   if (this->debug) {
     os << std::hex << static_cast<uint64_t>(ea) << ": " << std::dec;
   }
@@ -531,7 +534,7 @@ void PrettyPrinterBase::printNonZeroDataObject(
   const auto& foundSymbolic =
       module.findSymbolicExpression(dataObject.getAddress());
   if (foundSymbolic != module.symbolic_expr_end()) {
-    os << asmStyleTab;
+    os << syntax.Tab();
     printSymbolicData(os, &*foundSymbolic, dataObject);
     os << '\n';
     return;
@@ -541,21 +544,21 @@ void PrettyPrinterBase::printNonZeroDataObject(
   if (types) {
     auto foundType = types->find(dataObject.getUUID());
     if (foundType != types->end() && foundType->second == "string") {
-      os << asmStyleTab;
+      os << syntax.Tab();
       printString(os, dataObject);
       os << '\n';
       return;
     }
   }
   for (std::byte byte : getBytes(module.getImageByteMap(), dataObject)) {
-    os << asmStyleTab;
+    os << syntax.Tab();
     printByte(os, byte);
   }
 }
 
 void PrettyPrinterBase::printZeroDataObject(
     std::ostream& os, const gtirb::DataObject& dataObject) {
-  os << asmStyleTab;
+  os << syntax.Tab();
   os << " .zero " << dataObject.getSize() << '\n';
 }
 
@@ -572,7 +575,7 @@ void PrettyPrinterBase::printComments(std::ostream& os,
     gtirb::Offset endOffset(offset.ElementId, offset.Displacement + range);
     for (auto p = comments->lower_bound(offset);
          p != comments->end() && p->first < endOffset; ++p) {
-      os << asmStyleComment;
+      os << syntax.Comment();
       if (p->first.Displacement > offset.Displacement)
         os << "+" << p->first.Displacement - offset.Displacement << ":";
       os << " " << p->second << '\n';
@@ -643,16 +646,16 @@ void PrettyPrinterBase::printDataObjectType(
   }
   switch (dataObject.getSize()) {
   case 1:
-    os << asmDirectiveByte;
+    os << syntax.Byte();
     break;
   case 2:
-    os << asmDirectiveWord;
+    os << syntax.Word();
     break;
   case 4:
-    os << asmDirectiveLong;
+    os << syntax.Long();
     break;
   case 8:
-    os << asmDirectiveQuad;
+    os << syntax.Quad();
     break;
   default:
     assert("Data object with unknown type has incompatible size");
@@ -770,19 +773,19 @@ void PrettyPrinterBase::printAlignment(std::ostream& os, gtirb::Addr addr) {
   // Enforce maximum alignment
   uint64_t x{addr};
   if (x % 16 == 0) {
-    os << asmDirectiveAlign << " 16\n";
+    os << syntax.Align() << " 16\n";
     return;
   }
   if (x % 8 == 0) {
-    os << asmDirectiveAlign << " 8\n";
+    os << syntax.Align() << " 8\n";
     return;
   }
   if (x % 4 == 0) {
-    os << asmDirectiveAlign << " 4\n";
+    os << syntax.Align() << " 4\n";
     return;
   }
   if (x % 2 == 0) {
-    os << asmDirectiveAlign << " 2\n";
+    os << syntax.Align() << " 2\n";
     return;
   }
 }

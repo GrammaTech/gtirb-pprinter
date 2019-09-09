@@ -18,11 +18,13 @@
 
 namespace gtirb_pprint {
 
+IntelSyntax::IntelSyntax() : ElfSyntax() {}
+const std::string& IntelSyntax::Offset() const { return offsetDirective; }
+
 IntelPrettyPrinter::IntelPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
+                                       const IntelSyntax& syntax_,
                                        const PrintingPolicy& policy_)
-    : ElfPrettyPrinter(context_, ir_, policy_) {
-  asmDirectiveOffset = "OFFSET";
-}
+    : ElfPrettyPrinter(context_, ir_, syntax_, policy_), intelSyntax(syntax_) {}
 
 void IntelPrettyPrinter::printHeader(std::ostream& os) {
   this->printBar(os);
@@ -31,7 +33,7 @@ void IntelPrettyPrinter::printHeader(std::ostream& os) {
   os << '\n';
 
   for (int i = 0; i < 8; i++) {
-    os << asmDirectiveNop << '\n';
+    os << syntax.Nop() << '\n';
   }
 }
 
@@ -56,7 +58,7 @@ void IntelPrettyPrinter::printOpImmediate(
   if (const gtirb::SymAddrConst* s = this->getSymbolicImmediate(symbolic)) {
     // The operand is symbolic.
     if (!is_call && !is_jump)
-      os << asmDirectiveOffset << ' ';
+      os << intelSyntax.Offset() << ' ';
     this->printSymbolicExpression(os, s, !is_call && !is_jump);
   } else {
     // The operand is just a number.
@@ -107,7 +109,8 @@ const PrintingPolicy& IntelPrettyPrinterFactory::DefaultPrintingPolicy() {
 std::unique_ptr<PrettyPrinterBase>
 IntelPrettyPrinterFactory::Create(gtirb::Context& context, gtirb::IR& ir,
                                   const PrintingPolicy& policy) {
-  return std::make_unique<IntelPrettyPrinter>(context, ir, policy);
+  const IntelSyntax syntax{};
+  return std::make_unique<IntelPrettyPrinter>(context, ir, syntax, policy);
 }
 
 volatile bool IntelPrettyPrinter::registered = registerPrinter(

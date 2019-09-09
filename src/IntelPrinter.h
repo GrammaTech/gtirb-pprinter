@@ -19,10 +19,19 @@
 
 namespace gtirb_pprint {
 
+class IntelSyntax : public ElfSyntax {
+public:
+  IntelSyntax();
+  const std::string& Offset() const;
+
+private:
+  const std::string offsetDirective{"OFFSET"};
+};
+
 class IntelPrettyPrinter : public ElfPrettyPrinter {
 public:
   IntelPrettyPrinter(gtirb::Context& context, gtirb::IR& ir,
-                     const PrintingPolicy& policy);
+                     const IntelSyntax& syntax, const PrintingPolicy& policy);
 
 protected:
   void printHeader(std::ostream& os) override;
@@ -36,6 +45,7 @@ protected:
                        const cs_insn& inst, uint64_t index) override;
 
 private:
+  IntelSyntax intelSyntax;
   static volatile bool registered;
 };
 

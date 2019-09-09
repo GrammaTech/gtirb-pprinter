@@ -21,6 +21,7 @@ set(${PROJECT_NAME}_H
   Export.h
   IntelPrinter.h
   PrettyPrinter.h
+  Syntax.h
   string_utils.h
 )
 
@@ -30,6 +31,7 @@ set(${PROJECT_NAME}_SRC
   ElfPrinter.cpp
   IntelPrinter.cpp
   PrettyPrinter.cpp
+  Syntax.cpp
   string_utils.cpp
 )
 

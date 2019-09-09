@@ -49,20 +49,15 @@ public:
   std::function<void()> func;
 };
 
+ElfSyntax::ElfSyntax()
+    : Syntax("#", ".text", ".data", ".bss", ".section", ".globl", ".align") {}
+
+const std::string& ElfSyntax::Type() const { return typeDirective; }
+
 ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
+                                   const ElfSyntax& syntax_,
                                    const PrintingPolicy& policy_)
-    : PrettyPrinterBase(context_, ir_, policy_) {
-
-  // Target-specific assembly directives and formatting.
-  asmStyleComment = "#";
-  asmDirectiveSection = ".section";
-  asmDirectiveText = ".text";
-  asmDirectiveData = ".data";
-  asmDirectiveBss = ".bss";
-  asmDirectiveAlign = ".align";
-  asmDirectiveGlobal = ".globl";
-  asmDirectiveByte = ".byte";
-
+    : PrettyPrinterBase(context_, ir_, syntax_, policy_), elfSyntax(syntax_) {
   if (this->ir.modules()
           .begin()
           ->getAuxData<
@@ -94,7 +89,7 @@ const PrintingPolicy& ElfPrettyPrinter::DefaultPrintingPolicy() {
 void ElfPrettyPrinter::printSectionHeaderDirective(
     std::ostream& os, const gtirb::Section& section) {
   const std::string& sectionName = section.getName();
-  os << asmDirectiveSection << ' ' << sectionName;
+  os << syntax.Section() << ' ' << sectionName;
 }
 
 void ElfPrettyPrinter::printSectionProperties(std::ostream& os,
@@ -135,8 +130,8 @@ void ElfPrettyPrinter::printFunctionHeader(std::ostream& os, gtirb::Addr addr) {
     const BlockAreaComment bac(os, "Function Header",
                                [this, &os]() { printBar(os, false); });
     printAlignment(os, addr);
-    os << asmDirectiveGlobal << ' ' << name << '\n';
-    os << elfDirectiveType << ' ' << name << ", @function\n";
+    os << syntax.Global() << ' ' << name << '\n';
+    os << elfSyntax.Type() << ' ' << name << ", @function\n";
     os << name << ":\n";
   }
 }
@@ -146,7 +141,7 @@ void ElfPrettyPrinter::printFunctionFooter(std::ostream& /* os */,
 
 void ElfPrettyPrinter::printByte(std::ostream& os, std::byte byte) {
   auto flags = os.flags();
-  os << asmDirectiveByte << " 0x" << std::hex << static_cast<uint32_t>(byte)
+  os << syntax.Byte() << " 0x" << std::hex << static_cast<uint32_t>(byte)
      << '\n';
   os.flags(flags);
 }

@@ -19,14 +19,26 @@
 
 namespace gtirb_pprint {
 
+class ElfSyntax : public Syntax {
+public:
+  ElfSyntax();
+
+  const std::string& Type() const;
+
+private:
+  const std::string typeDirective{".type"};
+};
+
 class ElfPrettyPrinter : public PrettyPrinterBase {
 public:
   ElfPrettyPrinter(gtirb::Context& context, gtirb::IR& ir,
-                   const PrintingPolicy& policy);
+                   const ElfSyntax& syntax, const PrintingPolicy& policy);
 
   static const PrintingPolicy& DefaultPrintingPolicy();
 
 protected:
+  ElfSyntax elfSyntax;
+
   void printFooter(std::ostream& os) override;
 
   void printSectionHeaderDirective(std::ostream& os,
@@ -43,10 +55,6 @@ protected:
   bool
   shouldExcludeDataElement(const gtirb::Section& section,
                            const gtirb::DataObject& dataObject) const override;
-
-private:
-  /// Elf-specific assembler directives.
-  std::string elfDirectiveType{".type"};
 };
 
 } // namespace gtirb_pprint
