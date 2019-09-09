@@ -109,7 +109,7 @@ const PrintingPolicy& IntelPrettyPrinterFactory::DefaultPrintingPolicy() {
 std::unique_ptr<PrettyPrinterBase>
 IntelPrettyPrinterFactory::Create(gtirb::Context& context, gtirb::IR& ir,
                                   const PrintingPolicy& policy) {
-  const IntelSyntax syntax{};
+  static const IntelSyntax syntax{};
   return std::make_unique<IntelPrettyPrinter>(context, ir, syntax, policy);
 }
 

@@ -124,7 +124,7 @@ const PrintingPolicy& AttPrettyPrinterFactory::DefaultPrintingPolicy() {
 std::unique_ptr<PrettyPrinterBase>
 AttPrettyPrinterFactory::Create(gtirb::Context& context, gtirb::IR& ir,
                                 const PrintingPolicy& policy) {
-  const ElfSyntax syntax{};
+  static const ElfSyntax syntax{};
   return std::make_unique<AttPrettyPrinter>(context, ir, syntax, policy);
 }
 

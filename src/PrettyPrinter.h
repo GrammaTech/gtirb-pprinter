@@ -181,7 +181,7 @@ public:
   virtual std::ostream& print(std::ostream& out);
 
 protected:
-  Syntax syntax;
+  const Syntax& syntax;
   PrintingPolicy policy;
 
   /// Return the SymAddrConst expression if it refers to a printed symbol.

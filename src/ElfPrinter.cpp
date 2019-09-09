@@ -49,9 +49,22 @@ public:
   std::function<void()> func;
 };
 
-ElfSyntax::ElfSyntax()
-    : Syntax("#", ".text", ".data", ".bss", ".section", ".globl", ".align") {}
+ElfSyntax::ElfSyntax() : Syntax() {}
 
+const std::string& ElfSyntax::Comment() const { return commentStyle; }
+
+const std::string& ElfSyntax::Byte() const { return byteDirective; }
+const std::string& ElfSyntax::Long() const { return longDirective; }
+const std::string& ElfSyntax::Quad() const { return quadDirective; }
+const std::string& ElfSyntax::Word() const { return wordDirective; }
+
+const std::string& ElfSyntax::Text() const { return textDirective; }
+const std::string& ElfSyntax::Data() const { return dataDirective; }
+const std::string& ElfSyntax::Bss() const { return bssDirective; }
+
+const std::string& ElfSyntax::Section() const { return sectionDirective; }
+const std::string& ElfSyntax::Global() const { return globalDirective; }
+const std::string& ElfSyntax::Align() const { return alignDirective; }
 const std::string& ElfSyntax::Type() const { return typeDirective; }
 
 ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,

@@ -21,28 +21,12 @@ namespace gtirb_pprint {
 
 class Syntax {
 public:
-  Syntax(const std::string commentStyle_,  //
-         const std::string textDirective_, //
-         const std::string dataDirective_, //
-         const std::string bssDirective_,  //
-         const std::string sectionDirective_,
-         const std::string globalDirective_,
-         const std::string alignDirective_, //
-         const std::string tabStyle_ = "          ",
-         const std::string nopDirective_ = "nop",
-         const std::string zeroByteDirective_ = ".byte 0x00",
-         const std::string textSection_ = ".text",
-         const std::string dataSection_ = ".data",
-         const std::string bssSection_ = ".bss",
-         const std::string byteDirective_ = ".byte",
-         const std::string longDirective_ = ".long",
-         const std::string quadDirective_ = ".quad",
-         const std::string wordDirective_ = ".word");
+  Syntax() = default;
   virtual ~Syntax();
 
   // Styles
   virtual const std::string& Tab() const;
-  virtual const std::string& Comment() const;
+  virtual const std::string& Comment() const = 0;
 
   // Sections
   virtual const std::string& TextSection() const;
@@ -53,42 +37,28 @@ public:
   virtual const std::string& Nop() const;
   virtual const std::string& ZeroByte() const;
 
-  virtual const std::string& Byte() const;
-  virtual const std::string& Long() const;
-  virtual const std::string& Quad() const;
-  virtual const std::string& Word() const;
+  virtual const std::string& Byte() const = 0;
+  virtual const std::string& Long() const = 0;
+  virtual const std::string& Quad() const = 0;
+  virtual const std::string& Word() const = 0;
 
-  virtual const std::string& Text() const;
-  virtual const std::string& Data() const;
-  virtual const std::string& Bss() const;
+  virtual const std::string& Text() const = 0;
+  virtual const std::string& Data() const = 0;
+  virtual const std::string& Bss() const = 0;
 
-  virtual const std::string& Section() const;
-  virtual const std::string& Global() const;
-  virtual const std::string& Align() const;
+  virtual const std::string& Section() const = 0;
+  virtual const std::string& Global() const = 0;
+  virtual const std::string& Align() const = 0;
 
-private:
-  const std::string commentStyle;
-  const std::string tabStyle;
+protected:
+  std::string tabStyle{"          "};
 
-  const std::string nopDirective;
-  const std::string zeroByteDirective;
+  std::string nopDirective{"nop"};
+  std::string zeroByteDirective{".byte 0x00"};
 
-  const std::string textSection;
-  const std::string dataSection;
-  const std::string bssSection;
-
-  const std::string byteDirective;
-  const std::string longDirective;
-  const std::string quadDirective;
-  const std::string wordDirective;
-
-  const std::string textDirective;
-  const std::string dataDirective;
-  const std::string bssDirective;
-
-  const std::string sectionDirective;
-  const std::string globalDirective;
-  const std::string alignDirective;
+  std::string textSection{".text"};
+  std::string dataSection{".data"};
+  std::string bssSection{".bss"};
 };
 
 } // namespace gtirb_pprint

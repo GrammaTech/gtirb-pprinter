@@ -34,6 +34,8 @@ public:
                      const IntelSyntax& syntax, const PrintingPolicy& policy);
 
 protected:
+  const IntelSyntax& intelSyntax;
+
   void printHeader(std::ostream& os) override;
   void printOpRegdirect(std::ostream& os, const cs_insn& inst,
                         const cs_x86_op& op) override;
@@ -45,7 +47,6 @@ protected:
                        const cs_insn& inst, uint64_t index) override;
 
 private:
-  IntelSyntax intelSyntax;
   static volatile bool registered;
 };
 

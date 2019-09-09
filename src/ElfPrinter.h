@@ -23,9 +23,37 @@ class ElfSyntax : public Syntax {
 public:
   ElfSyntax();
 
+  const std::string& Comment() const override;
+
+  const std::string& Byte() const override;
+  const std::string& Long() const override;
+  const std::string& Quad() const override;
+  const std::string& Word() const override;
+
+  const std::string& Text() const override;
+  const std::string& Data() const override;
+  const std::string& Bss() const override;
+
+  const std::string& Section() const override;
+  const std::string& Global() const override;
+  const std::string& Align() const override;
   const std::string& Type() const;
 
 private:
+  const std::string commentStyle{"#"};
+
+  const std::string byteDirective{".byte"};
+  const std::string longDirective{".long"};
+  const std::string quadDirective{".quad"};
+  const std::string wordDirective{".word"};
+
+  const std::string textDirective{".text"};
+  const std::string dataDirective{".data"};
+  const std::string bssDirective{".bss"};
+
+  const std::string sectionDirective{".section"};
+  const std::string globalDirective{".globl"};
+  const std::string alignDirective{".align"};
   const std::string typeDirective{".type"};
 };
 
@@ -37,7 +65,7 @@ public:
   static const PrintingPolicy& DefaultPrintingPolicy();
 
 protected:
-  ElfSyntax elfSyntax;
+  const ElfSyntax& elfSyntax;
 
   void printFooter(std::ostream& os) override;
 
