@@ -25,40 +25,40 @@ public:
   virtual ~Syntax();
 
   // Styles
-  virtual const std::string& Tab() const;
-  virtual const std::string& Comment() const = 0;
+  virtual const std::string& tab() const;
+  virtual const std::string& comment() const = 0;
 
   // Sections
-  virtual const std::string& TextSection() const;
-  virtual const std::string& DataSection() const;
-  virtual const std::string& BssSection() const;
+  virtual const std::string& textSection() const;
+  virtual const std::string& dataSection() const;
+  virtual const std::string& bssSection() const;
 
   // Directives
-  virtual const std::string& Nop() const;
-  virtual const std::string& ZeroByte() const;
+  virtual const std::string& nop() const;
+  virtual const std::string& zeroByte() const;
 
-  virtual const std::string& Byte() const = 0;
-  virtual const std::string& Long() const = 0;
-  virtual const std::string& Quad() const = 0;
-  virtual const std::string& Word() const = 0;
+  virtual const std::string& byteData() const = 0;
+  virtual const std::string& longData() const = 0;
+  virtual const std::string& quadData() const = 0;
+  virtual const std::string& wordData() const = 0;
 
-  virtual const std::string& Text() const = 0;
-  virtual const std::string& Data() const = 0;
-  virtual const std::string& Bss() const = 0;
+  virtual const std::string& text() const = 0;
+  virtual const std::string& data() const = 0;
+  virtual const std::string& bss() const = 0;
 
-  virtual const std::string& Section() const = 0;
-  virtual const std::string& Global() const = 0;
-  virtual const std::string& Align() const = 0;
+  virtual const std::string& section() const = 0;
+  virtual const std::string& global() const = 0;
+  virtual const std::string& align() const = 0;
 
 protected:
-  std::string tabStyle{"          "};
+  std::string TabStyle{"          "};
 
-  std::string nopDirective{"nop"};
-  std::string zeroByteDirective{".byte 0x00"};
+  std::string NopDirective{"nop"};
+  std::string ZeroByteDirective{".byte 0x00"};
 
-  std::string textSection{".text"};
-  std::string dataSection{".data"};
-  std::string bssSection{".bss"};
+  std::string TextSection{".text"};
+  std::string DataSection{".data"};
+  std::string BssSection{".bss"};
 };
 
 } // namespace gtirb_pprint

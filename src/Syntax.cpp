@@ -4,13 +4,13 @@ namespace gtirb_pprint {
 
 Syntax::~Syntax() {}
 
-const std::string& Syntax::Tab() const { return tabStyle; }
+const std::string& Syntax::tab() const { return TabStyle; }
 
-const std::string& Syntax::TextSection() const { return textSection; }
-const std::string& Syntax::DataSection() const { return dataSection; }
-const std::string& Syntax::BssSection() const { return bssSection; }
+const std::string& Syntax::textSection() const { return TextSection; }
+const std::string& Syntax::dataSection() const { return DataSection; }
+const std::string& Syntax::bssSection() const { return BssSection; }
 
-const std::string& Syntax::Nop() const { return nopDirective; }
-const std::string& Syntax::ZeroByte() const { return zeroByteDirective; }
+const std::string& Syntax::nop() const { return NopDirective; }
+const std::string& Syntax::zeroByte() const { return ZeroByteDirective; }
 
 } // namespace gtirb_pprint

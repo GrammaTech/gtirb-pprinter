@@ -23,38 +23,38 @@ class ElfSyntax : public Syntax {
 public:
   ElfSyntax();
 
-  const std::string& Comment() const override;
+  const std::string& comment() const override;
 
-  const std::string& Byte() const override;
-  const std::string& Long() const override;
-  const std::string& Quad() const override;
-  const std::string& Word() const override;
+  const std::string& byteData() const override;
+  const std::string& longData() const override;
+  const std::string& quadData() const override;
+  const std::string& wordData() const override;
 
-  const std::string& Text() const override;
-  const std::string& Data() const override;
-  const std::string& Bss() const override;
+  const std::string& text() const override;
+  const std::string& data() const override;
+  const std::string& bss() const override;
 
-  const std::string& Section() const override;
-  const std::string& Global() const override;
-  const std::string& Align() const override;
-  const std::string& Type() const;
+  const std::string& section() const override;
+  const std::string& global() const override;
+  const std::string& align() const override;
+  const std::string& type() const;
 
 private:
-  const std::string commentStyle{"#"};
+  const std::string CommentStyle{"#"};
 
-  const std::string byteDirective{".byte"};
-  const std::string longDirective{".long"};
-  const std::string quadDirective{".quad"};
-  const std::string wordDirective{".word"};
+  const std::string ByteDirective{".byte"};
+  const std::string LongDirective{".long"};
+  const std::string QuadDirective{".quad"};
+  const std::string WordDirective{".word"};
 
-  const std::string textDirective{".text"};
-  const std::string dataDirective{".data"};
-  const std::string bssDirective{".bss"};
+  const std::string TextDirective{".text"};
+  const std::string DataDirective{".data"};
+  const std::string BssDirective{".bss"};
 
-  const std::string sectionDirective{".section"};
-  const std::string globalDirective{".globl"};
-  const std::string alignDirective{".align"};
-  const std::string typeDirective{".type"};
+  const std::string SectionDirective{".section"};
+  const std::string GlobalDirective{".globl"};
+  const std::string AlignDirective{".align"};
+  const std::string TypeDirective{".type"};
 };
 
 class ElfPrettyPrinter : public PrettyPrinterBase {

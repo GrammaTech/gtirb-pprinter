@@ -51,21 +51,21 @@ public:
 
 ElfSyntax::ElfSyntax() : Syntax() {}
 
-const std::string& ElfSyntax::Comment() const { return commentStyle; }
+const std::string& ElfSyntax::comment() const { return CommentStyle; }
 
-const std::string& ElfSyntax::Byte() const { return byteDirective; }
-const std::string& ElfSyntax::Long() const { return longDirective; }
-const std::string& ElfSyntax::Quad() const { return quadDirective; }
-const std::string& ElfSyntax::Word() const { return wordDirective; }
+const std::string& ElfSyntax::byteData() const { return ByteDirective; }
+const std::string& ElfSyntax::longData() const { return LongDirective; }
+const std::string& ElfSyntax::quadData() const { return QuadDirective; }
+const std::string& ElfSyntax::wordData() const { return WordDirective; }
 
-const std::string& ElfSyntax::Text() const { return textDirective; }
-const std::string& ElfSyntax::Data() const { return dataDirective; }
-const std::string& ElfSyntax::Bss() const { return bssDirective; }
+const std::string& ElfSyntax::text() const { return TextDirective; }
+const std::string& ElfSyntax::data() const { return DataDirective; }
+const std::string& ElfSyntax::bss() const { return BssDirective; }
 
-const std::string& ElfSyntax::Section() const { return sectionDirective; }
-const std::string& ElfSyntax::Global() const { return globalDirective; }
-const std::string& ElfSyntax::Align() const { return alignDirective; }
-const std::string& ElfSyntax::Type() const { return typeDirective; }
+const std::string& ElfSyntax::section() const { return SectionDirective; }
+const std::string& ElfSyntax::global() const { return GlobalDirective; }
+const std::string& ElfSyntax::align() const { return AlignDirective; }
+const std::string& ElfSyntax::type() const { return TypeDirective; }
 
 ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
                                    const ElfSyntax& syntax_,
@@ -102,7 +102,7 @@ const PrintingPolicy& ElfPrettyPrinter::defaultPrintingPolicy() {
 void ElfPrettyPrinter::printSectionHeaderDirective(
     std::ostream& os, const gtirb::Section& section) {
   const std::string& sectionName = section.getName();
-  os << syntax.Section() << ' ' << sectionName;
+  os << syntax.section() << ' ' << sectionName;
 }
 
 void ElfPrettyPrinter::printSectionProperties(std::ostream& os,
@@ -143,8 +143,8 @@ void ElfPrettyPrinter::printFunctionHeader(std::ostream& os, gtirb::Addr addr) {
     const BlockAreaComment bac(os, "Function Header",
                                [this, &os]() { printBar(os, false); });
     printAlignment(os, addr);
-    os << syntax.Global() << ' ' << name << '\n';
-    os << elfSyntax.Type() << ' ' << name << ", @function\n";
+    os << syntax.global() << ' ' << name << '\n';
+    os << elfSyntax.type() << ' ' << name << ", @function\n";
     os << name << ":\n";
   }
 }
@@ -154,7 +154,7 @@ void ElfPrettyPrinter::printFunctionFooter(std::ostream& /* os */,
 
 void ElfPrettyPrinter::printByte(std::ostream& os, std::byte byte) {
   auto flags = os.flags();
-  os << syntax.Byte() << " 0x" << std::hex << static_cast<uint32_t>(byte)
+  os << syntax.byteData() << " 0x" << std::hex << static_cast<uint32_t>(byte)
      << '\n';
   os.flags(flags);
 }

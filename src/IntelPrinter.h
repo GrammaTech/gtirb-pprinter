@@ -22,10 +22,10 @@ namespace gtirb_pprint {
 class IntelSyntax : public ElfSyntax {
 public:
   IntelSyntax();
-  const std::string& Offset() const;
+  const std::string& offset() const;
 
 private:
-  const std::string offsetDirective{"OFFSET"};
+  const std::string OffsetDirective{"OFFSET"};
 };
 
 class IntelPrettyPrinter : public ElfPrettyPrinter {

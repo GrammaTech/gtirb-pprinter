@@ -19,7 +19,7 @@
 namespace gtirb_pprint {
 
 IntelSyntax::IntelSyntax() : ElfSyntax() {}
-const std::string& IntelSyntax::Offset() const { return offsetDirective; }
+const std::string& IntelSyntax::offset() const { return OffsetDirective; }
 
 IntelPrettyPrinter::IntelPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
                                        const IntelSyntax& syntax_,
@@ -33,7 +33,7 @@ void IntelPrettyPrinter::printHeader(std::ostream& os) {
   os << '\n';
 
   for (int i = 0; i < 8; i++) {
-    os << syntax.Nop() << '\n';
+    os << syntax.nop() << '\n';
   }
 }
 
@@ -58,7 +58,7 @@ void IntelPrettyPrinter::printOpImmediate(
   if (const gtirb::SymAddrConst* s = this->getSymbolicImmediate(symbolic)) {
     // The operand is symbolic.
     if (!is_call && !is_jump)
-      os << intelSyntax.Offset() << ' ';
+      os << intelSyntax.offset() << ' ';
     this->printSymbolicExpression(os, s, !is_call && !is_jump);
   } else {
     // The operand is just a number.
