@@ -82,8 +82,8 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
   }
 }
 
-const PrintingPolicy& ElfPrettyPrinter::DefaultPrintingPolicy() {
-  static PrintingPolicy defaultPolicy{
+const PrintingPolicy& ElfPrettyPrinter::defaultPrintingPolicy() {
+  static PrintingPolicy DefaultPolicy{
       /// Sections to avoid printing.
       {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
        ".plt.sec", ".eh_frame_hdr"},
@@ -96,7 +96,7 @@ const PrintingPolicy& ElfPrettyPrinter::DefaultPrintingPolicy() {
       /// Sections with possible data object exclusion.
       {".init_array", ".fini_array"},
   };
-  return defaultPolicy;
+  return DefaultPolicy;
 }
 
 void ElfPrettyPrinter::printSectionHeaderDirective(

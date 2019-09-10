@@ -62,7 +62,7 @@ public:
   ElfPrettyPrinter(gtirb::Context& context, gtirb::IR& ir,
                    const ElfSyntax& syntax, const PrintingPolicy& policy);
 
-  static const PrintingPolicy& DefaultPrintingPolicy();
+  static const PrintingPolicy& defaultPrintingPolicy();
 
 protected:
   const ElfSyntax& elfSyntax;

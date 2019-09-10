@@ -43,9 +43,9 @@ private:
 
 class AttPrettyPrinterFactory : public PrettyPrinterFactory {
 public:
-  const PrintingPolicy& DefaultPrintingPolicy() override;
+  const PrintingPolicy& defaultPrintingPolicy() override;
   std::unique_ptr<PrettyPrinterBase>
-  Create(gtirb::Context& context, gtirb::IR& ir,
+  create(gtirb::Context& context, gtirb::IR& ir,
          const PrintingPolicy& policy) override;
 };
 

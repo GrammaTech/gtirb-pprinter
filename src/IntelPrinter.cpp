@@ -102,12 +102,12 @@ void IntelPrettyPrinter::printOpIndirect(
   os << ']';
 }
 
-const PrintingPolicy& IntelPrettyPrinterFactory::DefaultPrintingPolicy() {
-  return IntelPrettyPrinter::DefaultPrintingPolicy();
+const PrintingPolicy& IntelPrettyPrinterFactory::defaultPrintingPolicy() {
+  return IntelPrettyPrinter::defaultPrintingPolicy();
 }
 
 std::unique_ptr<PrettyPrinterBase>
-IntelPrettyPrinterFactory::Create(gtirb::Context& context, gtirb::IR& ir,
+IntelPrettyPrinterFactory::create(gtirb::Context& context, gtirb::IR& ir,
                                   const PrintingPolicy& policy) {
   static const IntelSyntax syntax{};
   return std::make_unique<IntelPrettyPrinter>(context, ir, syntax, policy);

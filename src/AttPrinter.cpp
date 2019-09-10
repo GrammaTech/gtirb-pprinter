@@ -117,12 +117,12 @@ void AttPrettyPrinter::printOpIndirect(
   }
 }
 
-const PrintingPolicy& AttPrettyPrinterFactory::DefaultPrintingPolicy() {
-  return AttPrettyPrinter::DefaultPrintingPolicy();
+const PrintingPolicy& AttPrettyPrinterFactory::defaultPrintingPolicy() {
+  return AttPrettyPrinter::defaultPrintingPolicy();
 }
 
 std::unique_ptr<PrettyPrinterBase>
-AttPrettyPrinterFactory::Create(gtirb::Context& context, gtirb::IR& ir,
+AttPrettyPrinterFactory::create(gtirb::Context& context, gtirb::IR& ir,
                                 const PrintingPolicy& policy) {
   static const ElfSyntax syntax{};
   return std::make_unique<AttPrettyPrinter>(context, ir, syntax, policy);
