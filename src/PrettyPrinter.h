@@ -319,8 +319,6 @@ protected:
 
   bool isSectionSkipped(const std::string& name);
 
-  std::string avoidRegNameConflicts(const std::string& x);
-
   csh csHandle;
 
   bool debug;
@@ -328,16 +326,12 @@ protected:
   gtirb::Context& context;
   gtirb::IR& ir;
 
-  std::string getFunctionName(gtirb::Addr x) const;
-  std::optional<std::string> getForwardedSymbolName(const gtirb::Symbol* symbol,
-                                                    bool isAbsolute) const;
+  virtual std::string getFunctionName(gtirb::Addr x) const;
+  virtual std::string getSymbolName(gtirb::Addr x) const;
+  virtual std::optional<std::string>
+  getForwardedSymbolName(const gtirb::Symbol* symbol, bool isAbsolute) const;
+
   bool isAmbiguousSymbol(const std::string& ea) const;
-  static std::string GetSymbolToPrint(gtirb::Addr x);
-  static std::string GetSizeName(uint64_t x);
-  static std::string GetSizeName(const std::string& x);
-  static std::string GetSizeSuffix(uint64_t x);
-  static std::string GetSizeSuffix(const std::string& x);
-  static std::string AvoidRegNameConflicts(const std::string& x);
 
 private:
   std::set<gtirb::Addr> functionEntry;

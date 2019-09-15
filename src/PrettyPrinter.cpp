@@ -395,9 +395,9 @@ void PrettyPrinterBase::printSymbolReference(std::ostream& os,
     return;
   }
   if (this->isAmbiguousSymbol(symbol->getName()))
-    os << GetSymbolToPrint(*symbol->getAddress());
+    os << getSymbolName(*symbol->getAddress());
   else
-    os << AvoidRegNameConflicts(symbol->getName());
+    os << syntax.avoidRegNameConflicts(symbol->getName());
 }
 
 void PrettyPrinterBase::printSymbolDefinitionsAtAddress(std::ostream& os,
@@ -405,9 +405,9 @@ void PrettyPrinterBase::printSymbolDefinitionsAtAddress(std::ostream& os,
   for (const gtirb::Symbol& symbol :
        this->ir.modules().begin()->findSymbols(ea)) {
     if (this->isAmbiguousSymbol(symbol.getName()))
-      os << GetSymbolToPrint(*symbol.getAddress()) << ":\n";
+      os << getSymbolName(*symbol.getAddress()) << ":\n";
     else
-      os << AvoidRegNameConflicts(symbol.getName()) << ":\n";
+      os << syntax.avoidRegNameConflicts(symbol.getName()) << ":\n";
   }
 }
 
@@ -816,7 +816,7 @@ std::string PrettyPrinterBase::getFunctionName(gtirb::Addr x) const {
   return std::string{};
 }
 
-std::string PrettyPrinterBase::GetSymbolToPrint(gtirb::Addr x) {
+std::string PrettyPrinterBase::getSymbolName(gtirb::Addr x) const {
   std::stringstream ss;
   ss << ".L_" << std::hex << uint64_t(x) << std::dec;
   return ss.str();
@@ -862,55 +862,6 @@ bool PrettyPrinterBase::isAmbiguousSymbol(const std::string& name) const {
   // Are there multiple symbols with this name?
   auto found = this->ir.modules().begin()->findSymbols(name);
   return distance(begin(found), end(found)) > 1;
-}
-
-std::string PrettyPrinterBase::GetSizeName(uint64_t x) {
-  return GetSizeName(std::to_string(x));
-}
-
-std::string PrettyPrinterBase::GetSizeName(const std::string& x) {
-  static const std::map<std::string, std::string> adapt{
-      {"128", ""},         {"0", ""},           {"80", "TBYTE PTR"},
-      {"64", "QWORD PTR"}, {"32", "DWORD PTR"}, {"16", "WORD PTR"},
-      {"8", "BYTE PTR"}};
-
-  if (const auto found = adapt.find(x); found != std::end(adapt)) {
-    return found->second;
-  }
-
-  assert("Unknown Size");
-
-  return x;
-}
-
-std::string PrettyPrinterBase::GetSizeSuffix(uint64_t x) {
-  return GetSizeSuffix(std::to_string(x));
-}
-
-std::string PrettyPrinterBase::GetSizeSuffix(const std::string& x) {
-  static const std::map<std::string, std::string> adapt{
-      {"128", ""}, {"0", ""},   {"80", "t"}, {"64", "q"},
-      {"32", "d"}, {"16", "w"}, {"8", "b"}};
-
-  if (const auto found = adapt.find(x); found != std::end(adapt)) {
-    return found->second;
-  }
-
-  assert("Unknown Size");
-
-  return x;
-}
-
-std::string PrettyPrinterBase::AvoidRegNameConflicts(const std::string& x) {
-  const std::vector<std::string> adapt{"FS",  "MOD", "DIV", "NOT", "mod", "div",
-                                       "not", "and", "or",  "shr", "Si"};
-
-  if (const auto found = std::find(std::begin(adapt), std::end(adapt), x);
-      found != std::end(adapt)) {
-    return x + "_renamed";
-  }
-
-  return x;
 }
 
 } // namespace gtirb_pprint

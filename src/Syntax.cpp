@@ -1,5 +1,9 @@
 #include "Syntax.h"
 
+#include <boost/range/algorithm/find_if.hpp>
+#include <map>
+#include <vector>
+
 namespace gtirb_pprint {
 
 Syntax::~Syntax() {}
@@ -12,5 +16,54 @@ const std::string& Syntax::bssSection() const { return BssSection; }
 
 const std::string& Syntax::nop() const { return NopDirective; }
 const std::string& Syntax::zeroByte() const { return ZeroByteDirective; }
+
+std::string Syntax::getSizeName(uint64_t x) const {
+  return getSizeName(std::to_string(x));
+}
+
+std::string Syntax::getSizeName(const std::string& x) const {
+  static const std::map<std::string, std::string> adapt{
+      {"128", ""},         {"0", ""},           {"80", "TBYTE PTR"},
+      {"64", "QWORD PTR"}, {"32", "DWORD PTR"}, {"16", "WORD PTR"},
+      {"8", "BYTE PTR"}};
+
+  if (const auto found = adapt.find(x); found != std::end(adapt)) {
+    return found->second;
+  }
+
+  assert("Unknown Size");
+
+  return x;
+}
+
+std::string Syntax::getSizeSuffix(uint64_t x) const {
+  return getSizeSuffix(std::to_string(x));
+}
+
+std::string Syntax::getSizeSuffix(const std::string& x) const {
+  static const std::map<std::string, std::string> adapt{
+      {"128", ""}, {"0", ""},   {"80", "t"}, {"64", "q"},
+      {"32", "d"}, {"16", "w"}, {"8", "b"}};
+
+  if (const auto found = adapt.find(x); found != std::end(adapt)) {
+    return found->second;
+  }
+
+  assert("Unknown Size");
+
+  return x;
+}
+
+std::string Syntax::avoidRegNameConflicts(const std::string& x) const {
+  const std::vector<std::string> adapt{"FS",  "MOD", "DIV", "NOT", "mod", "div",
+                                       "not", "and", "or",  "shr", "Si"};
+
+  if (const auto found = std::find(std::begin(adapt), std::end(adapt), x);
+      found != std::end(adapt)) {
+    return x + "_renamed";
+  }
+
+  return x;
+}
 
 } // namespace gtirb_pprint
