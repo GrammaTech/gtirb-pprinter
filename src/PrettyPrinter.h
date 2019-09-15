@@ -328,14 +328,11 @@ protected:
   gtirb::Context& context;
   gtirb::IR& ir;
 
-  std::vector<std::string>* getAmbiguousSymbol();
-
   std::string getFunctionName(gtirb::Addr x) const;
   std::optional<std::string> getForwardedSymbolName(const gtirb::Symbol* symbol,
                                                     bool isAbsolute) const;
   bool isAmbiguousSymbol(const std::string& ea) const;
   static std::string GetSymbolToPrint(gtirb::Addr x);
-  static std::string AdaptRegister(const std::string& x);
   static std::string GetSizeName(uint64_t x);
   static std::string GetSizeName(const std::string& x);
   static std::string GetSizeSuffix(uint64_t x);
