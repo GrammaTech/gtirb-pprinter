@@ -397,7 +397,7 @@ void PrettyPrinterBase::printSymbolReference(std::ostream& os,
   if (this->isAmbiguousSymbol(symbol->getName()))
     os << getSymbolName(*symbol->getAddress());
   else
-    os << syntax.avoidRegNameConflicts(symbol->getName());
+    os << syntax.formatSymbolName(symbol->getName());
 }
 
 void PrettyPrinterBase::printSymbolDefinitionsAtAddress(std::ostream& os,
@@ -407,7 +407,7 @@ void PrettyPrinterBase::printSymbolDefinitionsAtAddress(std::ostream& os,
     if (this->isAmbiguousSymbol(symbol.getName()))
       os << getSymbolName(*symbol.getAddress()) << ":\n";
     else
-      os << syntax.avoidRegNameConflicts(symbol.getName()) << ":\n";
+      os << syntax.formatSymbolName(symbol.getName()) << ":\n";
   }
 }
 

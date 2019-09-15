@@ -68,6 +68,10 @@ std::string Syntax::getSizeSuffix(const std::string& x) const {
   return x;
 }
 
+std::string Syntax::formatSymbolName(const std::string& x) const {
+  return avoidRegNameConflicts(x);
+}
+
 std::string Syntax::avoidRegNameConflicts(const std::string& x) const {
   const std::vector<std::string> adapt{"FS",  "MOD", "DIV", "NOT", "mod", "div",
                                        "not", "and", "or",  "shr", "Si"};

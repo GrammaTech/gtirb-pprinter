@@ -51,11 +51,13 @@ public:
   virtual const std::string& align() const = 0;
 
   // Formatting helpers
+  virtual std::string formatSymbolName(const std::string& x) const;
+  virtual std::string avoidRegNameConflicts(const std::string& x) const;
+
   virtual std::string getSizeName(uint64_t x) const;
   virtual std::string getSizeName(const std::string& x) const;
   virtual std::string getSizeSuffix(uint64_t x) const;
   virtual std::string getSizeSuffix(const std::string& x) const;
-  virtual std::string avoidRegNameConflicts(const std::string& x) const;
 
 protected:
   std::string TabStyle{"          "};
