@@ -101,7 +101,7 @@ const PrintingPolicy& ElfPrettyPrinter::defaultPrintingPolicy() {
 
 void ElfPrettyPrinter::printSectionHeaderDirective(
     std::ostream& os, const gtirb::Section& section) {
-  const std::string& sectionName = section.getName();
+  const std::string& sectionName = syntax.formatSectionName(section.getName());
   os << syntax.section() << ' ' << sectionName;
 }
 

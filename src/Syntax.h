@@ -51,6 +51,7 @@ public:
   virtual const std::string& align() const = 0;
 
   // Formatting helpers
+  virtual std::string formatSectionName(const std::string& x) const;
   virtual std::string formatFunctionName(const std::string& x) const;
   virtual std::string formatSymbolName(const std::string& x) const;
   virtual std::string avoidRegNameConflicts(const std::string& x) const;
