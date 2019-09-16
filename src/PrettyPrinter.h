@@ -315,6 +315,7 @@ protected:
   std::optional<std::string>
   getContainerFunctionName(const gtirb::Addr x) const;
 
+  bool isFunctionEntry(const gtirb::Addr x) const;
   bool isFunctionLastBlock(const gtirb::Addr x) const;
 
   bool isSectionSkipped(const std::string& name);

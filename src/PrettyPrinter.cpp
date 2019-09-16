@@ -731,6 +731,10 @@ bool PrettyPrinterBase::isInSkippedFunction(const gtirb::Addr x) const {
   return policy.skipFunctions.count(*xFunctionName);
 }
 
+bool PrettyPrinterBase::isFunctionEntry(const gtirb::Addr x) const {
+  return functionEntry.count(x) > 0;
+}
+
 bool PrettyPrinterBase::isFunctionLastBlock(const gtirb::Addr x) const {
   return functionLastBlock.count(x) > 0;
 }
@@ -792,7 +796,7 @@ void PrettyPrinterBase::printAlignment(std::ostream& os, gtirb::Addr addr) {
 
 std::string PrettyPrinterBase::getFunctionName(gtirb::Addr x) const {
   // Is this address an entry point to a function with a symbol?
-  bool entry_point = functionEntry.count(x) > 0;
+  bool entry_point = isFunctionEntry(x);
 
   if (entry_point) {
     for (gtirb::Symbol& s : this->ir.modules().begin()->findSymbols(x)) {
