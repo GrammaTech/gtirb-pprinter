@@ -68,6 +68,8 @@ std::string Syntax::getSizeSuffix(const std::string& x) const {
   return x;
 }
 
+std::string Syntax::formatFunctionName(const std::string& x) const { return x; }
+
 std::string Syntax::formatSymbolName(const std::string& x) const {
   return avoidRegNameConflicts(x);
 }

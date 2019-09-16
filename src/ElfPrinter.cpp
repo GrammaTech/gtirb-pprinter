@@ -137,7 +137,8 @@ void ElfPrettyPrinter::printSectionFooterDirective(
     std::ostream& /* os */, const gtirb::Section& /* section */) {}
 
 void ElfPrettyPrinter::printFunctionHeader(std::ostream& os, gtirb::Addr addr) {
-  const std::string& name = this->getFunctionName(addr);
+  const std::string& name =
+      syntax.formatFunctionName(this->getFunctionName(addr));
 
   if (!name.empty()) {
     const BlockAreaComment bac(os, "Function Header",
