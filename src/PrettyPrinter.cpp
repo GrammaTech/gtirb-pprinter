@@ -695,7 +695,7 @@ void PrettyPrinterBase::printString(std::ostream& os,
     return cleaned;
   };
 
-  os << ".string \"";
+  os << syntax.string() << " \"";
 
   for (const std::byte& b :
        getBytes(this->ir.modules().begin()->getImageByteMap(), x)) {

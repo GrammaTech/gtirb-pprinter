@@ -36,6 +36,7 @@ public:
   // Directives
   virtual const std::string& nop() const;
   virtual const std::string& zeroByte() const;
+  virtual const std::string& string() const = 0;
 
   virtual const std::string& byteData() const = 0;
   virtual const std::string& longData() const = 0;

@@ -25,6 +25,8 @@ public:
 
   const std::string& comment() const override;
 
+  const std::string& string() const override;
+
   const std::string& byteData() const override;
   const std::string& longData() const override;
   const std::string& quadData() const override;
@@ -41,6 +43,8 @@ public:
 
 private:
   const std::string CommentStyle{"#"};
+
+  const std::string StringDirective{".string"};
 
   const std::string ByteDirective{".byte"};
   const std::string LongDirective{".long"};
