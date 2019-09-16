@@ -45,7 +45,7 @@ std::string Syntax::getSizeName(const std::string& x) const {
     return found->second;
   }
 
-  assert("Unknown Size");
+  assert(false && "Unknown Size");
 
   return x;
 }
@@ -63,7 +63,7 @@ std::string Syntax::getSizeSuffix(const std::string& x) const {
     return found->second;
   }
 
-  assert("Unknown Size");
+  assert(false && "Unknown Size");
 
   return x;
 }
