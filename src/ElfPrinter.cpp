@@ -17,37 +17,6 @@
 #include <elf.h>
 
 namespace gtirb_pprint {
-///
-/// Print a comment that automatically scopes.
-///
-class BlockAreaComment {
-public:
-  BlockAreaComment(std::ostream& ss, std::string m = std::string{},
-                   std::function<void()> f = []() {})
-      : ofs{ss}, message{std::move(m)}, func{std::move(f)} {
-    ofs << '\n';
-
-    if (!message.empty()) {
-      ofs << "# BEGIN - " << this->message << '\n';
-    }
-
-    func();
-  }
-
-  ~BlockAreaComment() {
-    func();
-
-    if (!message.empty()) {
-      ofs << "# END   - " << this->message << '\n';
-    }
-
-    ofs << '\n';
-  }
-
-  std::ostream& ofs;
-  const std::string message;
-  std::function<void()> func;
-};
 
 const std::string& ElfSyntax::comment() const { return CommentStyle; }
 
@@ -139,12 +108,16 @@ void ElfPrettyPrinter::printFunctionHeader(std::ostream& os, gtirb::Addr addr) {
       syntax.formatFunctionName(this->getFunctionName(addr));
 
   if (!name.empty()) {
-    const BlockAreaComment bac(os, "Function Header",
-                               [this, &os]() { printBar(os, false); });
+    os << syntax.comment() << " BEGIN - Function Header\n";
+    printBar(os, false);
+
     printAlignment(os, addr);
     os << syntax.global() << ' ' << name << '\n';
     os << elfSyntax.type() << ' ' << name << ", @function\n";
     os << name << ":\n";
+
+    printBar(os, false);
+    os << syntax.comment() << " END   - Function Header\n";
   }
 }
 
