@@ -22,7 +22,7 @@ namespace gtirb_pprint {
 class Syntax {
 public:
   Syntax() = default;
-  virtual ~Syntax();
+  virtual ~Syntax() = default;
 
   // Styles
   virtual const std::string& tab() const;

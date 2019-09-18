@@ -49,8 +49,6 @@ public:
   std::function<void()> func;
 };
 
-ElfSyntax::ElfSyntax() : Syntax() {}
-
 const std::string& ElfSyntax::comment() const { return CommentStyle; }
 
 const std::string& ElfSyntax::byteData() const { return ByteDirective; }

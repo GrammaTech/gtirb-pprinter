@@ -20,8 +20,6 @@
 
 namespace gtirb_pprint {
 
-Syntax::~Syntax() {}
-
 const std::string& Syntax::tab() const { return TabStyle; }
 
 const std::string& Syntax::textSection() const { return TextSection; }

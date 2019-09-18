@@ -21,7 +21,7 @@ namespace gtirb_pprint {
 
 class ElfSyntax : public Syntax {
 public:
-  ElfSyntax();
+  ElfSyntax() = default;
 
   const std::string& comment() const override;
 
