@@ -26,8 +26,6 @@
 #include <utility>
 #include <variant>
 
-using namespace std::rel_ops;
-
 template <class T> T* nodeFromUUID(gtirb::Context& C, gtirb::UUID id) {
   return dyn_cast_or_null<T>(gtirb::Node::getByUUID(C, id));
 }
@@ -276,7 +274,7 @@ gtirb::Addr PrettyPrinterBase::printDataObjectOrWarning(
 
 void PrettyPrinterBase::printOverlapWarning(std::ostream& os,
                                             const gtirb::Addr addr) {
-  auto flags = os.flags();
+  std::ios_base::fmtflags flags = os.flags();
   os << syntax.comment() << " WARNING: found overlapping element at address "
      << std::hex << static_cast<uint64_t>(addr) << ": ";
   os.flags(flags);
@@ -354,15 +352,13 @@ void PrettyPrinterBase::printSectionFooter(
   if (!prev_section)
     return;
 
-  std::string section_name = (*prev_section)->getName();
+  const std::string& section_name = (*prev_section)->getName();
   if (policy.skipSections.count(section_name))
     return;
 
   const std::optional<const gtirb::Section*> next_section =
       addr ? getContainerSection(*addr) : std::nullopt;
-  // XXX: Using !(a == b) because an ambiguous overload for the != operator on
-  //      std::optional<const gtirb::Section*> is causing a compiler error.
-  if (next_section && !(next_section == prev_section) &&
+  if (next_section && next_section != prev_section &&
       section_name != syntax.textSection() &&
       section_name != syntax.dataSection() &&
       section_name != syntax.bssSection()) {

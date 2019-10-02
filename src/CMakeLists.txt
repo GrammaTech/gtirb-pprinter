@@ -16,13 +16,13 @@ endif()
 set(${PROJECT_NAME}_H
   AttPrinter.h
   BinaryPrinter.h
-  ElfPrinter.h
   ElfBinaryPrinter.h
+  ElfPrinter.h
   Export.h
   IntelPrinter.h
   PrettyPrinter.h
-  Syntax.h
   string_utils.h
+  Syntax.h
 )
 
 set(${PROJECT_NAME}_SRC
@@ -31,8 +31,8 @@ set(${PROJECT_NAME}_SRC
   ElfPrinter.cpp
   IntelPrinter.cpp
   PrettyPrinter.cpp
-  Syntax.cpp
   string_utils.cpp
+  Syntax.cpp
 )
 
 # Unix, but not Cygwin.

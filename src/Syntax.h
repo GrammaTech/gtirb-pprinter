@@ -21,7 +21,6 @@ namespace gtirb_pprint {
 
 class Syntax {
 public:
-  Syntax() = default;
   virtual ~Syntax() = default;
 
   // Styles

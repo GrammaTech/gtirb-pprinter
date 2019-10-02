@@ -159,7 +159,7 @@ struct PrintingPolicy {
 /// building the target pretty printer.
 class PrettyPrinterFactory {
 public:
-  virtual ~PrettyPrinterFactory(){};
+  virtual ~PrettyPrinterFactory() = default;
 
   /// Load the default printing policy.
   virtual const PrintingPolicy& defaultPrintingPolicy() = 0;
