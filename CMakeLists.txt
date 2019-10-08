@@ -246,11 +246,6 @@ if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
   set(CMAKE_SHARED_LINKER_FLAGS
       "${CMAKE_SHARED_LINKER_FLAGS} /LARGEADDRESSAWARE")
 
-  # Microsoft VCPKG
-  set(CMAKE_TOOLCHAIN_FILE
-      "C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
-      CACHE PATH "")
-  include(${CMAKE_TOOLCHAIN_FILE})
 elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
   add_compile_options(-Wall
                       -Wextra
