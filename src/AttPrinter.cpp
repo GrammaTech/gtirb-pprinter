@@ -117,8 +117,8 @@ void AttPrettyPrinter::printOpIndirect(
   }
 }
 
-const PrintingPolicy& AttPrettyPrinterFactory::defaultPrintingPolicy() {
-  return AttPrettyPrinter::defaultPrintingPolicy();
+const PrintingPolicy& AttPrettyPrinterFactory::defaultPrintingPolicy() const {
+  return ElfPrettyPrinter::defaultPrintingPolicy();
 }
 
 std::unique_ptr<PrettyPrinterBase>

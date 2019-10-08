@@ -102,8 +102,8 @@ void IntelPrettyPrinter::printOpIndirect(
   os << ']';
 }
 
-const PrintingPolicy& IntelPrettyPrinterFactory::defaultPrintingPolicy() {
-  return IntelPrettyPrinter::defaultPrintingPolicy();
+const PrintingPolicy& IntelPrettyPrinterFactory::defaultPrintingPolicy() const {
+  return ElfPrettyPrinter::defaultPrintingPolicy();
 }
 
 std::unique_ptr<PrettyPrinterBase>

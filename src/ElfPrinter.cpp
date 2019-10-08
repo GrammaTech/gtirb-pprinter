@@ -83,7 +83,7 @@ void ElfPrettyPrinter::printSectionProperties(std::ostream& os,
               "elfSectionProperties");
   if (!elfSectionProperties)
     return;
-  const auto sectionProperties = elfSectionProperties->find(section.getUUID());
+  auto sectionProperties = elfSectionProperties->find(section.getUUID());
   if (sectionProperties == elfSectionProperties->end())
     return;
   uint64_t type = std::get<0>(sectionProperties->second);

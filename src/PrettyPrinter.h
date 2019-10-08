@@ -162,7 +162,7 @@ public:
   virtual ~PrettyPrinterFactory() = default;
 
   /// Load the default printing policy.
-  virtual const PrintingPolicy& defaultPrintingPolicy() = 0;
+  virtual const PrintingPolicy& defaultPrintingPolicy() const = 0;
 
   /// Create the pretty printer instance.
   virtual std::unique_ptr<PrettyPrinterBase>

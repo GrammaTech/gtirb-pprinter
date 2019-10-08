@@ -107,7 +107,7 @@ PrettyPrinter::PrettyPrinter()
 void PrettyPrinter::setTarget(
     const std::tuple<std::string, std::string>& target) {
   assert(getFactories().find(target) != getFactories().end());
-  const auto [format, syntax] = target;
+  const auto& [format, syntax] = target;
   m_format = format;
   m_syntax = syntax;
 }
@@ -347,7 +347,7 @@ void PrettyPrinterBase::printSectionFooter(
     std::ostream& os, const std::optional<const gtirb::Addr> addr,
     const gtirb::Addr last) {
 
-  const std::optional<const gtirb::Section*> prev_section =
+  std::optional<const gtirb::Section*> prev_section =
       getContainerSection(last - 1);
   if (!prev_section)
     return;
@@ -356,7 +356,7 @@ void PrettyPrinterBase::printSectionFooter(
   if (policy.skipSections.count(section_name))
     return;
 
-  const std::optional<const gtirb::Section*> next_section =
+  std::optional<const gtirb::Section*> next_section =
       addr ? getContainerSection(*addr) : std::nullopt;
   if (next_section && next_section != prev_section &&
       section_name != syntax.textSection() &&
