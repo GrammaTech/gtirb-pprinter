@@ -104,12 +104,19 @@ const PrintingPolicy& IntelPrettyPrinterFactory::defaultPrintingPolicy() const {
   return ElfPrettyPrinter::defaultPrintingPolicy();
 }
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4458)
+#endif // _MSC_VER
 std::unique_ptr<PrettyPrinterBase>
 IntelPrettyPrinterFactory::create(gtirb::Context& context, gtirb::IR& ir,
                                   const PrintingPolicy& policy) {
   static const IntelSyntax syntax{};
   return std::make_unique<IntelPrettyPrinter>(context, ir, syntax, policy);
 }
+#ifdef _MSC_VER
+#pragma warning(push)
+#endif // _MSC_VER
 
 volatile bool IntelPrettyPrinter::registered = registerPrinter(
     {"elf"}, {"intel"}, std::make_shared<IntelPrettyPrinterFactory>(), true);

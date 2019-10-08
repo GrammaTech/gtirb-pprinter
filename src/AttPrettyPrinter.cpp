@@ -121,12 +121,19 @@ const PrintingPolicy& AttPrettyPrinterFactory::defaultPrintingPolicy() const {
   return ElfPrettyPrinter::defaultPrintingPolicy();
 }
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4458)
+#endif // _MSC_VER
 std::unique_ptr<PrettyPrinterBase>
 AttPrettyPrinterFactory::create(gtirb::Context& context, gtirb::IR& ir,
                                 const PrintingPolicy& policy) {
   static const ElfSyntax syntax{};
   return std::make_unique<AttPrettyPrinter>(context, ir, syntax, policy);
 }
+#ifdef _MSC_VER
+#pragma warning(push)
+#endif // _MSC_VER
 
 volatile bool AttPrettyPrinter::registered = registerPrinter(
     {"elf"}, {"att"}, std::make_shared<AttPrettyPrinterFactory>());

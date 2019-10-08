@@ -799,6 +799,10 @@ void PrettyPrinterBase::printAlignment(std::ostream& os, gtirb::Addr addr) {
   }
 }
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4702)
+#endif // _MSC_VER
 std::string PrettyPrinterBase::getFunctionName(gtirb::Addr x) const {
   // Is this address an entry point to a function with a symbol?
   bool entry_point = isFunctionEntry(x);
@@ -824,6 +828,9 @@ std::string PrettyPrinterBase::getFunctionName(gtirb::Addr x) const {
   // This doesn't seem to be a function.
   return std::string{};
 }
+#ifdef _MSC_VER
+#pragma warning(push)
+#endif // _MSC_VER
 
 std::string PrettyPrinterBase::getSymbolName(gtirb::Addr x) const {
   std::stringstream ss;

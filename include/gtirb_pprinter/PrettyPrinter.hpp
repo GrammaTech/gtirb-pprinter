@@ -18,7 +18,15 @@
 #include "Export.hpp"
 #include "Syntax.hpp"
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4127)
+#pragma warning(disable: 4100)
+#endif // _MSC_VER
 #include <gtirb/gtirb.hpp>
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif // _MSC_VER
 
 #include <boost/range/any_range.hpp>
 #include <capstone/capstone.h>

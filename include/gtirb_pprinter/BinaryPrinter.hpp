@@ -15,7 +15,15 @@
 #ifndef GTIRB_PP_BINARY_PRINTER_H
 #define GTIRB_PP_BINARY_PRINTER_H
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4127)
+#pragma warning(disable: 4100)
+#endif // _MSC_VER
 #include <gtirb/gtirb.hpp>
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif // _MSC_VER
 
 #include "PrettyPrinter.hpp"
 
