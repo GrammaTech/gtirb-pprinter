@@ -1,5 +1,4 @@
-//===- IntelPrinter.cpp ------------------------------------------*- C++
-//-*-===//
+//===- IntelPrettyPrinter.cpp -----------------------------------*- C++ -*-===//
 //
 //  Copyright (C) 2019 GrammaTech, Inc.
 //
@@ -14,7 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "IntelPrinter.hpp"
+#include "IntelPrettyPrinter.hpp"
 
 namespace gtirb_pprint {
 

@@ -1,4 +1,4 @@
-//===- IntelPrinter.h -------------------------------------------*- C++ -*-===//
+//===- IntelPrettyPrinter.h -------------------------------------*- C++ -*-===//
 //
 //  Copyright (C) 2019 GrammaTech, Inc.
 //
@@ -15,7 +15,7 @@
 #ifndef GTIRB_PP_NASM_PRINTER_H
 #define GTIRB_PP_NASM_PRINTER_H
 
-#include "ElfPrinter.hpp"
+#include "ElfPrettyPrinter.hpp"
 
 namespace gtirb_pprint {
 

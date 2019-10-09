@@ -24,19 +24,19 @@ set(PUBLIC_HEADERS
 
 set(${PROJECT_NAME}_H
   ${PUBLIC_HEADERS}
-  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/AttPrinter.hpp
+  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/AttPrettyPrinter.hpp
   ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ElfBinaryPrinter.hpp
-  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ElfPrinter.hpp
-  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/IntelPrinter.hpp
+  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ElfPrettyPrinter.hpp
+  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/IntelPrettyPrinter.hpp
   ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/string_utils.hpp
   ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Syntax.hpp
 )
 
 set(${PROJECT_NAME}_SRC
-  AttPrinter.cpp
+  AttPrettyPrinter.cpp
   ElfBinaryPrinter.cpp
-  ElfPrinter.cpp
-  IntelPrinter.cpp
+  ElfPrettyPrinter.cpp
+  IntelPrettyPrinter.cpp
   PrettyPrinter.cpp
   string_utils.cpp
   Syntax.cpp

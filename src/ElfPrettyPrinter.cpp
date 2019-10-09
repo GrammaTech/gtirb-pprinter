@@ -1,4 +1,4 @@
-//===- ElfPrinter.cpp -------------------------------------------*- C++ -*-===//
+//===- ElfPrettyPrinter.cpp -------------------------------------*- C++ -*-===//
 //
 //  Copyright (C) 2019 GrammaTech, Inc.
 //
@@ -12,7 +12,7 @@
 //  endorsement should be inferred.
 //
 //===----------------------------------------------------------------------===//
-#include "ElfPrinter.hpp"
+#include "ElfPrettyPrinter.hpp"
 
 #include <elf.h>
 

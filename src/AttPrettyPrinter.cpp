@@ -1,4 +1,4 @@
-//===- AttPrinter.cpp -------------------------------------------*- C++ -*-===//
+//===- AttPrettyPrinter.cpp -------------------------------------*- C++ -*-===//
 //
 //  Copyright (C) 2019 GrammaTech, Inc.
 //
@@ -13,7 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "AttPrinter.hpp"
+#include "AttPrettyPrinter.hpp"
 #include "string_utils.hpp"
 #include "version.h"
 #include <iomanip>
