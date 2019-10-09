@@ -34,18 +34,16 @@ std::string Syntax::getSizeName(uint64_t x) const {
 }
 
 std::string Syntax::getSizeName(const std::string& x) const {
-  static const std::map<std::string, std::string> adapt{
-      {"512", ""},         {"256", ""},         {"128", ""},
-      {"0", ""},           {"80", "TBYTE PTR"}, {"64", "QWORD PTR"},
-      {"32", "DWORD PTR"}, {"16", "WORD PTR"},  {"8", "BYTE PTR"}};
+  static const std::map<std::string, std::string> adapt{{"80", "TBYTE PTR"},
+                                                        {"64", "QWORD PTR"},
+                                                        {"32", "DWORD PTR"},
+                                                        {"16", "WORD PTR"},
+                                                        {"8", "BYTE PTR"}};
 
   if (const auto found = adapt.find(x); found != std::end(adapt)) {
     return found->second;
   }
-
-  assert(false && "Unknown Size");
-
-  return x;
+  return std::string();
 }
 
 std::string Syntax::getSizeSuffix(uint64_t x) const {
@@ -54,16 +52,12 @@ std::string Syntax::getSizeSuffix(uint64_t x) const {
 
 std::string Syntax::getSizeSuffix(const std::string& x) const {
   static const std::map<std::string, std::string> adapt{
-      {"512", ""}, {"256", ""}, {"128", ""}, {"0", ""}, {"80", "t"},
-      {"64", "q"}, {"32", "d"}, {"16", "w"}, {"8", "b"}};
+      {"80", "t"}, {"64", "q"}, {"32", "d"}, {"16", "w"}, {"8", "b"}};
 
   if (const auto found = adapt.find(x); found != std::end(adapt)) {
     return found->second;
   }
-
-  assert(false && "Unknown Size");
-
-  return x;
+  return std::string();
 }
 
 std::string Syntax::formatSectionName(const std::string& x) const { return x; }
