@@ -14,7 +14,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "IntelPrinter.h"
+#include "IntelPrinter.hpp"
 
 namespace gtirb_pprint {
 

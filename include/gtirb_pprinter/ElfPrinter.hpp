@@ -15,7 +15,7 @@
 #ifndef GTIRB_PP_ELF_PRINTER_H
 #define GTIRB_PP_ELF_PRINTER_H
 
-#include "PrettyPrinter.h"
+#include "PrettyPrinter.hpp"
 
 namespace gtirb_pprint {
 

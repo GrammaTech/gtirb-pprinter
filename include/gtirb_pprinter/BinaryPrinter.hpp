@@ -17,7 +17,7 @@
 
 #include <gtirb/gtirb.hpp>
 
-#include "PrettyPrinter.h"
+#include "PrettyPrinter.hpp"
 
 #include <string>
 #include <vector>

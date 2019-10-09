@@ -15,8 +15,8 @@
 #ifndef GTIRB_PP_PRETTY_PRINTER_H
 #define GTIRB_PP_PRETTY_PRINTER_H
 
-#include "Export.h"
-#include "Syntax.h"
+#include "Export.hpp"
+#include "Syntax.hpp"
 
 #include <gtirb/gtirb.hpp>
 

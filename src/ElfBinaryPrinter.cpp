@@ -13,7 +13,7 @@
 //  endorsement should be inferred.
 //
 //===----------------------------------------------------------------------===//
-#include "ElfBinaryPrinter.h"
+#include "ElfBinaryPrinter.hpp"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpragmas"

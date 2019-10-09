@@ -17,19 +17,19 @@ endif()
 include_directories("${CMAKE_SOURCE_DIR}/include/gtirb_pprinter")
 
 set(PUBLIC_HEADERS
-  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/BinaryPrinter.h
-  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Export.h
-  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/PrettyPrinter.h
+  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/BinaryPrinter.hpp
+  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Export.hpp
+  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/PrettyPrinter.hpp
 )
 
 set(${PROJECT_NAME}_H
   ${PUBLIC_HEADERS}
-  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/AttPrinter.h
-  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ElfBinaryPrinter.h
-  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ElfPrinter.h
-  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/IntelPrinter.h
-  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/string_utils.h
-  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Syntax.h
+  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/AttPrinter.hpp
+  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ElfBinaryPrinter.hpp
+  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ElfPrinter.hpp
+  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/IntelPrinter.hpp
+  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/string_utils.hpp
+  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Syntax.hpp
 )
 
 set(${PROJECT_NAME}_SRC

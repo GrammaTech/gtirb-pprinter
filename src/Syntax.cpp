@@ -12,7 +12,7 @@
 //  endorsement should be inferred.
 //
 //===----------------------------------------------------------------------===//
-#include "Syntax.h"
+#include "Syntax.hpp"
 
 #include <boost/range/algorithm/find_if.hpp>
 #include <map>

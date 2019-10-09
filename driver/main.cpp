@@ -1,6 +1,6 @@
-#include "ElfBinaryPrinter.h"
+#include "ElfBinaryPrinter.hpp"
 #include "Logger.h"
-#include "PrettyPrinter.h"
+#include "PrettyPrinter.hpp"
 #include <boost/program_options.hpp>
 #include <experimental/filesystem>
 #include <fstream>

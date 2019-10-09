@@ -13,8 +13,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "AttPrinter.h"
-#include "string_utils.h"
+#include "AttPrinter.hpp"
+#include "string_utils.hpp"
 #include "version.h"
 #include <iomanip>
 

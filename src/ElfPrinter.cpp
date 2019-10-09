@@ -12,7 +12,7 @@
 //  endorsement should be inferred.
 //
 //===----------------------------------------------------------------------===//
-#include "ElfPrinter.h"
+#include "ElfPrinter.hpp"
 
 #include <elf.h>
 

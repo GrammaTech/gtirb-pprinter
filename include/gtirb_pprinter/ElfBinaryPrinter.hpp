@@ -15,7 +15,7 @@
 #ifndef GTIRB_PP_ELF_BINARY_PRINTER_H
 #define GTIRB_PP_ELF_BINARY_PRINTER_H
 
-#include "BinaryPrinter.h"
+#include "BinaryPrinter.hpp"
 
 #include <gtirb/gtirb.hpp>
 

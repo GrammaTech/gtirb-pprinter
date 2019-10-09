@@ -12,9 +12,9 @@
 //  endorsement should be inferred.
 //
 //===----------------------------------------------------------------------===//
-#include "PrettyPrinter.h"
+#include "PrettyPrinter.hpp"
 
-#include "string_utils.h"
+#include "string_utils.hpp"
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/range/algorithm/find_if.hpp>

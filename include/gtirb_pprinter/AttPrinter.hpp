@@ -15,7 +15,7 @@
 #ifndef GTIRB_PP_GAS_PRINTER_H
 #define GTIRB_PP_GAS_PRINTER_H
 
-#include "ElfPrinter.h"
+#include "ElfPrinter.hpp"
 
 namespace gtirb_pprint {
 
