@@ -24,17 +24,17 @@ public:
   virtual ~Syntax() = default;
 
   // Styles
-  virtual const std::string& tab() const;
+  virtual const std::string& tab() const { return TabStyle; }
   virtual const std::string& comment() const = 0;
 
   // Sections
-  virtual const std::string& textSection() const;
-  virtual const std::string& dataSection() const;
-  virtual const std::string& bssSection() const;
+  virtual const std::string& textSection() const { return TextSection; }
+  virtual const std::string& dataSection() const { return DataSection; }
+  virtual const std::string& bssSection() const { return BssSection; }
 
   // Directives
-  virtual const std::string& nop() const;
-  virtual const std::string& zeroByte() const;
+  virtual const std::string& nop() const { return NopDirective; }
+  virtual const std::string& zeroByte() const { return ZeroByteDirective; }
   virtual const std::string& string() const = 0;
 
   virtual const std::string& byteData() const = 0;

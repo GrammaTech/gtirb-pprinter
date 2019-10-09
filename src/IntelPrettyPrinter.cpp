@@ -17,9 +17,6 @@
 
 namespace gtirb_pprint {
 
-IntelSyntax::IntelSyntax() : ElfSyntax() {}
-const std::string& IntelSyntax::offset() const { return OffsetDirective; }
-
 IntelPrettyPrinter::IntelPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
                                        const IntelSyntax& syntax_,
                                        const PrintingPolicy& policy_)

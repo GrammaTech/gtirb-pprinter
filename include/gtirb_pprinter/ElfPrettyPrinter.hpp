@@ -23,23 +23,24 @@ class ElfSyntax : public Syntax {
 public:
   ElfSyntax() = default;
 
-  const std::string& comment() const override;
+  const std::string& comment() const override { return CommentStyle; }
 
-  const std::string& string() const override;
+  const std::string& string() const override { return StringDirective; }
 
-  const std::string& byteData() const override;
-  const std::string& longData() const override;
-  const std::string& quadData() const override;
-  const std::string& wordData() const override;
+  const std::string& byteData() const override { return ByteDirective; }
+  const std::string& longData() const override { return LongDirective; }
+  const std::string& quadData() const override { return QuadDirective; }
+  const std::string& wordData() const override { return WordDirective; }
 
-  const std::string& text() const override;
-  const std::string& data() const override;
-  const std::string& bss() const override;
+  const std::string& text() const override { return TextDirective; }
+  const std::string& data() const override { return DataDirective; }
+  const std::string& bss() const override { return BssDirective; }
 
-  const std::string& section() const override;
-  const std::string& global() const override;
-  const std::string& align() const override;
-  const std::string& type() const;
+  const std::string& section() const override { return SectionDirective; }
+  const std::string& global() const override { return GlobalDirective; }
+  const std::string& align() const override { return AlignDirective; }
+
+  const std::string& type() const { return TypeDirective; }
 
 private:
   const std::string CommentStyle{"#"};

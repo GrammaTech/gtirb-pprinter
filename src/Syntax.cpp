@@ -20,15 +20,6 @@
 
 namespace gtirb_pprint {
 
-const std::string& Syntax::tab() const { return TabStyle; }
-
-const std::string& Syntax::textSection() const { return TextSection; }
-const std::string& Syntax::dataSection() const { return DataSection; }
-const std::string& Syntax::bssSection() const { return BssSection; }
-
-const std::string& Syntax::nop() const { return NopDirective; }
-const std::string& Syntax::zeroByte() const { return ZeroByteDirective; }
-
 std::string Syntax::getSizeName(uint64_t x) const {
   return getSizeName(std::to_string(x));
 }

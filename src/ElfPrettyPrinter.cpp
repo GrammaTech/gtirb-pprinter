@@ -18,24 +18,6 @@
 
 namespace gtirb_pprint {
 
-const std::string& ElfSyntax::comment() const { return CommentStyle; }
-
-const std::string& ElfSyntax::string() const { return StringDirective; }
-
-const std::string& ElfSyntax::byteData() const { return ByteDirective; }
-const std::string& ElfSyntax::longData() const { return LongDirective; }
-const std::string& ElfSyntax::quadData() const { return QuadDirective; }
-const std::string& ElfSyntax::wordData() const { return WordDirective; }
-
-const std::string& ElfSyntax::text() const { return TextDirective; }
-const std::string& ElfSyntax::data() const { return DataDirective; }
-const std::string& ElfSyntax::bss() const { return BssDirective; }
-
-const std::string& ElfSyntax::section() const { return SectionDirective; }
-const std::string& ElfSyntax::global() const { return GlobalDirective; }
-const std::string& ElfSyntax::align() const { return AlignDirective; }
-const std::string& ElfSyntax::type() const { return TypeDirective; }
-
 ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
                                    const ElfSyntax& syntax_,
                                    const PrintingPolicy& policy_)

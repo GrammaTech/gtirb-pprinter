@@ -21,8 +21,8 @@ namespace gtirb_pprint {
 
 class IntelSyntax : public ElfSyntax {
 public:
-  IntelSyntax();
-  const std::string& offset() const;
+  IntelSyntax() = default;
+  const std::string& offset() const { return OffsetDirective; }
 
 private:
   const std::string OffsetDirective{"OFFSET"};
