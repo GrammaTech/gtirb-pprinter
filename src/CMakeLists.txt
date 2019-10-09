@@ -13,16 +13,23 @@ elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL Clang)
   add_compile_options(-pthread)
 endif()
 
+# Find our headers without gtirb_pprinter/ prefix
+include_directories("${CMAKE_SOURCE_DIR}/include/gtirb_pprinter")
+
+set(PUBLIC_HEADERS
+  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/BinaryPrinter.h
+  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Export.h
+  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/PrettyPrinter.h
+)
+
 set(${PROJECT_NAME}_H
-  AttPrinter.h
-  BinaryPrinter.h
-  ElfBinaryPrinter.h
-  ElfPrinter.h
-  Export.h
-  IntelPrinter.h
-  PrettyPrinter.h
-  string_utils.h
-  Syntax.h
+  ${PUBLIC_HEADERS}
+  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/AttPrinter.h
+  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ElfBinaryPrinter.h
+  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ElfPrinter.h
+  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/IntelPrinter.h
+  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/string_utils.h
+  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Syntax.h
 )
 
 set(${PROJECT_NAME}_SRC
@@ -51,7 +58,6 @@ add_library(${PROJECT_NAME}
     ${${PROJECT_NAME}_SRC}
   )
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "debloat")
 
 target_link_libraries(
@@ -64,24 +70,19 @@ target_link_libraries(
 
 # Copy headers into build directory
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-  COMMAND "${CMAKE_COMMAND}" -E remove_directory "${CMAKE_BINARY_DIR}/include/")
+  COMMAND "${CMAKE_COMMAND}" -E remove_directory "${CMAKE_BINARY_DIR}/include/gtirb_pprinter")
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_BINARY_DIR}/include/")
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_BINARY_DIR}/include/gtirb_pprinter")
 add_custom_command(
         TARGET ${PROJECT_NAME} POST_BUILD
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         COMMAND "${CMAKE_COMMAND}" -E copy
                 ${${PROJECT_NAME}_H}
-                "${CMAKE_BINARY_DIR}/include/")
+                "${CMAKE_BINARY_DIR}/include/gtirb_pprinter")
 
 install(TARGETS ${PROJECT_NAME} EXPORT gtirb_pprinterTargets
   INCLUDES DESTINATION include
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib)
-set(PUBLIC_HEADERS
-  ${CMAKE_SOURCE_DIR}/src/BinaryPrinter.h
-  ${CMAKE_SOURCE_DIR}/src/Export.h
-  ${CMAKE_SOURCE_DIR}/src/PrettyPrinter.h
-  )
-install(FILES ${PUBLIC_HEADERS} DESTINATION include)
+install(FILES ${PUBLIC_HEADERS} DESTINATION include/gtirb_pprinter)

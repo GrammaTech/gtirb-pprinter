@@ -17,4 +17,4 @@ CTestTestfile.cmake
 /gtirb/
 /datalog_disasm/
 /include/gsl/*
-src/version.h
+include/gtirb_pprinter/version.h

@@ -69,8 +69,8 @@ string(REGEX MATCH
              ${ver})
 set(GTIRB_PPRINTER_PATCH_VERSION ${CMAKE_MATCH_1})
 
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/version.h.in"
-               "${CMAKE_CURRENT_SOURCE_DIR}/src/version.h" @ONLY)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/gtirb_pprinter/version.h.in"
+               "${CMAKE_CURRENT_SOURCE_DIR}/include/gtirb_pprinter/version.h" @ONLY)
 
 # Use C++17
 set(CMAKE_CXX_STANDARD 17)
@@ -156,7 +156,7 @@ if(USING_LIBCPP)
 endif()
 
 # Base include path for the pretty-printer.
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+include_directories(${CMAKE_SOURCE_DIR}/include/gtirb_pprinter)
 
 if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
   add_compile_options(-D_CRT_SECURE_NO_WARNINGS)

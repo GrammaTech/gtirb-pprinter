@@ -16,10 +16,9 @@
 #define GTIRB_PP_PRETTY_PRINTER_H
 
 #include "Export.h"
+#include "Syntax.h"
 
 #include <gtirb/gtirb.hpp>
-
-#include <Syntax.h>
 
 #include <boost/range/any_range.hpp>
 #include <capstone/capstone.h>
