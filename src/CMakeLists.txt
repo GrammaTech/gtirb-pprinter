@@ -28,6 +28,8 @@ set(${PROJECT_NAME}_H
   ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ElfBinaryPrinter.hpp
   ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ElfPrettyPrinter.hpp
   ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/IntelPrettyPrinter.hpp
+  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/MasmPrettyPrinter.hpp
+  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/PePrettyPrinter.hpp
   ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/string_utils.hpp
   ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Syntax.hpp
 )
@@ -37,6 +39,8 @@ set(${PROJECT_NAME}_SRC
   ElfBinaryPrinter.cpp
   ElfPrettyPrinter.cpp
   IntelPrettyPrinter.cpp
+  MasmPrettyPrinter.cpp
+  PePrettyPrinter.cpp
   PrettyPrinter.cpp
   string_utils.cpp
   Syntax.cpp
