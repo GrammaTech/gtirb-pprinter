@@ -22,27 +22,28 @@ namespace gtirb_pprint {
 class MasmSyntax : public Syntax {
 public:
   // Styles
-  const std::string& comment() const { return CommentStyle; }
+  const std::string& comment() const override { return CommentStyle; }
 
   // Common directives
-  const std::string& string() const { return StringDirective; }
+  const std::string& string() const override { return StringDirective; }
 
-  const std::string& byteData() const { return ByteDirective; }
-  const std::string& longData() const { return LongDirective; }
-  const std::string& quadData() const { return QuadDirective; }
-  const std::string& wordData() const { return WordDirective; }
+  const std::string& byteData() const override { return ByteDirective; }
+  const std::string& longData() const override { return LongDirective; }
+  const std::string& quadData() const override { return QuadDirective; }
+  const std::string& wordData() const override { return WordDirective; }
 
-  const std::string& text() const { return TextDirective; }
-  const std::string& data() const { return DataDirective; }
-  const std::string& bss() const { return BssDirective; }
+  const std::string& text() const override { return TextDirective; }
+  const std::string& data() const override { return DataDirective; }
+  const std::string& bss() const override { return BssDirective; }
 
+  const std::string& section() const override { return SectionDirective; }
+  const std::string& global() const override { return GlobalDirective; }
+  const std::string& align() const override { return AlignDirective; }
+
+  // MASM directives
   const std::string& offset() const { return OffsetDirective; }
-  const std::string& section() const { return SectionDirective; }
-  const std::string& global() const { return GlobalDirective; }
-  const std::string& align() const { return AlignDirective; }
   const std::string& extrn() const { return ExternDirective; }
 
-  // MASM specific directives
   const std::string& ends() const { return EndsDirective; }
   const std::string& proc() const { return ProcDirective; }
   const std::string& endp() const { return EndpDirective; }
