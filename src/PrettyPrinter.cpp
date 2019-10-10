@@ -114,10 +114,7 @@ void PrettyPrinter::setTarget(
 
 void PrettyPrinter::setFormat(const std::string& format) {
   const std::string& syntax = getDefaultSyntax(format).value_or("");
-  const auto target = std::make_tuple(format, syntax);
-  assert(getFactories().find(target) != getFactories().end());
-  m_format = format;
-  m_syntax = syntax;
+  setTarget(std::make_tuple(format, syntax));
 }
 
 void PrettyPrinter::setDebug(bool do_debug) {
