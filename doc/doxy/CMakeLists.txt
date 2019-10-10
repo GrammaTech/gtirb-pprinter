@@ -27,8 +27,8 @@ set(GTIRB_PPRINTER_MINOR_VERSION ${CMAKE_MATCH_1})
 string(REGEX MATCH "VERSION_PATCH ([0-9]*)" _ ${ver})
 set(GTIRB_PPRINTER_PATCH_VERSION ${CMAKE_MATCH_1})
 
-configure_file("${ROOTDIR}/src/version.h.in"
-  "${ROOTDIR}/src/version.h"
+configure_file("${ROOTDIR}/include/gtirb_pprinter/version.h.in"
+  "${ROOTDIR}/include/gtirb_pprinter/version.h"
   @ONLY)
 
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in" "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile" @ONLY)
