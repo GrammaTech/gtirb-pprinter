@@ -19,32 +19,6 @@
 
 namespace gtirb_pprint {
 
-MasmSyntax::MasmSyntax() : Syntax() {}
-
-const std::string& MasmSyntax::comment() const { return CommentStyle; }
-
-const std::string& MasmSyntax::string() const { return StringDirective; }
-
-const std::string& MasmSyntax::byteData() const { return ByteDirective; }
-const std::string& MasmSyntax::longData() const { return LongDirective; }
-const std::string& MasmSyntax::quadData() const { return QuadDirective; }
-const std::string& MasmSyntax::wordData() const { return WordDirective; }
-
-const std::string& MasmSyntax::text() const { return TextDirective; }
-const std::string& MasmSyntax::data() const { return DataDirective; }
-const std::string& MasmSyntax::bss() const { return BssDirective; }
-
-const std::string& MasmSyntax::offset() const { return OffsetDirective; }
-const std::string& MasmSyntax::section() const { return SectionDirective; }
-const std::string& MasmSyntax::global() const { return GlobalDirective; }
-const std::string& MasmSyntax::align() const { return AlignDirective; }
-const std::string& MasmSyntax::extrn() const { return ExternDirective; }
-
-const std::string& MasmSyntax::ends() const { return EndsDirective; }
-const std::string& MasmSyntax::proc() const { return ProcDirective; }
-const std::string& MasmSyntax::endp() const { return EndpDirective; }
-const std::string& MasmSyntax::end() const { return EndDirective; }
-
 std::string MasmSyntax::formatSectionName(const std::string& x) const {
   std::string name(x);
   if (name[0] == '.')

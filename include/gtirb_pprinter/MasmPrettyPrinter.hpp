@@ -21,34 +21,32 @@ namespace gtirb_pprint {
 
 class MasmSyntax : public Syntax {
 public:
-  MasmSyntax();
-
   // Styles
-  const std::string& comment() const override;
+  const std::string& comment() const { return CommentStyle; }
 
   // Common directives
-  const std::string& string() const override;
+  const std::string& string() const { return StringDirective; }
 
-  const std::string& byteData() const override;
-  const std::string& longData() const override;
-  const std::string& quadData() const override;
-  const std::string& wordData() const override;
+  const std::string& byteData() const { return ByteDirective; }
+  const std::string& longData() const { return LongDirective; }
+  const std::string& quadData() const { return QuadDirective; }
+  const std::string& wordData() const { return WordDirective; }
 
-  const std::string& text() const override;
-  const std::string& data() const override;
-  const std::string& bss() const override;
+  const std::string& text() const { return TextDirective; }
+  const std::string& data() const { return DataDirective; }
+  const std::string& bss() const { return BssDirective; }
 
-  const std::string& section() const override;
-  const std::string& global() const override;
-  const std::string& align() const override;
-  const std::string& extrn() const;
-  const std::string& offset() const;
+  const std::string& offset() const { return OffsetDirective; }
+  const std::string& section() const { return SectionDirective; }
+  const std::string& global() const { return GlobalDirective; }
+  const std::string& align() const { return AlignDirective; }
+  const std::string& extrn() const { return ExternDirective; }
 
-  // MASM directives
-  const std::string& ends() const;
-  const std::string& proc() const;
-  const std::string& endp() const;
-  const std::string& end() const;
+  // MASM specific directives
+  const std::string& ends() const { return EndsDirective; }
+  const std::string& proc() const { return ProcDirective; }
+  const std::string& endp() const { return EndpDirective; }
+  const std::string& end() const { return EndDirective; }
 
   // Formatting helpers
   std::string formatSectionName(const std::string& x) const override;
