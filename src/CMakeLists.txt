@@ -20,6 +20,7 @@ set(PUBLIC_HEADERS
   ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/BinaryPrinter.hpp
   ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Export.hpp
   ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/PrettyPrinter.hpp
+  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Syntax.hpp
 )
 
 set(${PROJECT_NAME}_H
@@ -29,7 +30,6 @@ set(${PROJECT_NAME}_H
   ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ElfPrettyPrinter.hpp
   ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/IntelPrettyPrinter.hpp
   ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/string_utils.hpp
-  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Syntax.hpp
 )
 
 set(${PROJECT_NAME}_SRC
