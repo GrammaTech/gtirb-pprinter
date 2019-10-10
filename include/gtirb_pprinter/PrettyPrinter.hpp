@@ -99,6 +99,11 @@ public:
   /// \param target compound indentifier of target format and syntax
   void setTarget(const std::tuple<std::string, std::string>& target);
 
+  /// Set the file format for which to pretty print.
+  ///
+  /// \param format indentifier of target format
+  void setFormat(const std::string& format);
+
   /// Enable or disable debugging messages inside the pretty-printed code.
   ///
   /// \param do_debug whether to enable debugging messages
