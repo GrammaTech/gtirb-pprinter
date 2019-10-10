@@ -132,7 +132,12 @@ std::error_condition PrettyPrinter::print(std::ostream& stream,
                                           gtirb::Context& context,
                                           gtirb::IR& ir) const {
   // Find pretty printer factory.
-  const auto target = std::make_tuple(m_format, m_syntax);
+  auto target = std::make_tuple(m_format, m_syntax);
+  if (m_format.empty()) {
+    const std::string& format = gtirb_pprint::getIRFileFormat(ir);
+    const std::string& syntax = getDefaultSyntax(format).value_or("");
+    target = std::make_tuple(format, syntax);
+  }
   const std::shared_ptr<PrettyPrinterFactory> factory =
       getFactories().at(target);
 
