@@ -86,7 +86,7 @@ std::optional<std::string> getDefaultSyntax(const std::string& format);
 class PrettyPrinter {
 public:
   /// Construct a PrettyPrinter with the default configuration.
-  PrettyPrinter();
+  PrettyPrinter() = default;
 
   PrettyPrinter(const PrettyPrinter&) = default;
   PrettyPrinter(PrettyPrinter&&) = default;

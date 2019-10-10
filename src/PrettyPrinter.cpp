@@ -101,9 +101,6 @@ std::optional<std::string> getDefaultSyntax(const std::string& format) {
   return it != defaults.end() ? std::make_optional(it->second) : std::nullopt;
 }
 
-PrettyPrinter::PrettyPrinter()
-    : m_keep_funcs{}, m_format{"elf"}, m_syntax{"intel"}, m_debug{NoDebug} {}
-
 void PrettyPrinter::setTarget(
     const std::tuple<std::string, std::string>& target) {
   assert(getFactories().find(target) != getFactories().end());
