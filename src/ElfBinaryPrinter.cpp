@@ -147,7 +147,7 @@ public:
     tmpFileName.append(".s");
 #else
     char tmpFileName[] = "/tmp/fileXXXXXX.s";
-    close(mkstemps(&tmpFileName[0], 2)); // Create tmp file
+    close(mkstemps(tmpFileName, 2)); // Create tmp file
 #endif // _WIN32
     name = tmpFileName;
     fileStream.open(name);
