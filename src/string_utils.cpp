@@ -19,13 +19,15 @@
 #include <cctype>
 
 std::string ascii_str_tolower(std::string s) {
-  std::transform(s.begin(), s.end(), s.begin(),
-                 [](unsigned char c) { return (unsigned char)std::tolower(c); });
+  std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) {
+    return (unsigned char)std::tolower(c);
+  });
   return s;
 }
 
 std::string ascii_str_toupper(std::string s) {
-  std::transform(s.begin(), s.end(), s.begin(),
-                 [](unsigned char c) { return (unsigned char)std::toupper(c); });
+  std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) {
+    return (unsigned char)std::toupper(c);
+  });
   return s;
 }

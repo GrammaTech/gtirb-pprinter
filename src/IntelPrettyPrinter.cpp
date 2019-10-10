@@ -106,7 +106,7 @@ const PrintingPolicy& IntelPrettyPrinterFactory::defaultPrintingPolicy() const {
 
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable: 4458)
+#pragma warning(disable : 4458)
 #endif // _MSC_VER
 std::unique_ptr<PrettyPrinterBase>
 IntelPrettyPrinterFactory::create(gtirb::Context& context, gtirb::IR& ir,
