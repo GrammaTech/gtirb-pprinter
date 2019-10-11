@@ -125,7 +125,9 @@ public:
   /// \param functionName name of the function to keep
   void keepFunction(const std::string& functionName);
 
-  /// Pretty-print the IR to a stream.
+  /// Pretty-print the IR to a stream. The default output target is deduced from
+  /// the file format of the IR if it is not explicitly set with \link
+  /// setTarget.
   ///
   /// \param stream  the stream to print to
   /// \param context context to use for allocating AuxData objects if needed
