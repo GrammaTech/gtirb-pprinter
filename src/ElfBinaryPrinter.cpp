@@ -138,13 +138,14 @@ public:
   std::ofstream fileStream;
   TempFile() {
 #ifdef _WIN32
-    char temp_location[MAX_PATH];
-    GetTempPathA(MAX_PATH, temp_location);
-    char fileNameTemplate[] = "fileXXXXXX";
-    _mktemp_s(fileNameTemplate);
-    std::string tmpFileName{temp_location};
-    tmpFileName.append(fileNameTemplate);
-    tmpFileName.append(".s");
+    std::string tmpFileName;
+    std::FILE* f = nullptr;
+    while (!f) {
+      tmpFileName = std::tmpnam(nullptr);
+      tmpFileName += ".s";
+      f = fopen(tmpFileName.c_str(), "wx");
+    }
+    fclose(f);
 #else
     char tmpFileName[] = "/tmp/fileXXXXXX.s";
     close(mkstemps(tmpFileName, 2)); // Create tmp file
