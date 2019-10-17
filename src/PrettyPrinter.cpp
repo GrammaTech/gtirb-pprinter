@@ -440,8 +440,8 @@ void PrettyPrinterBase::printInstruction(std::ostream& os, const cs_insn& inst,
   }
 
   if (inst.id == X86_INS_MOVABS) {
-    // Change GAS-specific MOVABS opcode to equivalent MOVQ opcode.
-    os << "  movq ";
+    // Change GAS-specific MOVABS opcode to equivalent MOV opcode.
+    os << "  mov ";
     printOperandList(os, inst);
     return;
   }
