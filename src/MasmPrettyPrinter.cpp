@@ -158,6 +158,9 @@ void MasmPrettyPrinter::printOpImmediate(
       os << masmSyntax.offset() << ' ';
     this->printSymbolicExpression(os, s, !is_call && !is_jump);
   } else {
+    if (inst.id == X86_INS_MOVABS) {
+      os << syntax.quadData() << " ";
+    }
     // The operand is just a number.
     os << op.imm;
   }
