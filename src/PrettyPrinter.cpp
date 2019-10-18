@@ -439,6 +439,12 @@ void PrettyPrinterBase::printInstruction(std::ostream& os, const cs_insn& inst,
     return;
   }
 
+  // FIXME: int3 seems to be used as padding in PE, but until we
+  //        implement that in the disassembler, we will omit them.
+  if (inst.id == X86_INS_INT3) {
+    return;
+  }
+
   if (inst.id == X86_INS_MOVABS) {
     // Change GAS-specific MOVABS opcode to equivalent MOV opcode.
     os << "  mov ";
