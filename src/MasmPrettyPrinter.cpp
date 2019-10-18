@@ -75,8 +75,15 @@ void MasmPrettyPrinter::printHeader(std::ostream& os) {
   }
 
   // FIXME: Without using PROC/ENDP we must declare an entrypoint, but of course
-  //        this is not general enough, we are assuming the entrypoint is main.
-  os << "PUBLIC main\n";
+  //        this is not general enough, we are assuming a function exists at
+  //        the entrypoint.
+
+  gtirb::ImageByteMap& IBM = this->ir.modules().begin()->getImageByteMap();
+  gtirb::Addr entryPoint = IBM.getEntryPointAddress();
+  std::string functionName = getFunctionName(entryPoint);
+  if (!functionName.empty()) {
+    os << syntax.global() << ' ' << functionName << '\n';
+  }
 }
 
 void MasmPrettyPrinter::printSectionHeaderDirective(
