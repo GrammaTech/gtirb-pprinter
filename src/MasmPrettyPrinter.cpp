@@ -73,6 +73,10 @@ void MasmPrettyPrinter::printHeader(std::ostream& os) {
       os << masmSyntax.extrn() << ' ' << name << ":PROC\n";
     }
   }
+
+  // FIXME: Without using PROC/ENDP we must declare an entrypoint, but of course
+  //        this is not general enough, we are assuming the entrypoint is main.
+  os << "PUBLIC main\n";
 }
 
 void MasmPrettyPrinter::printSectionHeaderDirective(
@@ -123,7 +127,9 @@ void MasmPrettyPrinter::printFunctionHeader(std::ostream& os,
   const std::string& name =
       syntax.formatFunctionName(this->getFunctionName(addr));
   if (!name.empty()) {
-    os << name << ' ' << masmSyntax.proc() << '\n';
+    // TODO: Use PROC/ENDP blocks
+    os << syntax.comment() << ' ' << name << ' ' << masmSyntax.proc() << '\n';
+    os << name << ":\n";
   }
 }
 
@@ -133,7 +139,9 @@ void MasmPrettyPrinter::printFunctionFooter(std::ostream& os,
     return;
   const std::optional<std::string>& name = getContainerFunctionName(addr);
   if (name && !name->empty()) {
-    os << syntax.formatFunctionName(*name) << ' ' << masmSyntax.endp() << '\n';
+    // TODO: Use PROC/ENDP blocks
+    os << syntax.comment() << ' ' << syntax.formatFunctionName(*name) << ' '
+       << masmSyntax.endp() << "\n\n";
   }
 }
 
