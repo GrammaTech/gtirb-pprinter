@@ -119,6 +119,12 @@ void MasmPrettyPrinter::printSectionProperties(std::ostream& os,
 void MasmPrettyPrinter::printSectionFooterDirective(
     std::ostream& os, const gtirb::Section& section) {
   std::string section_name = syntax.formatSectionName(section.getName());
+
+  // Special .CODE .DATA and .DATA? directives do not need footers.
+  if (section_name == "_TEXT" || section_name == "_DATA" ||
+      section_name == "_BSS")
+    return;
+
   os << section_name << ' ' << masmSyntax.ends();
 }
 
