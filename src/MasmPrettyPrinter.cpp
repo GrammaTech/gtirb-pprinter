@@ -158,9 +158,6 @@ void MasmPrettyPrinter::printOpImmediate(
       os << masmSyntax.offset() << ' ';
     this->printSymbolicExpression(os, s, !is_call && !is_jump);
   } else {
-    if (inst.id == X86_INS_MOVABS) {
-      os << syntax.quadData() << " ";
-    }
     // The operand is just a number.
     os << op.imm;
   }
@@ -174,6 +171,7 @@ void MasmPrettyPrinter::printOpIndirect(
   assert(op.type == X86_OP_MEM &&
          "printOpIndirect called without a memory operand");
   bool first = true;
+
   if (std::optional<std::string> size = syntax.getSizeName(op.size * 8))
     os << *size << " PTR ";
 
