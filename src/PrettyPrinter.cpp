@@ -357,17 +357,21 @@ void PrettyPrinterBase::printSectionFooter(
   std::optional<const gtirb::Section*> prev_section =
       getContainerSection(last - 1);
   if (!prev_section)
+    // No previous section, no footer to print.
     return;
 
   const std::string& section_name = (*prev_section)->getName();
   if (policy.skipSections.count(section_name))
+    // Don't print footer for skipped section.
     return;
 
   std::optional<const gtirb::Section*> next_section =
       addr ? getContainerSection(*addr) : std::nullopt;
   if (next_section && next_section == prev_section)
+    // Section has not changed, continue.
     return;
 
+  // Sections changed or ended, print footer for previous section.
   printBar(os);
   printSectionFooterDirective(os, **prev_section);
   os << '\n';
