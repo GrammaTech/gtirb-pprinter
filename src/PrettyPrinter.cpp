@@ -365,15 +365,13 @@ void PrettyPrinterBase::printSectionFooter(
 
   std::optional<const gtirb::Section*> next_section =
       addr ? getContainerSection(*addr) : std::nullopt;
-  if (next_section && next_section != prev_section &&
-      section_name != syntax.textSection() &&
-      section_name != syntax.dataSection() &&
-      section_name != syntax.bssSection()) {
-    printBar(os);
-    printSectionFooterDirective(os, **prev_section);
-    os << '\n';
-    printBar(os);
-  }
+  if (next_section && next_section == prev_section)
+    return;
+
+  printBar(os);
+  printSectionFooterDirective(os, **prev_section);
+  os << '\n';
+  printBar(os);
 }
 
 void PrettyPrinterBase::printBar(std::ostream& os, bool heavy) {
