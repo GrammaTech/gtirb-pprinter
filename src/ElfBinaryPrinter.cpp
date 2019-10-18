@@ -34,10 +34,6 @@
 #include <string>
 #include <vector>
 
-#ifdef _WIN32
-#include <io.h>
-#endif // _WIN32
-
 namespace bp = boost::process;
 namespace fs = std::experimental::filesystem;
 
