@@ -71,8 +71,7 @@ void IntelPrettyPrinter::printOpIndirect(
          "printOpIndirect called without a memory operand");
   bool first = true;
 
-  std::optional<std::string> size = syntax.getSizeName(op.size * 8);
-  if (size)
+  if (std::optional<std::string> size = syntax.getSizeName(op.size * 8))
     os << *size << " PTR ";
 
   if (op.mem.segment != X86_REG_INVALID)
