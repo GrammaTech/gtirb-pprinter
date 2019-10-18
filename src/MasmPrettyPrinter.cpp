@@ -122,8 +122,10 @@ void MasmPrettyPrinter::printSectionFooterDirective(
 
   // Special .CODE .DATA and .DATA? directives do not need footers.
   if (section_name == "_TEXT" || section_name == "_DATA" ||
-      section_name == "_BSS")
+      section_name == "_BSS") {
+    os << syntax.comment() << ' ' << section_name << ' ' << masmSyntax.ends();
     return;
+  }
 
   os << section_name << ' ' << masmSyntax.ends();
 }
