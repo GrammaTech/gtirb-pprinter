@@ -54,6 +54,8 @@ public:
   std::string formatFunctionName(const std::string& x) const override;
   std::string formatSymbolName(const std::string& x) const override;
 
+  std::optional<std::string> getSizeName(uint64_t bits) const override;
+
 private:
   const std::string CommentStyle{";"};
 
