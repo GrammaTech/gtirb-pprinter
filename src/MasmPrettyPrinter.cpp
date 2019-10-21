@@ -16,6 +16,7 @@
 #include "MasmPrettyPrinter.hpp"
 
 #include "string_utils.hpp"
+#include <boost/algorithm/string/replace.hpp>
 
 namespace gtirb_pprint {
 
@@ -56,7 +57,14 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
     : PePrettyPrinter(context_, ir_, syntax_, policy_), masmSyntax(syntax_) {}
 
 void MasmPrettyPrinter::printHeader(std::ostream& os) {
-  // TODO: print includelib lines
+  // FIXME: Should all imported libraries be included?
+  const auto* libraries =
+      ir.modules().begin()->getAuxData<std::vector<std::string>>("libraries");
+  if (libraries) {
+    for (const auto& library : *libraries)
+      os << "INCLUDELIB " << boost::replace_last_copy(library, "dll", "lib")
+         << '\n';
+  }
 
   // Declare EXTERN symbols
   if (const auto* symbolForwarding =
@@ -74,10 +82,8 @@ void MasmPrettyPrinter::printHeader(std::ostream& os) {
     }
   }
 
-  // FIXME: Without using PROC/ENDP we must declare an entrypoint, but of course
-  //        this is not general enough, we are assuming a function exists at
-  //        the entrypoint.
-
+  // FIXME:
+  // Declare the function at the entrypoint as a PUBLIC symbol.
   gtirb::ImageByteMap& IBM = this->ir.modules().begin()->getImageByteMap();
   gtirb::Addr entryPoint = IBM.getEntryPointAddress();
   std::string functionName = getFunctionName(entryPoint);

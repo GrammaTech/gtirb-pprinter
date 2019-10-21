@@ -23,7 +23,7 @@ PePrettyPrinter::PePrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
 const PrintingPolicy& PePrettyPrinter::defaultPrintingPolicy() {
   static PrintingPolicy DefaultPolicy{
       /// Sections to avoid printing.
-      {".pdata"},
+      {},
 
       /// Functions to avoid printing.
       {},
