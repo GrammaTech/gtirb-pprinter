@@ -222,6 +222,18 @@ void MasmPrettyPrinter::printOpIndirect(
          "printOpIndirect called without a memory operand");
   bool first = true;
 
+  // FIXME: Replaces indirect reference to EXTERN with direct reference.
+  //   e.g.  call QWORD PTR [puts]
+  //         call puts
+  if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
+    std::optional<std::string> forwardedName =
+        getForwardedSymbolName(s->Sym, true);
+    if (forwardedName) {
+      os << *forwardedName;
+      return;
+    }
+  }
+
   if (std::optional<std::string> size = syntax.getSizeName(op.size * 8))
     os << *size << " PTR ";
 
