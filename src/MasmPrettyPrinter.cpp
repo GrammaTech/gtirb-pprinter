@@ -57,13 +57,15 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
     : PePrettyPrinter(context_, ir_, syntax_, policy_), masmSyntax(syntax_) {}
 
 void MasmPrettyPrinter::printHeader(std::ostream& os) {
-  // FIXME: Should all imported libraries be included?
+  // FIXME: Determine the appropriate libraries to include.
+  os << "INCLUDELIB KERNEL32.lib\n"
+     << "INCLUDELIB LIBCMT.lib\n";
   const auto* libraries =
       ir.modules().begin()->getAuxData<std::vector<std::string>>("libraries");
   if (libraries) {
-    for (const auto& library : *libraries)
-      os << "INCLUDELIB " << boost::replace_last_copy(library, "dll", "lib")
-         << '\n';
+    for (const auto& library : *libraries) {
+      os << syntax.comment() << ' ' << library << '\n';
+    }
   }
 
   // Declare EXTERN symbols
@@ -81,14 +83,17 @@ void MasmPrettyPrinter::printHeader(std::ostream& os) {
       os << masmSyntax.extrn() << ' ' << name << ":PROC\n";
     }
   }
+  os << '\n';
 
   // FIXME:
-  // Declare the function at the entrypoint as a PUBLIC symbol.
+  // Declare the function at the entrypoint as a PUBLIC symbol or assume main.
   gtirb::ImageByteMap& IBM = this->ir.modules().begin()->getImageByteMap();
   gtirb::Addr entryPoint = IBM.getEntryPointAddress();
   std::string functionName = getFunctionName(entryPoint);
   if (!functionName.empty()) {
     os << syntax.global() << ' ' << functionName << '\n';
+  } else {
+    os << syntax.global() << ' ' << "main\n";
   }
 }
 
