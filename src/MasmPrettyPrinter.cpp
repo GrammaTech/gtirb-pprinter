@@ -193,8 +193,14 @@ void MasmPrettyPrinter::printOpImmediate(
 
   if (const gtirb::SymAddrConst* s = this->getSymbolicImmediate(symbolic)) {
     // The operand is symbolic.
-    if (!is_call && !is_jump)
+
+    // Symbols for skipped addresses degrade to literals.
+    std::optional<gtirb::Addr> addr = s->Sym->getAddress();
+    bool becomes_literal = (addr && skipEA(*addr));
+
+    if (!is_call && !is_jump && !becomes_literal)
       os << masmSyntax.offset() << ' ';
+
     this->printSymbolicExpression(os, s, !is_call && !is_jump);
   } else {
     // The operand is just a number.
