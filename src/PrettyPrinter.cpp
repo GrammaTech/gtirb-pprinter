@@ -806,7 +806,7 @@ std::string PrettyPrinterBase::getFunctionName(gtirb::Addr x) const {
   if (entry_point) {
     const auto symbols = this->ir.modules().begin()->findSymbols(x);
     if (!symbols.empty()) {
-      auto& s = symbols.front();
+      const gtirb::Symbol& s = symbols.front();
       std::stringstream name(s.getName());
       if (isAmbiguousSymbol(s.getName())) {
         name.seekp(0, std::ios_base::end);
