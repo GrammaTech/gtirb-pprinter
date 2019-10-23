@@ -22,6 +22,10 @@ namespace gtirb_pprint {
 
 std::optional<std::string> Syntax::getSizeName(uint64_t bits) const {
   switch (bits) {
+  case 256:
+    return "YMMWORD";
+  case 128:
+    return "XMMWORD";
   case 80:
     return "TBYTE";
   case 64:
