@@ -41,16 +41,6 @@ std::string MasmSyntax::formatSymbolName(const std::string& x) const {
   return name;
 }
 
-std::optional<std::string> MasmSyntax::getSizeName(uint64_t bits) const {
-  switch (bits) {
-  case 128:
-    return "XMMWORD";
-  case 256:
-    return "YMMWORD";
-  }
-  return Syntax::getSizeName(bits);
-};
-
 MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
                                      const MasmSyntax& syntax_,
                                      const PrintingPolicy& policy_)
