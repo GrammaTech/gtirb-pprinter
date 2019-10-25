@@ -73,9 +73,7 @@ void MasmPrettyPrinter::printIncludes(std::ostream& os) {
   os << '\n';
 }
 
-void MasmPrettyPrinter::printHeader(std::ostream& os) {
-  printIncludes(os);
-
+void MasmPrettyPrinter::printExterns(std::ostream& os) {
   // Declare EXTERN symbols
   if (const auto* symbolForwarding =
           ir.modules().begin()->getAuxData<std::map<gtirb::UUID, gtirb::UUID>>(
@@ -92,17 +90,20 @@ void MasmPrettyPrinter::printHeader(std::ostream& os) {
     }
   }
   os << '\n';
+}
 
-  // FIXME:
-  // Declare the function at the entrypoint as a PUBLIC symbol or assume main.
-  gtirb::ImageByteMap& IBM = this->ir.modules().begin()->getImageByteMap();
-  gtirb::Addr entryPoint = IBM.getEntryPointAddress();
-  std::string functionName = getFunctionName(entryPoint);
-  if (!functionName.empty()) {
-    os << syntax.global() << ' ' << functionName << '\n';
-  } else {
-    os << syntax.global() << " main\n";
+void MasmPrettyPrinter::printPublics(std::ostream& os) {
+  for (const auto& symbol : this->ir.modules().begin()->symbols()) {
+    if (symbol.getStorageKind() == gtirb::Symbol::StorageKind::Normal) {
+      os << syntax.global() << ' ' << symbol.getName() << '\n';
+    }
   }
+}
+
+void MasmPrettyPrinter::printHeader(std::ostream& os) {
+  printIncludes(os);
+  printExterns(os);
+  printPublics(os);
 }
 
 void MasmPrettyPrinter::printSectionHeaderDirective(
