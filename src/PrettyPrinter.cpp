@@ -467,6 +467,12 @@ void PrettyPrinterBase::printOperandList(std::ostream& os,
     opCount = 0;
   }
 
+  // Register operands are implicit for STOS* instructions.
+  if (inst.id == X86_INS_STOSB || inst.id == X86_INS_STOSW ||
+      inst.id == X86_INS_STOSD || inst.id == X86_INS_STOSQ) {
+    opCount = 1;
+  }
+
   for (int i = 0; i < opCount; i++) {
     if (i != 0) {
       os << ',';
