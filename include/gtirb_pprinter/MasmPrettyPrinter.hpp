@@ -88,6 +88,8 @@ public:
 protected:
   const MasmSyntax& masmSyntax;
 
+  void printIncludes(std::ostream& os);
+
   void printHeader(std::ostream& os) override;
   void printFooter(std::ostream& os) override;
 
@@ -123,6 +125,17 @@ protected:
   std::string getSymbolName(gtirb::Addr x) const override;
 
 private:
+  // Map linked DLLs to corresponding INCLUDELIB libraries.
+  std::unordered_map<std::string, std::vector<std::string>> dllLibraries = {
+      // Skip implicit api-ms-win-*.dll libraries.
+      {"api-ms-win-(.*)\\.dll", {}},
+      // Add libraries for dynamically linked CRT (Option: /MD).
+      {"vcruntime(\\d+)\\.dll", {"ucrt.lib", "vcruntime.lib", "msvcrt.lib"}},
+      // Add libraries for dynamically linked debug CRT (Option: /MDd).
+      {"vcruntime(\\d+)d\\.dll",
+       {"ucrtd.lib", "vcruntimed.lib", "msvcrtd.lib"}},
+  };
+
   static volatile bool registered;
 };
 

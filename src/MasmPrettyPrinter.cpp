@@ -15,6 +15,7 @@
 
 #include "MasmPrettyPrinter.hpp"
 
+#include "regex"
 #include "string_utils.hpp"
 #include <boost/algorithm/string/replace.hpp>
 
@@ -46,17 +47,34 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
                                      const PrintingPolicy& policy_)
     : PePrettyPrinter(context_, ir_, syntax_, policy_), masmSyntax(syntax_) {}
 
-void MasmPrettyPrinter::printHeader(std::ostream& os) {
-  // FIXME: Determine the appropriate libraries to include.
-  os << "INCLUDELIB KERNEL32.lib\n"
-     << "INCLUDELIB LIBCMT.lib\n";
+void MasmPrettyPrinter::printIncludes(std::ostream& os) {
   const auto* libraries =
       ir.modules().begin()->getAuxData<std::vector<std::string>>("libraries");
   if (libraries) {
     for (const auto& library : *libraries) {
-      os << syntax.comment() << ' ' << library << '\n';
+      // Include replacement libs.
+      bool replaced = false;
+      for (const auto& [pattern, replacements] : dllLibraries) {
+        std::regex re(pattern, std::regex::icase);
+        if (std::regex_match(library, re)) {
+          for (const auto& lib : replacements) {
+            os << "INCLUDELIB " << lib << '\n';
+          }
+          replaced = true;
+        }
+      }
+      // Include DLL as LIB.
+      if (!replaced) {
+        os << "INCLUDELIB "
+           << boost::ireplace_last_copy(library, ".dll", ".lib") << '\n';
+      }
     }
   }
+  os << '\n';
+}
+
+void MasmPrettyPrinter::printHeader(std::ostream& os) {
+  printIncludes(os);
 
   // Declare EXTERN symbols
   if (const auto* symbolForwarding =
@@ -83,7 +101,7 @@ void MasmPrettyPrinter::printHeader(std::ostream& os) {
   if (!functionName.empty()) {
     os << syntax.global() << ' ' << functionName << '\n';
   } else {
-    os << syntax.global() << ' ' << "main\n";
+    os << syntax.global() << " main\n";
   }
 }
 
