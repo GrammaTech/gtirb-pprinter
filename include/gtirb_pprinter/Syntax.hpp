@@ -15,6 +15,7 @@
 #ifndef GTIRB_PP_SYNTAX_H
 #define GTIRB_PP_SYNTAX_H
 
+#include <optional>
 #include <string>
 
 namespace gtirb_pprint {
@@ -56,10 +57,7 @@ public:
   virtual std::string formatSymbolName(const std::string& x) const;
   virtual std::string avoidRegNameConflicts(const std::string& x) const;
 
-  virtual std::string getSizeName(uint64_t x) const;
-  virtual std::string getSizeName(const std::string& x) const;
-  virtual std::string getSizeSuffix(uint64_t x) const;
-  virtual std::string getSizeSuffix(const std::string& x) const;
+  virtual std::optional<std::string> getSizeName(uint64_t bits) const;
 
 protected:
   std::string TabStyle{"          "};

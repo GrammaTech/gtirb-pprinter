@@ -357,23 +357,25 @@ void PrettyPrinterBase::printSectionFooter(
   std::optional<const gtirb::Section*> prev_section =
       getContainerSection(last - 1);
   if (!prev_section)
+    // No previous section, no footer to print.
     return;
 
   const std::string& section_name = (*prev_section)->getName();
   if (policy.skipSections.count(section_name))
+    // Don't print footer for skipped section.
     return;
 
   std::optional<const gtirb::Section*> next_section =
       addr ? getContainerSection(*addr) : std::nullopt;
-  if (next_section && next_section != prev_section &&
-      section_name != syntax.textSection() &&
-      section_name != syntax.dataSection() &&
-      section_name != syntax.bssSection()) {
-    printBar(os);
-    printSectionFooterDirective(os, **prev_section);
-    os << '\n';
-    printBar(os);
-  }
+  if (next_section && next_section == prev_section)
+    // Section has not changed, continue.
+    return;
+
+  // Sections changed or ended, print footer for previous section.
+  printBar(os);
+  printSectionFooterDirective(os, **prev_section);
+  os << '\n';
+  printBar(os);
 }
 
 void PrettyPrinterBase::printBar(std::ostream& os, bool heavy) {
@@ -463,6 +465,12 @@ void PrettyPrinterBase::printOperandList(std::ostream& os,
        inst.id == X86_INS_MOVSD || inst.id == X86_INS_MOVSQ) &&
       inst.detail->groups[0] != X86_GRP_SSE2) {
     opCount = 0;
+  }
+
+  // Register operands are implicit for STOS* instructions.
+  if (inst.id == X86_INS_STOSB || inst.id == X86_INS_STOSW ||
+      inst.id == X86_INS_STOSD || inst.id == X86_INS_STOSQ) {
+    opCount = 1;
   }
 
   for (int i = 0; i < opCount; i++) {
@@ -802,7 +810,9 @@ std::string PrettyPrinterBase::getFunctionName(gtirb::Addr x) const {
   bool entry_point = isFunctionEntry(x);
 
   if (entry_point) {
-    for (gtirb::Symbol& s : this->ir.modules().begin()->findSymbols(x)) {
+    const auto symbols = this->ir.modules().begin()->findSymbols(x);
+    if (!symbols.empty()) {
+      const gtirb::Symbol& s = symbols.front();
       std::stringstream name(s.getName());
       if (isAmbiguousSymbol(s.getName())) {
         name.seekp(0, std::ios_base::end);

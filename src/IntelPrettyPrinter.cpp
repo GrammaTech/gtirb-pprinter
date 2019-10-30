@@ -70,7 +70,9 @@ void IntelPrettyPrinter::printOpIndirect(
   assert(op.type == X86_OP_MEM &&
          "printOpIndirect called without a memory operand");
   bool first = true;
-  os << syntax.getSizeName(op.size * 8) << ' ';
+
+  if (std::optional<std::string> size = syntax.getSizeName(op.size * 8))
+    os << *size << " PTR ";
 
   if (op.mem.segment != X86_REG_INVALID)
     os << getRegisterName(op.mem.segment) << ':';
@@ -103,10 +105,11 @@ const PrintingPolicy& IntelPrettyPrinterFactory::defaultPrintingPolicy() const {
 }
 
 std::unique_ptr<PrettyPrinterBase>
-IntelPrettyPrinterFactory::create(gtirb::Context& context, gtirb::IR& ir,
+IntelPrettyPrinterFactory::create(gtirb::Context& gtirb_context, gtirb::IR& ir,
                                   const PrintingPolicy& policy) {
   static const IntelSyntax syntax{};
-  return std::make_unique<IntelPrettyPrinter>(context, ir, syntax, policy);
+  return std::make_unique<IntelPrettyPrinter>(gtirb_context, ir, syntax,
+                                              policy);
 }
 
 volatile bool IntelPrettyPrinter::registered = registerPrinter(

@@ -16,7 +16,6 @@
 #define GTIRB_PP_BINARY_PRINTER_H
 
 #include <gtirb/gtirb.hpp>
-
 #include "PrettyPrinter.hpp"
 
 #include <string>

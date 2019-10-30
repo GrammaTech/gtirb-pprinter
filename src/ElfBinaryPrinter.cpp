@@ -14,6 +14,7 @@
 //===----------------------------------------------------------------------===//
 #include "ElfBinaryPrinter.hpp"
 
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpragmas"
 #pragma GCC diagnostic ignored "-Wunknown-warning-option"
@@ -21,9 +22,12 @@
 #pragma GCC diagnostic ignored "-Wc++11-compat"
 #pragma GCC diagnostic ignored "-Wpessimizing-move"
 #pragma GCC diagnostic ignored "-Wdeprecated-copy"
+#endif // __GNUC__
 #include <boost/process/search_path.hpp>
 #include <boost/process/system.hpp>
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif // __GNUC__
 #include <experimental/filesystem>
 #include <iostream>
 #include <regex>
@@ -129,8 +133,19 @@ public:
   std::string name;
   std::ofstream fileStream;
   TempFile() {
+#ifdef _WIN32
+    std::string tmpFileName;
+    std::FILE* f = nullptr;
+    while (!f) {
+      tmpFileName = std::tmpnam(nullptr);
+      tmpFileName += ".s";
+      f = fopen(tmpFileName.c_str(), "wx");
+    }
+    fclose(f);
+#else
     char tmpFileName[] = "/tmp/fileXXXXXX.s";
     close(mkstemps(tmpFileName, 2)); // Create tmp file
+#endif // _WIN32
     name = tmpFileName;
     fileStream.open(name);
   };

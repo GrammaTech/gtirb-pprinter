@@ -122,10 +122,10 @@ const PrintingPolicy& AttPrettyPrinterFactory::defaultPrintingPolicy() const {
 }
 
 std::unique_ptr<PrettyPrinterBase>
-AttPrettyPrinterFactory::create(gtirb::Context& context, gtirb::IR& ir,
+AttPrettyPrinterFactory::create(gtirb::Context& gtirb_context, gtirb::IR& ir,
                                 const PrintingPolicy& policy) {
   static const ElfSyntax syntax{};
-  return std::make_unique<AttPrettyPrinter>(context, ir, syntax, policy);
+  return std::make_unique<AttPrettyPrinter>(gtirb_context, ir, syntax, policy);
 }
 
 volatile bool AttPrettyPrinter::registered = registerPrinter(
