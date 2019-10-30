@@ -296,7 +296,7 @@ void MasmPrettyPrinter::printZeroDataObject(
 void MasmPrettyPrinter::printString(std::ostream& os,
                                     const gtirb::DataObject& x) {
 
-  os << syntax.string();
+  os << syntax.string() << ' ';
   bool open = false;
   bool prev = false;
 
@@ -327,7 +327,7 @@ void MasmPrettyPrinter::printString(std::ostream& os,
       break;
     default:
       if (!prev && !open) {
-        os << " \"";
+        os << '"';
       }
       if (prev && !open) {
         os << ", \"";
