@@ -58,7 +58,7 @@ bool PePrettyPrinter::isInSkippedDataDirectory(const gtirb::Addr x) const {
 }
 
 bool PePrettyPrinter::skipEA(const gtirb::Addr x) const {
-  return isInSkippedDataDirectory(x) | PrettyPrinterBase::skipEA(x);
+  return isInSkippedDataDirectory(x) || PrettyPrinterBase::skipEA(x);
 }
 
 } // namespace gtirb_pprint
