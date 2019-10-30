@@ -14,11 +14,26 @@
 //===----------------------------------------------------------------------===//
 #include "PePrettyPrinter.hpp"
 
+#include <iostream>
+
 namespace gtirb_pprint {
 PePrettyPrinter::PePrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
                                  const Syntax& syntax_,
                                  const PrintingPolicy& policy_)
-    : PrettyPrinterBase(context_, ir_, syntax_, policy_) {}
+    : PrettyPrinterBase(context_, ir_, syntax_, policy_) {
+
+  const auto* directories =
+      ir.modules()
+          .begin()
+          ->getAuxData<
+              std::vector<std::tuple<std::string, uint64_t, uint64_t>>>(
+              "dataDirectories");
+  for (auto const& entry : *directories) {
+    dataDirectories.push_back(entry);
+  }
+
+  // dataDirectories.insert(dataDirectory);
+}
 
 const PrintingPolicy& PePrettyPrinter::defaultPrintingPolicy() {
   static PrintingPolicy DefaultPolicy{
@@ -33,4 +48,23 @@ const PrintingPolicy& PePrettyPrinter::defaultPrintingPolicy() {
   };
   return DefaultPolicy;
 }
+
+bool PePrettyPrinter::isInSkippedDataDirectory(const gtirb::Addr x) const {
+  const uint64_t y = static_cast<uint64_t>(x);
+  for (const auto& [name, address, size] : dataDirectories) {
+    if (y >= address && y < (address + size)) {
+      // return skipDataDirectories.count(name) > 0;
+      if (skipDataDirectories.count(name) > 0) {
+        std::cerr << "AAA:" << x << '\n';
+        return true;
+      };
+    }
+  }
+  return false;
+}
+
+bool PePrettyPrinter::skipEA(const gtirb::Addr x) const {
+  return isInSkippedDataDirectory(x) | PrettyPrinterBase::skipEA(x);
+}
+
 } // namespace gtirb_pprint

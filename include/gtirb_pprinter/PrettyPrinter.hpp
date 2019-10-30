@@ -297,7 +297,7 @@ protected:
   shouldExcludeDataElement(const gtirb::Section& section,
                            const gtirb::DataObject& dataObject) const;
 
-  bool skipEA(const gtirb::Addr x) const;
+  virtual bool skipEA(const gtirb::Addr x) const;
 
   // This method assumes sections do not overlap
   const std::optional<const gtirb::Section*>

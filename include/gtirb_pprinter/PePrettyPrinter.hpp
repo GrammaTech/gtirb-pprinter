@@ -38,6 +38,20 @@ public:
                   const PrintingPolicy& policy);
 
   static const PrintingPolicy& defaultPrintingPolicy();
+
+protected:
+  bool skipEA(const gtirb::Addr x) const override;
+  bool isInSkippedDataDirectory(const gtirb::Addr x) const;
+
+private:
+  // TODO: Add to policy
+  std::unordered_set<std::string> skipDataDirectories = {
+      "IMPORT_TABLE",
+      "EXCEPTION_TABLE",
+      "DEBUG",
+      "IAT",
+  };
+  std::vector<std::tuple<std::string, uint64_t, uint64_t>> dataDirectories;
 };
 
 } // namespace gtirb_pprint
