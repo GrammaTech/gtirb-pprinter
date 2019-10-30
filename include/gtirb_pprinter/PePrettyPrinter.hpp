@@ -44,13 +44,9 @@ protected:
   bool isInSkippedDataDirectory(const gtirb::Addr x) const;
 
 private:
-  // TODO: Add to policy
-  std::unordered_set<std::string> skipDataDirectories = {
-      "IMPORT_TABLE",
-      "EXCEPTION_TABLE",
-      "DEBUG",
-      "IAT",
-  };
+  // TODO: Add to policy?
+  // Names of data directories that should be output.
+  std::unordered_set<std::string> keepDataDirectories = {};
   std::vector<std::tuple<std::string, uint64_t, uint64_t>> dataDirectories;
 };
 

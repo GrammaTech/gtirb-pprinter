@@ -31,8 +31,6 @@ PePrettyPrinter::PePrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
   for (auto const& entry : *directories) {
     dataDirectories.push_back(entry);
   }
-
-  // dataDirectories.insert(dataDirectory);
 }
 
 const PrintingPolicy& PePrettyPrinter::defaultPrintingPolicy() {
@@ -53,11 +51,7 @@ bool PePrettyPrinter::isInSkippedDataDirectory(const gtirb::Addr x) const {
   const uint64_t y = static_cast<uint64_t>(x);
   for (const auto& [name, address, size] : dataDirectories) {
     if (y >= address && y < (address + size)) {
-      // return skipDataDirectories.count(name) > 0;
-      if (skipDataDirectories.count(name) > 0) {
-        std::cerr << "AAA:" << x << '\n';
-        return true;
-      };
+      return keepDataDirectories.count(name) == 0;
     }
   }
   return false;
