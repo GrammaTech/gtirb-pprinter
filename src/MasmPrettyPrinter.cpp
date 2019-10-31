@@ -171,7 +171,8 @@ void MasmPrettyPrinter::printOpIndirect(
   assert(op.type == X86_OP_MEM &&
          "printOpIndirect called without a memory operand");
   bool first = true;
-  os << syntax.getSizeName(op.size * 8) << ' ';
+  if (std::optional<std::string> size = syntax.getSizeName(op.size * 8))
+    os << *size << " PTR ";
 
   if (op.mem.segment != X86_REG_INVALID)
     os << getRegisterName(op.mem.segment) << ':';
