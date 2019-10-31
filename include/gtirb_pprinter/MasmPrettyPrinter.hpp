@@ -136,6 +136,10 @@ private:
       // Add libraries for dynamically linked debug CRT (Option: /MDd).
       {"vcruntime(\\d+)d\\.dll",
        {"ucrtd.lib", "vcruntimed.lib", "msvcrtd.lib"}},
+      // Add libraries for multithreaded, dynamically linked runtime.
+      {"msvcp(\\d+)\\.dll", {"msvcprt.lib"}},
+      // Add libraries for multithreaded, dynamically linked, debug runtime.
+      {"msvcp(\\d+)d\\.dll", {"msvcprtd.lib"}},
   };
 
   static volatile bool registered;
