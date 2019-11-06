@@ -80,7 +80,7 @@ void MasmPrettyPrinter::printSectionProperties(std::ostream& os,
   const auto sectionProperties = peSectionProperties->find(section.getUUID());
   if (sectionProperties == peSectionProperties->end())
     return;
-  uint32_t flags = sectionProperties->second;
+  uint64_t flags = sectionProperties->second;
 
   if (flags & IMAGE_SCN_MEM_READ)
     os << " READ";
