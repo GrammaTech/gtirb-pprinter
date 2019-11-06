@@ -45,7 +45,16 @@ std::string MasmSyntax::formatSymbolName(const std::string& x) const {
 MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
                                      const MasmSyntax& syntax_,
                                      const PrintingPolicy& policy_)
-    : PePrettyPrinter(context_, ir_, syntax_, policy_), masmSyntax(syntax_) {}
+    : PePrettyPrinter(context_, ir_, syntax_, policy_), masmSyntax(syntax_) {
+
+  // FIXME: How should we handle entry point label?
+  gtirb::Module& Module = *ir.modules().begin();
+  gtirb::ImageByteMap& ImageByteMap = Module.getImageByteMap();
+  gtirb::Addr Entry = ImageByteMap.getEntryPointAddress();
+  auto* Symbol = gtirb::Symbol::Create(context, Entry, "__entry__",
+                                       gtirb::Symbol::StorageKind::Normal);
+  Module.addSymbol(Symbol);
+}
 
 void MasmPrettyPrinter::printIncludes(std::ostream& os) {
   const auto* libraries =
