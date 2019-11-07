@@ -105,6 +105,9 @@ protected:
   void printFunctionHeader(std::ostream& os, gtirb::Addr addr) override;
   void printFunctionFooter(std::ostream& os, gtirb::Addr addr) override;
 
+  void printInstruction(std::ostream& os, const cs_insn& inst,
+                        const gtirb::Offset& offset);
+
   void printOpRegdirect(std::ostream& os, const cs_insn& inst,
                         const cs_x86_op& op) override;
   void printOpImmediate(std::ostream& os,
@@ -127,6 +130,9 @@ protected:
   std::string getSymbolName(gtirb::Addr x) const override;
 
 private:
+  // Operands with image base relative addresses.
+  std::unordered_map<uint64_t, uint64_t> baseRelativeSymbols;
+
   // Map linked DLLs to corresponding INCLUDELIB libraries.
   std::unordered_map<std::string, std::vector<std::string>> dllLibraries = {
       // Skip implicit api-ms-win-*.dll libraries.
