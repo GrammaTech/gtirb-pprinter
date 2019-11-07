@@ -106,7 +106,7 @@ protected:
   void printFunctionFooter(std::ostream& os, gtirb::Addr addr) override;
 
   void printInstruction(std::ostream& os, const cs_insn& inst,
-                        const gtirb::Offset& offset);
+                        const gtirb::Offset& offset) override;
 
   void printOpRegdirect(std::ostream& os, const cs_insn& inst,
                         const cs_x86_op& op) override;
