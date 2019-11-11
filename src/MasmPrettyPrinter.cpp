@@ -47,25 +47,13 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
                                      const PrintingPolicy& policy_)
     : PePrettyPrinter(context_, ir_, syntax_, policy_), masmSyntax(syntax_) {
 
+  // FIXME: How should we handle entry point label?
   gtirb::Module& Module = *ir.modules().begin();
   gtirb::ImageByteMap& ImageByteMap = Module.getImageByteMap();
-
-  // FIXME: How should we handle entry point label?
   gtirb::Addr Entry = ImageByteMap.getEntryPointAddress();
   auto* Symbol = gtirb::Symbol::Create(context, Entry, "__entry__",
                                        gtirb::Symbol::StorageKind::Normal);
   Module.addSymbol(Symbol);
-
-  // FIXME: How should we handle base relative operands?
-  if (const auto* Relops =
-          Module.getAuxData<
-              std::vector<std::tuple<uint64_t, uint64_t, uint64_t>>>(
-              "baseRelativeOperands")) {
-    for (const auto& Relop : *Relops) {
-      // Map an instruction address to the base-relative symbol address.
-      baseRelativeSymbols[std::get<0>(Relop)] = std::get<2>(Relop);
-    }
-  }
 }
 
 void MasmPrettyPrinter::printIncludes(std::ostream& os) {
@@ -211,21 +199,6 @@ void MasmPrettyPrinter::printSymbolDefinitionsAtAddress(std::ostream& os,
   PrettyPrinterBase::printSymbolDefinitionsAtAddress(os, ea);
 }
 
-void MasmPrettyPrinter::printInstruction(std::ostream& os, const cs_insn& inst,
-                                         const gtirb::Offset& offset) {
-  auto it = baseRelativeSymbols.find(inst.address);
-  if (it != baseRelativeSymbols.end()) {
-    gtirb::Addr ea(it->second);
-    for (const gtirb::Symbol& symbol :
-         this->ir.modules().begin()->findSymbols(ea)) {
-      os << syntax.tab() << "  relop = (IMAGEREL "
-         << syntax.formatSymbolName(symbol.getName()) << ")\n";
-      break;
-    }
-  }
-  PrettyPrinterBase::printInstruction(os, inst, offset);
-}
-
 void MasmPrettyPrinter::printOpRegdirect(std::ostream& os,
                                          const cs_insn& /*inst*/,
                                          const cs_x86_op& op) {
@@ -320,11 +293,6 @@ void MasmPrettyPrinter::printOpIndirect(
   if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
     if (!first)
       os << '+';
-
-    if (baseRelativeSymbols.count(inst.address) > 0) {
-      os << "relop]";
-      return;
-    }
 
     printSymbolicExpression(os, s, false);
   } else {
