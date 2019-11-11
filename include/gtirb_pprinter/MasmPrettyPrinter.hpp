@@ -43,6 +43,7 @@ public:
   // MASM directives
   const std::string& offset() const { return OffsetDirective; }
   const std::string& extrn() const { return ExternDirective; }
+  const std::string& imagerel() const { return ImageRelDirective; }
 
   const std::string& ends() const { return EndsDirective; }
   const std::string& proc() const { return ProcDirective; }
@@ -73,6 +74,7 @@ private:
   const std::string AlignDirective{"ALIGN"};
   const std::string ExternDirective{"EXTERN"};
   const std::string OffsetDirective{"OFFSET"};
+  const std::string ImageRelDirective{"IMAGEREL"};
 
   const std::string EndsDirective{"ENDS"};
   const std::string ProcDirective{"PROC"};
