@@ -47,13 +47,25 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
                                      const PrintingPolicy& policy_)
     : PePrettyPrinter(context_, ir_, syntax_, policy_), masmSyntax(syntax_) {
 
-  // FIXME: How should we handle entry point label?
   gtirb::Module& Module = *ir.modules().begin();
   gtirb::ImageByteMap& ImageByteMap = Module.getImageByteMap();
+
+  // FIXME: How should we handle entry point label?
   gtirb::Addr Entry = ImageByteMap.getEntryPointAddress();
-  auto* Symbol = gtirb::Symbol::Create(context, Entry, "__entry__",
-                                       gtirb::Symbol::StorageKind::Normal);
-  Module.addSymbol(Symbol);
+  auto* EntrySymbol = gtirb::Symbol::Create(context, Entry, "__entry__",
+                                            gtirb::Symbol::StorageKind::Normal);
+  Module.addSymbol(EntrySymbol);
+
+  for (const gtirb::SymbolicExpression Symbolic : Module.symbolic_exprs()) {
+    if (const auto* RelSymbolic = std::get_if<gtirb::SymAddrAddr>(&Symbolic)) {
+      if (std::optional<gtirb::Addr> Addr = RelSymbolic->Sym1->getAddress();
+          Addr && *Addr == ImageByteMap.getBaseAddress()) {
+        if (Addr = RelSymbolic->Sym2->getAddress(); Addr) {
+          namedDataObjects.insert(static_cast<uint64_t>(*Addr));
+        }
+      }
+    }
+  }
 }
 
 void MasmPrettyPrinter::printIncludes(std::ostream& os) {
@@ -297,7 +309,13 @@ void MasmPrettyPrinter::printOpIndirect(
     printSymbolicExpression(os, s, false);
   } else if (const auto* rel = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
     os << " + (" << masmSyntax.imagerel() << ' ';
-    printSymbolReference(os, rel->Sym2, false);
+
+    // TODO: make helper func
+    uint64_t ea = static_cast<uint64_t>(*rel->Sym2->getAddress());
+    std::ios_base::fmtflags flags = os.flags();
+    os << "N_" << std::hex << ea;
+    os.flags(flags);
+
     os << ")";
   } else {
     printAddend(os, op.mem.disp, first);
@@ -309,6 +327,20 @@ void MasmPrettyPrinter::printByte(std::ostream& os, std::byte byte) {
   // Byte constants must start with a number for the MASM assembler.
   os << syntax.byteData() << " 0" << std::hex << std::setfill('0')
      << std::setw(2) << static_cast<uint32_t>(byte) << 'H' << std::dec << '\n';
+}
+
+void MasmPrettyPrinter::printNonZeroDataObject(
+    std::ostream& os, const gtirb::DataObject& dataObject) {
+
+  uint64_t ea = static_cast<uint64_t>(dataObject.getAddress());
+  if (namedDataObjects.count(ea) > 0) {
+    // TODO: use a helper func
+    std::ios_base::fmtflags flags = os.flags();
+    os << "N_" << std::hex << ea << '\n';
+    os.flags(flags);
+  }
+
+  PrettyPrinterBase::printNonZeroDataObject(os, dataObject);
 }
 
 void MasmPrettyPrinter::printZeroDataObject(

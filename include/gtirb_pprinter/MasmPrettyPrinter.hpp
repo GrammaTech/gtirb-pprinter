@@ -120,7 +120,8 @@ protected:
                                        gtirb::Addr ea) override;
 
   void printByte(std::ostream& os, std::byte byte) override;
-
+  void printNonZeroDataObject(std::ostream& os,
+                              const gtirb::DataObject& dataObject) override;
   void printZeroDataObject(std::ostream& os,
                            const gtirb::DataObject& dataObject) override;
 
@@ -129,6 +130,9 @@ protected:
   std::string getSymbolName(gtirb::Addr x) const override;
 
 private:
+  // Addresses of data objects that should have names in addition to labels.
+  std::unordered_set<uint64_t> namedDataObjects;
+
   // Map linked DLLs to corresponding INCLUDELIB libraries.
   std::unordered_map<std::string, std::vector<std::string>> dllLibraries = {
       // Skip implicit api-ms-win-*.dll libraries.
