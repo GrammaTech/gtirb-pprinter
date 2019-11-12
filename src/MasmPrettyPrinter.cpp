@@ -336,7 +336,7 @@ void MasmPrettyPrinter::printNonZeroDataObject(
   if (namedDataObjects.count(ea) > 0) {
     // TODO: use a helper func
     std::ios_base::fmtflags flags = os.flags();
-    os << "N_" << std::hex << ea << '\n';
+    os << "N_" << std::hex << ea << ' ';
     os.flags(flags);
   }
 
