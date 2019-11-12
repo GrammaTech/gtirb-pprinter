@@ -239,7 +239,7 @@ void MasmPrettyPrinter::printOpImmediate(
     if (!is_call && !is_jump && !becomes_literal)
       os << masmSyntax.offset() << ' ';
 
-    this->printSymbolicExpression(os, s, !is_call && !is_jump);
+    printSymbolicExpression(os, s, !is_call && !is_jump);
   } else {
     // The operand is just a number.
     os << op.imm;
@@ -308,7 +308,7 @@ void MasmPrettyPrinter::printOpIndirect(
 
     printSymbolicExpression(os, s, false);
   } else if (const auto* rel = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
-    os << " + (" << masmSyntax.imagerel() << ' ';
+    os << "+(" << masmSyntax.imagerel() << ' ';
 
     // TODO: make helper func
     uint64_t ea = static_cast<uint64_t>(*rel->Sym2->getAddress());
@@ -321,6 +321,24 @@ void MasmPrettyPrinter::printOpIndirect(
     printAddend(os, op.mem.disp, first);
   }
   os << ']';
+}
+
+void MasmPrettyPrinter::printSymbolicExpression(
+    std::ostream& os, const gtirb::SymAddrConst* sexpr, bool inData) {
+  PrettyPrinterBase::printSymbolicExpression(os, sexpr, inData);
+}
+
+void MasmPrettyPrinter::printSymbolicExpression(std::ostream& os,
+                                                const gtirb::SymAddrAddr* sexpr,
+                                                bool inData) {
+  if (inData && sexpr->Sym1->getName() == ".L_0") {
+    os << "(IMAGEREL ";
+    printSymbolReference(os, sexpr->Sym2, inData);
+    os << ")";
+    return;
+  }
+
+  PrettyPrinterBase::printSymbolicExpression(os, sexpr, inData);
 }
 
 void MasmPrettyPrinter::printByte(std::ostream& os, std::byte byte) {

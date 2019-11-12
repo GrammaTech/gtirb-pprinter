@@ -119,6 +119,13 @@ protected:
   void printSymbolDefinitionsAtAddress(std::ostream& os,
                                        gtirb::Addr ea) override;
 
+  void printSymbolicExpression(std::ostream& os,
+                               const gtirb::SymAddrConst* sexpr,
+                               bool inData = false) override;
+  void printSymbolicExpression(std::ostream& os,
+                               const gtirb::SymAddrAddr* sexpr,
+                               bool inData = false) override;
+
   void printByte(std::ostream& os, std::byte byte) override;
   void printNonZeroDataObject(std::ostream& os,
                               const gtirb::DataObject& dataObject) override;
