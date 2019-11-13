@@ -56,6 +56,7 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
                                             gtirb::Symbol::StorageKind::Normal);
   Module.addSymbol(EntrySymbol);
 
+  // FIXME: How should we handle naming base-relative data objects?
   for (const gtirb::SymbolicExpression Symbolic : Module.symbolic_exprs()) {
     if (const auto* RelSymbolic = std::get_if<gtirb::SymAddrAddr>(&Symbolic)) {
       if (std::optional<gtirb::Addr> Addr = RelSymbolic->Sym1->getAddress();
