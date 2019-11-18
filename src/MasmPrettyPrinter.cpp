@@ -59,9 +59,9 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
   // FIXME: How should we handle naming base-relative data objects?
   for (const gtirb::SymbolicExpression Symbolic : Module.symbolic_exprs()) {
     if (const auto* RelSymbolic = std::get_if<gtirb::SymAddrAddr>(&Symbolic)) {
-      if (std::optional<gtirb::Addr> Addr = RelSymbolic->Sym1->getAddress();
+      if (std::optional<gtirb::Addr> Addr = RelSymbolic->Sym2->getAddress();
           Addr && *Addr == ImageByteMap.getBaseAddress()) {
-        if (Addr = RelSymbolic->Sym2->getAddress(); Addr) {
+        if (Addr = RelSymbolic->Sym1->getAddress(); Addr) {
           namedDataObjects.insert(static_cast<uint64_t>(*Addr));
         }
       }
@@ -312,7 +312,7 @@ void MasmPrettyPrinter::printOpIndirect(
     os << "+(" << masmSyntax.imagerel() << ' ';
 
     // TODO: make helper func
-    uint64_t ea = static_cast<uint64_t>(*rel->Sym2->getAddress());
+    uint64_t ea = static_cast<uint64_t>(*rel->Sym1->getAddress());
     std::ios_base::fmtflags flags = os.flags();
     os << "N_" << std::hex << ea;
     os.flags(flags);
@@ -332,9 +332,9 @@ void MasmPrettyPrinter::printSymbolicExpression(
 void MasmPrettyPrinter::printSymbolicExpression(std::ostream& os,
                                                 const gtirb::SymAddrAddr* sexpr,
                                                 bool inData) {
-  if (inData && sexpr->Sym1->getName() == ".L_0") {
+  if (inData && sexpr->Sym2->getName() == ".L_0") {
     os << "(IMAGEREL ";
-    printSymbolReference(os, sexpr->Sym2, inData);
+    printSymbolReference(os, sexpr->Sym1, inData);
     os << ")";
     return;
   }
