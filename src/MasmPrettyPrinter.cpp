@@ -188,21 +188,21 @@ void MasmPrettyPrinter::printFunctionHeader(std::ostream& os,
       syntax.formatFunctionName(this->getFunctionName(addr));
   if (!name.empty()) {
     // TODO: Use PROC/ENDP blocks
-    os << syntax.comment() << ' ' << name << ' ' << masmSyntax.proc() << '\n';
+    // os << name << ' ' << masmSyntax.proc() << '\n';
     os << name << ":\n";
   }
 }
 
-void MasmPrettyPrinter::printFunctionFooter(std::ostream& os,
-                                            gtirb::Addr addr) {
-  if (!isFunctionLastBlock(addr))
-    return;
-  const std::optional<std::string>& name = getContainerFunctionName(addr);
-  if (name && !name->empty()) {
-    // TODO: Use PROC/ENDP blocks
-    os << syntax.comment() << ' ' << syntax.formatFunctionName(*name) << ' '
-       << masmSyntax.endp() << "\n\n";
-  }
+void MasmPrettyPrinter::printFunctionFooter(std::ostream& /* os */,
+                                            gtirb::Addr /* addr */) {
+  // TODO: Use PROC/ENDP blocks
+  // if (!isFunctionLastBlock(addr))
+  //   return;
+  // const std::optional<std::string>& name = getContainerFunctionName(addr);
+  // if (name && !name->empty()) {
+  //   os << syntax.formatFunctionName(*name) << ' ' << masmSyntax.endp()
+  //      << "\n\n";
+  // }
 }
 
 void MasmPrettyPrinter::printSymbolDefinitionsAtAddress(std::ostream& os,
