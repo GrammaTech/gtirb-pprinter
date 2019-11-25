@@ -52,7 +52,7 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
 
   // FIXME: How should we handle entry point label?
   gtirb::Addr Entry = ImageByteMap.getEntryPointAddress();
-  auto* EntrySymbol = gtirb::Symbol::Create(context, Entry, "__entry__",
+  auto* EntrySymbol = gtirb::Symbol::Create(context, Entry, "__EntryPoint",
                                             gtirb::Symbol::StorageKind::Normal);
   Module.addSymbol(EntrySymbol);
 
@@ -290,7 +290,10 @@ void MasmPrettyPrinter::printOpIndirect(
   }
 
   if (op.mem.base == X86_REG_RIP && symbolic == nullptr) {
-    if (inst.address + inst.size + op.mem.disp == 0) {
+    gtirb::Module& Module = *ir.modules().begin();
+    gtirb::ImageByteMap& ImageByteMap = Module.getImageByteMap();
+    uint64_t BaseAddress = static_cast<uint64_t>(ImageByteMap.getBaseAddress());
+    if (inst.address + inst.size + op.mem.disp == BaseAddress) {
       os << "__ImageBase]";
       return;
     }
