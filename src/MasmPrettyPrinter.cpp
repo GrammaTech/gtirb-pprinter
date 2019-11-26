@@ -339,7 +339,10 @@ void MasmPrettyPrinter::printSymbolicExpression(
 void MasmPrettyPrinter::printSymbolicExpression(std::ostream& os,
                                                 const gtirb::SymAddrAddr* sexpr,
                                                 bool inData) {
-  if (inData && sexpr->Sym2->getName() == ".L_0") {
+  gtirb::Module& Module = *ir.modules().begin();
+  gtirb::ImageByteMap& ImageByteMap = Module.getImageByteMap();
+
+  if (inData && sexpr->Sym2->getAddress() == ImageByteMap.getBaseAddress()) {
     os << "(IMAGEREL ";
     printSymbolReference(os, sexpr->Sym1, inData);
     os << ")";
