@@ -270,11 +270,15 @@ void MasmPrettyPrinter::printOpIndirect(
 
   uint64_t size = op.size;
 
-  // TODO: Apply this special case in the printer base.
+  //////////////////////////////////////////////////////////////////////////////
+  // Capstone incorrectly gives memory operands XMMWORD size.
   if (inst.id == X86_INS_COMISD || inst.id == X86_INS_VCOMISD) {
-    // Capstone incorrectly gives memory operands XMMWORD size.
     size = 8;
   }
+  if (inst.id == X86_INS_COMISS) {
+    size = 4;
+  }
+  //////////////////////////////////////////////////////////////////////////////
 
   if (std::optional<std::string> sizeName = syntax.getSizeName(size * 8))
     os << *sizeName << " PTR ";
