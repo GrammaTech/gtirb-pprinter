@@ -256,7 +256,7 @@ void MasmPrettyPrinter::printOpIndirect(
          "printOpIndirect called without a memory operand");
   bool first = true;
 
-  // FIXME: Replaces indirect reference to EXTERN with direct reference.
+  // Replace indirect reference to EXTERN with direct reference.
   //   e.g.  call QWORD PTR [puts]
   //         call puts
   if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
