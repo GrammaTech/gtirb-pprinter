@@ -388,16 +388,29 @@ void MasmPrettyPrinter::printString(std::ostream& os,
   os << syntax.string() << ' ';
   auto Bytes = getBytes(this->ir.modules().begin()->getImageByteMap(), x);
   for (auto it = Bytes.begin(); it != Bytes.end() && *it != std::byte(0);) {
-    // Print quoted string
+
+    // Aggregate quoted string
     std::string String{""};
     while (it != Bytes.end() && *it != std::byte(0) &&
            Special.count(uint8_t(*it)) == 0) {
       String += uint8_t(*it);
       it++;
     }
-    if (!String.empty()) {
-      os << '"' << String << "\", ";
+
+    // Print quoted string in slices of size Count.
+    // NOTE: MASM only supports strings smaller than 256 bytes.
+    const static size_t Count = 64;
+    for (size_t Index = 0; Index < String.size(); Index += Count) {
+      if (Index > 0) {
+        os << '\n' << syntax.tab() << syntax.string() << ' ';
+      }
+      os << '"' << String.substr(Index, Count) << '"';
+      if ((String.size() <= Count) ||
+          ((Index + Count) >= String.size() && it != Bytes.end())) {
+        os << ", ";
+      }
     }
+
     // Print special characters
     while (it != Bytes.end() && *it != std::byte(0) &&
            Special.count(uint8_t(*it)) > 0) {
