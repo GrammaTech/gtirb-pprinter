@@ -381,52 +381,34 @@ void MasmPrettyPrinter::printZeroDataObject(
 void MasmPrettyPrinter::printString(std::ostream& os,
                                     const gtirb::DataObject& x) {
 
+  const static std::unordered_set<uint8_t> Special = {
+      '"', '\n', '\t', '\v', '\b', '\r', '\a', '\'',
+  };
+
   os << syntax.string() << ' ';
-  bool open = false;
-  bool prev = false;
-
-  for (const std::byte& b :
-       getBytes(this->ir.modules().begin()->getImageByteMap(), x)) {
-
-    switch (uint8_t(b)) {
-    case 0:
-      continue;
-    case '"':
-    case '\n':
-    case '\t':
-    case '\v':
-    case '\b':
-    case '\r':
-    case '\a':
-    case '\'':
-      if (open) {
-        os << '"';
-      }
-      if (prev) {
-        os << ", ";
-      }
+  auto Bytes = getBytes(this->ir.modules().begin()->getImageByteMap(), x);
+  for (auto it = Bytes.begin(); it != Bytes.end() && *it != std::byte(0);) {
+    // Print quoted string
+    std::string String{""};
+    while (it != Bytes.end() && *it != std::byte(0) &&
+           Special.count(uint8_t(*it)) == 0) {
+      String += uint8_t(*it);
+      it++;
+    }
+    if (!String.empty()) {
+      os << '"' << String << "\", ";
+    }
+    // Print special characters
+    while (it != Bytes.end() && *it != std::byte(0) &&
+           Special.count(uint8_t(*it)) > 0) {
+      // Output hex byte, prefixed with 0 because MASM doesn't like
+      // constants that begin with a letter (e.g FFh)
       os << std::hex << std::setfill('0') << std::setw(2)
-         << static_cast<uint32_t>(b) << 'H' << std::dec;
-      prev = true;
-      open = false;
-      break;
-    default:
-      if (!prev && !open) {
-        os << '"';
-      }
-      if (prev && !open) {
-        os << ", \"";
-      }
-      os << uint8_t(b);
-      prev = true;
-      open = true;
+         << static_cast<uint32_t>(*it) << 'H' << std::dec << ", ";
+      it++;
     }
   }
-
-  if (open) {
-    os << '"';
-  }
-  os << ", 0";
+  os << '0';
 }
 
 void MasmPrettyPrinter::printFooter(std::ostream& os) {
