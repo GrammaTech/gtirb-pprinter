@@ -287,8 +287,8 @@ protected:
                                const gtirb::SymbolicExpression* symbolic,
                                const cs_insn& inst, uint64_t index) = 0;
 
-  virtual void printSymbolDefinitionsAtAddress(std::ostream& os,
-                                               gtirb::Addr ea);
+  virtual void printSymbolDefinitionsAtAddress(std::ostream& os, gtirb::Addr ea,
+                                               bool inData = false);
   virtual void printOverlapWarning(std::ostream& os, gtirb::Addr ea);
   virtual void printDataObjectType(std::ostream& os,
                                    const gtirb::DataObject& dataObject);

@@ -271,7 +271,7 @@ gtirb::Addr PrettyPrinterBase::printDataObjectOrWarning(
     return last;
   } else {
     if (nextAddr > last)
-      printSymbolDefinitionsAtAddress(os, last);
+      printSymbolDefinitionsAtAddress(os, last, true);
     printSectionFooter(os, nextAddr, last);
     printSectionHeader(os, nextAddr);
     printDataObject(os, dataObject);
@@ -406,7 +406,8 @@ void PrettyPrinterBase::printSymbolReference(std::ostream& os,
 }
 
 void PrettyPrinterBase::printSymbolDefinitionsAtAddress(std::ostream& os,
-                                                        gtirb::Addr ea) {
+                                                        gtirb::Addr ea,
+                                                        bool /* inData */) {
   for (const gtirb::Symbol& symbol :
        this->ir.modules().begin()->findSymbols(ea)) {
     if (this->isAmbiguousSymbol(symbol.getName()))
@@ -524,7 +525,7 @@ void PrettyPrinterBase::printDataObject(std::ostream& os,
   }
   printComments(os, gtirb::Offset(dataObject.getUUID(), 0),
                 dataObject.getSize());
-  printSymbolDefinitionsAtAddress(os, addr);
+  printSymbolDefinitionsAtAddress(os, addr, true);
   if (this->debug)
     os << std::hex << static_cast<uint64_t>(addr) << std::dec << ':';
   const auto section = getContainerSection(addr);
