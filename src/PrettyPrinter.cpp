@@ -389,9 +389,9 @@ void PrettyPrinterBase::printBar(std::ostream& os, bool heavy) {
 
 void PrettyPrinterBase::printSymbolReference(std::ostream& os,
                                              const gtirb::Symbol* symbol,
-                                             bool isAbsolute) const {
+                                             bool inData) const {
   std::optional<std::string> forwardedName =
-      getForwardedSymbolName(symbol, isAbsolute);
+      getForwardedSymbolName(symbol, inData);
   if (forwardedName) {
     os << forwardedName.value();
     return;
@@ -403,7 +403,7 @@ void PrettyPrinterBase::printSymbolReference(std::ostream& os,
   if (this->isAmbiguousSymbol(symbol->getName()))
     os << getSymbolName(*symbol->getAddress());
   else
-    os << syntax.formatSymbolName(symbol->getName(), isAbsolute);
+    os << syntax.formatSymbolName(symbol->getName(), inData);
 }
 
 void PrettyPrinterBase::printSymbolDefinitionsAtAddress(std::ostream& os,
@@ -843,7 +843,7 @@ std::string PrettyPrinterBase::getSymbolName(gtirb::Addr x) const {
 
 std::optional<std::string>
 PrettyPrinterBase::getForwardedSymbolName(const gtirb::Symbol* symbol,
-                                          bool isAbsolute) const {
+                                          bool inData) const {
   const auto* symbolForwarding =
       ir.modules().begin()->getAuxData<std::map<gtirb::UUID, gtirb::UUID>>(
           "symbolForwarding");
@@ -853,7 +853,7 @@ PrettyPrinterBase::getForwardedSymbolName(const gtirb::Symbol* symbol,
     if (found != symbolForwarding->end()) {
       gtirb::Node* destSymbol = gtirb::Node::getByUUID(context, found->second);
       return (cast<gtirb::Symbol>(destSymbol))->getName() +
-             getForwardedSymbolEnding(symbol, isAbsolute);
+             getForwardedSymbolEnding(symbol, inData);
     }
   }
   return {};
@@ -861,7 +861,7 @@ PrettyPrinterBase::getForwardedSymbolName(const gtirb::Symbol* symbol,
 
 std::string
 PrettyPrinterBase::getForwardedSymbolEnding(const gtirb::Symbol* symbol,
-                                            bool isAbsolute) const {
+                                            bool inData) const {
   if (symbol->getAddress()) {
     gtirb::Addr addr = *symbol->getAddress();
     const auto container_sections =
@@ -869,7 +869,7 @@ PrettyPrinterBase::getForwardedSymbolEnding(const gtirb::Symbol* symbol,
     if (container_sections.begin() == container_sections.end())
       return std::string{};
     std::string section_name = container_sections.begin()->getName();
-    if (!isAbsolute && (section_name == ".plt" || section_name == ".plt.got"))
+    if (!inData && (section_name == ".plt" || section_name == ".plt.got"))
       return std::string{"@PLT"};
     if (section_name == ".got" || section_name == ".got.plt")
       return std::string{"@GOTPCREL"};

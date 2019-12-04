@@ -336,7 +336,7 @@ protected:
   virtual std::string getFunctionName(gtirb::Addr x) const;
   virtual std::string getSymbolName(gtirb::Addr x) const;
   virtual std::optional<std::string>
-  getForwardedSymbolName(const gtirb::Symbol* symbol, bool isAbsolute) const;
+  getForwardedSymbolName(const gtirb::Symbol* symbol, bool inData) const;
 
   bool isAmbiguousSymbol(const std::string& ea) const;
 
@@ -345,7 +345,7 @@ private:
   std::set<gtirb::Addr> functionLastBlock;
 
   std::string getForwardedSymbolEnding(const gtirb::Symbol* symbol,
-                                       bool isAbsolute) const;
+                                       bool inData) const;
 };
 
 } // namespace gtirb_pprint
