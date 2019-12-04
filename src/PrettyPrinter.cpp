@@ -239,7 +239,8 @@ std::ostream& PrettyPrinterBase::print(std::ostream& os) {
     last = printBlockOrWarning(os, **blockIt, last);
   for (; dataIt != module.data_end(); dataIt++)
     last = printDataObjectOrWarning(os, *dataIt, last);
-  printSymbolDefinitionsAtAddress(os, last);
+  bool inData = !module.findData(last).empty();
+  printSymbolDefinitionsAtAddress(os, last, inData);
   printSectionFooter(os, std::nullopt, last);
   printFooter(os);
   return os;
