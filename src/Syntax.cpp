@@ -44,7 +44,8 @@ std::string Syntax::formatSectionName(const std::string& x) const { return x; }
 
 std::string Syntax::formatFunctionName(const std::string& x) const { return x; }
 
-std::string Syntax::formatSymbolName(const std::string& x) const {
+std::string Syntax::formatSymbolName(const std::string& x,
+                                     bool /* inData */) const {
   return avoidRegNameConflicts(x);
 }
 
