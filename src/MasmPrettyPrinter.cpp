@@ -55,18 +55,6 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
   auto* EntrySymbol = gtirb::Symbol::Create(context, Entry, "__EntryPoint",
                                             gtirb::Symbol::StorageKind::Normal);
   Module.addSymbol(EntrySymbol);
-
-  // FIXME: How should we handle naming base-relative data objects?
-  for (const gtirb::SymbolicExpression Symbolic : Module.symbolic_exprs()) {
-    if (const auto* RelSymbolic = std::get_if<gtirb::SymAddrAddr>(&Symbolic)) {
-      if (std::optional<gtirb::Addr> Addr = RelSymbolic->Sym2->getAddress();
-          Addr && *Addr == ImageByteMap.getBaseAddress()) {
-        if (Addr = RelSymbolic->Sym1->getAddress(); Addr) {
-          namedDataObjects.insert(static_cast<uint64_t>(*Addr));
-        }
-      }
-    }
-  }
 }
 
 void MasmPrettyPrinter::printIncludes(std::ostream& os) {
@@ -206,10 +194,20 @@ void MasmPrettyPrinter::printFunctionFooter(std::ostream& /* os */,
 }
 
 void MasmPrettyPrinter::printSymbolDefinitionsAtAddress(std::ostream& os,
-                                                        gtirb::Addr ea) {
+                                                        gtirb::Addr ea,
+                                                        bool inData) {
   if (isFunctionEntry(ea))
     return;
-  PrettyPrinterBase::printSymbolDefinitionsAtAddress(os, ea);
+
+  // Print label
+  PrettyPrinterBase::printSymbolDefinitionsAtAddress(os, ea, false);
+
+  if (inData) {
+    // Print name for data object
+    if (!this->ir.modules().begin()->findSymbols(ea).empty()) {
+      os << 'N' << getSymbolName(ea).substr(2);
+    }
+  }
 }
 
 void MasmPrettyPrinter::printOpRegdirect(std::ostream& os,
@@ -316,15 +314,10 @@ void MasmPrettyPrinter::printOpIndirect(
 
     printSymbolicExpression(os, s, false);
   } else if (const auto* rel = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
-    os << "+(" << masmSyntax.imagerel() << ' ';
-
-    // TODO: make helper func
-    uint64_t ea = static_cast<uint64_t>(*rel->Sym1->getAddress());
-    std::ios_base::fmtflags flags = os.flags();
-    os << "N_" << std::hex << ea;
-    os.flags(flags);
-
-    os << ")";
+    if (std::optional<gtirb::Addr> Addr = rel->Sym1->getAddress(); Addr) {
+      os << "+(" << masmSyntax.imagerel() << ' ' << 'N'
+         << getSymbolName(*Addr).substr(2) << ")";
+    }
   } else {
     printAddend(os, op.mem.disp, first);
   }
@@ -343,9 +336,8 @@ void MasmPrettyPrinter::printSymbolicExpression(std::ostream& os,
   gtirb::ImageByteMap& ImageByteMap = Module.getImageByteMap();
 
   if (inData && sexpr->Sym2->getAddress() == ImageByteMap.getBaseAddress()) {
-    os << "(IMAGEREL ";
+    os << masmSyntax.imagerel() << ' ';
     printSymbolReference(os, sexpr->Sym1, inData);
-    os << ")";
     return;
   }
 
@@ -356,20 +348,6 @@ void MasmPrettyPrinter::printByte(std::ostream& os, std::byte byte) {
   // Byte constants must start with a number for the MASM assembler.
   os << syntax.byteData() << " 0" << std::hex << std::setfill('0')
      << std::setw(2) << static_cast<uint32_t>(byte) << 'H' << std::dec << '\n';
-}
-
-void MasmPrettyPrinter::printNonZeroDataObject(
-    std::ostream& os, const gtirb::DataObject& dataObject) {
-
-  uint64_t ea = static_cast<uint64_t>(dataObject.getAddress());
-  if (namedDataObjects.count(ea) > 0) {
-    // TODO: use a helper func
-    std::ios_base::fmtflags flags = os.flags();
-    os << "N_" << std::hex << ea << ' ';
-    os.flags(flags);
-  }
-
-  PrettyPrinterBase::printNonZeroDataObject(os, dataObject);
 }
 
 void MasmPrettyPrinter::printZeroDataObject(
