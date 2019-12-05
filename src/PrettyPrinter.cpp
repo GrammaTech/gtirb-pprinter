@@ -403,18 +403,18 @@ void PrettyPrinterBase::printSymbolReference(std::ostream& os,
   if (this->isAmbiguousSymbol(symbol->getName()))
     os << getSymbolName(*symbol->getAddress());
   else
-    os << syntax.formatSymbolName(symbol->getName(), inData);
+    os << syntax.formatSymbolName(symbol->getName());
 }
 
 void PrettyPrinterBase::printSymbolDefinitionsAtAddress(std::ostream& os,
                                                         gtirb::Addr ea,
-                                                        bool inData) {
+                                                        bool /* inData */) {
   for (const gtirb::Symbol& symbol :
        this->ir.modules().begin()->findSymbols(ea)) {
     if (this->isAmbiguousSymbol(symbol.getName()))
       os << getSymbolName(*symbol.getAddress()) << ":\n";
     else
-      os << syntax.formatSymbolName(symbol.getName(), inData) << ":\n";
+      os << syntax.formatSymbolName(symbol.getName()) << ":\n";
   }
 }
 
