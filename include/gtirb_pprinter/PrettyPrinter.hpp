@@ -287,8 +287,8 @@ protected:
                                const gtirb::SymbolicExpression* symbolic,
                                const cs_insn& inst, uint64_t index) = 0;
 
-  virtual void printSymbolDefinitionsAtAddress(std::ostream& os,
-                                               gtirb::Addr ea);
+  virtual void printSymbolDefinitionsAtAddress(std::ostream& os, gtirb::Addr ea,
+                                               bool inData = false);
   virtual void printOverlapWarning(std::ostream& os, gtirb::Addr ea);
   virtual void printDataObjectType(std::ostream& os,
                                    const gtirb::DataObject& dataObject);
@@ -336,7 +336,7 @@ protected:
   virtual std::string getFunctionName(gtirb::Addr x) const;
   virtual std::string getSymbolName(gtirb::Addr x) const;
   virtual std::optional<std::string>
-  getForwardedSymbolName(const gtirb::Symbol* symbol, bool isAbsolute) const;
+  getForwardedSymbolName(const gtirb::Symbol* symbol, bool inData) const;
 
   bool isAmbiguousSymbol(const std::string& ea) const;
 
@@ -345,7 +345,7 @@ private:
   std::set<gtirb::Addr> functionLastBlock;
 
   std::string getForwardedSymbolEnding(const gtirb::Symbol* symbol,
-                                       bool isAbsolute) const;
+                                       bool inData) const;
 };
 
 } // namespace gtirb_pprint

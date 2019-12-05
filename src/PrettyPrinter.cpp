@@ -239,7 +239,8 @@ std::ostream& PrettyPrinterBase::print(std::ostream& os) {
     last = printBlockOrWarning(os, **blockIt, last);
   for (; dataIt != module.data_end(); dataIt++)
     last = printDataObjectOrWarning(os, *dataIt, last);
-  printSymbolDefinitionsAtAddress(os, last);
+  bool inData = !module.findData(last).empty();
+  printSymbolDefinitionsAtAddress(os, last, inData);
   printSectionFooter(os, std::nullopt, last);
   printFooter(os);
   return os;
@@ -271,7 +272,7 @@ gtirb::Addr PrettyPrinterBase::printDataObjectOrWarning(
     return last;
   } else {
     if (nextAddr > last)
-      printSymbolDefinitionsAtAddress(os, last);
+      printSymbolDefinitionsAtAddress(os, last, true);
     printSectionFooter(os, nextAddr, last);
     printSectionHeader(os, nextAddr);
     printDataObject(os, dataObject);
@@ -388,9 +389,9 @@ void PrettyPrinterBase::printBar(std::ostream& os, bool heavy) {
 
 void PrettyPrinterBase::printSymbolReference(std::ostream& os,
                                              const gtirb::Symbol* symbol,
-                                             bool isAbsolute) const {
+                                             bool inData) const {
   std::optional<std::string> forwardedName =
-      getForwardedSymbolName(symbol, isAbsolute);
+      getForwardedSymbolName(symbol, inData);
   if (forwardedName) {
     os << forwardedName.value();
     return;
@@ -406,7 +407,8 @@ void PrettyPrinterBase::printSymbolReference(std::ostream& os,
 }
 
 void PrettyPrinterBase::printSymbolDefinitionsAtAddress(std::ostream& os,
-                                                        gtirb::Addr ea) {
+                                                        gtirb::Addr ea,
+                                                        bool /* inData */) {
   for (const gtirb::Symbol& symbol :
        this->ir.modules().begin()->findSymbols(ea)) {
     if (symbol.getStorageKind() == gtirb::Symbol::StorageKind::Extern)
@@ -539,7 +541,7 @@ void PrettyPrinterBase::printDataObject(std::ostream& os,
   }
   printComments(os, gtirb::Offset(dataObject.getUUID(), 0),
                 dataObject.getSize());
-  printSymbolDefinitionsAtAddress(os, addr);
+  printSymbolDefinitionsAtAddress(os, addr, true);
   if (this->debug)
     os << std::hex << static_cast<uint64_t>(addr) << std::dec << ':';
   const auto section = getContainerSection(addr);
@@ -856,7 +858,7 @@ std::string PrettyPrinterBase::getSymbolName(gtirb::Addr x) const {
 
 std::optional<std::string>
 PrettyPrinterBase::getForwardedSymbolName(const gtirb::Symbol* symbol,
-                                          bool isAbsolute) const {
+                                          bool inData) const {
   const auto* symbolForwarding =
       ir.modules().begin()->getAuxData<std::map<gtirb::UUID, gtirb::UUID>>(
           "symbolForwarding");
@@ -866,7 +868,7 @@ PrettyPrinterBase::getForwardedSymbolName(const gtirb::Symbol* symbol,
     if (found != symbolForwarding->end()) {
       gtirb::Node* destSymbol = gtirb::Node::getByUUID(context, found->second);
       return (cast<gtirb::Symbol>(destSymbol))->getName() +
-             getForwardedSymbolEnding(symbol, isAbsolute);
+             getForwardedSymbolEnding(symbol, inData);
     }
   }
   return {};
@@ -874,7 +876,7 @@ PrettyPrinterBase::getForwardedSymbolName(const gtirb::Symbol* symbol,
 
 std::string
 PrettyPrinterBase::getForwardedSymbolEnding(const gtirb::Symbol* symbol,
-                                            bool isAbsolute) const {
+                                            bool inData) const {
   if (symbol->getAddress()) {
     gtirb::Addr addr = *symbol->getAddress();
     const auto container_sections =
@@ -882,7 +884,7 @@ PrettyPrinterBase::getForwardedSymbolEnding(const gtirb::Symbol* symbol,
     if (container_sections.begin() == container_sections.end())
       return std::string{};
     std::string section_name = container_sections.begin()->getName();
-    if (!isAbsolute && (section_name == ".plt" || section_name == ".plt.got"))
+    if (!inData && (section_name == ".plt" || section_name == ".plt.got"))
       return std::string{"@PLT"};
     if (section_name == ".got" || section_name == ".got.plt")
       return std::string{"@GOTPCREL"};
