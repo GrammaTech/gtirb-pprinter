@@ -23,6 +23,18 @@ check-format:
     - git clone https://git.grammatech.com/rewriting/gtirb.git
     - docker build -f .ci/Dockerfile.$OS-$COMPILER -t ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} .
 
+.windows-build-template: &windows-build
+  stage: build
+  script:
+    - git clone https://git.grammatech.com/rewriting/gtirb.git
+    - cd gtirb
+    - mkdir build
+    - cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && C:\\PROGRA~1\\CMake\\bin\\cmake.exe -G "Ninja" -DBOOST_ROOT=\"C:\\Boost\" -DCMAKE_PREFIX_PATH=\"C:\\Program Files (x86)\\protobuf\" -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -Bbuild"
+    - cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && ninja"
+    - cd ..
+    - mkdir build
+    - cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && C:\\PROGRA~1\\CMake\\bin\\cmake.exe -G \"Ninja\" -DBOOST_ROOT=\"C:\\Boost\" -DCMAKE_CXX_FLAGS=\"/DBOOST_ALL_DYN_LINK\" -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=1 -DCAPSTONE=\"C:\\capstone-${BUILD_TYPE}\\lib\\capstone.lib\" -DCAPSTONE_INCLUDE_DIRS=\"C:\\capstone-${BUILD_TYPE}\\include\" -DCMAKE_BUILD_TYPE=${BUILD_TYPE} .."
+
 .test-and-tag-template: &test-and-tag
   stage: test-and-tag
   script:
@@ -77,6 +89,20 @@ build-arch-clang:
      OS: 'arch'
      COMPILER: 'clang'
    <<: *build
+
+build-windows-debug:
+  variables:
+    BUILD_TYPE: 'Debug'
+  tags:
+    - gtirb-pprinter-windows
+  <<: *windows-build
+
+build-windows-release:
+  variables:
+    BUILD_TYPE: 'Release'
+  tags:
+    - gtirb-pprinter-windows
+  <<: *windows-build
 
 test-and-tag-ubuntu16-gcc:
   variables:
