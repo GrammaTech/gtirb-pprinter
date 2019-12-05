@@ -105,18 +105,9 @@ void MasmPrettyPrinter::printExterns(std::ostream& os) {
   os << '\n';
 }
 
-void MasmPrettyPrinter::printPublics(std::ostream& os) {
-  for (const auto& symbol : this->ir.modules().begin()->symbols()) {
-    if (symbol.getStorageKind() == gtirb::Symbol::StorageKind::Normal) {
-      os << syntax.global() << ' ' << symbol.getName() << '\n';
-    }
-  }
-}
-
 void MasmPrettyPrinter::printHeader(std::ostream& os) {
   printIncludes(os);
   printExterns(os);
-  printPublics(os);
 }
 
 void MasmPrettyPrinter::printSectionHeaderDirective(
@@ -198,6 +189,14 @@ void MasmPrettyPrinter::printSymbolDefinitionsAtAddress(std::ostream& os,
                                                         bool inData) {
   if (isFunctionEntry(ea))
     return;
+
+  // Print public definitions
+  for (const gtirb::Symbol& symbol :
+       this->ir.modules().begin()->findSymbols(ea)) {
+    if (symbol.getStorageKind() == gtirb::Symbol::StorageKind::Normal) {
+      os << '\n' << syntax.global() << ' ' << symbol.getName() << '\n';
+    }
+  }
 
   // Print label
   PrettyPrinterBase::printSymbolDefinitionsAtAddress(os, ea, false);

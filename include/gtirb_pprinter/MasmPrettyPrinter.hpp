@@ -92,7 +92,6 @@ protected:
 
   void printIncludes(std::ostream& os);
   void printExterns(std::ostream& os);
-  void printPublics(std::ostream& os);
 
   void printHeader(std::ostream& os) override;
   void printFooter(std::ostream& os) override;
