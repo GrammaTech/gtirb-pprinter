@@ -100,6 +100,10 @@ if(NOT EXPERIMENTAL_LIB)
   }
   ")
 
+  if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
+    set(CMAKE_REQUIRED_DEFINITIONS "/D_SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING")
+  endif()
+
   check_cxx_source_compiles("${EXFS_CODE}" EXFS_LINK_NONE)
 
   if(NOT EXFS_LINK_NONE)
@@ -153,6 +157,10 @@ if(USING_LIBCPP)
   if(NOT LIBCPP_ABI)
     message(FATAL_ERROR "libc++abi not found")
   endif()
+endif()
+
+if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /D_SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING")
 endif()
 
 # Base include path for the pretty-printer.
