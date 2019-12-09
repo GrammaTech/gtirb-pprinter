@@ -255,7 +255,8 @@ gtirb::Addr PrettyPrinterBase::printBlockOrWarning(std::ostream& os,
     return last;
   } else {
     if (nextAddr > last) {
-      printSymbolDefinitionsAtAddress(os, last);
+      bool inData = !this->ir.modules().begin()->findData(last).empty();
+      printSymbolDefinitionsAtAddress(os, last, inData);
     }
     printSectionFooter(os, nextAddr, last);
     printSectionHeader(os, nextAddr);
@@ -271,8 +272,10 @@ gtirb::Addr PrettyPrinterBase::printDataObjectOrWarning(
     printOverlapWarning(os, nextAddr);
     return last;
   } else {
-    if (nextAddr > last)
-      printSymbolDefinitionsAtAddress(os, last, true);
+    if (nextAddr > last) {
+      bool inData = !this->ir.modules().begin()->findData(last).empty();
+      printSymbolDefinitionsAtAddress(os, last, inData);
+    }
     printSectionFooter(os, nextAddr, last);
     printSectionHeader(os, nextAddr);
     printDataObject(os, dataObject);
