@@ -100,6 +100,6 @@ Vagrant.configure("2") do |config|
 
   config.vm.provision "get-elf.h", type: "shell", inline: <<-SHELL
     $include_path= & C:\\cygwin64\\bin\\bash.exe --login -c 'find /cygdrive/c/VS/VC/Tools/MSVC/ -maxdepth 1 | tail -n +2 | cygpath -wf -'
-     C:\\Windows\\System32\\curl.exe https://git.musl-libc.org/cgit/musl/plain/include/elf.h > "$include_path\\include\\elf.h"
+    C:\\Windows\\System32\\curl.exe https://git.musl-libc.org/cgit/musl/plain/include/elf.h > "$include_path\\include\\elf.h"
   SHELL
 end
