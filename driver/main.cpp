@@ -2,12 +2,17 @@
 #include "Logger.h"
 #include "PrettyPrinter.hpp"
 #include <boost/program_options.hpp>
-#include <experimental/filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-
+#ifdef _MSC_VER
+#include <filesystem>
+namespace fs = std::filesystem;
+#else
+#include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
+#endif // _MSC_VER
+
 namespace po = boost::program_options;
 
 int main(int argc, char** argv) {

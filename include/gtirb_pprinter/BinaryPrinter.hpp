@@ -15,8 +15,8 @@
 #ifndef GTIRB_PP_BINARY_PRINTER_H
 #define GTIRB_PP_BINARY_PRINTER_H
 
-#include <gtirb/gtirb.hpp>
 #include "PrettyPrinter.hpp"
+#include <gtirb/gtirb.hpp>
 
 #include <string>
 #include <vector>

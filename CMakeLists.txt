@@ -85,53 +85,52 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   endif()
 endif()
 
-# Detect how to use <experimental/filesystem>
-set(EXPERIMENTAL_LIB
-    ""
-    CACHE STRING
-          "The library to link with in order to use <experimental/filesystem>.")
-
-if(NOT EXPERIMENTAL_LIB)
-  set(EXFS_CODE "
-  #include <experimental/filesystem>
-  int main() {
-    std::experimental::filesystem::path p{\"an/example/path\"};
-    return std::experimental::filesystem::exists(p);
-  }
-  ")
-
-  if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
-    set(CMAKE_REQUIRED_DEFINITIONS "/D_SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING")
-  endif()
-
-  check_cxx_source_compiles("${EXFS_CODE}" EXFS_LINK_NONE)
-
-  if(NOT EXFS_LINK_NONE)
-    foreach(EXFS_LIB
-            stdc++fs
-            c++experimental
-            c++fs)
-      set(OLD_CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES})
-      list(APPEND CMAKE_REQUIRED_LIBRARIES ${EXFS_LIB})
-      check_cxx_source_compiles("${EXFS_CODE}" EXFS_LINK_${EXFS_LIB}_OK)
-      set(CMAKE_REQUIRED_LIBRARIES ${OLD_CMAKE_REQUIRED_LIBRARIES})
-
-      if(EXFS_LINK_${EXFS_LIB}_OK)
-        if(EXPERIMENTAL_LIB)
-          message(
-            FATAL_ERROR
-              "multiple candidates for library to link for <experimental/filesystem>: ${EXPERIMENTAL_LIB} and ${EXFS_LIB}. Try giving the correct one explicitly with -DEXPERIMENTAL_LIB."
-            )
+# Detect how to use <experimental/filesystem> for non-msvc compilers.  On the
+# latest version of MSVC, the experimental filesystem library is deprecated.
+if(NOT ${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
+  set(EXPERIMENTAL_LIB
+      ""
+      CACHE STRING
+            "The library to link with in order to use <experimental/filesystem>.")
+  
+  if(NOT EXPERIMENTAL_LIB)
+    set(EXFS_CODE "
+    #include <experimental/filesystem>
+    int main() {
+      std::experimental::filesystem::path p{\"an/example/path\"};
+      return std::experimental::filesystem::exists(p);
+    }
+    ")
+  
+    check_cxx_source_compiles("${EXFS_CODE}" EXFS_LINK_NONE)
+  
+    if(NOT EXFS_LINK_NONE)
+      foreach(EXFS_LIB
+              stdc++fs
+              c++experimental
+              c++fs)
+        set(OLD_CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES})
+        list(APPEND CMAKE_REQUIRED_LIBRARIES ${EXFS_LIB})
+        check_cxx_source_compiles("${EXFS_CODE}" EXFS_LINK_${EXFS_LIB}_OK)
+        set(CMAKE_REQUIRED_LIBRARIES ${OLD_CMAKE_REQUIRED_LIBRARIES})
+  
+        if(EXFS_LINK_${EXFS_LIB}_OK)
+          if(EXPERIMENTAL_LIB)
+            message(
+              FATAL_ERROR
+                "multiple candidates for library to link for <experimental/filesystem>: ${EXPERIMENTAL_LIB} and ${EXFS_LIB}. Try giving the correct one explicitly with -DEXPERIMENTAL_LIB."
+              )
+          endif()
+          set(EXPERIMENTAL_LIB ${EXFS_LIB})
         endif()
-        set(EXPERIMENTAL_LIB ${EXFS_LIB})
+      endforeach()
+  
+      if(NOT EXPERIMENTAL_LIB)
+        message(
+          FATAL_ERROR
+            "could not find library to link for <experimental/filesystem>. Try giving it explicitly with -DEXPERIMENTAL_LIB."
+          )
       endif()
-    endforeach()
-
-    if(NOT EXPERIMENTAL_LIB)
-      message(
-        FATAL_ERROR
-          "could not find library to link for <experimental/filesystem>. Try giving it explicitly with -DEXPERIMENTAL_LIB."
-        )
     endif()
   endif()
 endif()
@@ -157,10 +156,6 @@ if(USING_LIBCPP)
   if(NOT LIBCPP_ABI)
     message(FATAL_ERROR "libc++abi not found")
   endif()
-endif()
-
-if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /D_SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING")
 endif()
 
 # Base include path for the pretty-printer.

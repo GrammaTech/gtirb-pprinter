@@ -28,14 +28,19 @@
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif // __GNUC__
-#include <experimental/filesystem>
 #include <iostream>
 #include <regex>
 #include <string>
 #include <vector>
+#ifdef _MSC_VER
+#include <filesystem>
+namespace fs = std::filesystem;
+#else
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
+#endif // _MSC_VER
 
 namespace bp = boost::process;
-namespace fs = std::experimental::filesystem;
 
 namespace gtirb_bprint {
 
