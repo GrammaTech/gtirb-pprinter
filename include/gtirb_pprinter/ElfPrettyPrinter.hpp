@@ -62,7 +62,7 @@ private:
 
 class ElfPrettyPrinter : public PrettyPrinterBase {
 public:
-  ElfPrettyPrinter(gtirb::Context& context, gtirb::IR& ir,
+  ElfPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
                    const ElfSyntax& syntax, const PrintingPolicy& policy);
 
   static const PrintingPolicy& defaultPrintingPolicy();

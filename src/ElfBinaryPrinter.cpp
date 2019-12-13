@@ -79,38 +79,43 @@ ElfBinaryPrinter::findLibrary(const std::string& library,
 }
 
 std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
-    std::string outputFilename, std::string asmPath,
+    std::string outputFilename, const std::vector<std::string>& asmPaths,
     const std::vector<std::string>& userLibraryPaths, gtirb::IR& ir) const {
   std::vector<std::string> args;
   // Start constructing the compile arguments, of the form
   // -o <output_filename> fileAXADA.s
-  args.insert(args.end(), {"-o", outputFilename, std::string(asmPath)});
-
-  const auto* libraries =
-      ir.modules().begin()->getAuxData<std::vector<std::string>>("libraries");
-  const auto* binaryLibraryPaths =
-      ir.modules().begin()->getAuxData<std::vector<std::string>>(
-          "libraryPaths");
+  args.insert(args.end(), {"-o", outputFilename});
+  args.insert(args.end(), asmPaths.begin(), asmPaths.end());
 
   // collect all the library paths
   std::vector<std::string> allBinaryPaths = userLibraryPaths;
-  if (binaryLibraryPaths)
-    allBinaryPaths.insert(allBinaryPaths.end(), binaryLibraryPaths->begin(),
-                          binaryLibraryPaths->end());
+
+  for (auto& module : ir.modules()) {
+    const auto* binaryLibraryPaths =
+        module.getAuxData<std::vector<std::string>>("libraryPaths");
+    if (binaryLibraryPaths)
+      allBinaryPaths.insert(allBinaryPaths.end(), binaryLibraryPaths->begin(),
+                            binaryLibraryPaths->end());
+  }
   // add needed libraries
-  if (libraries) {
-    for (const auto& library : *libraries) {
-      // if they match the lib*.so pattern we let the compiler look for them
-      auto infixLibraryName = getInfixLibraryName(library);
-      if (infixLibraryName) {
-        args.push_back("-l" + *infixLibraryName);
-      } else {
-        // otherwise we try to find them here
-        auto libraryLocation = findLibrary(library, allBinaryPaths);
-        if (libraryLocation) {
-          args.push_back(*libraryLocation);
+  for (auto& module : ir.modules()) {
+    const auto* libraries =
+        module.getAuxData<std::vector<std::string>>("libraries");
+    if (libraries) {
+      for (const auto& library : *libraries) {
+        // if they match the lib*.so pattern we let the compiler look for them
+        auto infixLibraryName = getInfixLibraryName(library);
+        if (infixLibraryName) {
+          args.push_back("-l" + *infixLibraryName);
         } else {
-          std::cerr << "ERROR: Could not find library " << library << std::endl;
+          // otherwise we try to find them here
+          auto libraryLocation = findLibrary(library, allBinaryPaths);
+          if (libraryLocation) {
+            args.push_back(*libraryLocation);
+          } else {
+            std::cerr << "ERROR: Could not find library " << library
+                      << std::endl;
+          }
         }
       }
     }
@@ -120,10 +125,14 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
     args.push_back("-L" + libraryPath);
   }
   // add binary library paths (add them to rpath as well)
-  if (binaryLibraryPaths) {
-    for (const auto& libraryPath : *binaryLibraryPaths) {
-      args.push_back("-L" + libraryPath);
-      args.push_back("-Wl,-rpath," + libraryPath);
+  for (auto& module : ir.modules()) {
+    const auto* binaryLibraryPaths =
+        module.getAuxData<std::vector<std::string>>("libraryPaths");
+    if (binaryLibraryPaths) {
+      for (const auto& libraryPath : *binaryLibraryPaths) {
+        args.push_back("-L" + libraryPath);
+        args.push_back("-Wl,-rpath," + libraryPath);
+      }
     }
   }
 
@@ -171,16 +180,23 @@ int ElfBinaryPrinter::link(std::string outputFilename,
                            gtirb::Context& ctx, gtirb::IR& ir) const {
   if (debug)
     std::cout << "Generating binary file" << std::endl;
-  TempFile tempFile;
-  if (tempFile.fileStream) {
-    if (debug)
-      std::cout << "Printing assembly to temporary file " << tempFile.name
-                << std::endl;
-    pp.print(tempFile.fileStream, ctx, ir);
-    tempFile.fileStream.close();
-  } else {
-    std::cerr << "ERROR: Could not write assembly into a temporary file.\n";
-    return -1;
+  std::vector<TempFile> tempFiles(
+      std::distance(ir.modules().begin(), ir.modules().end()));
+  std::vector<std::string> tempFileNames;
+  int i = 0;
+  for (auto& module : ir.modules()) {
+    if (tempFiles[i].fileStream) {
+      if (debug)
+        std::cout << "Printing module" << module.getName()
+                  << " to temporary file " << tempFiles[i].name << std::endl;
+      pp.print(tempFiles[i].fileStream, ctx, module);
+      tempFiles[i].fileStream.close();
+      tempFileNames.push_back(tempFiles[i].name);
+    } else {
+      std::cerr << "ERROR: Could not write assembly into a temporary file.\n";
+      return -1;
+    }
+    ++i;
   }
 
   auto compilerPath = bp::search_path(this->compiler);
@@ -192,7 +208,7 @@ int ElfBinaryPrinter::link(std::string outputFilename,
     std::cout << "Calling compiler" << std::endl;
   return bp::system(
       compilerPath,
-      buildCompilerArgs(outputFilename, tempFile.name, userLibraryPaths, ir));
+      buildCompilerArgs(outputFilename, tempFileNames, userLibraryPaths, ir));
 }
 
 } // namespace gtirb_bprint

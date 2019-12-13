@@ -33,10 +33,9 @@ private:
   std::optional<std::string>
   findLibrary(const std::string& library,
               const std::vector<std::string>& paths) const;
-  std::vector<std::string>
-  buildCompilerArgs(std::string outputFilename, std::string asmPath,
-                    const std::vector<std::string>& userlibraryPaths,
-                    gtirb::IR& ir) const;
+  std::vector<std::string> buildCompilerArgs(
+      std::string outputFilename, const std::vector<std::string>& asmPath,
+      const std::vector<std::string>& userlibraryPaths, gtirb::IR& ir) const;
 
 public:
   /// Construct a ElfBinaryPrinter with the default configuration.

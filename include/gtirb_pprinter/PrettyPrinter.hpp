@@ -70,9 +70,8 @@ bool registerPrinter(std::initializer_list<std::string> formats,
 /// Return the current set of syntaxes with registered factories.
 std::set<std::tuple<std::string, std::string>> getRegisteredTargets();
 
-/// Return the file format of a GTIRB IR. This function assumes that all modules
-/// in the IR have the same file format.
-std::string getIRFileFormat(const gtirb::IR& ir);
+/// Return the file format of a GTIRB module.
+std::string getModuleFileFormat(const gtirb::Module& module);
 
 /// Set the default syntax for a file format.
 void setDefaultSyntax(const std::string& format, const std::string& syntax);
@@ -125,18 +124,18 @@ public:
   /// \param functionName name of the function to keep
   void keepFunction(const std::string& functionName);
 
-  /// Pretty-print the IR to a stream. The default output target is deduced from
-  /// the file format of the IR if it is not explicitly set with \link
-  /// setTarget.
+  /// Pretty-print the IR module to a stream. The default output target is
+  /// deduced from the file format of the IR if it is not explicitly set with
+  /// \link setTarget.
   ///
   /// \param stream  the stream to print to
   /// \param context context to use for allocating AuxData objects if needed
-  /// \param ir      the IR to pretty-print
+  /// \param module      the module to pretty-print
   ///
   /// \return a condition indicating if there was an error, or condition 0 if
   /// there were no errors.
   std::error_condition print(std::ostream& stream, gtirb::Context& context,
-                             gtirb::IR& ir) const;
+                             gtirb::Module& module) const;
 
 private:
   std::set<std::string> m_skip_funcs;
@@ -172,7 +171,7 @@ public:
 
   /// Create the pretty printer instance.
   virtual std::unique_ptr<PrettyPrinterBase>
-  create(gtirb::Context& context, gtirb::IR& ir,
+  create(gtirb::Context& context, gtirb::Module& module,
          const PrintingPolicy& policy) = 0;
 };
 
@@ -180,7 +179,7 @@ public:
 /// print().
 class PrettyPrinterBase {
 public:
-  PrettyPrinterBase(gtirb::Context& context, gtirb::IR& ir,
+  PrettyPrinterBase(gtirb::Context& context, gtirb::Module& module,
                     const Syntax& syntax, const PrintingPolicy& policy);
   virtual ~PrettyPrinterBase();
 
@@ -331,7 +330,7 @@ protected:
   bool debug;
 
   gtirb::Context& context;
-  gtirb::IR& ir;
+  gtirb::Module& module;
 
   virtual std::string getFunctionName(gtirb::Addr x) const;
   virtual std::string getSymbolName(gtirb::Addr x) const;

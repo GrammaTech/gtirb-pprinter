@@ -29,7 +29,7 @@ private:
 
 class IntelPrettyPrinter : public ElfPrettyPrinter {
 public:
-  IntelPrettyPrinter(gtirb::Context& context, gtirb::IR& ir,
+  IntelPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
                      const IntelSyntax& syntax, const PrintingPolicy& policy);
 
 protected:
@@ -53,7 +53,7 @@ class IntelPrettyPrinterFactory : public PrettyPrinterFactory {
 public:
   const PrintingPolicy& defaultPrintingPolicy() const override;
   std::unique_ptr<PrettyPrinterBase>
-  create(gtirb::Context& context, gtirb::IR& ir,
+  create(gtirb::Context& context, gtirb::Module& module,
          const PrintingPolicy& policy) override;
 };
 

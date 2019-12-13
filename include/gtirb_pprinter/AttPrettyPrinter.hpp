@@ -21,7 +21,7 @@ namespace gtirb_pprint {
 
 class AttPrettyPrinter : public ElfPrettyPrinter {
 public:
-  AttPrettyPrinter(gtirb::Context& context, gtirb::IR& ir,
+  AttPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
                    const ElfSyntax& syntax, const PrintingPolicy& policy);
 
 protected:
@@ -45,7 +45,7 @@ class AttPrettyPrinterFactory : public PrettyPrinterFactory {
 public:
   const PrintingPolicy& defaultPrintingPolicy() const override;
   std::unique_ptr<PrettyPrinterBase>
-  create(gtirb::Context& context, gtirb::IR& ir,
+  create(gtirb::Context& context, gtirb::Module& module,
          const PrintingPolicy& policy) override;
 };
 

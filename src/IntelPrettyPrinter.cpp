@@ -17,10 +17,12 @@
 
 namespace gtirb_pprint {
 
-IntelPrettyPrinter::IntelPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
+IntelPrettyPrinter::IntelPrettyPrinter(gtirb::Context& context_,
+                                       gtirb::Module& module_,
                                        const IntelSyntax& syntax_,
                                        const PrintingPolicy& policy_)
-    : ElfPrettyPrinter(context_, ir_, syntax_, policy_), intelSyntax(syntax_) {}
+    : ElfPrettyPrinter(context_, module_, syntax_, policy_),
+      intelSyntax(syntax_) {}
 
 void IntelPrettyPrinter::printHeader(std::ostream& os) {
   this->printBar(os);
@@ -105,10 +107,11 @@ const PrintingPolicy& IntelPrettyPrinterFactory::defaultPrintingPolicy() const {
 }
 
 std::unique_ptr<PrettyPrinterBase>
-IntelPrettyPrinterFactory::create(gtirb::Context& gtirb_context, gtirb::IR& ir,
+IntelPrettyPrinterFactory::create(gtirb::Context& gtirb_context,
+                                  gtirb::Module& module,
                                   const PrintingPolicy& policy) {
   static const IntelSyntax syntax{};
-  return std::make_unique<IntelPrettyPrinter>(gtirb_context, ir, syntax,
+  return std::make_unique<IntelPrettyPrinter>(gtirb_context, module, syntax,
                                               policy);
 }
 
