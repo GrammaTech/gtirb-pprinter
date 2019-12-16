@@ -136,11 +136,13 @@ int main(int argc, char** argv) {
     int i = 0;
     for (auto& m : ir->modules()) {
       std::ofstream ofs;
-      ofs.open(getAsmFileName(asmPath.string(), i));
+      std::string name = getAsmFileName(asmPath, i);
+      ofs.open(name);
       if (ofs.is_open() == true) {
         pp.print(ofs, ctx, m);
         ofs.close();
-        LOG_INFO << "Assembly written to: " << asmPath << "\n";
+        LOG_INFO << "Module " << i << "'s assembly written to: " << name
+                 << "\n";
       } else {
         LOG_ERROR << "Could not output assembly output file: " << asmPath
                   << "\n";

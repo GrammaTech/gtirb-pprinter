@@ -47,6 +47,7 @@ check-format:
       else
           PUSH_TAG=$CI_COMMIT_REF_SLUG;
       fi
+    - docker run ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} /bin/bash -c "cd build/ && ctest -V"
     - docker tag ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} ${DOCKER_REGISTRY}/${CI_PROJECT_PATH}/${OS}-${COMPILER}:${PUSH_TAG}
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
     - docker push ${DOCKER_REGISTRY}/${CI_PROJECT_PATH}/${OS}-${COMPILER}:${PUSH_TAG}
