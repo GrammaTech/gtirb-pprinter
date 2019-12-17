@@ -10,7 +10,7 @@ SHELL ["/bin/bash", "-c"]
 
 # install common packages
 RUN apt-get -y update && apt-get -y install build-essential binutils cmake \
-    clang curl doxygen git graphviz libprotobuf-dev make protobuf-compiler unzip wget
+    clang curl doxygen git graphviz libprotobuf-dev make protobuf-compiler python3 unzip wget
 
 # Install Boost
 RUN curl -L https://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION//./_}.tar.gz > boost.tar.gz && \

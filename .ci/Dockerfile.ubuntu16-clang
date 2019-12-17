@@ -12,12 +12,12 @@ SHELL ["/bin/bash", "-c"]
 
 # Install common packages
 RUN apt-get -y update && \
-    apt-get -y install software-properties-common git wget curl make
+    apt-get -y install software-properties-common curl git make python3 wget 
 
 # Install libstdc++
 RUN add-apt-repository ppa:jonathonf/gcc-7.1 && \
     apt-get -y update && \
-    apt-get -y install libstdc++-7-dev
+    apt-get -y install gcc-7 libstdc++-7-dev
 
 # Install Clang++
 RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|apt-key add - && \
