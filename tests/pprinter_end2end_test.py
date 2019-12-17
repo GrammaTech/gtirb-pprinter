@@ -19,7 +19,7 @@ class TestPrintToStdout(unittest.TestCase):
 
 class TestPrintToFile(unittest.TestCase):
       def test_print_two_modules(self): 
-        output= subprocess.check_output(['gtirb-pprinter','--ir',str(two_modules_gtirb),'--asm','/tmp/two_modules.s']).decode(sys.stdout.encoding)
+        subprocess.check_output(['gtirb-pprinter','--ir',str(two_modules_gtirb),'--asm','/tmp/two_modules.s']).decode(sys.stdout.encoding)
         with open('/tmp/two_modules.s','r') as f:
             self.assertTrue('.globl main' in f.read())
         with open('/tmp/two_modules1.s','r') as f:

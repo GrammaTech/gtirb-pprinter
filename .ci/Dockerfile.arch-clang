@@ -24,7 +24,8 @@ RUN cd /usr/local/src \
 
 # Install GTIRB and build gtirb-pprinter
 COPY . /gt/gtirb-pprinter/
-ENV PATH=/gt/gtirb-pprinter/bin:$PATH
 ENV LD_LIBRARY_PATH /gt/gtirb-pprinter/gtirb/build/lib
 RUN /gt/gtirb-pprinter/.ci/build-linux.sh clang++
 WORKDIR /gt/gtirb-pprinter/
+ENV PATH=/gt/gtirb-pprinter/build/bin:$PATH
+
