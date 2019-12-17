@@ -22,6 +22,9 @@ int main(int argc, char** argv) {
   desc.add_options()("skip-functions,n",
                      po::value<std::vector<std::string>>()->multitoken(),
                      "Do not print the given functions.");
+  desc.add_options()("compiler-args,c",
+                     po::value<std::vector<std::string>>()->multitoken(),
+                     "Additional arguments to pass to the compiler");
   desc.add_options()("library-paths,L",
                      po::value<std::vector<std::string>>()->multitoken(),
                      "Library paths to be passed to the linker");
@@ -102,10 +105,14 @@ int main(int argc, char** argv) {
   if (vm.count("binary") != 0) {
     gtirb_bprint::ElfBinaryPrinter binaryPrinter(true);
     const auto binaryPath = fs::path(vm["binary"].as<std::string>());
+    std::vector<std::string> extraCompilerArgs;
+    if (vm.count("compiler-args") != 0)
+      extraCompilerArgs = vm["compiler-args"].as<std::vector<std::string>>();
     std::vector<std::string> libraryPaths;
     if (vm.count("library-paths") != 0)
       libraryPaths = vm["library-paths"].as<std::vector<std::string>>();
-    binaryPrinter.link(binaryPath.string(), libraryPaths, pp, ctx, *ir);
+    binaryPrinter.link(binaryPath.string(), extraCompilerArgs, libraryPaths, pp,
+                       ctx, *ir);
   } else {
     LOG_INFO << "Please specify a binary name" << std::endl;
   }

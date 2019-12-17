@@ -80,12 +80,14 @@ ElfBinaryPrinter::findLibrary(const std::string& library,
 
 std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
     std::string outputFilename, const std::vector<std::string>& asmPaths,
+    const std::vector<std::string>& extraCompilerArgs,
     const std::vector<std::string>& userLibraryPaths, gtirb::IR& ir) const {
   std::vector<std::string> args;
   // Start constructing the compile arguments, of the form
   // -o <output_filename> fileAXADA.s
   args.insert(args.end(), {"-o", outputFilename});
   args.insert(args.end(), asmPaths.begin(), asmPaths.end());
+  args.insert(args.end(), extraCompilerArgs.begin(), extraCompilerArgs.end());
 
   // collect all the library paths
   std::vector<std::string> allBinaryPaths = userLibraryPaths;
@@ -175,6 +177,7 @@ public:
 };
 
 int ElfBinaryPrinter::link(std::string outputFilename,
+                           const std::vector<std::string>& extraCompilerArgs,
                            const std::vector<std::string>& userLibraryPaths,
                            const gtirb_pprint::PrettyPrinter& pp,
                            gtirb::Context& ctx, gtirb::IR& ir) const {
@@ -206,9 +209,9 @@ int ElfBinaryPrinter::link(std::string outputFilename,
   }
   if (debug)
     std::cout << "Calling compiler" << std::endl;
-  return bp::system(
-      compilerPath,
-      buildCompilerArgs(outputFilename, tempFileNames, userLibraryPaths, ir));
+  return bp::system(compilerPath,
+                    buildCompilerArgs(outputFilename, tempFileNames,
+                                      extraCompilerArgs, userLibraryPaths, ir));
 }
 
 } // namespace gtirb_bprint
