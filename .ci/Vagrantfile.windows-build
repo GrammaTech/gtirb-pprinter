@@ -18,18 +18,12 @@ Vagrant.configure("2") do |config|
     $process.WaitForExit()
     C:\\cygwin64\\bin\\bash.exe --login -c "/bin/ssh-host-config -y -c ntsec -p 22"
     C:\\cygwin64\\bin\\bash.exe --login -c "net stop sshd"
-    sc config "sshd" start= disabled
+    cmd.exe /C "sc config ""sshd"" start= disabled"
     C:\\cygwin64\\bin\\bash.exe --login -c "net start cygsshd"
-    sc config "cygsshd" start=auto
+    cmd.exe /C "sc config ""cygsshd"" start=auto"
     choco install -y git-lfs
     C:\\cygwin64\\bin\\bash.exe --login -c  "mkdir ~/.ssh"
     C:\\cygwin64\\bin\\bash.exe --login -c  "echo 'git.grammatech.com' > ~/.ssh/known_hosts"
-
-    mkdir C:\\GitLab-Runner
-    cd C:\\GitLab-Runner
-    Invoke-WebRequest https://s3.amazonaws.com/gitlab-runner-downloads/v12.3.0/binaries/gitlab-runner-windows-amd64.exe -OutFile gitlab-runner.exe
-    cp gitlab-runner.exe gitlab-runner
-    C:\\cygwin64\\bin\\bash.exe --login -c 'echo ''export PATH=\\"$PATH:/cygdrive/c/GitLab-Runner:/cygdrive/c/Program Files/Git LFS\\"'' >> ~/.bashrc'
   SHELL
 
   config.vm.provision "setup-dev-tools", type: "shell", inline: <<-SHELL
@@ -49,19 +43,34 @@ Vagrant.configure("2") do |config|
     $process.WaitForExit()
   SHELL
 
-  config.vm.provision "build-boost", type: "shell", inline: <<-SHELL
+  # The provisioner belows uses the installer from sourceforge, because it is
+  # MUCH faster than downloading the zip archive and using powershell's
+  # Expand-Archive cmdlet.  The b2 invocation is not actually building any of
+  # the libraries, it's just installing them from a staging folder provided by
+  # the installer.  It is still necessary to bootstrap b2 even when using the
+  # installer.
+  config.vm.provision "install-boost", type: "shell", inline: <<-SHELL
     cd $HOME
-    git clone --recurse-submodules https://github.com/boostorg/boost.git
-    cd boost
-    git checkout --recurse-submodules afb333b # boost 1.71
+    Invoke-WebRequest "https://ayera.dl.sourceforge.net/project/boost/boost-binaries/1.67.0/boost_1_67_0-msvc-14.1-64.exe" -OutFile "boost_1_67_0-msvc-14.1-64.exe"
+    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.FileName = "C:\\Users\\vagrant\\boost_1_67_0-msvc-14.1-64.exe"
+    $startInfo.Arguments = "/NORESTART /DIR=""C:\\Boost-stage"" /SILENT"
+    $startInfo.UseShellExecute = $true
+    $startInfo.CreateNoWindow = $false
+    $process = New-Object System.Diagnostics.Process
+    $process.StartInfo = $startInfo
+    $process.Start()
+    $process.WaitForExit()
+    cd C:\\Boost-stage
     cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && .\\bootstrap.bat"
-    cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && .\\b2.exe install variant=debug,release link=shared runtime-link=shared --with-program_options --with-filesystem --with-system"
+    cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && .\\b2.exe install address-model=64 variant=debug,release link=shared runtime-link=shared --with-program_options --with-filesystem --with-system"
   SHELL
 
   config.vm.provision "build-protobuf", type: "shell", inline: <<-SHELL
     cd $HOME
     git clone https://github.com/protocolbuffers/protobuf.git
     cd protobuf
+    git checkout tags/v3.7.0
 
     mkdir cmake-build-debug
     cd cmake-build-debug
@@ -79,11 +88,12 @@ Vagrant.configure("2") do |config|
 
   config.vm.provision "build-capstone", type: "shell", inline: <<-SHELL
     cd $HOME
-    git clone https://github.com/aquynh/capstone.git
+    Invoke-WebRequest https://github.com/aquynh/capstone/archive/4.0.1.zip -OutFile 4.0.1.zip
+    Expand-Archive .\\4.0.1.zip -DestinationPath .
     mkdir /cygdrive/C/capstone-debug
     mkdir /cygdrive/C/capstone-release
 
-    cd capstone
+    cd capstone-4.0.1
     mkdir build-debug
     cd build-debug
     cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && ""C:\\Program Files\\CMake\\bin\\cmake.exe"" -G ""Ninja""  -DCMAKE_INSTALL_PREFIX=C:\\capstone-debug .."
