@@ -87,7 +87,18 @@ endif()
 
 # Detect how to use <experimental/filesystem> for non-msvc compilers.  On the
 # latest version of MSVC, the experimental filesystem library is deprecated.
-if(NOT ${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
+set(USE_STD_FILESYSTEM_LIB_DEFAULT OFF)
+if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
+  set(USE_STD_FILESYSTEM_LIB_DEFAULT ON)
+endif()
+
+option(USE_STD_FILESYSTEM_LIB
+  "Use the standard filesystem library instead of the experimental filesystem library"
+  ${USE_STD_FILESYSTEM_LIB_DEFAULT})
+
+if(USE_STD_FILESYSTEM_LIB)
+  add_definitions(-DUSE_STD_FILESYSTEM_LIB)
+else()
   set(EXPERIMENTAL_LIB
       ""
       CACHE STRING

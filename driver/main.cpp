@@ -5,13 +5,13 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#ifdef _MSC_VER
+#ifdef USE_STD_FILESYSTEM_LIB
 #include <filesystem>
 namespace fs = std::filesystem;
 #else
 #include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
-#endif // _MSC_VER
+#endif // USE_STD_FILESYSTEM_LIB
 
 namespace po = boost::program_options;
 
