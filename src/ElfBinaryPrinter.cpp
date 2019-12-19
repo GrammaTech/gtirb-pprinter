@@ -85,7 +85,8 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
   std::vector<std::string> args;
   // Start constructing the compile arguments, of the form
   // -o <output_filename> fileAXADA.s
-  args.insert(args.end(), {"-o", outputFilename});
+  args.emplace_back("-o");
+  args.emplace_back(outputFilename);
   args.insert(args.end(), asmPaths.begin(), asmPaths.end());
   args.insert(args.end(), extraCompilerArgs.begin(), extraCompilerArgs.end());
 
@@ -93,26 +94,26 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
   std::vector<std::string> allBinaryPaths = userLibraryPaths;
 
   for (auto& module : ir.modules()) {
-    const auto* binaryLibraryPaths =
-        module.getAuxData<std::vector<std::string>>("libraryPaths");
-    if (binaryLibraryPaths)
+
+    if (const auto* binaryLibraryPaths =
+            module.getAuxData<std::vector<std::string>>("libraryPaths"))
       allBinaryPaths.insert(allBinaryPaths.end(), binaryLibraryPaths->begin(),
                             binaryLibraryPaths->end());
   }
   // add needed libraries
   for (auto& module : ir.modules()) {
-    const auto* libraries =
-        module.getAuxData<std::vector<std::string>>("libraries");
-    if (libraries) {
+    if (const auto* libraries =
+            module.getAuxData<std::vector<std::string>>("libraries")) {
       for (const auto& library : *libraries) {
         // if they match the lib*.so pattern we let the compiler look for them
-        auto infixLibraryName = getInfixLibraryName(library);
+        std::optional<std::string> infixLibraryName =
+            getInfixLibraryName(library);
         if (infixLibraryName) {
           args.push_back("-l" + *infixLibraryName);
         } else {
           // otherwise we try to find them here
-          auto libraryLocation = findLibrary(library, allBinaryPaths);
-          if (libraryLocation) {
+          if (std::optional<std::string> libraryLocation =
+                  findLibrary(library, allBinaryPaths)) {
             args.push_back(*libraryLocation);
           } else {
             std::cerr << "ERROR: Could not find library " << library
@@ -128,9 +129,8 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
   }
   // add binary library paths (add them to rpath as well)
   for (auto& module : ir.modules()) {
-    const auto* binaryLibraryPaths =
-        module.getAuxData<std::vector<std::string>>("libraryPaths");
-    if (binaryLibraryPaths) {
+    if (const auto* binaryLibraryPaths =
+            module.getAuxData<std::vector<std::string>>("libraryPaths")) {
       for (const auto& libraryPath : *binaryLibraryPaths) {
         args.push_back("-L" + libraryPath);
         args.push_back("-Wl,-rpath," + libraryPath);
@@ -202,7 +202,7 @@ int ElfBinaryPrinter::link(std::string outputFilename,
     ++i;
   }
 
-  auto compilerPath = bp::search_path(this->compiler);
+  boost::filesystem::path compilerPath = bp::search_path(this->compiler);
   if (compilerPath.empty()) {
     std::cerr << "ERROR: Could not find compiler" << this->compiler;
     return -1;

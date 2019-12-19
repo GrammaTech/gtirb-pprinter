@@ -15,16 +15,16 @@ namespace fs = std::experimental::filesystem;
 
 namespace po = boost::program_options;
 
-std::string getAsmFileName(std::string InitialName, int index) {
-  if (index == 0)
+static std::string getAsmFileName(const std::string& InitialName, int Index) {
+  if (Index == 0)
     return InitialName;
-  // if the name does not have an exception, we add the number at the end
+  // If the name does not have an extension, we add the number at the end.
   size_t LastDot = InitialName.rfind('.');
   if (LastDot == std::string::npos)
-    return InitialName + std::to_string(index);
-
+    return InitialName + std::to_string(Index);
+  // Otherwise, we add the number before the extension.
   std::string FileName = InitialName;
-  FileName.insert(LastDot, std::to_string(index));
+  FileName.insert(LastDot, std::to_string(Index));
   return FileName;
 }
 
@@ -79,7 +79,7 @@ int main(int argc, char** argv) {
     if (fs::exists(irPath)) {
       LOG_INFO << std::setw(24) << std::left << "Reading IR: " << irPath
                << std::endl;
-      std::ifstream in(irPath.string());
+      std::ifstream in(irPath.string(), std::ios::in | std::ios::binary);
       ir = gtirb::IR::load(ctx, in);
     } else {
       LOG_ERROR << "IR not found: \"" << irPath << "\".";
@@ -87,6 +87,10 @@ int main(int argc, char** argv) {
     }
   } else {
     ir = gtirb::IR::load(ctx, std::cin);
+  }
+  if (ir->modules().empty()) {
+    LOG_ERROR << "IR has no modules";
+    return EXIT_FAILURE;
   }
 
   // Perform the Pretty Printing step.
@@ -135,12 +139,10 @@ int main(int argc, char** argv) {
     const auto asmPath = fs::path(vm["asm"].as<std::string>());
     int i = 0;
     for (auto& m : ir->modules()) {
-      std::ofstream ofs;
       std::string name = getAsmFileName(asmPath, i);
-      ofs.open(name);
-      if (ofs.is_open() == true) {
+      std::ofstream ofs(name);
+      if (ofs) {
         pp.print(ofs, ctx, m);
-        ofs.close();
         LOG_INFO << "Module " << i << "'s assembly written to: " << name
                  << "\n";
       } else {
@@ -151,7 +153,6 @@ int main(int argc, char** argv) {
     }
     // or to the standard output
   } else {
-
     gtirb::Module* module = nullptr;
     int i = 0;
     for (auto& m : ir->modules()) {

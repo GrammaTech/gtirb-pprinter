@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
     if (fs::exists(irPath)) {
       LOG_INFO << std::setw(24) << std::left << "Reading IR: " << irPath
                << std::endl;
-      std::ifstream in(irPath.string());
+      std::ifstream in(irPath.string(), std::ios::in | std::ios::binary);
       ir = gtirb::IR::load(ctx, in);
     } else {
       LOG_ERROR << "IR not found: \"" << irPath << "\".";
@@ -62,6 +62,10 @@ int main(int argc, char** argv) {
     }
   } else {
     ir = gtirb::IR::load(ctx, std::cin);
+  }
+  if (ir->modules().empty()) {
+    LOG_ERROR << "IR has no modules";
+    return EXIT_FAILURE;
   }
 
   // Perform the Pretty Printing step.
