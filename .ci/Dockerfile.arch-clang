@@ -22,8 +22,6 @@ RUN cd /usr/local/src \
     && CAPSTONE_ARCHS=x86 ./make.sh \
     && CAPSTONE_ARCHS=x86 ./make.sh install
 
-COPY . /gt/gtirb-pprinter/
-
 # Install GTIRB and build gtirb-pprinter
 COPY . /gt/gtirb-pprinter/
 ENV PATH=/gt/gtirb-pprinter/bin:$PATH
