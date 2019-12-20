@@ -22,20 +22,30 @@
 #pragma GCC diagnostic ignored "-Wc++11-compat"
 #pragma GCC diagnostic ignored "-Wpessimizing-move"
 #pragma GCC diagnostic ignored "-Wdeprecated-copy"
+#elif defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4456) // variable shadowing warning
 #endif // __GNUC__
 #include <boost/process/search_path.hpp>
 #include <boost/process/system.hpp>
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
+#elif defined(_MSC_VER)
+#pragma warning(pop)
 #endif // __GNUC__
-#include <experimental/filesystem>
 #include <iostream>
 #include <regex>
 #include <string>
 #include <vector>
+#ifdef USE_STD_FILESYSTEM_LIB
+#include <filesystem>
+namespace fs = std::filesystem;
+#else
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
+#endif // USE_STD_FILESYSTEM_LIB
 
 namespace bp = boost::process;
-namespace fs = std::experimental::filesystem;
 
 namespace gtirb_bprint {
 

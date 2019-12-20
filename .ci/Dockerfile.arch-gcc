@@ -22,18 +22,9 @@ RUN cd /usr/local/src \
     && CAPSTONE_ARCHS=x86 ./make.sh \
     && CAPSTONE_ARCHS=x86 ./make.sh install
 
+# Install GTIRB and build gtirb-pprinter
 COPY . /gt/gtirb-pprinter/
-
-# Install gtirb
-RUN rm -rf /gt/gtirb-pprinter/gtirb/build /gt/gtirb-pprinter/gtirb/CMakeCache.txt /gt/gtirb-pprinter/gtirb/CMakeFiles /gt/gtirb-pprinter/gtirb/CMakeScripts
-RUN cd /gt/gtirb-pprinter/gtirb/ && cmake ./ -Bbuild  && cd build &&  make && make install
-
-# Build gtirb-pprinter
 ENV PATH=/gt/gtirb-pprinter/bin:$PATH
-RUN rm -rf /gt/gtirb-pprinter/build /gt/gtirb-pprinter/CMakeCache.txt /gt/gtirb-pprinter/CMakeFiles /gt/gtirb-pprinter/CMakeScripts
-RUN mkdir -p /gt/gtirb-pprinter/build
-WORKDIR /gt/gtirb-pprinter/build
-RUN cmake ../ -DCMAKE_CXX_COMPILER=g++
-RUN make -j
-WORKDIR /gt/gtirb-pprinter/
 ENV LD_LIBRARY_PATH /gt/gtirb-pprinter/gtirb/build/lib
+RUN /gt/gtirb-pprinter/.ci/build-linux.sh g++
+WORKDIR /gt/gtirb-pprinter/

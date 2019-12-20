@@ -4,7 +4,10 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
 before_script:
-  - docker info
+  - case "$(uname -s)" in
+        CYGWIN*) systeminfo;;
+        *) docker info;;
+    esac
 
 stages:
   - check-format
@@ -17,11 +20,23 @@ check-format:
   script:
     - docker build --rm -f .ci/Dockerfile.formatter .
 
+
+# The two build templates below ultimately call the build script for the
+# appropriate platform & task (the .ci/build-*.sh scripts).
+# For windows builds, this is done directly. For linux builds, the build script
+# is called in the Dockerfile.
+
 .build-template: &build
   stage: build
   script:
     - git clone https://git.grammatech.com/rewriting/gtirb.git
     - docker build -f .ci/Dockerfile.$OS-$COMPILER -t ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} .
+
+.windows-build-template: &windows-build
+  stage: build
+  script:
+    - git clone https://git.grammatech.com/rewriting/gtirb.git
+    - .ci/build-windows.sh $BUILD_TYPE
 
 .test-and-tag-template: &test-and-tag
   stage: test-and-tag
@@ -77,6 +92,20 @@ build-arch-clang:
      OS: 'arch'
      COMPILER: 'clang'
    <<: *build
+
+build-windows-debug:
+  variables:
+    BUILD_TYPE: 'Debug'
+  tags:
+    - gtirb-pprinter-windows
+  <<: *windows-build
+
+build-windows-release:
+  variables:
+    BUILD_TYPE: 'Release'
+  tags:
+    - gtirb-pprinter-windows
+  <<: *windows-build
 
 test-and-tag-ubuntu16-gcc:
   variables:

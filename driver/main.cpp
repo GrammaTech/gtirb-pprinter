@@ -2,12 +2,17 @@
 #include "Logger.h"
 #include "PrettyPrinter.hpp"
 #include <boost/program_options.hpp>
-#include <experimental/filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-
+#ifdef USE_STD_FILESYSTEM_LIB
+#include <filesystem>
+namespace fs = std::filesystem;
+#else
+#include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
+#endif // USE_STD_FILESYSTEM_LIB
+
 namespace po = boost::program_options;
 
 int main(int argc, char** argv) {
