@@ -15,17 +15,17 @@ namespace fs = std::experimental::filesystem;
 
 namespace po = boost::program_options;
 
-static std::string getAsmFileName(const std::string& InitialName, int Index) {
+static fs::path getAsmFileName(const fs::path& InitialPath, int Index) {
   if (Index == 0)
-    return InitialName;
+    return InitialPath;
+  std::string Filename = InitialPath.filename().generic_string();
   // If the name does not have an extension, we add the number at the end.
-  size_t LastDot = InitialName.rfind('.');
+  size_t LastDot = Filename.rfind('.');
   if (LastDot == std::string::npos)
-    return InitialName + std::to_string(Index);
+    Filename.append(std::to_string(Index));
   // Otherwise, we add the number before the extension.
-  std::string FileName = InitialName;
-  FileName.insert(LastDot, std::to_string(Index));
-  return FileName;
+  Filename.insert(LastDot, std::to_string(Index));
+  return fs::path(InitialPath).replace_filename(Filename);
 }
 
 int main(int argc, char** argv) {
@@ -137,9 +137,14 @@ int main(int argc, char** argv) {
   // Do we write it to a file?
   if (vm.count("asm") != 0) {
     const auto asmPath = fs::path(vm["asm"].as<std::string>());
+    if (!asmPath.has_filename()) {
+      LOG_ERROR << "The given path " << asmPath << " has no filename"
+                << std::endl;
+      return EXIT_FAILURE;
+    }
     int i = 0;
     for (gtirb::Module& m : ir->modules()) {
-      std::string name = getAsmFileName(asmPath, i);
+      fs::path name = getAsmFileName(asmPath, i);
       std::ofstream ofs(name);
       if (ofs) {
         pp.print(ofs, ctx, m);
