@@ -93,7 +93,7 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
   // collect all the library paths
   std::vector<std::string> allBinaryPaths = userLibraryPaths;
 
-  for (auto& module : ir.modules()) {
+  for (gtirb::Module& module : ir.modules()) {
 
     if (const auto* binaryLibraryPaths =
             module.getAuxData<std::vector<std::string>>("libraryPaths"))
@@ -101,7 +101,7 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
                             binaryLibraryPaths->end());
   }
   // add needed libraries
-  for (auto& module : ir.modules()) {
+  for (gtirb::Module& module : ir.modules()) {
     if (const auto* libraries =
             module.getAuxData<std::vector<std::string>>("libraries")) {
       for (const auto& library : *libraries) {
@@ -128,7 +128,7 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
     args.push_back("-L" + libraryPath);
   }
   // add binary library paths (add them to rpath as well)
-  for (auto& module : ir.modules()) {
+  for (gtirb::Module& module : ir.modules()) {
     if (const auto* binaryLibraryPaths =
             module.getAuxData<std::vector<std::string>>("libraryPaths")) {
       for (const auto& libraryPath : *binaryLibraryPaths) {
@@ -187,7 +187,7 @@ int ElfBinaryPrinter::link(std::string outputFilename,
       std::distance(ir.modules().begin(), ir.modules().end()));
   std::vector<std::string> tempFileNames;
   int i = 0;
-  for (auto& module : ir.modules()) {
+  for (gtirb::Module& module : ir.modules()) {
     if (tempFiles[i].fileStream) {
       if (debug)
         std::cout << "Printing module" << module.getName()

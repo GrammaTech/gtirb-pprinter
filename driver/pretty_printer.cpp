@@ -138,7 +138,7 @@ int main(int argc, char** argv) {
   if (vm.count("asm") != 0) {
     const auto asmPath = fs::path(vm["asm"].as<std::string>());
     int i = 0;
-    for (auto& m : ir->modules()) {
+    for (gtirb::Module& m : ir->modules()) {
       std::string name = getAsmFileName(asmPath, i);
       std::ofstream ofs(name);
       if (ofs) {
@@ -155,7 +155,7 @@ int main(int argc, char** argv) {
   } else {
     gtirb::Module* module = nullptr;
     int i = 0;
-    for (auto& m : ir->modules()) {
+    for (gtirb::Module& m : ir->modules()) {
       if (i == vm["module"].as<int>()) {
         module = &m;
         break;
