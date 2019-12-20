@@ -17,7 +17,7 @@ RUN apt-get -y update && \
 
 RUN apt-get -y update && apt-get -y install gcc-7 g++-7 make git \
     build-essential binutils doxygen graphviz wget curl unzip \
-    gcc-multilib g++-multilib libc++1 libc++abi1
+    gcc-multilib g++-multilib libc++1 libc++abi1 python3
 
 RUN update-alternatives --install /usr/bin/cc cc /usr/bin/gcc-7 60
 RUN update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-7 60
@@ -58,7 +58,7 @@ RUN cd /usr/local/src \
 
 # Install GTIRB and build gtirb-pprinter
 COPY . /gt/gtirb-pprinter/
-ENV PATH=/gt/gtirb-pprinter/bin:$PATH
 ENV LD_LIBRARY_PATH /gt/gtirb-pprinter/gtirb/build/lib
 RUN /gt/gtirb-pprinter/.ci/build-linux.sh g++-7
 WORKDIR /gt/gtirb-pprinter/
+ENV PATH=/gt/gtirb-pprinter/build/bin:$PATH

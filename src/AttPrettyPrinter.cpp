@@ -20,10 +20,11 @@
 
 namespace gtirb_pprint {
 
-AttPrettyPrinter::AttPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
+AttPrettyPrinter::AttPrettyPrinter(gtirb::Context& context_,
+                                   gtirb::Module& module_,
                                    const ElfSyntax& syntax_,
                                    const PrintingPolicy& policy_)
-    : ElfPrettyPrinter(context_, ir_, syntax_, policy_) {
+    : ElfPrettyPrinter(context_, module_, syntax_, policy_) {
   cs_option(this->csHandle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
 }
 
@@ -122,10 +123,12 @@ const PrintingPolicy& AttPrettyPrinterFactory::defaultPrintingPolicy() const {
 }
 
 std::unique_ptr<PrettyPrinterBase>
-AttPrettyPrinterFactory::create(gtirb::Context& gtirb_context, gtirb::IR& ir,
+AttPrettyPrinterFactory::create(gtirb::Context& gtirb_context,
+                                gtirb::Module& module,
                                 const PrintingPolicy& policy) {
   static const ElfSyntax syntax{};
-  return std::make_unique<AttPrettyPrinter>(gtirb_context, ir, syntax, policy);
+  return std::make_unique<AttPrettyPrinter>(gtirb_context, module, syntax,
+                                            policy);
 }
 
 volatile bool AttPrettyPrinter::registered = registerPrinter(

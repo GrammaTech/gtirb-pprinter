@@ -1,7 +1,7 @@
 FROM archlinux/base
 
 RUN pacman -Syu --noconfirm autoconf automake boost clang cmake doxygen \
-    fakeroot gcc git libtool make mcpp pkg-config wget zlib
+    fakeroot gcc git libtool make mcpp pkg-config python3 wget zlib
 
 # Install protobuf
 RUN cd /usr/local/src \
@@ -24,7 +24,8 @@ RUN cd /usr/local/src \
 
 # Install GTIRB and build gtirb-pprinter
 COPY . /gt/gtirb-pprinter/
-ENV PATH=/gt/gtirb-pprinter/bin:$PATH
 ENV LD_LIBRARY_PATH /gt/gtirb-pprinter/gtirb/build/lib
 RUN /gt/gtirb-pprinter/.ci/build-linux.sh clang++
 WORKDIR /gt/gtirb-pprinter/
+ENV PATH=/gt/gtirb-pprinter/build/bin:$PATH
+

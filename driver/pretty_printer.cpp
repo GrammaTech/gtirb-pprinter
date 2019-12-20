@@ -15,14 +15,32 @@ namespace fs = std::experimental::filesystem;
 
 namespace po = boost::program_options;
 
+static fs::path getAsmFileName(const fs::path& InitialPath, int Index) {
+  if (Index == 0)
+    return InitialPath;
+  std::string Filename = InitialPath.filename().generic_string();
+  // If the name does not have an extension, we add the number at the end.
+  size_t LastDot = Filename.rfind('.');
+  if (LastDot == std::string::npos)
+    Filename.append(std::to_string(Index));
+  // Otherwise, we add the number before the extension.
+  Filename.insert(LastDot, std::to_string(Index));
+  return fs::path(InitialPath).replace_filename(Filename);
+}
+
 int main(int argc, char** argv) {
   po::options_description desc("Allowed options");
   desc.add_options()("help,h", "Produce help message.");
   desc.add_options()("ir,i", po::value<std::string>(), "gtirb file to print.");
-  desc.add_options()("asm,a", po::value<std::string>(),
-                     "The name of the assembly output file.");
-  desc.add_options()("binary,b", po::value<std::string>(),
-                     "The name of the binary output file.");
+  desc.add_options()(
+      "asm,a", po::value<std::string>(),
+      "The name of the assembly output file. If none is given, gtirb-pprinter "
+      "prints to the standard output. If the IR has more "
+      "than one module, files of the form FILE, FILE_2 ... "
+      "FILE_n with the content of each of the modules");
+  desc.add_options()("module,m", po::value<int>()->default_value(0),
+                     "The index of the module to be printed if printing to the "
+                     "standard output.");
   desc.add_options()("format,f", po::value<std::string>(),
                      "The format of the target binary object.");
   desc.add_options()("syntax,s", po::value<std::string>(),
@@ -35,9 +53,6 @@ int main(int argc, char** argv) {
   desc.add_options()("skip-functions,n",
                      po::value<std::vector<std::string>>()->multitoken(),
                      "Do not print the given functions.");
-  desc.add_options()("library-paths,L",
-                     po::value<std::vector<std::string>>()->multitoken(),
-                     "Library paths to be passed to the linker");
   po::positional_options_description pd;
   pd.add("ir", -1);
   po::variables_map vm;
@@ -64,7 +79,7 @@ int main(int argc, char** argv) {
     if (fs::exists(irPath)) {
       LOG_INFO << std::setw(24) << std::left << "Reading IR: " << irPath
                << std::endl;
-      std::ifstream in(irPath.string());
+      std::ifstream in(irPath.string(), std::ios::in | std::ios::binary);
       ir = gtirb::IR::load(ctx, in);
     } else {
       LOG_ERROR << "IR not found: \"" << irPath << "\".";
@@ -73,13 +88,18 @@ int main(int argc, char** argv) {
   } else {
     ir = gtirb::IR::load(ctx, std::cin);
   }
+  if (ir->modules().empty()) {
+    LOG_ERROR << "IR has no modules";
+    return EXIT_FAILURE;
+  }
 
   // Perform the Pretty Printing step.
   gtirb_pprint::PrettyPrinter pp;
   pp.setDebug(vm.count("debug"));
-  const std::string& format = vm.count("format")
-                                  ? vm["format"].as<std::string>()
-                                  : gtirb_pprint::getIRFileFormat(*ir);
+  const std::string& format =
+      vm.count("format")
+          ? vm["format"].as<std::string>()
+          : gtirb_pprint::getModuleFileFormat(*ir->modules().begin());
   const std::string& syntax =
       vm.count("syntax") ? vm["syntax"].as<std::string>()
                          : gtirb_pprint::getDefaultSyntax(format).value_or("");
@@ -117,28 +137,42 @@ int main(int argc, char** argv) {
   // Do we write it to a file?
   if (vm.count("asm") != 0) {
     const auto asmPath = fs::path(vm["asm"].as<std::string>());
-    std::ofstream ofs;
-    ofs.open(asmPath.string());
-
-    if (ofs.is_open() == true) {
-      pp.print(ofs, ctx, *ir);
-      ofs.close();
-      LOG_INFO << "Assembly written to: " << asmPath << "\n";
-    } else {
-      LOG_ERROR << "Could not output assembly output file: " << asmPath << "\n";
+    if (!asmPath.has_filename()) {
+      LOG_ERROR << "The given path " << asmPath << " has no filename"
+                << std::endl;
+      return EXIT_FAILURE;
     }
-  }
-  if (vm.count("binary") != 0) {
-    gtirb_bprint::ElfBinaryPrinter binaryPrinter(true);
-    const auto binaryPath = fs::path(vm["binary"].as<std::string>());
-    std::vector<std::string> libraryPaths;
-    if (vm.count("library-paths") != 0)
-      libraryPaths = vm["library-paths"].as<std::vector<std::string>>();
-    binaryPrinter.link(binaryPath.string(), libraryPaths, pp, ctx, *ir);
-  }
-
-  if (vm.count("asm") == 0 && vm.count("binary") == 0) {
-    pp.print(std::cout, ctx, *ir);
+    int i = 0;
+    for (gtirb::Module& m : ir->modules()) {
+      fs::path name = getAsmFileName(asmPath, i);
+      std::ofstream ofs(name);
+      if (ofs) {
+        pp.print(ofs, ctx, m);
+        LOG_INFO << "Module " << i << "'s assembly written to: " << name
+                 << "\n";
+      } else {
+        LOG_ERROR << "Could not output assembly output file: " << asmPath
+                  << "\n";
+      }
+      ++i;
+    }
+    // or to the standard output
+  } else {
+    gtirb::Module* module = nullptr;
+    int i = 0;
+    for (gtirb::Module& m : ir->modules()) {
+      if (i == vm["module"].as<int>()) {
+        module = &m;
+        break;
+      }
+      ++i;
+    }
+    if (!module) {
+      LOG_ERROR << "The ir has " << i << " modules, module with index "
+                << vm["module"].as<int>() << " cannot be printed" << std::endl;
+      return EXIT_FAILURE;
+    }
+    pp.print(std::cout, ctx, *module);
   }
 
   return EXIT_SUCCESS;

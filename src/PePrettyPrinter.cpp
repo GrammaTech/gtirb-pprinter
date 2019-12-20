@@ -17,16 +17,14 @@
 #include <iostream>
 
 namespace gtirb_pprint {
-PePrettyPrinter::PePrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
-                                 const Syntax& syntax_,
+PePrettyPrinter::PePrettyPrinter(gtirb::Context& context_,
+                                 gtirb::Module& module_, const Syntax& syntax_,
                                  const PrintingPolicy& policy_)
-    : PrettyPrinterBase(context_, ir_, syntax_, policy_) {
+    : PrettyPrinterBase(context_, module_, syntax_, policy_) {
 
   const auto* directories =
-      ir.modules()
-          .begin()
-          ->getAuxData<
-              std::vector<std::tuple<std::string, uint64_t, uint64_t>>>(
+      module
+          .getAuxData<std::vector<std::tuple<std::string, uint64_t, uint64_t>>>(
               "dataDirectories");
   for (auto const& entry : *directories) {
     dataDirectories.push_back(entry);

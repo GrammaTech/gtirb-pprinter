@@ -57,16 +57,16 @@ assembler to an object file named `hello.o`, and link this object file
 into an executable.
 
 ```sh
-gtirb-pp hello.gtirb --asm hello.S
+gtirb-pprinter hello.gtirb --asm hello.S
 as hello.S -o hello.o
 ld hello.o -o hello
 ./hello
 ```
 ### Generate a new binary
-gtirb-pp can also generate a new binary by calling `gcc` directly.
+gtirb-binary-printer generates a new binary by calling `gcc` directly.
 
 ```sh
-gtirb-pp hello.gtirb --binary hello
+gtirb-binary-printer hello.gtirb --binary hello
 ```
 
 This option admits an argument `--library-paths` or `-L` to
@@ -74,7 +74,7 @@ specify additional paths where libraries might be located.
 
 For example:
 ```sh
-gtirb-pp hello.gtirb --binary hello -L . -L /usr/local/lib
+gtirb-binary-printer hello.gtirb --binary hello -L . -L /usr/local/lib
 ```
 
 ## AuxData Used by the Pretty Printer
@@ -97,7 +97,7 @@ associated types and contents in this table.
 
 ## AuxData Used by the Binary Printer
 
-In order to generate new binaries, gtirb-pp also uses the following tables:
+In order to generate new binaries, gtirb-binary-printer also uses the following tables:
 
 | Key              | Type                             | Purpose                                                                          |
 |------------------|----------------------------------|----------------------------------------------------------------------------------|

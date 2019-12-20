@@ -34,8 +34,8 @@ enum SECTION_CHARACTERISTICS {
 
 class PePrettyPrinter : public PrettyPrinterBase {
 public:
-  PePrettyPrinter(gtirb::Context& context, gtirb::IR& ir, const Syntax& syntax,
-                  const PrintingPolicy& policy);
+  PePrettyPrinter(gtirb::Context& context, gtirb::Module& module,
+                  const Syntax& syntax, const PrintingPolicy& policy);
 
   static const PrintingPolicy& defaultPrintingPolicy();
 

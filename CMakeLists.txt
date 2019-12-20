@@ -18,6 +18,8 @@ include(CheckIncludeFile)
 # Global settings
 # ---------------------------------------------------------------------------
 
+option(GTIRB_PPRINTER_ENABLE_TESTS "Enable building and running tests." ON)
+
 # This just sets the builtin BUILD_SHARED_LIBS, but if defaults to ON instead of
 # OFF.
 option(GTIRB_PPRINTER_BUILD_SHARED_LIBS "Build shared libraries." ON)
@@ -367,3 +369,18 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/export/gtirb_pprinterConfig.cmake
         DESTINATION lib/gtirb_pprinter)
 
 install(EXPORT gtirb_pprinterTargets DESTINATION lib/gtirb_pprinter)
+
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
+
+if(GTIRB_PPRINTER_ENABLE_TESTS)
+  enable_testing()
+
+  find_program(PYTHON "python3")
+
+  add_test(NAME python_tests
+      COMMAND ${PYTHON} -m unittest discover tests "*_test.py"
+      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/"
+  )
+endif()

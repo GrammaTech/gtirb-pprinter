@@ -33,6 +33,7 @@ public:
   BinaryPrinter& operator=(BinaryPrinter&&) = default;
 
   virtual int link(std::string output_filename,
+                   const std::vector<std::string>& extraCompilerArgs,
                    const std::vector<std::string>& library_paths,
                    const gtirb_pprint::PrettyPrinter& pp,
                    gtirb::Context& context, gtirb::IR& ir) const = 0;

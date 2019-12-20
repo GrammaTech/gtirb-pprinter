@@ -42,24 +42,24 @@ std::string MasmSyntax::formatSymbolName(const std::string& x) const {
   return name;
 }
 
-MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_, gtirb::IR& ir_,
+MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
+                                     gtirb::Module& module_,
                                      const MasmSyntax& syntax_,
                                      const PrintingPolicy& policy_)
-    : PePrettyPrinter(context_, ir_, syntax_, policy_), masmSyntax(syntax_) {
-
-  gtirb::Module& Module = *ir.modules().begin();
-  gtirb::ImageByteMap& ImageByteMap = Module.getImageByteMap();
+    : PePrettyPrinter(context_, module_, syntax_, policy_),
+      masmSyntax(syntax_) {
+  gtirb::ImageByteMap& ImageByteMap = module.getImageByteMap();
 
   // FIXME: How should we handle entry point label?
   gtirb::Addr Entry = ImageByteMap.getEntryPointAddress();
   auto* EntrySymbol = gtirb::Symbol::Create(context, Entry, "__EntryPoint",
                                             gtirb::Symbol::StorageKind::Normal);
-  Module.addSymbol(EntrySymbol);
+  module.addSymbol(EntrySymbol);
 }
 
 void MasmPrettyPrinter::printIncludes(std::ostream& os) {
   const auto* libraries =
-      ir.modules().begin()->getAuxData<std::vector<std::string>>("libraries");
+      module.getAuxData<std::vector<std::string>>("libraries");
   if (libraries) {
     for (const auto& library : *libraries) {
       // Include replacement libs.
@@ -86,7 +86,7 @@ void MasmPrettyPrinter::printIncludes(std::ostream& os) {
 void MasmPrettyPrinter::printExterns(std::ostream& os) {
   // Declare EXTERN symbols
   if (const auto* symbolForwarding =
-          ir.modules().begin()->getAuxData<std::map<gtirb::UUID, gtirb::UUID>>(
+          module.getAuxData<std::map<gtirb::UUID, gtirb::UUID>>(
               "symbolForwarding")) {
     std::set<std::string> externs;
     for (auto& forward : *symbolForwarding) {
@@ -118,8 +118,7 @@ void MasmPrettyPrinter::printSectionHeaderDirective(
 void MasmPrettyPrinter::printSectionProperties(std::ostream& os,
                                                const gtirb::Section& section) {
   const auto* peSectionProperties =
-      this->ir.modules().begin()->getAuxData<std::map<gtirb::UUID, uint64_t>>(
-          "peSectionProperties");
+      module.getAuxData<std::map<gtirb::UUID, uint64_t>>("peSectionProperties");
   if (!peSectionProperties)
     return;
   const auto sectionProperties = peSectionProperties->find(section.getUUID());
@@ -191,8 +190,7 @@ void MasmPrettyPrinter::printSymbolDefinitionsAtAddress(std::ostream& os,
     return;
 
   // Print public definitions
-  for (const gtirb::Symbol& symbol :
-       this->ir.modules().begin()->findSymbols(ea)) {
+  for (const gtirb::Symbol& symbol : module.findSymbols(ea)) {
     if (symbol.getStorageKind() == gtirb::Symbol::StorageKind::Normal) {
       os << '\n' << syntax.global() << ' ' << symbol.getName() << '\n';
     }
@@ -203,7 +201,7 @@ void MasmPrettyPrinter::printSymbolDefinitionsAtAddress(std::ostream& os,
 
   if (inData) {
     // Print name for data object
-    if (!this->ir.modules().begin()->findSymbols(ea).empty()) {
+    if (!module.findSymbols(ea).empty()) {
       os << 'N' << getSymbolName(ea).substr(2);
     }
   }
@@ -291,8 +289,7 @@ void MasmPrettyPrinter::printOpIndirect(
   }
 
   if (op.mem.base == X86_REG_RIP && symbolic == nullptr) {
-    gtirb::Module& Module = *ir.modules().begin();
-    gtirb::ImageByteMap& ImageByteMap = Module.getImageByteMap();
+    gtirb::ImageByteMap& ImageByteMap = module.getImageByteMap();
     uint64_t BaseAddress = static_cast<uint64_t>(ImageByteMap.getBaseAddress());
     if (inst.address + inst.size + op.mem.disp == BaseAddress) {
       os << "__ImageBase]";
@@ -331,8 +328,7 @@ void MasmPrettyPrinter::printSymbolicExpression(
 void MasmPrettyPrinter::printSymbolicExpression(std::ostream& os,
                                                 const gtirb::SymAddrAddr* sexpr,
                                                 bool inData) {
-  gtirb::Module& Module = *ir.modules().begin();
-  gtirb::ImageByteMap& ImageByteMap = Module.getImageByteMap();
+  gtirb::ImageByteMap& ImageByteMap = module.getImageByteMap();
 
   if (inData && sexpr->Sym2->getAddress() == ImageByteMap.getBaseAddress()) {
     os << masmSyntax.imagerel() << ' ';
@@ -363,7 +359,7 @@ void MasmPrettyPrinter::printString(std::ostream& os,
   };
 
   os << syntax.string() << ' ';
-  auto Bytes = getBytes(this->ir.modules().begin()->getImageByteMap(), x);
+  auto Bytes = getBytes(module.getImageByteMap(), x);
   for (auto it = Bytes.begin(); it != Bytes.end() && *it != std::byte(0);) {
 
     // Aggregate quoted string
@@ -416,10 +412,10 @@ const PrintingPolicy& MasmPrettyPrinterFactory::defaultPrintingPolicy() const {
 }
 
 std::unique_ptr<PrettyPrinterBase>
-MasmPrettyPrinterFactory::create(gtirb::Context& context, gtirb::IR& ir,
+MasmPrettyPrinterFactory::create(gtirb::Context& context, gtirb::Module& module,
                                  const PrintingPolicy& policy) {
   static const MasmSyntax syntax{};
-  return std::make_unique<MasmPrettyPrinter>(context, ir, syntax, policy);
+  return std::make_unique<MasmPrettyPrinter>(context, module, syntax, policy);
 }
 
 volatile bool MasmPrettyPrinter::registered = registerPrinter(

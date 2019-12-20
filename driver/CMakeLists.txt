@@ -1,4 +1,5 @@
-SET(PROJECT_NAME gtirb-pprinter)
+SET(PRETTY_PRINTER gtirb-pprinter)
+SET(BINARY_PRINTER gtirb-binary-printer)
 
 # Required warning suppression (TODO: Remove!)
 if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
@@ -10,14 +11,6 @@ elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL Clang)
   add_compile_options(-mtune=generic)
   add_compile_options(-pthread)
 endif()
-
-set(${PROJECT_NAME}_H
-  Logger.h
-)
-
-set(${PROJECT_NAME}_SRC
-  main.cpp
-)
 
 # Unix, but not Cygwin.
 IF(UNIX)
@@ -32,17 +25,23 @@ ELSE()
   )
 endif()
 
-add_executable(${PROJECT_NAME}
-    ${${PROJECT_NAME}_H}
-    ${${PROJECT_NAME}_SRC}
+add_executable(${PRETTY_PRINTER}
+    Logger.h
+    pretty_printer.cpp
   )
+
+add_executable(${BINARY_PRINTER}
+  Logger.h
+  binary_printer.cpp
+)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../src)
 
-set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "debloat")
+set_target_properties(${PRETTY_PRINTER} PROPERTIES FOLDER "debloat")
+set_target_properties(${BINARY_PRINTER} PROPERTIES FOLDER "debloat")
 
 target_link_libraries(
-  ${PROJECT_NAME}
+  ${PRETTY_PRINTER}
   ${SYSLIBS}
   ${EXPERIMENTAL_LIB}
   ${Boost_LIBRARIES}
@@ -50,8 +49,18 @@ target_link_libraries(
   gtirb_pprinter
 )
 
-install(TARGETS ${PROJECT_NAME} DESTINATION bin)
+target_link_libraries(
+  ${BINARY_PRINTER}
+  ${SYSLIBS}
+  ${EXPERIMENTAL_LIB}
+  ${Boost_LIBRARIES}
+  ${LIBCPP_ABI}
+  gtirb_pprinter
+)
+
+install(TARGETS ${PRETTY_PRINTER} ${BINARY_PRINTER} DESTINATION bin)
 
 if(NOT BUILD_SHARED_LIBS)
-  target_link_libraries(${PROJECT_NAME} -static-libstdc++)
+  target_link_libraries(${PRETTY_PRINTER} -static-libstdc++)
+  target_link_libraries(${BINARY_PRINTER} -static-libstdc++)
 endif()

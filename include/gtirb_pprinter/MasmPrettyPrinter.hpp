@@ -84,7 +84,7 @@ private:
 
 class MasmPrettyPrinter : public PePrettyPrinter {
 public:
-  MasmPrettyPrinter(gtirb::Context& context, gtirb::IR& ir,
+  MasmPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
                     const MasmSyntax& syntax, const PrintingPolicy& policy);
 
 protected:
@@ -156,7 +156,7 @@ class MasmPrettyPrinterFactory : public PrettyPrinterFactory {
 public:
   const PrintingPolicy& defaultPrintingPolicy() const override;
   std::unique_ptr<PrettyPrinterBase>
-  create(gtirb::Context& context, gtirb::IR& ir,
+  create(gtirb::Context& context, gtirb::Module& module,
          const PrintingPolicy& policy) override;
 };
 
