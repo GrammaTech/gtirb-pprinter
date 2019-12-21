@@ -454,6 +454,20 @@ void PrettyPrinterBase::printInstruction(std::ostream& os, const cs_insn& inst,
     return;
   }
 
+  // XXX: IMUL
+  if (inst.id == X86_INS_IMUL) {
+    cs_x86& detail = inst.detail->x86;
+    uint8_t opCount = detail.op_count;
+    if (opCount == 3) {
+      os << syntax.comment() << ' ' << inst.mnemonic << ' ' << inst.op_str
+         << '\n';
+      for (int i = 0; i < inst.size; i++) {
+        printByte(os, std::byte(inst.bytes[i]));
+      }
+      return;
+    }
+  }
+
   // end special cases
   ////////////////////////////////////////////////////////////////////
 
