@@ -358,9 +358,20 @@ void MasmPrettyPrinter::printString(std::ostream& os,
       '"', '\n', '\t', '\v', '\b', '\r', '\a', '\'',
   };
 
+  size_t Items = 0;
+  const static size_t Limit = 5;
+
   os << syntax.string() << ' ';
   auto Bytes = getBytes(module.getImageByteMap(), x);
   for (auto it = Bytes.begin(); it != Bytes.end() && *it != std::byte(0);) {
+
+    // Break long strings across lines.
+    // NOTE: MASM only supports statements with 50 comma-separated items.
+    Items++;
+    if (Items > Limit) {
+      os << '\n' << syntax.tab() << syntax.string() << ' ';
+      Items = 0;
+    }
 
     // Aggregate quoted string
     std::string String{""};
@@ -387,10 +398,23 @@ void MasmPrettyPrinter::printString(std::ostream& os,
     // Print special characters
     while (it != Bytes.end() && *it != std::byte(0) &&
            Special.count(uint8_t(*it)) > 0) {
+      Items++;
       // Output hex byte, prefixed with 0 because MASM doesn't like
       // constants that begin with a letter (e.g FFh)
       os << std::hex << std::setfill('0') << std::setw(2)
-         << static_cast<uint32_t>(*it) << 'H' << std::dec << ", ";
+         << static_cast<uint32_t>(*it) << 'H' << std::dec;
+      if (*it == std::byte('\n')) {
+        os << '\n' << syntax.tab() << syntax.string() << ' ';
+        it++;
+        Items = 0;
+        break;
+      }
+      if (Items < Limit) {
+        os << ", ";
+      } else {
+        it++;
+        break;
+      }
       it++;
     }
   }
