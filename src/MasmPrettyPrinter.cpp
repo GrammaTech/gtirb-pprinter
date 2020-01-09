@@ -162,6 +162,14 @@ void MasmPrettyPrinter::printSectionFooterDirective(
 
 void MasmPrettyPrinter::printFunctionHeader(std::ostream& os,
                                             gtirb::Addr addr) {
+  // Print public definitions
+  for (const gtirb::Symbol& symbol :
+       this->ir.modules().begin()->findSymbols(addr)) {
+    if (symbol.getStorageKind() == gtirb::Symbol::StorageKind::Normal) {
+      os << '\n' << syntax.global() << ' ' << symbol.getName() << '\n';
+    }
+  }
+
   const std::string& name =
       syntax.formatFunctionName(this->getFunctionName(addr));
   if (!name.empty()) {
