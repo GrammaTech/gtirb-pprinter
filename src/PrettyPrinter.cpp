@@ -454,20 +454,6 @@ void PrettyPrinterBase::printInstruction(std::ostream& os, const cs_insn& inst,
     return;
   }
 
-  // XXX: IMUL
-  if (inst.id == X86_INS_IMUL) {
-    cs_x86& detail = inst.detail->x86;
-    uint8_t opCount = detail.op_count;
-    if (opCount == 3) {
-      os << syntax.comment() << ' ' << inst.mnemonic << ' ' << inst.op_str
-         << '\n';
-      for (int i = 0; i < inst.size; i++) {
-        printByte(os, std::byte(inst.bytes[i]));
-      }
-      return;
-    }
-  }
-
   // end special cases
   ////////////////////////////////////////////////////////////////////
 
@@ -502,11 +488,23 @@ void PrettyPrinterBase::printOperandList(std::ostream& os,
     opCount = 1;
   }
 
+  // Capstone's third operand for IMUL is not properly signed, we skip it and
+  // cast it after printing the other operands.
+  if (inst.id == X86_INS_IMUL && opCount == 3) {
+    opCount = 2;
+  }
+
   for (int i = 0; i < opCount; i++) {
     if (i != 0) {
       os << ',';
     }
     printOperand(os, inst, i);
+  }
+
+  // Cast and print properly signed immediate for IMUL.
+  if (inst.id == X86_INS_IMUL && detail.op_count == 3) {
+    const cs_x86_op& op = inst.detail->x86.operands[2];
+    os << ',' << static_cast<int32_t>(op.imm);
   }
 }
 
