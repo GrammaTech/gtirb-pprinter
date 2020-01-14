@@ -308,7 +308,7 @@ protected:
   virtual void printOperand(std::ostream& os, const gtirb::CodeBlock& block,
                             const cs_insn& inst, uint64_t index);
   virtual void printOpRegdirect(std::ostream& os, const cs_insn& inst,
-                                const cs_x86_op& op) = 0;
+                                uint64_t index) = 0;
   virtual void printOpImmediate(std::ostream& os,
                                 const gtirb::SymbolicExpression* symbolic,
                                 const cs_insn& inst, uint64_t index) = 0;

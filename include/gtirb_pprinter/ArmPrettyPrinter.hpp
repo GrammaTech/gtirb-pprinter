@@ -1,4 +1,4 @@
-//===- IntelPrettyPrinter.h -------------------------------------*- C++ -*-===//
+//===- ArmPrettyPrinter.h -------------------------------------*- C++ -*-===//
 //
 //  Copyright (C) 2019 GrammaTech, Inc.
 //
@@ -12,30 +12,28 @@
 //  endorsement should be inferred.
 //
 //===----------------------------------------------------------------------===//
-#ifndef GTIRB_PP_INTEL_PRINTER_H
-#define GTIRB_PP_INTEL_PRINTER_H
+#ifndef GTIRB_PP_ARM_PRINTER_H
+#define GTIRB_PP_ARM_PRINTER_H
 
 #include "ElfPrettyPrinter.hpp"
 
 namespace gtirb_pprint {
 
-class IntelSyntax : public ElfSyntax {
-public:
-  const std::string& offset() const { return OffsetDirective; }
+class ArmSyntax : public ElfSyntax {};
 
-private:
-  const std::string OffsetDirective{"OFFSET"};
-};
-
-class IntelPrettyPrinter : public ElfPrettyPrinter {
+class ArmPrettyPrinter : public ElfPrettyPrinter {
 public:
-  IntelPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
-                     const IntelSyntax& syntax, const PrintingPolicy& policy);
+  ArmPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
+                   const ArmSyntax& syntax, const PrintingPolicy& policy);
 
 protected:
-  const IntelSyntax& intelSyntax;
+  const ArmSyntax& armSyntax;
 
+  std::string getRegisterName(unsigned int reg) const override;
   void printHeader(std::ostream& os) override;
+  void printOperandList(std::ostream& os, const cs_insn& inst) override;
+  void printOperand(std::ostream& os, const cs_insn& inst,
+                    uint64_t index) override;
   void printOpRegdirect(std::ostream& os, const cs_insn& inst,
                         uint64_t index) override;
   void printOpImmediate(std::ostream& os,
@@ -49,7 +47,7 @@ private:
   static volatile bool registered;
 };
 
-class IntelPrettyPrinterFactory : public PrettyPrinterFactory {
+class ArmPrettyPrinterFactory : public PrettyPrinterFactory {
 public:
   const PrintingPolicy& defaultPrintingPolicy() const override;
   std::unique_ptr<PrettyPrinterBase>
@@ -59,4 +57,4 @@ public:
 
 } // namespace gtirb_pprint
 
-#endif /* GTIRB_PP_INTEL_PRINTER_H */
+#endif /* GTIRB_PP_ARM_PRINTER_H */
