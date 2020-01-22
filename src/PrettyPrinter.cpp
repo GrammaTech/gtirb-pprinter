@@ -433,6 +433,12 @@ void PrettyPrinterBase::fixupInstruction(cs_insn& inst) {
       inst.id == X86_INS_STOSD || inst.id == X86_INS_STOSQ) {
     detail.op_count = 1;
   }
+
+  // IMUL: third operand is a signed number, but it is decoded as unsigned.
+  if (inst.id == X86_INS_IMUL && detail.op_count == 3) {
+    cs_x86_op& op = detail.operands[2];
+    op.imm = static_cast<int32_t>(op.imm);
+  }
 }
 
 void PrettyPrinterBase::printInstruction(std::ostream& os, const cs_insn& inst,
