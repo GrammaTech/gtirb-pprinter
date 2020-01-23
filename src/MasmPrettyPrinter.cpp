@@ -361,71 +361,31 @@ void MasmPrettyPrinter::printZeroDataObject(
 void MasmPrettyPrinter::printString(std::ostream& os,
                                     const gtirb::DataObject& x) {
 
-  const static std::unordered_set<uint8_t> Special = {
-      '"', '\n', '\t', '\v', '\b', '\r', '\a', '\'',
-  };
-
-  size_t Items = 0;
-  const static size_t Limit = 5;
-
-  os << syntax.string() << ' ';
-  auto Bytes = getBytes(module.getImageByteMap(), x);
-  for (auto it = Bytes.begin(); it != Bytes.end() && *it != std::byte(0);) {
-
-    // Break long strings across lines.
-    // NOTE: MASM only supports statements with 50 comma-separated items.
-    Items++;
-    if (Items > Limit) {
-      os << '\n' << syntax.tab() << syntax.string() << ' ';
-      Items = 0;
-    }
-
-    // Aggregate quoted string
-    std::string String{""};
-    while (it != Bytes.end() && *it != std::byte(0) &&
-           Special.count(uint8_t(*it)) == 0) {
-      String += uint8_t(*it);
-      it++;
-    }
-
-    // Print quoted string in slices of size Count.
+  std::string Chunk{""};
+  for (const std::byte& b : getBytes(module.getImageByteMap(), x)) {
     // NOTE: MASM only supports strings smaller than 256 bytes.
-    const static size_t Count = 64;
-    for (size_t Index = 0; Index < String.size(); Index += Count) {
-      if (Index > 0) {
-        os << '\n' << syntax.tab() << syntax.string() << ' ';
-      }
-      os << '"' << String.substr(Index, Count) << '"';
-      if ((String.size() <= Count) ||
-          ((Index + Count) >= String.size() && it != Bytes.end())) {
-        os << ", ";
-      }
+    //  and  MASM only supports statements with 50 comma-separated items.
+    if (Chunk.size() >= 64) {
+      boost::replace_all(Chunk, "'", "''");
+      os << syntax.tab() << syntax.string() << " '" << Chunk << "'\n";
+      Chunk.clear();
     }
 
-    // Print special characters
-    while (it != Bytes.end() && *it != std::byte(0) &&
-           Special.count(uint8_t(*it)) > 0) {
-      Items++;
-      // Output hex byte, prefixed with 0 because MASM doesn't like
-      // constants that begin with a letter (e.g FFh)
-      os << std::hex << std::setfill('0') << std::setw(2)
-         << static_cast<uint32_t>(*it) << 'H' << std::dec;
-      if (*it == std::byte('\n')) {
-        os << '\n' << syntax.tab() << syntax.string() << ' ';
-        it++;
-        Items = 0;
-        break;
-      }
-      if (Items < Limit) {
-        os << ", ";
-      } else {
-        it++;
-        break;
-      }
-      it++;
+    // Aggegrate printable characters
+    if (std::isprint(uint8_t(b))) {
+      Chunk.append(1, uint8_t(b));
+      continue;
     }
+
+    // Found non-printable character, output previous chunk and print byte
+    if (!Chunk.empty()) {
+      boost::replace_all(Chunk, "'", "''");
+      os << syntax.tab() << syntax.string() << " '" << Chunk << "'\n";
+      Chunk.clear();
+    }
+    os << syntax.tab();
+    printByte(os, b);
   }
-  os << '0';
 }
 
 void MasmPrettyPrinter::printFooter(std::ostream& os) {
