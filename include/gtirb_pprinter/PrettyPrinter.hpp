@@ -238,6 +238,8 @@ protected:
                                    const gtirb::DataObject& dataObject);
   virtual void printByte(std::ostream& os, std::byte byte) = 0;
 
+  virtual void fixupInstruction(cs_insn& inst);
+
   /// Print a single instruction to the stream. This implementation prints the
   /// mnemonic provided by Capstone, then calls printOperandList(). Thus, it is
   /// probably sufficient for most subclasses to configure Capstone to produce

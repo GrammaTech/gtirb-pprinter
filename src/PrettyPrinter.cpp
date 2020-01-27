@@ -309,6 +309,7 @@ void PrettyPrinterBase::printBlock(std::ostream& os, const gtirb::Block& x) {
 
   gtirb::Offset offset(x.getUUID(), 0);
   for (size_t i = 0; i < count; i++) {
+    fixupInstruction(insn[i]);
     printInstruction(os, insn[i], offset);
     offset.Displacement += insn[i].size;
     os << '\n';
@@ -418,6 +419,30 @@ void PrettyPrinterBase::printSymbolDefinitionsAtAddress(std::ostream& os,
   }
 }
 
+void PrettyPrinterBase::fixupInstruction(cs_insn& inst) {
+  cs_x86& detail = inst.detail->x86;
+
+  // Operands are implicit for various MOVS* instructions. But there is also
+  // an SSE2 instruction named MOVSD which has explicit operands.
+  if ((inst.id == X86_INS_MOVSB || inst.id == X86_INS_MOVSW ||
+       inst.id == X86_INS_MOVSD || inst.id == X86_INS_MOVSQ) &&
+      inst.detail->groups[0] != X86_GRP_SSE2) {
+    detail.op_count = 0;
+  }
+
+  // Register operands are implicit for STOS* instructions.
+  if (inst.id == X86_INS_STOSB || inst.id == X86_INS_STOSW ||
+      inst.id == X86_INS_STOSD || inst.id == X86_INS_STOSQ) {
+    detail.op_count = 1;
+  }
+
+  // IMUL: third operand is a signed number, but it is decoded as unsigned.
+  if (inst.id == X86_INS_IMUL && detail.op_count == 3) {
+    cs_x86_op& op = detail.operands[2];
+    op.imm = static_cast<int32_t>(op.imm);
+  }
+}
+
 void PrettyPrinterBase::printInstruction(std::ostream& os, const cs_insn& inst,
                                          const gtirb::Offset& offset) {
 
@@ -473,20 +498,6 @@ void PrettyPrinterBase::printOperandList(std::ostream& os,
                                          const cs_insn& inst) {
   cs_x86& detail = inst.detail->x86;
   uint8_t opCount = detail.op_count;
-
-  // Operands are implicit for various MOVS* instructions. But there is also
-  // an SSE2 instruction named MOVSD which has explicit operands.
-  if ((inst.id == X86_INS_MOVSB || inst.id == X86_INS_MOVSW ||
-       inst.id == X86_INS_MOVSD || inst.id == X86_INS_MOVSQ) &&
-      inst.detail->groups[0] != X86_GRP_SSE2) {
-    opCount = 0;
-  }
-
-  // Register operands are implicit for STOS* instructions.
-  if (inst.id == X86_INS_STOSB || inst.id == X86_INS_STOSW ||
-      inst.id == X86_INS_STOSD || inst.id == X86_INS_STOSQ) {
-    opCount = 1;
-  }
 
   for (int i = 0; i < opCount; i++) {
     if (i != 0) {
