@@ -190,6 +190,19 @@ void MasmPrettyPrinter::printFunctionFooter(std::ostream& /* os */,
   // }
 }
 
+void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
+
+  // Change GAS-specific MOVABS opcode to equivalent MOV opcode.
+  if (inst.id == X86_INS_MOVABS) {
+    std::string_view mnemonic(inst.mnemonic);
+    if (mnemonic == "movabs") {
+      inst.mnemonic[3] = '\0';
+    }
+  }
+
+  PrettyPrinterBase::fixupInstruction(inst);
+}
+
 void MasmPrettyPrinter::printSymbolDefinitionsAtAddress(std::ostream& os,
                                                         gtirb::Addr ea,
                                                         bool inData) {

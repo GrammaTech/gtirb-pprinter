@@ -115,6 +115,8 @@ protected:
                        const gtirb::SymbolicExpression* symbolic,
                        const cs_insn& inst, uint64_t index) override;
 
+  void fixupInstruction(cs_insn& inst) override;
+
   void printSymbolDefinitionsAtAddress(std::ostream& os, gtirb::Addr ea,
                                        bool inData) override;
 
