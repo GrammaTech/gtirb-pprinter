@@ -195,7 +195,7 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
   // Change GAS-specific MOVABS opcode to equivalent MOV opcode.
   if (inst.id == X86_INS_MOVABS) {
     std::string_view mnemonic(inst.mnemonic);
-    if (mnemonic == "movabs") {
+    if (mnemonic.size() > 3) {
       inst.mnemonic[3] = '\0';
     }
   }
