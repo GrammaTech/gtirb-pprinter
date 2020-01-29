@@ -1,31 +1,9 @@
 set(PRETTY_PRINTER gtirb-pprinter)
 set(BINARY_PRINTER gtirb-binary-printer)
 
-# Required warning suppression (TODO: Remove!)
-if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
-  # add_compile_options(-wd4251)  # Non-exportable template classes.
-elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
-  add_compile_options(-mtune=generic)
-  add_compile_options(-pthread)
-elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL Clang)
-  add_compile_options(-mtune=generic)
-  add_compile_options(-pthread)
-endif()
-
-# Unix, but not Cygwin.
-if(UNIX)
-  if(NOT WIN32)
-    set(SYSLIBS ${SYSLIBS} dl pthread)
-  endif()
-else()
-  set(SYSLIBS)
-endif()
-
 add_executable(${PRETTY_PRINTER} Logger.h pretty_printer.cpp)
 
 add_executable(${BINARY_PRINTER} Logger.h binary_printer.cpp)
-
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../src)
 
 set_target_properties(${PRETTY_PRINTER} PROPERTIES FOLDER "debloat")
 set_target_properties(${BINARY_PRINTER} PROPERTIES FOLDER "debloat")

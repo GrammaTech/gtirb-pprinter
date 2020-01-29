@@ -6,10 +6,24 @@
 cmake_minimum_required(VERSION 3.9.0)
 
 project(gtirb_pprinter)
+
+# get version information
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" ver)
+
+string(REGEX MATCH "VERSION_MAJOR ([0-9]*)" _ ${ver})
+set(GTIRB_PPRINTER_MAJOR_VERSION ${CMAKE_MATCH_1})
+
+string(REGEX MATCH "VERSION_MINOR ([0-9]*)" _ ${ver})
+set(GTIRB_PPRINTER_MINOR_VERSION ${CMAKE_MATCH_1})
+
+string(REGEX MATCH "VERSION_PATCH ([0-9]*)" _ ${ver})
+set(GTIRB_PPRINTER_PATCH_VERSION ${CMAKE_MATCH_1})
+
 set(GTIRB_PPRINTER_VERSION
-    "0.1.1"
+    "${GTIRB_PPRINTER_MAJOR_VERSION}.${GTIRB_PPRINTER_MINOR_VERSION}.${GTIRB_PPRINTER_PATCH_VERSION}"
     CACHE STRING "version of gtirb-pprinter" FORCE)
 
+# includes
 include(CheckFunctionExists)
 include(CheckCXXSourceCompiles)
 include(CheckIncludeFile)
@@ -49,22 +63,6 @@ set(CMAKE_MINSIZEREL_POSTFIX
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-
-# Handle version initialization
-file(READ "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" ver)
-
-string(REGEX MATCH "VERSION_MAJOR ([0-9]*)" _ ${ver})
-set(GTIRB_PPRINTER_MAJOR_VERSION ${CMAKE_MATCH_1})
-
-string(REGEX MATCH "VERSION_MINOR ([0-9]*)" _ ${ver})
-set(GTIRB_PPRINTER_MINOR_VERSION ${CMAKE_MATCH_1})
-
-string(REGEX MATCH "VERSION_PATCH ([0-9]*)" _ ${ver})
-set(GTIRB_PPRINTER_PATCH_VERSION ${CMAKE_MATCH_1})
-
-configure_file(
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/gtirb_pprinter/version.h.in"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/gtirb_pprinter/version.h" @ONLY)
 
 # Use C++17
 set(CMAKE_CXX_STANDARD 17)
@@ -165,9 +163,31 @@ if(USING_LIBCPP)
   endif()
 endif()
 
-# Base include path for the pretty-printer.
-include_directories(${CMAKE_SOURCE_DIR}/include/gtirb_pprinter)
+# includes
+include_directories("${CMAKE_SOURCE_DIR}/include/")
+include_directories("${CMAKE_BINARY_DIR}/include/")
 
+# Required warning suppression (TODO: Remove!)
+if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
+  # add_compile_options(-wd4251)  # Non-exportable template classes.
+elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
+  add_compile_options(-mtune=generic)
+  add_compile_options(-pthread)
+elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL Clang)
+  add_compile_options(-mtune=generic)
+  add_compile_options(-pthread)
+endif()
+
+# If Unix, but not Cygwin: Find system libs we need to link with.
+if(UNIX)
+  if(NOT WIN32)
+    set(SYSLIBS ${SYSLIBS} dl pthread)
+  endif()
+else()
+  set(SYSLIBS)
+endif()
+
+# global MSVC options
 if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
   add_compile_options(-D_CRT_SECURE_NO_WARNINGS)
   add_compile_options(-D_MBCS)
@@ -316,7 +336,6 @@ include_directories(${CAPSTONE_INCLUDE_DIRS})
 # ---------------------------------------------------------------------------
 # Source files
 # ---------------------------------------------------------------------------
-add_subdirectory(driver)
 add_subdirectory(src)
 
 # ---------------------------------------------------------------------------
