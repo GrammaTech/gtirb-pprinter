@@ -115,7 +115,7 @@ void ElfPrettyPrinter::printByte(std::ostream& os, std::byte byte) {
 void ElfPrettyPrinter::printFooter(std::ostream& /* os */){};
 
 bool ElfPrettyPrinter::shouldExcludeDataElement(
-    const gtirb::Section& section, const gtirb::DataObject& dataObject) const {
+    const gtirb::Section& section, const gtirb::DataBlock& dataObject) const {
   if (!policy.arraySections.count(section.getName()))
     return false;
   auto foundSymbolic = module.findSymbolicExpression(dataObject.getAddress());

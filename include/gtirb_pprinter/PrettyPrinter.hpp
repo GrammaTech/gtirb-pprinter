@@ -219,23 +219,23 @@ protected:
   /// Return the ending address of the block if this was printed. Otherwise
   /// return last.
   virtual gtirb::Addr printBlockOrWarning(std::ostream& os,
-                                          const gtirb::Block& x,
+                                          const gtirb::CodeBlock& x,
                                           gtirb::Addr last);
   /// Print the dataObject as long as it does not overlap with the address last.
   /// If it overlaps, print a warning instead.
   /// Return the ending address of the block if this was printed. Otherwise
   /// return last.
-  virtual gtirb::Addr printDataObjectOrWarning(std::ostream& os,
-                                               const gtirb::DataObject& x,
-                                               gtirb::Addr last);
+  virtual gtirb::Addr printDataBlockOrWarning(std::ostream& os,
+                                              const gtirb::DataBlock& x,
+                                              gtirb::Addr last);
 
-  virtual void printBlock(std::ostream& os, const gtirb::Block& x);
-  virtual void printDataObject(std::ostream& os,
-                               const gtirb::DataObject& dataObject);
-  virtual void printNonZeroDataObject(std::ostream& os,
-                                      const gtirb::DataObject& dataObject);
-  virtual void printZeroDataObject(std::ostream& os,
-                                   const gtirb::DataObject& dataObject);
+  virtual void printBlock(std::ostream& os, const gtirb::CodeBlock& x);
+  virtual void printDataBlock(std::ostream& os,
+                              const gtirb::DataBlock& dataObject);
+  virtual void printNonZeroDataBlock(std::ostream& os,
+                                     const gtirb::DataBlock& dataObject);
+  virtual void printZeroDataBlock(std::ostream& os,
+                                  const gtirb::DataBlock& dataObject);
   virtual void printByte(std::ostream& os, std::byte byte) = 0;
 
   virtual void fixupInstruction(cs_insn& inst);
@@ -259,7 +259,7 @@ protected:
   virtual void printCFIDirectives(std::ostream& os, const gtirb::Offset& ea);
   virtual void printSymbolicData(std::ostream& os,
                                  const gtirb::SymbolicExpression* symbolic,
-                                 const gtirb::DataObject& dataObject);
+                                 const gtirb::DataBlock& dataObject);
   virtual void printSymbolicExpression(std::ostream& os,
                                        const gtirb::SymAddrConst* sexpr,
                                        bool inData = false);
@@ -275,7 +275,7 @@ protected:
                                     bool inData) const;
   virtual void printAddend(std::ostream& os, int64_t number,
                            bool first = false);
-  virtual void printString(std::ostream& os, const gtirb::DataObject& x);
+  virtual void printString(std::ostream& os, const gtirb::DataBlock& x);
 
   virtual void printOperand(std::ostream& os, const cs_insn& inst,
                             uint64_t index);
@@ -291,12 +291,12 @@ protected:
   virtual void printSymbolDefinitionsAtAddress(std::ostream& os, gtirb::Addr ea,
                                                bool inData = false);
   virtual void printOverlapWarning(std::ostream& os, gtirb::Addr ea);
-  virtual void printDataObjectType(std::ostream& os,
-                                   const gtirb::DataObject& dataObject);
+  virtual void printDataBlockType(std::ostream& os,
+                                  const gtirb::DataBlock& dataObject);
 
   virtual bool
   shouldExcludeDataElement(const gtirb::Section& section,
-                           const gtirb::DataObject& dataObject) const;
+                           const gtirb::DataBlock& dataObject) const;
 
   virtual bool skipEA(const gtirb::Addr x) const;
 
