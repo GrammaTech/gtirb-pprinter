@@ -17,6 +17,5 @@ CTestTestfile.cmake
 /gtirb
 /datalog_disasm/
 /include/gsl/*
-include/gtirb_pprinter/version.h
 /.vscode/
 .mypy_cache/
