@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Called by the linux Dockerfiles 
+# Called by the linux Dockerfiles
 
 CXX_COMPILER=$1
 

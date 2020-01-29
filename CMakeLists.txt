@@ -53,26 +53,18 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 # Handle version initialization
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" ver)
 
-string(REGEX MATCH
-             "VERSION_MAJOR ([0-9]*)"
-             _
-             ${ver})
+string(REGEX MATCH "VERSION_MAJOR ([0-9]*)" _ ${ver})
 set(GTIRB_PPRINTER_MAJOR_VERSION ${CMAKE_MATCH_1})
 
-string(REGEX MATCH
-             "VERSION_MINOR ([0-9]*)"
-             _
-             ${ver})
+string(REGEX MATCH "VERSION_MINOR ([0-9]*)" _ ${ver})
 set(GTIRB_PPRINTER_MINOR_VERSION ${CMAKE_MATCH_1})
 
-string(REGEX MATCH
-             "VERSION_PATCH ([0-9]*)"
-             _
-             ${ver})
+string(REGEX MATCH "VERSION_PATCH ([0-9]*)" _ ${ver})
 set(GTIRB_PPRINTER_PATCH_VERSION ${CMAKE_MATCH_1})
 
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/gtirb_pprinter/version.h.in"
-               "${CMAKE_CURRENT_SOURCE_DIR}/include/gtirb_pprinter/version.h" @ONLY)
+configure_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/gtirb_pprinter/version.h.in"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/gtirb_pprinter/version.h" @ONLY)
 
 # Use C++17
 set(CMAKE_CXX_STANDARD 17)
@@ -94,7 +86,8 @@ if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
   set(USE_STD_FILESYSTEM_LIB_DEFAULT ON)
 endif()
 
-option(USE_STD_FILESYSTEM_LIB
+option(
+  USE_STD_FILESYSTEM_LIB
   "Use the standard filesystem library instead of the experimental filesystem library"
   ${USE_STD_FILESYSTEM_LIB_DEFAULT})
 
@@ -103,46 +96,45 @@ if(USE_STD_FILESYSTEM_LIB)
 else()
   set(EXPERIMENTAL_LIB
       ""
-      CACHE STRING
-            "The library to link with in order to use <experimental/filesystem>.")
-  
+      CACHE
+        STRING
+        "The library to link with in order to use <experimental/filesystem>.")
+
   if(NOT EXPERIMENTAL_LIB)
-    set(EXFS_CODE "
+    set(EXFS_CODE
+        "
     #include <experimental/filesystem>
     int main() {
       std::experimental::filesystem::path p{\"an/example/path\"};
       return std::experimental::filesystem::exists(p);
     }
     ")
-  
+
     check_cxx_source_compiles("${EXFS_CODE}" EXFS_LINK_NONE)
-  
+
     if(NOT EXFS_LINK_NONE)
-      foreach(EXFS_LIB
-              stdc++fs
-              c++experimental
-              c++fs)
+      foreach(EXFS_LIB stdc++fs c++experimental c++fs)
         set(OLD_CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES})
         list(APPEND CMAKE_REQUIRED_LIBRARIES ${EXFS_LIB})
         check_cxx_source_compiles("${EXFS_CODE}" EXFS_LINK_${EXFS_LIB}_OK)
         set(CMAKE_REQUIRED_LIBRARIES ${OLD_CMAKE_REQUIRED_LIBRARIES})
-  
+
         if(EXFS_LINK_${EXFS_LIB}_OK)
           if(EXPERIMENTAL_LIB)
             message(
               FATAL_ERROR
                 "multiple candidates for library to link for <experimental/filesystem>: ${EXPERIMENTAL_LIB} and ${EXFS_LIB}. Try giving the correct one explicitly with -DEXPERIMENTAL_LIB."
-              )
+            )
           endif()
           set(EXPERIMENTAL_LIB ${EXFS_LIB})
         endif()
       endforeach()
-  
+
       if(NOT EXPERIMENTAL_LIB)
         message(
           FATAL_ERROR
             "could not find library to link for <experimental/filesystem>. Try giving it explicitly with -DEXPERIMENTAL_LIB."
-          )
+        )
       endif()
     endif()
   endif()
@@ -152,12 +144,14 @@ endif()
 # using libstdc++, which automatically does this)
 include(CheckCXXSourceCompiles)
 
-check_cxx_source_compiles("
+check_cxx_source_compiles(
+  "
   #include <ciso646>
   int main() {
     return _LIBCPP_VERSION;
   }
-" USING_LIBCPP)
+"
+  USING_LIBCPP)
 
 if(USING_LIBCPP)
   if(BUILD_SHARED_LIBS)
@@ -189,28 +183,28 @@ if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
   add_compile_options(-W4)
   add_compile_options(-WX)
 
-  add_compile_options(-wd4251) # 'identifier' : class 'type' needs to have dll-
-                               # interface to be used by clients of class
-                               # 'type2'
+  add_compile_options(
+    -wd4251) # 'identifier' : class 'type' needs to have dll- interface to be
+             # used by clients of class 'type2'
   add_compile_options(-wd4275) # Non-dll interface base classes.
   add_compile_options(-wd4996) # VC8: Deprecated libc functions.
-  add_compile_options(-wd4351) # This is a warning about a change in behavior
-                               # from old versions of visual c++.  We want the
-                               # new (standard-compliant) behavior, so we don't
-                               # want the warning.  The warning is that using an
-                               # array in a class initializer list will cause
-                               # its elements to be default initialized.
+  add_compile_options(
+    -wd4351) # This is a warning about a change in behavior from old versions of
+             # visual c++.  We want the new (standard-compliant) behavior, so we
+             # don't want the warning.  The warning is that using an array in a
+             # class initializer list will cause its elements to be default
+             # initialized.
 
   # Per-configuration options
   add_compile_options($<$<CONFIG:Debug>:-D_DEBUG>)
   add_compile_options($<$<CONFIG:Debug>:-DDEBUG>)
   add_compile_options($<$<CONFIG:Debug>:-MDd>)
   add_compile_options($<$<CONFIG:Debug>:-Ob0>) # Disables inline expansion
-  add_compile_options($<$<CONFIG:Debug>:-Od>) # Disables optimization, speeding
-                                              # compilation and simplifying
-                                              # debugging.
-                                              # https://msdn.microsoft.com/en-
-                                              # us/library/k1ack8f1.aspx
+  add_compile_options(
+    $<$<CONFIG:Debug>:-Od>) # Disables optimization, speeding compilation and
+                            # simplifying debugging.
+                            # https://msdn.microsoft.com/en-
+                            # us/library/k1ack8f1.aspx
   add_compile_options($<$<CONFIG:Debug>:-RTC1>) # Enables run-time error
                                                 # checking.
   add_compile_options($<$<CONFIG:Debug>:-W4>) # Sets warning level.
@@ -223,13 +217,11 @@ if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
   add_compile_options($<$<CONFIG:RelWithDebInfo>:-DNDEBUG>)
   add_compile_options($<$<CONFIG:RelWithDebInfo>:-MD>)
   add_compile_options($<$<CONFIG:RelWithDebInfo>:-O2>) # Creates fast code.
-  add_compile_options($<$<CONFIG:RelWithDebInfo>:-Ob2>) # The default value.
-                                                        # Allows expansion of
-                                                        # functions marked as
-                                                        # inline, __inline, or
-                                                        # __forceinline, and any
-                                                        # other function that
-                                                        # the compiler chooses.
+  add_compile_options(
+    $<$<CONFIG:RelWithDebInfo>:-Ob2>) # The default value. Allows expansion of
+                                      # functions marked as inline, __inline, or
+                                      # __forceinline, and any other function
+                                      # that the compiler chooses.
   add_compile_options($<$<CONFIG:RelWithDebInfo>:-Oi>) # Generates intrinsic
                                                        # functions.
   add_compile_options($<$<CONFIG:RelWithDebInfo>:-Ot>) # Favors fast code.
@@ -243,12 +235,11 @@ if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
   add_compile_options($<$<CONFIG:Release>:-DNDEBUG>)
   add_compile_options($<$<CONFIG:Release>:-MD>)
   add_compile_options($<$<CONFIG:Release>:-O2>) # Creates fast code.
-  add_compile_options($<$<CONFIG:Release>:-Ob2>) # The default value. Allows
-                                                 # expansion of functions marked
-                                                 # as inline, __inline, or
-                                                 # __forceinline, and any other
-                                                 # function that the compiler
-                                                 # chooses.
+  add_compile_options(
+    $<$<CONFIG:Release>:-Ob2>) # The default value. Allows expansion of
+                               # functions marked as inline, __inline, or
+                               # __forceinline, and any other function that the
+                               # compiler chooses.
   add_compile_options($<$<CONFIG:Release>:-Oi>) # Generates intrinsic functions.
   add_compile_options($<$<CONFIG:Release>:-Ot>) # Favors fast code.
   add_compile_options($<$<CONFIG:Release>:-W4>) # Sets warning level.
@@ -262,17 +253,11 @@ if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
       "${CMAKE_SHARED_LINKER_FLAGS} /LARGEADDRESSAWARE")
 
 elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
-  add_compile_options(-Wall
-                      -Wextra
-                      -Wpointer-arith
-                      -Wshadow)
+  add_compile_options(-Wall -Wextra -Wpointer-arith -Wshadow)
   add_compile_options(-Werror)
   add_compile_options(-fPIC)
 elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL Clang)
-  add_compile_options(-Wall
-                      -Wextra
-                      -Wpointer-arith
-                      -Wshadow)
+  add_compile_options(-Wall -Wextra -Wpointer-arith -Wshadow)
   add_compile_options(-Werror)
   add_compile_options(-fPIC)
 endif()
@@ -359,14 +344,14 @@ file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/export/gtirb_pprinterConfig.cmake"
 set(version_file
     "${CMAKE_CURRENT_BINARY_DIR}/gtirb_pprinterConfig-version.cmake")
 include(CMakePackageConfigHelpers)
-write_basic_package_version_file(${version_file}
-                                 VERSION ${GTIRB_PPRINTER_VERSION}
-                                 COMPATIBILITY AnyNewerVersion)
+write_basic_package_version_file(
+  ${version_file}
+  VERSION ${GTIRB_PPRINTER_VERSION}
+  COMPATIBILITY AnyNewerVersion)
 
 # Copy the config files to the install location
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/export/gtirb_pprinterConfig.cmake
-              ${version_file}
-        DESTINATION lib/gtirb_pprinter)
+              ${version_file} DESTINATION lib/gtirb_pprinter)
 
 install(EXPORT gtirb_pprinterTargets DESTINATION lib/gtirb_pprinter)
 

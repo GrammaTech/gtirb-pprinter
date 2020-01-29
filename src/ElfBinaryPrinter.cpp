@@ -25,7 +25,7 @@
 #elif defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4456) // variable shadowing warning
-#endif // __GNUC__
+#endif                          // __GNUC__
 #include <boost/process/search_path.hpp>
 #include <boost/process/system.hpp>
 #ifdef __GNUC__
