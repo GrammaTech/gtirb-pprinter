@@ -43,6 +43,8 @@ void ArmPrettyPrinter::printBlock(std::ostream& os, const gtirb::Block& x) {
   ElfPrettyPrinter::printBlock(os, x);
 }
 
+void ArmPrettyPrinter::fixupInstruction(cs_insn& inst) {}
+
 void ArmPrettyPrinter::printOperandList(std::ostream& os, const cs_insn& inst) {
   cs_arm& detail = inst.detail->arm;
   uint8_t opCount = detail.op_count;
