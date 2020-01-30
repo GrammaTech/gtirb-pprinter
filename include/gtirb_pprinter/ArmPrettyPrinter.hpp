@@ -33,6 +33,9 @@ protected:
   void printHeader(std::ostream& os) override;
   void printBlock(std::ostream& os, const gtirb::Block& x) override;
   void fixupInstruction(cs_insn& inst) override;
+  void printInstruction(std::ostream& os, const cs_insn& inst,
+                        const gtirb::Offset& offset) override;
+
   void printOperandList(std::ostream& os, const cs_insn& inst) override;
   void printOperand(std::ostream& os, const cs_insn& inst,
                     uint64_t index) override;

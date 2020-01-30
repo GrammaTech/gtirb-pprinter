@@ -14,6 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "ArmPrettyPrinter.hpp"
+#include "string_utils.hpp"
 #include <iostream>
 
 namespace gtirb_pprint {
@@ -45,6 +46,19 @@ void ArmPrettyPrinter::printBlock(std::ostream& os, const gtirb::Block& x) {
 }
 
 void ArmPrettyPrinter::fixupInstruction(cs_insn& /*inst*/) {}
+
+void ArmPrettyPrinter::printInstruction(std::ostream& os, const cs_insn& inst,
+                                        const gtirb::Offset& offset) {
+
+  gtirb::Addr ea(inst.address);
+  printSymbolDefinitionsAtAddress(os, ea);
+  printComments(os, offset, inst.size);
+  printCFIDirectives(os, offset);
+  printEA(os, ea);
+  std::string opcode = ascii_str_tolower(inst.mnemonic);
+  os << "  " << opcode << ' ';
+  printOperandList(os, inst);
+}
 
 void ArmPrettyPrinter::printOperandList(std::ostream& os, const cs_insn& inst) {
   cs_arm& detail = inst.detail->arm;
