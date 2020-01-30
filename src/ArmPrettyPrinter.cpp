@@ -34,6 +34,15 @@ void ArmPrettyPrinter::printHeader(std::ostream& os) {
   os << "# ARM " << std::endl;
 }
 
+void ArmPrettyPrinter::printBlock(std::ostream& os, const gtirb::Block& x) {
+  // 1 for THUMB 0 for regular ARM
+  if (x.getDecodeMode())
+    cs_option(this->csHandle, CS_OPT_MODE, CS_MODE_THUMB);
+  else
+    cs_option(this->csHandle, CS_OPT_MODE, CS_MODE_ARM);
+  ElfPrettyPrinter::printBlock(os, x);
+}
+
 void ArmPrettyPrinter::printOperandList(std::ostream& os, const cs_insn& inst) {
   cs_arm& detail = inst.detail->arm;
   uint8_t opCount = detail.op_count;
@@ -151,7 +160,8 @@ ArmPrettyPrinterFactory::create(gtirb::Context& gtirb_context,
                                             policy);
 }
 
-volatile bool ArmPrettyPrinter::registered = registerPrinter(
-    {"elf"}, {"arm"}, std::make_shared<ArmPrettyPrinterFactory>(), true);
+volatile bool ArmPrettyPrinter::registered =
+    registerPrinter({"elf"}, {"arm"}, {"arm"},
+                    std::make_shared<ArmPrettyPrinterFactory>(), true);
 
 } // namespace gtirb_pprint

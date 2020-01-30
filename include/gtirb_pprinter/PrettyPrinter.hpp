@@ -52,10 +52,11 @@ using string_range = boost::any_range<std::string, boost::forward_traversal_tag,
 /// used to load a default \link PrintingPolicy and create a pretty printer for
 /// the formats and syntaxes named in the initialization lists.
 ///
-/// For example, \code registerPrinter({"foo"}, {"bar"}, theFactory);
+/// For example, \code registerPrinter({"foo"}, {"x64"}, {"bar"}, theFactory);
 /// \endcode
 ///
 /// \param formats    the (non-empty) formats produced by the factory
+/// \param isas       the (non-empty) ISAs produced by the factory
 /// \param syntaxes   the (non-empty) syntaxes produced by the factory
 /// \param f          the (non-empty) \link PrettyPrinterFactory object
 /// \param isDefault  optionally make this the default factory for the
@@ -63,21 +64,28 @@ using string_range = boost::any_range<std::string, boost::forward_traversal_tag,
 ///
 /// \return \c true.
 bool registerPrinter(std::initializer_list<std::string> formats,
+                     std::initializer_list<std::string> isas,
                      std::initializer_list<std::string> syntaxes,
                      std::shared_ptr<PrettyPrinterFactory> f,
                      bool isDefault = false);
 
 /// Return the current set of syntaxes with registered factories.
-std::set<std::tuple<std::string, std::string>> getRegisteredTargets();
+std::set<std::tuple<std::string, std::string, std::string>>
+getRegisteredTargets();
 
 /// Return the file format of a GTIRB module.
 std::string getModuleFileFormat(const gtirb::Module& module);
 
-/// Set the default syntax for a file format.
-void setDefaultSyntax(const std::string& format, const std::string& syntax);
+/// Return the ISA of a GTIRB module.
+std::string getModuleISA(const gtirb::Module& module);
 
-/// Return the default syntax for a file format.
-std::optional<std::string> getDefaultSyntax(const std::string& format);
+/// Set the default syntax for a file format and isa.
+void setDefaultSyntax(const std::string& format, const std::string& isa,
+                      const std::string& syntax);
+
+/// Return the default syntax for a file format and isa.
+std::optional<std::string> getDefaultSyntax(const std::string& format,
+                                            const std::string& isa);
 
 /// A set of options to give to PrettyPrinterBase's policy in one category.
 /// Essentially, contains whether or not a set of strings to skip is cleared,
@@ -119,13 +127,14 @@ public:
   /// Set the target for which to pretty print. It is the caller's
   /// responsibility to ensure that the target name has been registered.
   ///
-  /// \param target compound indentifier of target format and syntax
-  void setTarget(const std::tuple<std::string, std::string>& target);
+  /// \param target compound indentifier of target format, isa, and syntax
+  void
+  setTarget(const std::tuple<std::string, std::string, std::string>& target);
 
   /// Set the file format for which to pretty print.
   ///
-  /// \param format indentifier of target format
-  void setFormat(const std::string& format);
+  /// \param format indentifier of target format and isa.
+  void setFormat(const std::string& format, const std::string& isa);
 
   /// Enable or disable debugging messages inside the pretty-printed code.
   ///
@@ -165,6 +174,7 @@ public:
 
 private:
   std::string m_format;
+  std::string m_isa;
   std::string m_syntax;
   DebugStyle m_debug;
   PolicyOptions FunctionPolicy, SymbolPolicy, SectionPolicy, ArraySectionPolicy;
