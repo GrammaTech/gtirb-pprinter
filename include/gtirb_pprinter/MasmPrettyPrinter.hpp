@@ -113,7 +113,7 @@ protected:
   void printFunctionFooter(std::ostream& os, gtirb::Addr addr) override;
 
   void printOpRegdirect(std::ostream& os, const cs_insn& inst,
-                        const cs_x86_op& op) override;
+                        uint64_t index) override;
   void printOpImmediate(std::ostream& os,
                         const gtirb::SymbolicExpression* symbolic,
                         const cs_insn& inst, uint64_t index) override;

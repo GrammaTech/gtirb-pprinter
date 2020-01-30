@@ -284,9 +284,9 @@ void MasmPrettyPrinter::printIntegralSymbol(std::ostream& os,
   printSymbolFooter(os, symbol);
 }
 
-void MasmPrettyPrinter::printOpRegdirect(std::ostream& os,
-                                         const cs_insn& /*inst*/,
-                                         const cs_x86_op& op) {
+void MasmPrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
+                                         uint64_t index) {
+  const cs_x86_op& op = inst.detail->x86.operands[index];
   assert(op.type == X86_OP_REG &&
          "printOpRegdirect called without a register operand");
   os << getRegisterName(op.reg);
@@ -470,7 +470,8 @@ MasmPrettyPrinterFactory::create(gtirb::Context& context, gtirb::Module& module,
   return std::make_unique<MasmPrettyPrinter>(context, module, syntax, policy);
 }
 
-volatile bool MasmPrettyPrinter::registered = registerPrinter(
-    {"pe"}, {"masm"}, std::make_shared<MasmPrettyPrinterFactory>(), true);
+volatile bool MasmPrettyPrinter::registered =
+    registerPrinter({"pe"}, {"x64"}, {"masm"},
+                    std::make_shared<MasmPrettyPrinterFactory>(), true);
 
 } // namespace gtirb_pprint
