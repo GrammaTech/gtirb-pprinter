@@ -83,64 +83,71 @@ getOutgoingEdges(CfgNode* B) {
       boost::make_transform_iterator(Pair.second, GetEdge(Cfg)));
 }
 
-bool layoutModule(Module& M) {
-  // merge together BIs with code blocks with fallthrough edges
-  bool didMerge = false;
-  do {
-    for (auto& S : M.sections()) {
-      for (auto& SourceBI : S.byte_intervals()) {
-        if (SourceBI.code_blocks().empty()) {
+static bool findAndMergeBIs(Section& S) {
+  for (auto& SourceBI : S.byte_intervals()) {
+    if (SourceBI.code_blocks().empty()) {
+      continue;
+    }
+
+    auto* Source = &SourceBI.code_blocks().back();
+
+    for (const auto& E : getOutgoingEdges(&*SourceBI.code_blocks_begin())) {
+      if (E.Type != EdgeType::Fallthrough) {
+        continue;
+      }
+
+      if (auto* Target = dyn_cast<CodeBlock>(E.Target)) {
+        auto& TargetBI = *Target->getByteInterval();
+        auto BaseOffset = SourceBI.getSize();
+
+        if (&SourceBI == &TargetBI) {
           continue;
         }
 
-        auto* Source = &SourceBI.code_blocks().back();
-
-        for (const auto& E : getOutgoingEdges(&*SourceBI.code_blocks_begin())) {
-          if (E.Type != EdgeType::Fallthrough) {
-            continue;
-          }
-
-          if (auto* Target = dyn_cast<CodeBlock>(E.Target)) {
-            auto& TargetBI = *Target->getByteInterval();
-            auto BaseOffset = SourceBI.getSize();
-
-            if (&SourceBI == &TargetBI) {
-              continue;
-            }
-
-            if (Source->getOffset() + Source->getSize() != SourceBI.getSize()) {
-              assert(!"fallthrough edge exists, but source is not at end of "
-                      "interval!");
-              return false;
-            }
-
-            if (Target->getOffset() != 0) {
-              assert(!"fallthrough edge exists, but target is not at start of "
-                      "interval!");
-              return false;
-            }
-
-            SourceBI.setSize(SourceBI.getSize() + TargetBI.getSize());
-            for (auto& B : TargetBI.code_blocks()) {
-              SourceBI.addBlock(BaseOffset + B.getOffset(), &B);
-            }
-            for (auto& B : TargetBI.data_blocks()) {
-              SourceBI.addBlock(BaseOffset + B.getOffset(), &B);
-            }
-            for (auto SEE : TargetBI.symbolic_expressions()) {
-              SourceBI.addSymbolicExpression(BaseOffset + SEE.getOffset(),
-                                             SEE.getSymbolicExpression());
-            }
-            SourceBI.insertBytes<uint8_t>(
-                SourceBI.bytes_begin<uint8_t>() + BaseOffset,
-                TargetBI.bytes_begin<uint8_t>(), TargetBI.bytes_end<uint8_t>());
-            TargetBI.getSection()->removeByteInterval(&TargetBI);
-            didMerge = true;
-          }
+        if (Source->getOffset() + Source->getSize() != SourceBI.getSize()) {
+          assert(!"fallthrough edge exists, but source is not at end of "
+                  "interval!");
+          return false;
         }
+
+        if (Target->getOffset() != 0) {
+          assert(!"fallthrough edge exists, but target is not at start of "
+                  "interval!");
+          return false;
+        }
+
+        SourceBI.setSize(SourceBI.getSize() + TargetBI.getSize());
+        for (auto& B : TargetBI.code_blocks()) {
+          SourceBI.addBlock(BaseOffset + B.getOffset(), &B);
+        }
+        for (auto& B : TargetBI.data_blocks()) {
+          SourceBI.addBlock(BaseOffset + B.getOffset(), &B);
+        }
+        for (auto SEE : TargetBI.symbolic_expressions()) {
+          SourceBI.addSymbolicExpression(BaseOffset + SEE.getOffset(),
+                                         SEE.getSymbolicExpression());
+        }
+        SourceBI.insertBytes<uint8_t>(
+            SourceBI.bytes_begin<uint8_t>() + BaseOffset,
+            TargetBI.bytes_begin<uint8_t>(), TargetBI.bytes_end<uint8_t>());
+        TargetBI.getSection()->removeByteInterval(&TargetBI);
+
+        // hopefully this tail calls
+        return findAndMergeBIs(S);
       }
     }
-  } while (didMerge);
+  }
+
+  return true;
+}
+
+bool layoutModule(Module& M) {
+  // merge together BIs with code blocks with fallthrough edges
+  for (auto& S : M.sections()) {
+    if (!findAndMergeBIs(S)) {
+      return false;
+    }
+  }
 
   // (re)assign nonoverlapping addresses to all BIs
   for (auto& S : M.sections()) {
