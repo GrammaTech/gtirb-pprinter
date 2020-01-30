@@ -118,9 +118,11 @@ bool ElfPrettyPrinter::shouldExcludeDataElement(
     const gtirb::Section& section, const gtirb::DataBlock& dataObject) const {
   if (!policy.arraySections.count(section.getName()))
     return false;
-  auto foundSymbolic = module.findSymbolicExpression(dataObject.getAddress());
-  if (foundSymbolic != module.symbolic_expr_end()) {
-    if (const auto* s = std::get_if<gtirb::SymAddrConst>(&*foundSymbolic)) {
+  auto foundSymbolic =
+      module.findSymbolicExpressionsAt(*dataObject.getAddress());
+  if (!foundSymbolic.empty()) {
+    if (const auto* s = std::get_if<gtirb::SymAddrConst>(
+            &foundSymbolic.begin()->getSymbolicExpression())) {
       return skipEA(*s->Sym->getAddress());
     }
   }
