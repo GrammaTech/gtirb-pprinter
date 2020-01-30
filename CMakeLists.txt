@@ -341,7 +341,7 @@ add_subdirectory(src)
 # ---------------------------------------------------------------------------
 # Export config for use by other CMake projects
 # ---------------------------------------------------------------------------
-export(TARGETS gtirb_pprinter
+export(TARGETS gtirb_pprinter gtirb_layout
        FILE "${CMAKE_CURRENT_BINARY_DIR}/gtirb_pprinterTargets.cmake")
 file(
   WRITE "${CMAKE_CURRENT_BINARY_DIR}/gtirb_pprinterConfig.cmake"
