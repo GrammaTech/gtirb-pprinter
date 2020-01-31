@@ -40,12 +40,12 @@ int main(int argc, char** argv) {
       std::cout << desc << std::endl;
       return EXIT_FAILURE;
     }
+    po::notify(vm);
   } catch (std::exception& e) {
     LOG_ERROR << e.what() << ". Try '" << argv[0]
               << " --help' for more information." << std::endl;
     return EXIT_FAILURE;
   }
-  po::notify(vm);
 
   gtirb::Context ctx;
   gtirb::IR* ir;
