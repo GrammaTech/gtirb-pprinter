@@ -158,14 +158,20 @@ static bool findAndMergeBIs(Section& S) {
 
 bool ::gtirb_layout::layoutModule(Module& M) {
   Addr A = Addr{0};
-  for (auto& S : M.sections()) {
+  // Store a list of sections and then iterate over them, because
+  // setting the address of a BI invalidates parent iterators.
+  // FIXME: This should not be true, but is because of boost::multi_index.
+  // GTIRB needs a fix for this.
+  std::vector<std::reference_wrapper<Section>> Sections(M.sections_begin(),
+                                                        M.sections_end());
+  for (auto& S : Sections) {
     // Merge together BIs with code blocks with fallthrough edges.
     if (!findAndMergeBIs(S)) {
       return false;
     }
 
     // (Re)assign nonoverlapping addresses to all BIs.
-    for (auto& BI : S.byte_intervals()) {
+    for (auto& BI : S.get().byte_intervals()) {
       BI.setAddress(A);
       A += BI.getSize();
     }
@@ -175,8 +181,10 @@ bool ::gtirb_layout::layoutModule(Module& M) {
 }
 
 bool ::gtirb_layout::removeModuleLayout(Module& M) {
-  for (auto& S : M.sections()) {
-    for (auto& BI : S.byte_intervals()) {
+  std::vector<std::reference_wrapper<Section>> Sections(M.sections_begin(),
+                                                        M.sections_end());
+  for (auto& S : Sections) {
+    for (auto& BI : S.get().byte_intervals()) {
       BI.setAddress(std::nullopt);
     }
   }
