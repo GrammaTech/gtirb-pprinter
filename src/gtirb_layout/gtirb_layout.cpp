@@ -85,12 +85,13 @@ getOutgoingEdges(CfgNode* B) {
 
 static bool findAndMergeBIs(Section& S) {
   for (auto& SourceBI : S.byte_intervals()) {
+    // Get the last code block in this interval.
     if (SourceBI.code_blocks().empty()) {
       continue;
     }
-
     auto* Source = &SourceBI.code_blocks().back();
 
+    // If two code blocks have a fallthrough edge, they need to be merged.
     for (const auto& E : getOutgoingEdges(&*SourceBI.code_blocks_begin())) {
       if (E.Type != EdgeType::Fallthrough) {
         continue;
@@ -100,10 +101,19 @@ static bool findAndMergeBIs(Section& S) {
         auto& TargetBI = *Target->getByteInterval();
         auto BaseOffset = SourceBI.getSize();
 
+        // If they're already merged into one BI...
         if (&SourceBI == &TargetBI) {
           continue;
         }
 
+        // Check that they're both from the same section.
+        if (&S != TargetBI.getSection()) {
+          assert(!"Block has fallthrough edge into a block in another "
+                  "section!");
+          return false;
+        }
+
+        // Check that, when merged, the two code blocks will be adjacent.
         if (Source->getOffset() + Source->getSize() != SourceBI.getSize()) {
           assert(!"fallthrough edge exists, but source is not at end of "
                   "interval!");
@@ -116,6 +126,7 @@ static bool findAndMergeBIs(Section& S) {
           return false;
         }
 
+        // They can be merged. Merge them now.
         SourceBI.setSize(SourceBI.getSize() + TargetBI.getSize());
         for (auto& B : TargetBI.code_blocks()) {
           SourceBI.addBlock(BaseOffset + B.getOffset(), &B);
@@ -130,10 +141,14 @@ static bool findAndMergeBIs(Section& S) {
         SourceBI.insertBytes<uint8_t>(
             SourceBI.bytes_begin<uint8_t>() + BaseOffset,
             TargetBI.bytes_begin<uint8_t>(), TargetBI.bytes_end<uint8_t>());
-        TargetBI.getSection()->removeByteInterval(&TargetBI);
+        S.removeByteInterval(&TargetBI);
 
-        // hopefully this tail calls
+        // We invalidated the BI iterator back there, so time to recurse.
+        // Hopefully this tail calls.
         return findAndMergeBIs(S);
+      } else {
+        assert(!"Code block has fallthrough edge into proxy block!");
+        return false;
       }
     }
   }
@@ -142,15 +157,13 @@ static bool findAndMergeBIs(Section& S) {
 }
 
 bool layoutModule(Module& M) {
-  // merge together BIs with code blocks with fallthrough edges
   for (auto& S : M.sections()) {
+    // merge together BIs with code blocks with fallthrough edges
     if (!findAndMergeBIs(S)) {
       return false;
     }
-  }
 
-  // (re)assign nonoverlapping addresses to all BIs
-  for (auto& S : M.sections()) {
+    // (re)assign nonoverlapping addresses to all BIs
     Addr A = Addr{0};
     for (auto& BI : S.byte_intervals()) {
       BI.setAddress(A);
@@ -158,6 +171,5 @@ bool layoutModule(Module& M) {
     }
   }
 
-  // all done
   return true;
 }
