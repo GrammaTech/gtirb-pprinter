@@ -157,6 +157,7 @@ static bool findAndMergeBIs(Section& S) {
 }
 
 bool ::gtirb_layout::layoutModule(Module& M) {
+  Addr A = Addr{0};
   for (auto& S : M.sections()) {
     // Merge together BIs with code blocks with fallthrough edges.
     if (!findAndMergeBIs(S)) {
@@ -164,7 +165,6 @@ bool ::gtirb_layout::layoutModule(Module& M) {
     }
 
     // (Re)assign nonoverlapping addresses to all BIs.
-    Addr A = Addr{0};
     for (auto& BI : S.byte_intervals()) {
       BI.setAddress(A);
       A += BI.getSize();
