@@ -156,14 +156,14 @@ static bool findAndMergeBIs(Section& S) {
   return true;
 }
 
-bool layoutModule(Module& M) {
+bool ::gtirb_layout::layoutModule(Module& M) {
   for (auto& S : M.sections()) {
-    // merge together BIs with code blocks with fallthrough edges
+    // Merge together BIs with code blocks with fallthrough edges.
     if (!findAndMergeBIs(S)) {
       return false;
     }
 
-    // (re)assign nonoverlapping addresses to all BIs
+    // (Re)assign nonoverlapping addresses to all BIs.
     Addr A = Addr{0};
     for (auto& BI : S.byte_intervals()) {
       BI.setAddress(A);
