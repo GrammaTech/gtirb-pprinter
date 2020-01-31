@@ -173,3 +173,13 @@ bool ::gtirb_layout::layoutModule(Module& M) {
 
   return true;
 }
+
+bool ::gtirb_layout::removeModuleLayout(Module& M) {
+  for (auto& S : M.sections()) {
+    for (auto& BI : S.byte_intervals()) {
+      BI.setAddress(std::nullopt);
+    }
+  }
+
+  return true;
+}

@@ -26,6 +26,7 @@ int main(int argc, char** argv) {
                      "Input GTIRB file.");
   desc.add_options()("out,o", po::value<std::string>()->required(),
                      "Output GTIRB file.");
+  desc.add_options()("remove,r", "Remove layout instead of adding it.");
 
   po::positional_options_description pd;
   pd.add("in", 1);
@@ -65,11 +66,22 @@ int main(int argc, char** argv) {
     }
   }
 
-  for (auto& M : ir->modules()) {
-    LOG_INFO << "Laying out module " << M.getUUID() << "..." << std::endl;
-    if (!gtirb_layout::layoutModule(M)) {
-      LOG_ERROR << "Laying out module failed!" << std::endl;
-      return EXIT_FAILURE;
+  if (vm.count("remove") == 0) {
+    for (auto& M : ir->modules()) {
+      LOG_INFO << "Laying out module " << M.getUUID() << "..." << std::endl;
+      if (!gtirb_layout::layoutModule(M)) {
+        LOG_ERROR << "Laying out module failed!" << std::endl;
+        return EXIT_FAILURE;
+      }
+    }
+  } else {
+    for (auto& M : ir->modules()) {
+      LOG_INFO << "Removing layout from module " << M.getUUID() << "..."
+               << std::endl;
+      if (!gtirb_layout::removeModuleLayout(M)) {
+        LOG_ERROR << "Removing layout from module failed!" << std::endl;
+        return EXIT_FAILURE;
+      }
     }
   }
 
