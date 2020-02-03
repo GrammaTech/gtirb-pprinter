@@ -34,18 +34,66 @@ ArmPrettyPrinter::ArmPrettyPrinter(gtirb::Context& context_,
 
 void ArmPrettyPrinter::printHeader(std::ostream& os) {
   os << "# ARM " << std::endl;
+  os << ".syntax unified" << std::endl;
 }
 
-void ArmPrettyPrinter::printBlock(std::ostream& os, const gtirb::Block& x) {
+void ArmPrettyPrinter::printDecodeMode(std::ostream& os,
+                                       const gtirb::Block& x) {
   // 1 for THUMB 0 for regular ARM
-  if (x.getDecodeMode())
+  if (x.getDecodeMode()) {
+    os << ".thumb" << std::endl;
     cs_option(this->csHandle, CS_OPT_MODE, CS_MODE_THUMB);
-  else
+  } else {
+    os << ".arm" << std::endl;
     cs_option(this->csHandle, CS_OPT_MODE, CS_MODE_ARM);
-  ElfPrettyPrinter::printBlock(os, x);
+  }
 }
 
 void ArmPrettyPrinter::fixupInstruction(cs_insn& /*inst*/) {}
+
+void ArmPrettyPrinter::printSectionHeader(std::ostream& os,
+                                          const gtirb::Addr addr) {
+  const auto found_section = module.findSection(addr);
+  if (found_section.begin() == found_section.end())
+    return;
+  if (found_section.begin()->getAddress() != addr)
+    return;
+  std::string sectionName = found_section.begin()->getName();
+  if (policy.skipSections.count(sectionName))
+    return;
+  os << '\n';
+  printBar(os);
+  if (sectionName == syntax.textSection()) {
+    os << syntax.text() << '\n';
+  } else if (sectionName == syntax.dataSection()) {
+    os << syntax.data() << '\n';
+  } else if (sectionName == syntax.bssSection()) {
+    os << syntax.bss() << '\n';
+  } else {
+    printSectionHeaderDirective(os, *(found_section.begin()));
+    os << std::endl;
+  }
+  printBar(os);
+  os << '\n';
+}
+
+void ArmPrettyPrinter::printFunctionHeader(std::ostream& os, gtirb::Addr addr) {
+  const std::string& name =
+      syntax.formatFunctionName(this->getFunctionName(addr));
+
+  if (!name.empty()) {
+    os << syntax.comment() << " BEGIN - Function Header\n";
+    printBar(os, false);
+
+    printAlignment(os, addr);
+    os << syntax.global() << ' ' << name << '\n';
+    os << elfSyntax.type() << ' ' << name << ", #function\n";
+    os << name << ":\n";
+
+    printBar(os, false);
+    os << syntax.comment() << " END   - Function Header\n";
+  }
+}
 
 void ArmPrettyPrinter::printInstruction(std::ostream& os, const cs_insn& inst,
                                         const gtirb::Offset& offset) {
@@ -56,6 +104,9 @@ void ArmPrettyPrinter::printInstruction(std::ostream& os, const cs_insn& inst,
   printCFIDirectives(os, offset);
   printEA(os, ea);
   std::string opcode = ascii_str_tolower(inst.mnemonic);
+  if (auto index = opcode.rfind(".w"); index != std::string::npos)
+    opcode = opcode.substr(0, index);
+
   os << "  " << opcode << ' ';
   printOperandList(os, inst);
 }
@@ -63,13 +114,27 @@ void ArmPrettyPrinter::printInstruction(std::ostream& os, const cs_insn& inst,
 void ArmPrettyPrinter::printOperandList(std::ostream& os, const cs_insn& inst) {
   cs_arm& detail = inst.detail->arm;
   uint8_t opCount = detail.op_count;
+  std::set<arm_insn> LdmSdm = {ARM_INS_LDM,   ARM_INS_LDMDA, ARM_INS_LDMDB,
+                               ARM_INS_LDMIB, ARM_INS_STM,   ARM_INS_STMDA,
+                               ARM_INS_STMDB, ARM_INS_STMIB};
+  std::set<arm_insn> PushPop = {ARM_INS_POP, ARM_INS_PUSH};
+  int RegBitVectorIndex = -1;
+
+  if (LdmSdm.find(static_cast<arm_insn>(inst.id)) != LdmSdm.end())
+    RegBitVectorIndex = 1;
+  if (PushPop.find(static_cast<arm_insn>(inst.id)) != PushPop.end())
+    RegBitVectorIndex = 0;
 
   for (int i = 0; i < opCount; i++) {
+    if (i == RegBitVectorIndex)
+      os << "{ ";
     if (i != 0) {
       os << ", ";
     }
     printOperand(os, inst, i);
   }
+  if (RegBitVectorIndex != -1)
+    os << " }";
 }
 
 void ArmPrettyPrinter::printOperand(std::ostream& os, const cs_insn& inst,
@@ -123,13 +188,18 @@ void ArmPrettyPrinter::printOpImmediate(
     std::ostream& os, const gtirb::SymbolicExpression* symbolic,
     const cs_insn& inst, uint64_t index) {
   const cs_arm_op& op = inst.detail->arm.operands[index];
-
   if (const gtirb::SymAddrConst* s = this->getSymbolicImmediate(symbolic)) {
     // The operand is symbolic.
+    if (inst.id == ARM_INS_MOV)
+      os << "#:lower16:";
+    if (inst.id == ARM_INS_MOVT)
+      os << "#:upper16:";
     this->printSymbolicExpression(os, s, true);
   } else {
+    if (op.type == ARM_OP_IMM)
+      os << '#';
     // The operand is just a number.
-    os << '#' << op.imm;
+    os << op.imm;
   }
 }
 
@@ -152,20 +222,80 @@ void ArmPrettyPrinter::printOpIndirect(
     if (!first)
       os << ", ";
     first = false;
-    os << getRegisterName(op.mem.index) << '*' << std::to_string(op.mem.scale);
+    if (op.mem.scale == -1)
+      os << "-";
+    os << getRegisterName(op.mem.index);
   }
 
-  os << ", ";
+  if (op.shift.value != 0 && op.shift.type != ARM_SFT_INVALID) {
+    os << ", ";
+    switch (op.shift.type) {
+    case ARM_SFT_ASR_REG:
+    case ARM_SFT_ASR:
+      os << "ASR";
+      break;
+    case ARM_SFT_LSL_REG:
+    case ARM_SFT_LSL:
+      os << "LSL";
+      break;
+    case ARM_SFT_LSR_REG:
+    case ARM_SFT_LSR:
+      os << "LSR";
+      break;
+    case ARM_SFT_ROR_REG:
+    case ARM_SFT_ROR:
+      os << "ROR";
+      break;
+    case ARM_SFT_RRX_REG:
+    case ARM_SFT_RRX:
+      os << "RRX";
+      break;
+    case ARM_SFT_INVALID:
+      exit(1);
+    }
+    os << " " << op.shift.value;
+  }
+
   if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
+    os << ", #";
     printSymbolicExpression(os, s, false);
   } else {
-    os << '#' << op.mem.disp;
+    if (op.mem.disp != 0)
+      os << ", #" << op.mem.disp;
   }
   os << ']';
 }
 
+std::string ArmPrettyPrinter::getFunctionName(gtirb::Addr x) const {
+  if (isFunctionEntry(x)) {
+    for (gtirb::Symbol& s : module.findSymbols(x)) {
+      if (isAmbiguousSymbol(s.getName()))
+        continue;
+      // local symbol
+      if (s.getName().find('.') == 0)
+        continue;
+      return s.getName();
+    }
+  }
+
+  return PrettyPrinterBase::getFunctionName(x);
+}
+
 const PrintingPolicy& ArmPrettyPrinterFactory::defaultPrintingPolicy() const {
-  return ElfPrettyPrinter::defaultPrintingPolicy();
+  static PrintingPolicy DefaultPolicy{
+      /// Sections to avoid printing.
+      {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
+       ".plt.sec", ".eh_frame_hdr"},
+
+      /// Functions to avoid printing.
+      {"_start", "call_weak_fn", "deregister_tm_clones", "register_tm_clones",
+       "__do_global_dtors_aux", "frame_dummy", "__libc_csu_fini",
+       "__libc_csu_init", "_dl_relocate_static_pie"},
+
+      /// Sections with possible data object exclusion.
+      {".init_array", ".fini_array"},
+  };
+  return DefaultPolicy;
 }
 
 std::unique_ptr<PrettyPrinterBase>

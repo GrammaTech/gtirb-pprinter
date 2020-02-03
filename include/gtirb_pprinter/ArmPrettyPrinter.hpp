@@ -31,7 +31,9 @@ protected:
 
   std::string getRegisterName(unsigned int reg) const override;
   void printHeader(std::ostream& os) override;
-  void printBlock(std::ostream& os, const gtirb::Block& x) override;
+  void printFunctionHeader(std::ostream& os, gtirb::Addr addr) override;
+  void printSectionHeader(std::ostream& os, const gtirb::Addr addr) override;
+  void printDecodeMode(std::ostream& os, const gtirb::Block& x) override;
   void fixupInstruction(cs_insn& inst) override;
   void printInstruction(std::ostream& os, const cs_insn& inst,
                         const gtirb::Offset& offset) override;
@@ -47,6 +49,8 @@ protected:
   void printOpIndirect(std::ostream& os,
                        const gtirb::SymbolicExpression* symbolic,
                        const cs_insn& inst, uint64_t index) override;
+
+  std::string getFunctionName(gtirb::Addr x) const override;
 
 private:
   static volatile bool registered;

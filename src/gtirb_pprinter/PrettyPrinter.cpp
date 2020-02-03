@@ -272,6 +272,7 @@ void PrettyPrinterBase::printBlockContents(std::ostream& os,
 
   cs_insn* insn;
   cs_option(this->csHandle, CS_OPT_DETAIL, CS_OPT_ON);
+  printDecodeMode(os, x);
 
   size_t count = cs_disasm(this->csHandle, x.rawBytes<uint8_t>() + offset,
                            x.getSize() - offset,
@@ -293,6 +294,9 @@ void PrettyPrinterBase::printBlockContents(std::ostream& os,
   printCFIDirectives(os, blockOffset);
   printFunctionFooter(os, addr);
 }
+
+void PrettyPrinterBase::printDecodeMode(std::ostream& /*os*/,
+                                        const gtirb::Block& /*x*/) {}
 
 void PrettyPrinterBase::printSectionHeader(std::ostream& os,
                                            const gtirb::Section& section) {
