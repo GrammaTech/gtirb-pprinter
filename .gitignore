@@ -19,3 +19,4 @@ CTestTestfile.cmake
 /include/gsl/*
 /.vscode/
 .mypy_cache/
+__pycache__/
