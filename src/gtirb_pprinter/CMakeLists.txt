@@ -16,9 +16,6 @@ set(${PROJECT_NAME}_H
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/string_utils.hpp
     ${CMAKE_BINARY_DIR}/include/gtirb_pprinter/version.h)
 
-include_directories("${CMAKE_SOURCE_DIR}/include/gtirb_pprinter")
-include_directories("${CMAKE_BINARY_DIR}/include/gtirb_pprinter")
-
 # sources
 set(${PROJECT_NAME}_SRC
     AttPrettyPrinter.cpp
@@ -35,6 +32,19 @@ set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "debloat")
 
 target_link_libraries(${PROJECT_NAME} ${SYSLIBS} ${Boost_LIBRARIES} gtirb
                       ${CAPSTONE})
+
+# interface
+
+target_include_directories(
+  ${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>)
+target_include_directories(
+  ${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include>)
+target_include_directories(
+  ${PROJECT_NAME}
+  PRIVATE $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include/gtirb_pprinter>)
+target_include_directories(
+  ${PROJECT_NAME}
+  PRIVATE $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include/gtirb_pprinter>)
 
 # compile options
 target_compile_options(${PROJECT_NAME}
