@@ -128,10 +128,10 @@ protected:
                                bool inData = false) override;
 
   void printByte(std::ostream& os, std::byte byte) override;
-  void printZeroDataObject(std::ostream& os,
-                           const gtirb::DataObject& dataObject) override;
+  void printZeroDataBlock(std::ostream& os,
+                          const gtirb::DataBlock& dataObject) override;
 
-  void printString(std::ostream& os, const gtirb::DataObject& x) override;
+  void printString(std::ostream& os, const gtirb::DataBlock& x) override;
 
   std::string getSymbolName(gtirb::Addr x) const override;
 

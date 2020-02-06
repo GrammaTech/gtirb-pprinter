@@ -365,14 +365,14 @@ void MasmPrettyPrinter::printByte(std::ostream& os, std::byte byte) {
      << std::setw(2) << static_cast<uint32_t>(byte) << 'H' << std::dec << '\n';
 }
 
-void MasmPrettyPrinter::printZeroDataObject(
-    std::ostream& os, const gtirb::DataObject& dataObject) {
+void MasmPrettyPrinter::printZeroDataBlock(std::ostream& os,
+                                           const gtirb::DataBlock& dataObject) {
   os << syntax.tab();
   os << "DB " << dataObject.getSize() << " DUP(0)" << '\n';
 }
 
 void MasmPrettyPrinter::printString(std::ostream& os,
-                                    const gtirb::DataObject& x) {
+                                    const gtirb::DataBlock& x) {
 
   std::string Chunk{""};
   for (const std::byte& b : getBytes(module.getImageByteMap(), x)) {
