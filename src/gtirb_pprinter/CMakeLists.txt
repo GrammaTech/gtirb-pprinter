@@ -15,8 +15,8 @@ set(${PROJECT_NAME}_H
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/IntelPrettyPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/string_utils.hpp
     ${CMAKE_BINARY_DIR}/include/gtirb_pprinter/version.h
-    ${CMAKE_BINARY_DIR}/include/gtirb_pprinter/MasmPrettyPrinter.hpp
-    ${CMAKE_BINARY_DIR}/include/gtirb_pprinter/PePrettyPrinter.hpp)
+    ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/MasmPrettyPrinter.hpp
+    ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/PePrettyPrinter.hpp)
 
 # sources
 set(${PROJECT_NAME}_SRC
