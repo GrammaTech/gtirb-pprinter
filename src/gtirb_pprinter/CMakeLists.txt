@@ -14,7 +14,9 @@ set(${PROJECT_NAME}_H
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ElfPrettyPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/IntelPrettyPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/string_utils.hpp
-    ${CMAKE_BINARY_DIR}/include/gtirb_pprinter/version.h)
+    ${CMAKE_BINARY_DIR}/include/gtirb_pprinter/version.h
+    ${CMAKE_BINARY_DIR}/include/gtirb_pprinter/MasmPrettyPrinter.hpp
+    ${CMAKE_BINARY_DIR}/include/gtirb_pprinter/PePrettyPrinter.hpp)
 
 # sources
 set(${PROJECT_NAME}_SRC
@@ -24,7 +26,9 @@ set(${PROJECT_NAME}_SRC
     IntelPrettyPrinter.cpp
     PrettyPrinter.cpp
     string_utils.cpp
-    Syntax.cpp)
+    Syntax.cpp
+    MasmPrettyPrinter.cpp
+    PePrettyPrinter.cpp)
 
 add_library(${PROJECT_NAME} ${${PROJECT_NAME}_H} ${${PROJECT_NAME}_SRC})
 
