@@ -163,10 +163,6 @@ if(USING_LIBCPP)
   endif()
 endif()
 
-# includes
-include_directories("${CMAKE_SOURCE_DIR}/include/")
-include_directories("${CMAKE_BINARY_DIR}/include/")
-
 # Required warning suppression (TODO: Remove!)
 if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
   # add_compile_options(-wd4251)  # Non-exportable template classes.

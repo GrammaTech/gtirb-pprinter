@@ -9,9 +9,6 @@ set(${PROJECT_NAME}_H
     ${CMAKE_SOURCE_DIR}/include/gtirb_layout/Export.hpp
     ${CMAKE_BINARY_DIR}/include/gtirb_layout/version.h)
 
-include_directories("${CMAKE_SOURCE_DIR}/include/gtirb_layout")
-include_directories("${CMAKE_BINARY_DIR}/include/gtirb_layout")
-
 # sources
 set(${PROJECT_NAME}_SRC gtirb_layout.cpp)
 
@@ -21,6 +18,18 @@ set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "debloat")
 
 target_link_libraries(${PROJECT_NAME} ${SYSLIBS} ${Boost_LIBRARIES} gtirb
                       ${CAPSTONE})
+
+# interface
+target_include_directories(
+  ${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>)
+target_include_directories(
+  ${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include>)
+target_include_directories(
+  ${PROJECT_NAME}
+  PRIVATE $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include/gtirb_layout>)
+target_include_directories(
+  ${PROJECT_NAME}
+  PRIVATE $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include/gtirb_layout>)
 
 # compile options
 target_compile_options(${PROJECT_NAME} PRIVATE -D${PROJECT_NAME}_EXPORTS)
