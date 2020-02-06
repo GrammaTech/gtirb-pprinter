@@ -1,8 +1,8 @@
-#include "ElfBinaryPrinter.hpp"
 #include "Logger.h"
-#include "PrettyPrinter.hpp"
 #include <boost/program_options.hpp>
 #include <fstream>
+#include <gtirb_pprinter/ElfBinaryPrinter.hpp>
+#include <gtirb_pprinter/PrettyPrinter.hpp>
 #include <iomanip>
 #include <iostream>
 #ifdef USE_STD_FILESYSTEM_LIB

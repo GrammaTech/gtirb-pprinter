@@ -69,23 +69,23 @@ std::set<std::tuple<std::string, std::string>> getRegisteredTargets() {
 }
 
 std::string getModuleFileFormat(const gtirb::Module& module) {
-  switch (module.getFileFormat()) {
-  case gtirb::FileFormat::Undefined:
+  switch ((int)module.getFileFormat()) {
+  case (int)gtirb::FileFormat::Undefined:
     return "undefined";
-  case gtirb::FileFormat::COFF:
+  case (int)gtirb::FileFormat::COFF:
     return "coff";
-  case gtirb::FileFormat::ELF:
+  case (int)gtirb::FileFormat::ELF:
     return "elf";
-  case gtirb::FileFormat::PE:
+  case (int)gtirb::FileFormat::PE:
     return "pe";
-  case gtirb::FileFormat::IdaProDb32:
-  case gtirb::FileFormat::IdaProDb64:
+  case (int)gtirb::FileFormat::IdaProDb32:
+  case (int)gtirb::FileFormat::IdaProDb64:
     return "idb";
-  case gtirb::FileFormat::XCOFF:
+  case (int)gtirb::FileFormat::XCOFF:
     return "xcoff";
-  case gtirb::FileFormat::MACHO:
+  case (int)gtirb::FileFormat::MACHO:
     return "macho";
-  case gtirb::FileFormat::RAW:
+  case (int)gtirb::FileFormat::RAW:
     return "raw";
   }
   return "undefined";
