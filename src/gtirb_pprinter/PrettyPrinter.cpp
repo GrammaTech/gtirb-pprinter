@@ -410,7 +410,7 @@ void PrettyPrinterBase::printSymbolDefinitionsAtAddress(std::ostream& os,
                                                         gtirb::Addr ea,
                                                         bool /* inData */) {
   for (const gtirb::Symbol& symbol : module.findSymbols(ea)) {
-    if (symbol.getStorageKind() == gtirb::Symbol::StorageKind::Extern)
+    if (!symbol.getAddress())
       continue;
     if (this->isAmbiguousSymbol(symbol.getName()))
       os << getSymbolName(*symbol.getAddress()) << ":\n";

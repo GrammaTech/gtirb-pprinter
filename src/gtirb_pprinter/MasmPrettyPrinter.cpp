@@ -48,12 +48,11 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
                                      const PrintingPolicy& policy_)
     : PePrettyPrinter(context_, module_, syntax_, policy_),
       masmSyntax(syntax_) {
-  gtirb::ImageByteMap& ImageByteMap = module.getImageByteMap();
 
   // FIXME: How should we handle entry point label?
-  gtirb::Addr Entry = ImageByteMap.getEntryPointAddress();
-  auto* EntrySymbol = gtirb::Symbol::Create(context, Entry, "__EntryPoint",
-                                            gtirb::Symbol::StorageKind::Normal);
+  // FIXME: What if there is no entry point?
+  gtirb::Addr Entry = *module.getEntryPoint()->getAddress();
+  auto* EntrySymbol = gtirb::Symbol::Create(context, Entry, "__EntryPoint");
   module.addSymbol(EntrySymbol);
 }
 
@@ -164,7 +163,9 @@ void MasmPrettyPrinter::printFunctionHeader(std::ostream& os,
                                             gtirb::Addr addr) {
   // Print public definitions
   for (const gtirb::Symbol& symbol : module.findSymbols(addr)) {
-    if (symbol.getStorageKind() == gtirb::Symbol::StorageKind::Normal) {
+    // FIXME: We can tell symbol extern-ness. But this should only run on
+    // internal, visible symbols. How do we tell symbol visibility?
+    if (symbol.getAddress()) {
       os << '\n' << syntax.global() << ' ' << symbol.getName() << '\n';
     }
   }
@@ -211,7 +212,9 @@ void MasmPrettyPrinter::printSymbolDefinitionsAtAddress(std::ostream& os,
 
   // Print public definitions
   for (const gtirb::Symbol& symbol : module.findSymbols(ea)) {
-    if (symbol.getStorageKind() == gtirb::Symbol::StorageKind::Normal) {
+    // FIXME: We can tell symbol extern-ness. But this should only run on
+    // internal, visible symbols. How do we tell symbol visibility?
+    if (symbol.getAddress()) {
       os << '\n' << syntax.global() << ' ' << symbol.getName() << '\n';
     }
   }
@@ -309,8 +312,7 @@ void MasmPrettyPrinter::printOpIndirect(
   }
 
   if (op.mem.base == X86_REG_RIP && symbolic == nullptr) {
-    gtirb::ImageByteMap& ImageByteMap = module.getImageByteMap();
-    uint64_t BaseAddress = static_cast<uint64_t>(ImageByteMap.getBaseAddress());
+    uint64_t BaseAddress = static_cast<uint64_t>(*module.getAddress());
     if (inst.address + inst.size + op.mem.disp == BaseAddress) {
       os << "__ImageBase]";
       return;
@@ -348,9 +350,7 @@ void MasmPrettyPrinter::printSymbolicExpression(
 void MasmPrettyPrinter::printSymbolicExpression(std::ostream& os,
                                                 const gtirb::SymAddrAddr* sexpr,
                                                 bool inData) {
-  gtirb::ImageByteMap& ImageByteMap = module.getImageByteMap();
-
-  if (inData && sexpr->Sym2->getAddress() == ImageByteMap.getBaseAddress()) {
+  if (inData && sexpr->Sym2->getAddress() == *module.getAddress()) {
     os << masmSyntax.imagerel() << ' ';
     printSymbolReference(os, sexpr->Sym1, inData);
     return;
@@ -375,7 +375,7 @@ void MasmPrettyPrinter::printString(std::ostream& os,
                                     const gtirb::DataBlock& x) {
 
   std::string Chunk{""};
-  for (const std::byte& b : getBytes(module.getImageByteMap(), x)) {
+  for (uint8_t b : x.bytes<uint8_t>()) {
     // NOTE: MASM only supports strings smaller than 256 bytes.
     //  and  MASM only supports statements with 50 comma-separated items.
     if (Chunk.size() >= 64) {
@@ -385,8 +385,8 @@ void MasmPrettyPrinter::printString(std::ostream& os,
     }
 
     // Aggegrate printable characters
-    if (std::isprint(uint8_t(b))) {
-      Chunk.append(1, uint8_t(b));
+    if (std::isprint(b)) {
+      Chunk.append(1, b);
       continue;
     }
 
@@ -397,7 +397,7 @@ void MasmPrettyPrinter::printString(std::ostream& os,
       Chunk.clear();
     }
     os << syntax.tab();
-    printByte(os, b);
+    printByte(os, static_cast<std::byte>(b));
   }
 }
 
