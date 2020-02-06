@@ -8,11 +8,23 @@ add_executable(${BINARY_PRINTER} Logger.h binary_printer.cpp)
 set_target_properties(${PRETTY_PRINTER} PROPERTIES FOLDER "debloat")
 set_target_properties(${BINARY_PRINTER} PROPERTIES FOLDER "debloat")
 
-target_link_libraries(${PRETTY_PRINTER} ${SYSLIBS} ${EXPERIMENTAL_LIB}
-                      ${Boost_LIBRARIES} ${LIBCPP_ABI} gtirb_pprinter)
+target_link_libraries(
+  ${PRETTY_PRINTER}
+  ${SYSLIBS}
+  ${EXPERIMENTAL_LIB}
+  ${Boost_LIBRARIES}
+  ${LIBCPP_ABI}
+  gtirb_pprinter
+  gtirb_layout)
 
-target_link_libraries(${BINARY_PRINTER} ${SYSLIBS} ${EXPERIMENTAL_LIB}
-                      ${Boost_LIBRARIES} ${LIBCPP_ABI} gtirb_pprinter)
+target_link_libraries(
+  ${BINARY_PRINTER}
+  ${SYSLIBS}
+  ${EXPERIMENTAL_LIB}
+  ${Boost_LIBRARIES}
+  ${LIBCPP_ABI}
+  gtirb_pprinter
+  gtirb_layout)
 
 install(TARGETS ${PRETTY_PRINTER} ${BINARY_PRINTER} DESTINATION bin)
 

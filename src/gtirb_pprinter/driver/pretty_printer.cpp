@@ -1,6 +1,8 @@
 #include "Logger.h"
 #include <boost/program_options.hpp>
+#include <boost/uuid/uuid_io.hpp>
 #include <fstream>
+#include <gtirb_layout/gtirb_layout.hpp>
 #include <gtirb_pprinter/ElfBinaryPrinter.hpp>
 #include <gtirb_pprinter/PrettyPrinter.hpp>
 #include <iomanip>
@@ -91,6 +93,19 @@ int main(int argc, char** argv) {
   if (ir->modules().empty()) {
     LOG_ERROR << "IR has no modules";
     return EXIT_FAILURE;
+  }
+
+  // Layout the modules so that evereything has nonoverlapping addresses if
+  // needed.
+  for (auto& M : ir->modules()) {
+    if (!M.getAddress()) {
+      // FIXME: There could be other kinds of invalid layouts than one in which
+      // an interval has no address; for example, one where sections overlap...
+      LOG_INFO << "Module " << M.getUUID()
+               << " has invalid layout; laying out module automatically..."
+               << std::endl;
+      gtirb_layout::layoutModule(M);
+    }
   }
 
   // Perform the Pretty Printing step.
