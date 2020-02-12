@@ -26,6 +26,7 @@ set(PUBLIC_HEADERS
 set(${PROJECT_NAME}_H
   ${PUBLIC_HEADERS}
   ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/AttPrettyPrinter.hpp
+  ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/AArch64PrettyPrinter.hpp
   ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ElfBinaryPrinter.hpp
   ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ElfPrettyPrinter.hpp
   ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/IntelPrettyPrinter.hpp
@@ -34,6 +35,7 @@ set(${PROJECT_NAME}_H
 
 set(${PROJECT_NAME}_SRC
   AttPrettyPrinter.cpp
+  AArch64PrettyPrinter.cpp
   ElfBinaryPrinter.cpp
   ElfPrettyPrinter.cpp
   IntelPrettyPrinter.cpp
