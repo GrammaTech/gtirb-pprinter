@@ -180,7 +180,7 @@ public:
 class PrettyPrinterBase {
 public:
   PrettyPrinterBase(gtirb::Context& context, gtirb::Module& module,
-                    const Syntax& syntax, const PrintingPolicy& policy);
+                    const Syntax& syntax, const PrintingPolicy& policy, cs_arch arch, cs_mode mode);
   virtual ~PrettyPrinterBase();
 
   virtual std::ostream& print(std::ostream& out);

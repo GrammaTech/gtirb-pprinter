@@ -2,12 +2,14 @@
 
 #include "AArch64PrettyPrinter.hpp"
 
+#include <capstone/capstone.h>
+
 namespace gtirb_pprint {
 
 AArch64PrettyPrinter::AArch64PrettyPrinter(gtirb::Context& context_,
     gtirb::Module& module_, const ElfSyntax& syntax_,
     const PrintingPolicy& policy_)
-    : ElfPrettyPrinter(context_, module_, syntax_, policy_) {}
+    : ElfPrettyPrinter(context_, module_, syntax_, policy_, CS_ARCH_ARM64, CS_MODE_ARM) {}
 
 void AArch64PrettyPrinter::printHeader(std::ostream& os) {
     this->printBar(os);

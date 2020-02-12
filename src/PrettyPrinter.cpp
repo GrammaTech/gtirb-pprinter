@@ -158,12 +158,14 @@ std::error_condition PrettyPrinter::print(std::ostream& stream,
 PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
                                      gtirb::Module& module_,
                                      const Syntax& syntax_,
-                                     const PrintingPolicy& policy_)
+                                     const PrintingPolicy& policy_,
+                                     cs_arch arch,
+                                     cs_mode mode)
     : syntax(syntax_), policy(policy_),
       debug(policy.debug == DebugMessages ? true : false), context(context_),
       module(module_), functionEntry(), functionLastBlock() {
   [[maybe_unused]] cs_err err =
-      cs_open(CS_ARCH_X86, CS_MODE_64, &this->csHandle);
+      cs_open(arch, mode, &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
 
   if (const auto* functionEntries =

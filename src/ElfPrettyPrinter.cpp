@@ -21,8 +21,10 @@ namespace gtirb_pprint {
 ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
                                    gtirb::Module& module_,
                                    const ElfSyntax& syntax_,
-                                   const PrintingPolicy& policy_)
-    : PrettyPrinterBase(context_, module_, syntax_, policy_),
+                                   const PrintingPolicy& policy_,
+                                   cs_arch arch_,
+                                   cs_mode mode_)
+    : PrettyPrinterBase(context_, module_, syntax_, policy_, arch_, mode_),
       elfSyntax(syntax_) {
   if (module.getAuxData<std::map<
           gtirb::Offset, std::vector<std::tuple<
