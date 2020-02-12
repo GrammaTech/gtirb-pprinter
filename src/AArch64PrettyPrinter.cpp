@@ -58,9 +58,9 @@ void AArch64PrettyPrinter::printOperand(std::ostream& os,
 }
 
 void AArch64PrettyPrinter::printOpRegdirect(std::ostream& os,
-        const cs_insn& inst, const cs_x86_op& op) {
+        const cs_insn& inst, unsigned int reg) {
     (void) inst;
-    (void) op;
+    (void) reg;
     os << "[REGDIRECT]";
 }
 

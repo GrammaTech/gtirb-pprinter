@@ -505,7 +505,7 @@ void PrettyPrinterBase::printOperand(std::ostream& os, const cs_insn& inst,
 
   switch (op.type) {
   case X86_OP_REG:
-    printOpRegdirect(os, inst, op);
+    printOpRegdirect(os, inst, op.reg);
     return;
   case X86_OP_IMM: {
     auto found = module.findSymbolicExpression(ea + immOffset);
