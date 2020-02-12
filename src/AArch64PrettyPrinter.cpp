@@ -29,6 +29,34 @@ std::string AArch64PrettyPrinter::getRegisterName(unsigned int reg) const {
     return "[REGNAME]";
 }
 
+void AArch64PrettyPrinter::printOperandList(std::ostream& os,
+        const cs_insn& inst) {
+    cs_arm64& detail = inst.detail->arm64;
+    uint8_t opCount = detail.op_count;
+
+    for (int i = 0; i < opCount; i++) {
+        if (i != 0) {
+            os << ',';
+        }
+        printOperand(os, inst, i);
+    }
+}
+
+void AArch64PrettyPrinter::printOperand(std::ostream& os,
+        const cs_insn& inst, uint64_t index) {
+    gtirb::Addr ea(inst.address);
+    const cs_arm64_op& op = inst.detail->arm64.operands[index];
+
+    switch (op.type) {
+    case ARM64_OP_INVALID:
+        std::cerr << "invalid operand\n";
+        exit(1);
+    default:
+        os << "[?OPERAND]";
+        return;
+    }
+}
+
 void AArch64PrettyPrinter::printOpRegdirect(std::ostream& os,
         const cs_insn& inst, const cs_x86_op& op) {
     (void) inst;

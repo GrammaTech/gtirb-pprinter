@@ -17,6 +17,9 @@ protected:
 
     // TODO: see what else needs to be covered
     void printHeader(std::ostream& os) override;
+    void printOperandList(std::ostream& os, const cs_insn& inst) override;
+    void printOperand(std::ostream& os, const cs_insn& inst,
+                        uint64_t index) override;
     void printOpRegdirect(std::ostream& os, const cs_insn& inst,
                           const cs_x86_op& op) override;
     void printOpImmediate(std::ostream& os,
@@ -27,7 +30,6 @@ protected:
                        const cs_insn& inst, uint64_t index) override;
 
 private:
-    // TODO: whats this?
     static volatile bool registered;
 };
 
