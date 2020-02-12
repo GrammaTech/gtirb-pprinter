@@ -25,8 +25,11 @@ void AArch64PrettyPrinter::printHeader(std::ostream& os) {
 }
 
 std::string AArch64PrettyPrinter::getRegisterName(unsigned int reg) const {
-    (void) reg;
-    return "[REGNAME]";
+    if (reg == ARM64_REG_INVALID) {
+        return "";
+    } else {
+        return cs_reg_name(this->csHandle, reg);
+    }
 }
 
 void AArch64PrettyPrinter::printOperandList(std::ostream& os,
@@ -48,6 +51,17 @@ void AArch64PrettyPrinter::printOperand(std::ostream& os,
     const cs_arm64_op& op = inst.detail->arm64.operands[index];
 
     switch (op.type) {
+    case ARM64_OP_REG:
+        printOpRegdirect(os, inst, op.reg);
+        return;
+    case ARM64_OP_IMM:
+        // TODO: symbolic stuff
+        printOpImmediate(os, nullptr, inst, index);
+        return;
+    case ARM64_OP_MEM:
+        // TODO: symbolic stuff
+        printOpIndirect(os, nullptr, inst, index);
+        return;
     case ARM64_OP_INVALID:
         std::cerr << "invalid operand\n";
         exit(1);
@@ -58,19 +72,19 @@ void AArch64PrettyPrinter::printOperand(std::ostream& os,
 }
 
 void AArch64PrettyPrinter::printOpRegdirect(std::ostream& os,
-        const cs_insn& inst, unsigned int reg) {
-    (void) inst;
-    (void) reg;
-    os << "[REGDIRECT]";
+        const cs_insn& /* inst */, unsigned int reg) {
+    os << getRegisterName(reg);
 }
 
 void AArch64PrettyPrinter::printOpImmediate(std::ostream& os,
         const gtirb::SymbolicExpression* symbolic,
         const cs_insn& inst, uint64_t index) {
+    // TODO: deal with symbolic stuff
     (void) symbolic;
-    (void) inst;
-    (void) index;
-    os << "[IMMEDIATE]";
+    const cs_arm64_op& op = inst.detail->arm64.operands[index];
+    assert(op.type == ARM64_OP_IMM &&
+            "printOpImmediate called without an immediate operand");
+    os << op.imm;
 }
 
 void AArch64PrettyPrinter::printOpIndirect(std::ostream& os,
@@ -79,6 +93,7 @@ void AArch64PrettyPrinter::printOpIndirect(std::ostream& os,
     (void) symbolic;
     (void) inst;
     (void) index;
+    // TODO: do this
     os << "[INDIRECT]";
 }
 
