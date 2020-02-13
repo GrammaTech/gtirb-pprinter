@@ -34,6 +34,9 @@ int main(int argc, char** argv) {
   desc.add_options()("library-paths,L",
                      po::value<std::vector<std::string>>()->multitoken(),
                      "Library paths to be passed to the linker");
+  desc.add_options()("syntax,s", po::value<std::string>(),
+                     "The syntax of the assembly file to pass to the compiler");
+
   po::positional_options_description pd;
   pd.add("ir", -1);
   po::variables_map vm;
@@ -93,7 +96,8 @@ int main(int argc, char** argv) {
   const std::string& format =
       gtirb_pprint::getModuleFileFormat(*ir->modules().begin());
   const std::string& syntax =
-      gtirb_pprint::getDefaultSyntax(format).value_or("");
+      vm.count("syntax") ? vm["syntax"].as<std::string>()
+                         : gtirb_pprint::getDefaultSyntax(format).value_or("");
   auto target = std::make_tuple(format, syntax);
   if (gtirb_pprint::getRegisteredTargets().count(target) == 0) {
     LOG_ERROR << "Unsupported combination: format '" << format
