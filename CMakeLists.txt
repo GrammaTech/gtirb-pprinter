@@ -384,3 +384,23 @@ if(GTIRB_PPRINTER_ENABLE_TESTS)
     COMMAND ${PYTHON} -m unittest discover tests "*_test.py"
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/")
 endif()
+
+# ---------------------------------------------------------------------------
+# Package generation with cpack
+# ---------------------------------------------------------------------------
+set(CMAKE_PROJECT_HOMEPAGE_URL https://github.com/GrammaTech/gtirb-pprinter)
+
+set(CPACK_PACKAGE_VERSION_MAJOR ${GTIRB_PPRINTER_MAJOR_VERSION})
+set(CPACK_PACKAGE_VERSION_MINOR ${GTIRB_PPRINTER_MINOR_VERSION})
+set(CPACK_PACKAGE_VERSION_PATCH ${GTIRB_PPRINTER_PATCH_VERSION})
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY
+    "A pretty printer from the GTIRB intermediate representation for binary analysis and reverse engineering to gas-syntax assembly code."
+)
+set(CPACK_PACKAGE_VEDOR "GrammaTech Inc.")
+set(CPACK_PACKAGE_CONTACT gtirb@grammatech.com)
+set(CPACK_PACKAGE_DESCRIPTION_FILE ${CMAKE_CURRENT_SOURCE_DIR}/README.md)
+set(CPACK_PACKAGE_RESOURCE_FILE_LICENSE ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt)
+
+set(CPACK_DEBIAN_PACKAGE_SECTION devel)
+
+include(CPack)

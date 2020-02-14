@@ -30,7 +30,7 @@ check-format:
   stage: build
   script:
     - git clone https://git.grammatech.com/rewriting/gtirb.git
-    - docker build -f .ci/Dockerfile.$OS-$COMPILER -t ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} .
+    - docker build -f .ci/Dockerfile.$OS-$COMPILER -t ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} --build-arg CPACK_GENERATOR=${CPACK_GENERATOR} .
 
 .windows-build-template: &windows-build
   stage: build
@@ -74,6 +74,7 @@ build-ubuntu18-gcc:
   variables:
     OS: 'ubuntu18'
     COMPILER: 'gcc'
+    CPACK_GENERATOR: 'DEB'
   <<: *build
 
 build-ubuntu18-clang:

@@ -34,5 +34,8 @@ RUN cd /usr/local/src \
 COPY . /gt/gtirb-pprinter/
 ENV LD_LIBRARY_PATH /gt/gtirb-pprinter/gtirb/build/lib
 RUN /gt/gtirb-pprinter/.ci/build-linux.sh clang++
+ARG CPACK_GENERATOR=""
+RUN if [ ! -z "${CPACK_GENERATOR}" ] ; then cd /gt/gtirb-pprinter/build && cpack -G "${CPACK_GENERATOR}"; fi
+
 WORKDIR /gt/gtirb-pprinter/
 ENV PATH=/gt/gtirb-pprinter/build/bin:$PATH
