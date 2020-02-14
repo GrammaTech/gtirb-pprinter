@@ -550,9 +550,12 @@ void PrettyPrinterBase::printDataBlock(std::ostream& os,
   if (shouldExcludeDataElement(**section, dataObject))
     return;
 
+  const auto& foundSymbolic =
+      module.findSymbolicExpressionsAt(*dataObject.getAddress());
   auto dataObjectBytes = dataObject.bytes<uint8_t>();
   if (std::all_of(dataObjectBytes.begin(), dataObjectBytes.end(),
-                  [](uint8_t x) { return x == 0; }))
+                  [](uint8_t x) { return x == 0; }) &&
+      foundSymbolic.empty())
     printZeroDataBlock(os, dataObject);
   else
     printNonZeroDataBlock(os, dataObject);
