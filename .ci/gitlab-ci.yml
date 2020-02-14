@@ -30,7 +30,6 @@ check-format:
   stage: build
   script:
     - git clone -b protobuf-refactoring-1-phase-2 https://git.grammatech.com/rewriting/gtirb.git
-    - cd gtirb
     - docker build -f .ci/Dockerfile.$OS-$COMPILER -t ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} .
 
 .windows-build-template: &windows-build
