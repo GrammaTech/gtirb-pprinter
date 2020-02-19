@@ -13,6 +13,7 @@ stages:
   - check-format
   - build
   - test-and-tag
+  - deploy
   - cleanup
 
 check-format:
@@ -152,8 +153,7 @@ test-debian-install:
     COMPILER: 'clang'
     INSTALLER: 'dpkg -i gtirb_pprinter-1.0.0-Linux.deb'
   script:
-    - export COMPILER_NAME=$(echo ${COMPILER} | sed 's/clang++/clang/;s/g++/gcc/;s/-*//g' )
-    - export LOCAL_IMAGE=$(echo ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER_NAME} |  tr A-Z a-z)
+    - export LOCAL_IMAGE=$(echo ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} |  tr A-Z a-z)
     - docker build -f .ci/Dockerfile.test-install -t ${LOCAL_IMAGE_NAME}-${CI_JOB_NAME} --build-arg IMAGE=$LOCAL_IMAGE --build-arg INSTALLER="$INSTALLER" .
 
 cleanup-ubuntu16-gcc:
@@ -208,3 +208,22 @@ cleanup-arch-clang:
 #       - public
 #   only:
 #     - master
+
+#  artifacts:
+#    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
+#     paths:
+#       - gtirb_pprinter-*-Linux.deb
+
+debian-installer:
+  stage: deploy
+  variables:
+    OS: 'ubuntu18'
+    COMPILER: 'gcc'
+  script:
+    - export CONTAINER_FILE=${LOCAL_IMAGE_NAME}-${OS}-${COMPILER}.container
+    - mkdir -p $(dirname ${CONTAINER_FILE})
+    - docker create --cidfile=${CONTAINER_FILE} ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER}
+    - docker cp $(cat ${CONTAINER_FILE}):/gt/gtirb-pprinter/build ./build-artifacts
+    - docker container rm -f $(cat ${CONTAINER_FILE})
+    - file ./build-artifacts/gtirb_pprinter-*-Linux.deb
+
