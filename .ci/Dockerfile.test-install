@@ -11,6 +11,7 @@ RUN $INSTALLER
 
 # delete build directories, to ensure we're not using anything from there
 WORKDIR /gt
+RUN mv gtirb-pprinter/tests tests
 RUN rm -rf gtirb-pprinter
 
 # build the c++ test
@@ -21,3 +22,8 @@ RUN $CXX_COMPILER test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -
 
 # run the c++ test
 RUN ./test-install
+
+# run the python tests, which will test if the pprinter binaries have been
+# installed
+WORKDIR /gt/tests
+RUN python3 *_test.py
