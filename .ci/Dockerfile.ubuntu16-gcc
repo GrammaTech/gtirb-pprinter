@@ -58,7 +58,7 @@ RUN cd /usr/local/src \
 
 # Install GTIRB and build gtirb-pprinter
 COPY . /gt/gtirb-pprinter/
-ENV LD_LIBRARY_PATH /gt/gtirb-pprinter/gtirb/build/lib
+ENV LD_LIBRARY_PATH /gt/gtirb-pprinter/gtirb/build/lib:$LD_LIBRARY_PATH
 RUN /gt/gtirb-pprinter/.ci/build-linux.sh g++-7
 ARG CPACK_GENERATOR=""
 RUN if [ ! -z "${CPACK_GENERATOR}" ] ; then cd /gt/gtirb-pprinter/build && cpack -G "${CPACK_GENERATOR}"; fi
