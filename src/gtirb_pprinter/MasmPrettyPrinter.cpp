@@ -49,11 +49,29 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
     : PePrettyPrinter(context_, module_, syntax_, policy_),
       masmSyntax(syntax_) {
 
-  // FIXME: How should we handle entry point label?
-  // FIXME: What if there is no entry point?
-  gtirb::Addr Entry = *module.getEntryPoint()->getAddress();
-  auto* EntrySymbol = gtirb::Symbol::Create(context, Entry, "__EntryPoint");
-  module.addSymbol(EntrySymbol);
+  const auto* BaseAddress = module.getAuxData<gtirb::Addr>("baseAddress");
+  if (BaseAddress) {
+    ImageBase = *BaseAddress;
+  }
+
+  if (gtirb::CodeBlock* Block = module.getEntryPoint(); Block->getAddress()) {
+    auto* EntryPoint =
+        gtirb::Symbol::Create(context, *(Block->getAddress()), "__EntryPoint");
+    module.addSymbol(EntryPoint);
+    Exports.insert(EntryPoint->getUUID());
+  }
+
+  const auto* SymbolTypes =
+      module.getAuxData<std::map<gtirb::UUID, std::string>>("symbolType");
+  if (SymbolTypes) {
+    for (const auto& [UUID, Type] : *SymbolTypes) {
+      if (Type == "EXTERN") {
+        Imports.insert(UUID);
+      } else if (Type == "PUBLIC") {
+        Exports.insert(UUID);
+      }
+    }
+  }
 }
 
 void MasmPrettyPrinter::printIncludes(std::ostream& os) {
@@ -161,15 +179,6 @@ void MasmPrettyPrinter::printSectionFooterDirective(
 
 void MasmPrettyPrinter::printFunctionHeader(std::ostream& os,
                                             gtirb::Addr addr) {
-  // Print public definitions
-  for (const gtirb::Symbol& symbol : module.findSymbols(addr)) {
-    // FIXME: We can tell symbol extern-ness. But this should only run on
-    // internal, visible symbols. How do we tell symbol visibility?
-    if (symbol.getAddress()) {
-      os << '\n' << syntax.global() << ' ' << symbol.getName() << '\n';
-    }
-  }
-
   const std::string& name =
       syntax.formatFunctionName(this->getFunctionName(addr));
   if (!name.empty()) {
@@ -207,15 +216,16 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
 void MasmPrettyPrinter::printSymbolDefinitionsAtAddress(std::ostream& os,
                                                         gtirb::Addr ea,
                                                         bool inData) {
-  if (isFunctionEntry(ea))
+  if (isFunctionEntry(ea) || ea == gtirb::Addr(0)) {
     return;
+  }
 
   // Print public definitions
   for (const gtirb::Symbol& symbol : module.findSymbols(ea)) {
-    // FIXME: We can tell symbol extern-ness. But this should only run on
-    // internal, visible symbols. How do we tell symbol visibility?
-    if (symbol.getAddress()) {
-      os << '\n' << syntax.global() << ' ' << symbol.getName() << '\n';
+    if (Exports.count(symbol.getUUID())) {
+      if (symbol.getAddress()) {
+        os << '\n' << syntax.global() << ' ' << symbol.getName() << '\n';
+      }
     }
   }
 
@@ -312,8 +322,7 @@ void MasmPrettyPrinter::printOpIndirect(
   }
 
   if (op.mem.base == X86_REG_RIP && symbolic == nullptr) {
-    uint64_t BaseAddress = static_cast<uint64_t>(*module.getAddress());
-    if (inst.address + inst.size + op.mem.disp == BaseAddress) {
+    if (gtirb::Addr(inst.address + inst.size + op.mem.disp) == ImageBase) {
       os << "__ImageBase]";
       return;
     }
@@ -350,7 +359,7 @@ void MasmPrettyPrinter::printSymbolicExpression(
 void MasmPrettyPrinter::printSymbolicExpression(std::ostream& os,
                                                 const gtirb::SymAddrAddr* sexpr,
                                                 bool inData) {
-  if (inData && sexpr->Sym2->getAddress() == *module.getAddress()) {
+  if (inData && sexpr->Sym2->getAddress() == ImageBase) {
     os << masmSyntax.imagerel() << ' ';
     printSymbolReference(os, sexpr->Sym1, inData);
     return;

@@ -136,6 +136,10 @@ protected:
   std::string getSymbolName(gtirb::Addr x) const override;
 
 private:
+  gtirb::Addr ImageBase;
+  std::unordered_set<gtirb::UUID> Imports;
+  std::unordered_set<gtirb::UUID> Exports;
+
   // Map linked DLLs to corresponding INCLUDELIB libraries.
   std::unordered_map<std::string, std::vector<std::string>> dllLibraries = {
       // Skip implicit api-ms-win-*.dll libraries.
