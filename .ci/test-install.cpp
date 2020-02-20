@@ -2,8 +2,7 @@
 #include <iostream>
 
 int main() {
-  gtirb_pprint::PrettyPrinter pprinter;
-  pprinter.setDebug(true);
-  std::cout << pprinter.getDebug() << "\n";
+  auto defaultSyntax = gtirb_pprint::getDefaultSyntax("elf");
+  std::cout << "default syntax for elf: " << *defaultSyntax << "\n";
   return 0;
 }
