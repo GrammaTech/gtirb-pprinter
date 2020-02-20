@@ -3,6 +3,9 @@
 
 int main() {
   auto defaultSyntax = gtirb_pprint::getDefaultSyntax("elf");
+  if (!defaultSyntax) {
+    return 1;
+  }
   std::cout << "default syntax for elf: " << *defaultSyntax << "\n";
   return 0;
 }
