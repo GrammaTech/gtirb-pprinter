@@ -226,4 +226,3 @@ debian-installer:
     - rm -rf $(dirname $CONTAINER_FILE)
     - mv ./build-artifacts/gtirb_pprinter-*-Linux.deb ./
     - rm -rf ./build-artifacts
-    - file .gtirb_pprinter-*-Linux.deb
