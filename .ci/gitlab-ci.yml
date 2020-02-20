@@ -154,7 +154,7 @@ test-debian-install:
     INSTALLER: 'dpkg -i gtirb_pprinter-*-Linux.deb'
   script:
     - export LOCAL_IMAGE=$(echo ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} |  tr A-Z a-z)
-    - docker build -f .ci/Dockerfile.test-install -t ${LOCAL_IMAGE_NAME}-${CI_JOB_NAME} --build-arg IMAGE=$LOCAL_IMAGE --build-arg INSTALLER="$INSTALLER" .
+    - docker build --rm -f .ci/Dockerfile.test-install -t ${LOCAL_IMAGE_NAME}-${CI_JOB_NAME} --build-arg IMAGE=$LOCAL_IMAGE --build-arg INSTALLER="$INSTALLER" .
 
 cleanup-ubuntu16-gcc:
   variables:
