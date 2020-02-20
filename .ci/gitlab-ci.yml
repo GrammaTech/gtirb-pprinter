@@ -209,21 +209,21 @@ cleanup-arch-clang:
 #   only:
 #     - master
 
-#  artifacts:
-#    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
-#     paths:
-#       - gtirb_pprinter-*-Linux.deb
-
 debian-installer:
   stage: deploy
   variables:
     OS: 'ubuntu18'
     COMPILER: 'gcc'
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
+    paths:
+      - ./gtirb_pprinter-*-Linux.deb
   script:
     - export CONTAINER_FILE=$(mktemp -d)/cidfile
     - docker create --cidfile=${CONTAINER_FILE} ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER}
     - docker cp $(cat ${CONTAINER_FILE}):/gt/gtirb-pprinter/build ./build-artifacts
     - docker container rm -f $(cat ${CONTAINER_FILE})
     - rm -rf $(dirname $CONTAINER_FILE)
-    - file ./build-artifacts/gtirb_pprinter-*-Linux.deb
-
+    - mv ./build-artifacts/gtirb_pprinter-*-Linux.deb ./
+    - rm -rf ./build-artifacts
+    - file .gtirb_pprinter-*-Linux.deb
