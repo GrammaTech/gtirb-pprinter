@@ -240,7 +240,7 @@ std::ostream& PrettyPrinterBase::print(std::ostream& os) {
     last = printBlockOrWarning(os, **blockIt, last);
   for (; dataIt != module.data_blocks_end(); dataIt++)
     last = printDataBlockOrWarning(os, *dataIt, last);
-  bool inData = !module.findDataBlocksIn(last).empty();
+  bool inData = !module.findDataBlocksOn(last).empty();
   printSymbolDefinitionsAtAddress(os, last, inData);
   printSectionFooter(os, std::nullopt, last);
   printFooter(os);
@@ -255,7 +255,7 @@ gtirb::Addr PrettyPrinterBase::printBlockOrWarning(
     return last;
   } else {
     if (nextAddr > last) {
-      bool inData = !module.findDataBlocksIn(last).empty();
+      bool inData = !module.findDataBlocksOn(last).empty();
       printSymbolDefinitionsAtAddress(os, last, inData);
     }
     printSectionFooter(os, nextAddr, last);
@@ -273,7 +273,7 @@ gtirb::Addr PrettyPrinterBase::printDataBlockOrWarning(
     return last;
   } else {
     if (nextAddr > last) {
-      bool inData = !module.findDataBlocksIn(last).empty();
+      bool inData = !module.findDataBlocksOn(last).empty();
       printSymbolDefinitionsAtAddress(os, last, inData);
     }
     printSectionFooter(os, nextAddr, last);
@@ -767,7 +767,7 @@ PrettyPrinterBase::getContainerFunctionName(const gtirb::Addr x) const {
 
 const std::optional<const gtirb::Section*>
 PrettyPrinterBase::getContainerSection(const gtirb::Addr addr) const {
-  auto found_sections = module.findSectionsIn(addr);
+  auto found_sections = module.findSectionsOn(addr);
   if (found_sections.begin() == found_sections.end())
     return std::nullopt;
   else
@@ -867,7 +867,7 @@ PrettyPrinterBase::getForwardedSymbolEnding(const gtirb::Symbol* symbol,
                                             bool inData) const {
   if (symbol->getAddress()) {
     gtirb::Addr addr = *symbol->getAddress();
-    const auto container_sections = module.findSectionsIn(addr);
+    const auto container_sections = module.findSectionsOn(addr);
     if (container_sections.begin() == container_sections.end())
       return std::string{};
     std::string section_name = container_sections.begin()->getName();
