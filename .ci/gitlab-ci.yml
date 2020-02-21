@@ -30,13 +30,13 @@ check-format:
 .build-template: &build
   stage: build
   script:
-    - git clone -b protobuf-refactoring-1-phase-2 https://git.grammatech.com/rewriting/gtirb.git
+    - git clone https://git.grammatech.com/rewriting/gtirb.git
     - docker build -f .ci/Dockerfile.$OS-$COMPILER -t ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} .
 
 .windows-build-template: &windows-build
   stage: build
   script:
-    - git clone -b protobuf-refactoring-1-phase-2 https://git.grammatech.com/rewriting/gtirb.git
+    - git clone https://git.grammatech.com/rewriting/gtirb.git
     - .ci/build-windows.sh $BUILD_TYPE
 
 .test-and-tag-template: &test-and-tag
