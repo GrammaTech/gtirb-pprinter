@@ -180,22 +180,14 @@ void MasmPrettyPrinter::printSectionFooterDirective(
   os << section_name << ' ' << masmSyntax.ends();
 }
 
-void MasmPrettyPrinter::printFunctionHeader(std::ostream& os,
-                                            gtirb::Addr addr) {
-  // Print public definitions
-  for (const gtirb::Symbol& symbol : module.findSymbols(addr)) {
-    if (Exports.count(symbol.getUUID())) {
-      os << '\n' << syntax.global() << ' ' << symbol.getName() << '\n';
-    }
-  }
-
-  const std::string& name =
-      syntax.formatFunctionName(this->getFunctionName(addr));
-  if (!name.empty()) {
-    // TODO: Use PROC/ENDP blocks
-    // os << name << ' ' << masmSyntax.proc() << '\n';
-    os << name << ":\n";
-  }
+void MasmPrettyPrinter::printFunctionHeader(std::ostream& /* os */,
+                                            gtirb::Addr /* addr */) {
+  // TODO: Use PROC/ENDP blocks
+  // const std::string& name =
+  //     syntax.formatFunctionName(this->getFunctionName(addr));
+  // if (!name.empty()) {
+  //   os << name << ' ' << masmSyntax.proc() << '\n';
+  // }
 }
 
 void MasmPrettyPrinter::printFunctionFooter(std::ostream& /* os */,

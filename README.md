@@ -94,6 +94,7 @@ associated types and contents in this table.
 | encodings            | `std::map<gtirb::UUID,std::string>`            | Map from (typed) data objects to the encoding of the data,  expressed as a std::string containing an assembler encoding specifier: "string", "uleb128" or "sleb128".     |
 | elfSectionProperties | `std::map<gtirb::UUID, std::tuple<uint64_t, uint64_t>>` | Map from section UUIDs to tuples with the ELF section types and flags. |
 | cfiDirectives   | `std::map<gtirb::Offset, std::vector<std::tuple<std::string, std::vector<int64_t>, gtirb::UUID>>>` | Map from Offsets to  vector of cfi directives. A cfi directive contains: a string describing the directive, a vector  of numeric arguments, and an optional symbolic argument (represented with the UUID of the symbol). |
+| symbolType   | `std::map<gtirb::UUID, std::string>` | Map from symbols to thier linkage and/or visibility categories. On ELF, either `LOCAL`, `GLOBAL`, or `WEAK`. On PE, either `PUBLIC` or `EXTERN`. |
 
 ## AuxData Used by the Binary Printer
 
