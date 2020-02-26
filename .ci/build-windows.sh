@@ -1,5 +1,10 @@
 #!/bin/bash
 
+set -o xtrace
+set -o nounset
+set -o errexit
+set -o pipefail
+
 # Called directly by the windows build jobs in gitlab-ci.yml
 
 BUILD_TYPE=$1
