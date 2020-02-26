@@ -39,6 +39,7 @@ public:
   const std::string& align() const override { return AlignDirective; }
 
   const std::string& type() const { return TypeDirective; }
+  const std::string& weak() const { return WeakDirective; }
 
 private:
   const std::string CommentStyle{"#"};
@@ -58,6 +59,7 @@ private:
   const std::string GlobalDirective{".globl"};
   const std::string AlignDirective{".align"};
   const std::string TypeDirective{".type"};
+  const std::string WeakDirective{".weak"};
 };
 
 class ElfPrettyPrinter : public PrettyPrinterBase {
@@ -86,6 +88,8 @@ protected:
   bool
   shouldExcludeDataElement(const gtirb::Section& section,
                            const gtirb::DataBlock& dataObject) const override;
+  void printSymbolDefinitionsAtAddress(std::ostream& os, gtirb::Addr ea,
+                                       bool inData) override;
 };
 
 } // namespace gtirb_pprint

@@ -81,23 +81,8 @@ void ElfPrettyPrinter::printSectionProperties(std::ostream& os,
 void ElfPrettyPrinter::printSectionFooterDirective(
     std::ostream& /* os */, const gtirb::Section& /* section */) {}
 
-void ElfPrettyPrinter::printFunctionHeader(std::ostream& os, gtirb::Addr addr) {
-  const std::string& name =
-      syntax.formatFunctionName(this->getFunctionName(addr));
-
-  if (!name.empty()) {
-    os << syntax.comment() << " BEGIN - Function Header\n";
-    printBar(os, false);
-
-    printAlignment(os, addr);
-    os << syntax.global() << ' ' << name << '\n';
-    os << elfSyntax.type() << ' ' << name << ", @function\n";
-    os << name << ":\n";
-
-    printBar(os, false);
-    os << syntax.comment() << " END   - Function Header\n";
-  }
-}
+void ElfPrettyPrinter::printFunctionHeader(std::ostream& /* os */,
+                                           gtirb::Addr /* addr */) {}
 
 void ElfPrettyPrinter::printFunctionFooter(std::ostream& /* os */,
                                            gtirb::Addr /* addr */) {}
@@ -124,6 +109,53 @@ bool ElfPrettyPrinter::shouldExcludeDataElement(
     }
   }
   return false;
+}
+
+void ElfPrettyPrinter::printSymbolDefinitionsAtAddress(std::ostream& os,
+                                                       gtirb::Addr ea,
+                                                       bool inData) {
+  const auto* SymbolTypes =
+      module.getAuxData<std::map<gtirb::UUID, std::string>>("symbolType");
+
+  if (SymbolTypes) {
+    for (const auto& sym : module.findSymbols(ea)) {
+      if (auto SymTypeIt = SymbolTypes->find(sym.getUUID());
+          SymTypeIt != SymbolTypes->end()) {
+        const auto& SymbolVisibility = SymTypeIt->second;
+
+        std::string TypeName;
+        if (sym.getReferent<gtirb::CodeBlock>()) {
+          TypeName = "function";
+        } else if (sym.getReferent<gtirb::DataBlock>()) {
+          TypeName = "object";
+        } else {
+          TypeName = "notype";
+        }
+
+        if (SymbolVisibility == "GLOBAL") {
+          printBar(os, false);
+          printAlignment(os, ea);
+          os << syntax.global() << ' ' << sym.getName() << '\n';
+          os << elfSyntax.type() << ' ' << sym.getName() << ", @" << TypeName
+             << "\n";
+          printBar(os, false);
+        } else if (SymbolVisibility == "WEAK") {
+          printBar(os, false);
+          printAlignment(os, ea);
+          os << elfSyntax.weak() << ' ' << sym.getName() << '\n';
+          os << elfSyntax.type() << ' ' << sym.getName() << ", @" << TypeName
+             << "\n";
+          printBar(os, false);
+        } else if (SymbolVisibility == "LOCAL") {
+          // Do nothing; just print the label.
+        } else {
+          assert(!"Unknown symbol type in symbolType aux data");
+        }
+      }
+    }
+  }
+
+  PrettyPrinterBase::printSymbolDefinitionsAtAddress(os, ea, inData);
 }
 
 } // namespace gtirb_pprint
