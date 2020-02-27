@@ -223,35 +223,20 @@ protected:
   virtual void printHeader(std::ostream& os) = 0;
   virtual void printFooter(std::ostream& os) = 0;
   virtual void printAlignment(std::ostream& os, const gtirb::Addr addr);
-  virtual void printSectionHeader(std::ostream& os, const gtirb::Addr addr);
+  virtual void printSection(std::ostream& os, const gtirb::Section& section);
+  virtual void printSectionHeader(std::ostream& os,
+                                  const gtirb::Section& section);
   virtual void printSectionHeaderDirective(std::ostream& os,
                                            const gtirb::Section& addr) = 0;
   virtual void printSectionProperties(std::ostream& os,
                                       const gtirb::Section& addr) = 0;
   virtual void printSectionFooter(std::ostream& os,
-                                  const std::optional<const gtirb::Addr> addr,
-                                  const gtirb::Addr last);
+                                  const gtirb::Section& section);
   virtual void printSectionFooterDirective(std::ostream& os,
-                                           const gtirb::Section& addr) = 0;
+                                           const gtirb::Section& section) = 0;
   virtual void printFunctionHeader(std::ostream& os, gtirb::Addr addr) = 0;
   virtual void printFunctionFooter(std::ostream& os, gtirb::Addr addr) = 0;
-
-  /// Print the block as long as it does not overlap with the address last.
-  /// If it overlaps, print a warning instead.
-  /// Return the ending address of the block if this was printed. Otherwise
-  /// return last.
-  virtual gtirb::Addr printBlockOrWarning(std::ostream& os,
-                                          const gtirb::CodeBlock& x,
-                                          gtirb::Addr last);
-  /// Print the dataObject as long as it does not overlap with the address last.
-  /// If it overlaps, print a warning instead.
-  /// Return the ending address of the block if this was printed. Otherwise
-  /// return last.
-  virtual gtirb::Addr printDataBlockOrWarning(std::ostream& os,
-                                              const gtirb::DataBlock& x,
-                                              gtirb::Addr last);
-
-  virtual void printBlock(std::ostream& os, const gtirb::CodeBlock& x);
+  virtual void printCodeBlock(std::ostream& os, const gtirb::CodeBlock& x);
   virtual void printDataBlock(std::ostream& os,
                               const gtirb::DataBlock& dataObject);
   virtual void printNonZeroDataBlock(std::ostream& os,
@@ -310,24 +295,20 @@ protected:
                                const gtirb::SymbolicExpression* symbolic,
                                const cs_insn& inst, uint64_t index) = 0;
 
-  virtual void printSymbolDefinitionsAtAddress(std::ostream& os, gtirb::Addr ea,
-                                               bool inData = false);
+  virtual void printSymbolDefinition(std::ostream& os,
+                                     const gtirb::Symbol& symbol);
   virtual void printOverlapWarning(std::ostream& os, gtirb::Addr ea);
   virtual void printDataBlockType(std::ostream& os,
                                   const gtirb::DataBlock& dataObject);
 
-  virtual bool
-  shouldExcludeDataElement(const gtirb::Section& section,
-                           const gtirb::DataBlock& dataObject) const;
-
-  bool skipEA(const gtirb::Addr x) const;
+  virtual bool shouldSkip(const gtirb::Section& section) const;
+  virtual bool shouldSkip(const gtirb::Symbol& symbol) const;
+  virtual bool shouldSkip(const gtirb::CodeBlock& block) const;
+  virtual bool shouldSkip(const gtirb::DataBlock& block) const;
 
   // This method assumes sections do not overlap
   const std::optional<const gtirb::Section*>
   getContainerSection(const gtirb::Addr addr) const;
-
-  bool isInSkippedSection(const gtirb::Addr x) const;
-  bool isInSkippedFunction(const gtirb::Addr x) const;
 
   /// Get the name of the function containing an effective address. This
   /// implementation assumes that functions are tightly packed within a

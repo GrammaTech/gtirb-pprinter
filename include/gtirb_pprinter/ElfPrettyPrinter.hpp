@@ -85,11 +85,9 @@ protected:
 
   void printByte(std::ostream& os, std::byte byte) override;
 
-  bool
-  shouldExcludeDataElement(const gtirb::Section& section,
-                           const gtirb::DataBlock& dataObject) const override;
-  void printSymbolDefinitionsAtAddress(std::ostream& os, gtirb::Addr ea,
-                                       bool inData) override;
+  bool shouldSkip(const gtirb::DataBlock& dataObject) const override;
+  void printSymbolDefinition(std::ostream& os,
+                             const gtirb::Symbol& symbol) override;
 };
 
 } // namespace gtirb_pprint
