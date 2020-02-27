@@ -459,6 +459,10 @@ void PrettyPrinterBase::printOperand(std::ostream& os, const cs_insn& inst,
 
 void PrettyPrinterBase::printDataBlock(std::ostream& os,
                                        const gtirb::DataBlock& dataObject) {
+  if (shouldSkip(dataObject)) {
+    return;
+  }
+
   for (const auto& sym :
        dataObject.getByteInterval()->getSection()->getModule()->findSymbols(
            dataObject)) {
