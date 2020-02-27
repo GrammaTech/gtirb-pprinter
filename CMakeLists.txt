@@ -379,10 +379,10 @@ if(GTIRB_PPRINTER_ENABLE_TESTS)
 
   find_program(PYTHON "python3")
 
-  add_test(NAME python_tests
-      COMMAND ${PYTHON} -m unittest discover tests "*_test.py"
-      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/"
-  )
+  add_test(
+    NAME python_tests
+    COMMAND ${PYTHON} -m unittest discover tests "*_test.py"
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/")
 endif()
 
 # ---------------------------------------------------------------------------
@@ -394,7 +394,7 @@ set(CPACK_PACKAGE_VERSION_MAJOR ${GTIRB_PPRINTER_MAJOR_VERSION})
 set(CPACK_PACKAGE_VERSION_MINOR ${GTIRB_PPRINTER_MINOR_VERSION})
 set(CPACK_PACKAGE_VERSION_PATCH ${GTIRB_PPRINTER_PATCH_VERSION})
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY
-  "A pretty printer from the GTIRB intermediate representation for binary analysis and reverse engineering to gas-syntax assembly code."
+    "A pretty printer from the GTIRB intermediate representation for binary analysis and reverse engineering to gas-syntax assembly code."
 )
 set(CPACK_PACKAGE_VEDOR "GrammaTech Inc.")
 set(CPACK_PACKAGE_CONTACT gtirb@grammatech.com)
