@@ -487,6 +487,10 @@ void PrettyPrinterBase::printDataBlock(std::ostream& os,
 
 void PrettyPrinterBase::printNonZeroDataBlock(
     std::ostream& os, const gtirb::DataBlock& dataObject) {
+  if (!dataObject.getSize()) {
+    return;
+  }
+
   const auto& foundSymbolic =
       module.findSymbolicExpressionsAt(*dataObject.getAddress());
   if (!foundSymbolic.empty()) {
@@ -514,8 +518,10 @@ void PrettyPrinterBase::printNonZeroDataBlock(
 
 void PrettyPrinterBase::printZeroDataBlock(std::ostream& os,
                                            const gtirb::DataBlock& dataObject) {
-  os << syntax.tab();
-  os << " .zero " << dataObject.getSize() << '\n';
+  if (auto size = dataObject.getSize()) {
+    os << syntax.tab();
+    os << " .zero " << size << '\n';
+  }
 }
 
 void PrettyPrinterBase::printComments(std::ostream& os,
