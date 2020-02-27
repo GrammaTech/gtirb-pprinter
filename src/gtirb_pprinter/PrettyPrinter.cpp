@@ -690,6 +690,10 @@ bool PrettyPrinterBase::shouldSkip(const gtirb::CodeBlock& block) const {
     return false;
   }
 
+  if (shouldSkip(*block.getByteInterval()->getSection())) {
+    return true;
+  }
+
   auto FunctionName = getContainerFunctionName(*block.getAddress());
   return FunctionName && policy.skipFunctions.count(*FunctionName);
 }
@@ -697,6 +701,10 @@ bool PrettyPrinterBase::shouldSkip(const gtirb::CodeBlock& block) const {
 bool PrettyPrinterBase::shouldSkip(const gtirb::DataBlock& block) const {
   if (debug) {
     return false;
+  }
+
+  if (shouldSkip(*block.getByteInterval()->getSection())) {
+    return true;
   }
 
   for (const auto& sym : module.findSymbols(block)) {
