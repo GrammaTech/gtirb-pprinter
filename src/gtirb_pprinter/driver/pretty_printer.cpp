@@ -140,6 +140,11 @@ int main(int argc, char** argv) {
   // Layout IR in memory without overlap.
   if (vm.count("layout") || gtirb_layout::layoutRequired(*ir)) {
     for (auto& M : ir->modules()) {
+      // Layout the modules so that everything has nonoverlapping addresses if
+      // needed.
+      LOG_INFO << "Module " << M.getUUID()
+               << " has invalid layout; laying out module automatically..."
+               << std::endl;
       gtirb_layout::layoutModule(M);
     }
   }
