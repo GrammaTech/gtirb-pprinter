@@ -657,7 +657,16 @@ void PrettyPrinterBase::printString(std::ostream& os,
 }
 
 bool PrettyPrinterBase::shouldSkip(const gtirb::Section& section) const {
-  return !this->debug && policy.skipSections.count(section.getName());
+  if (debug) {
+    return false;
+  }
+
+  // TODO: print bytes not covered by any block?
+  if (section.blocks().empty()) {
+    return true;
+  }
+
+  return policy.skipSections.count(section.getName());
 }
 
 bool PrettyPrinterBase::shouldSkip(const gtirb::Symbol& symbol) const {
