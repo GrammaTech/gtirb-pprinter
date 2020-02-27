@@ -156,6 +156,7 @@ static bool findAndMergeBIs(Section& S) {
   return true;
 }
 
+<<<<<<< HEAD
 // NOTE: Only checks for missing addresses, not overlapping addresses.
 bool ::gtirb_layout::layoutRequired(IR& ir) {
   for (auto& M : ir.modules()) {
@@ -181,6 +182,9 @@ static Context Ctx;
 
 bool ::gtirb_layout::layoutModule(Module& M) {
   // Fix symbols with integral referents that point to known objects.
+=======
+void ::gtirb_layout::fixIntegralSymbols(gtirb::Context& Ctx, gtirb::Module& M) {
+>>>>>>> 08ee876... Clean up gtirb-layout's API
   std::vector<Symbol*> IntSyms;
   for (auto& Sym : M.symbols()) {
     if (!Sym.hasReferent() && Sym.getAddress()) {
@@ -259,6 +263,11 @@ bool ::gtirb_layout::layoutModule(Module& M) {
     // TODO: if !FoundReferent, then emit a warning that an integral symbol
     // was not relocated.
   }
+}
+
+bool ::gtirb_layout::layoutModule(gtirb::Context& Ctx, Module& M) {
+  // Fix symbols with integral referents that point to known objects.
+  fixIntegralSymbols(Ctx, M);
 
   // Store a list of sections and then iterate over them, because
   // setting the address of a BI invalidates parent iterators.
@@ -283,7 +292,7 @@ bool ::gtirb_layout::layoutModule(Module& M) {
   return true;
 }
 
-bool ::gtirb_layout::removeModuleLayout(Module& M) {
+bool ::gtirb_layout::removeModuleLayout(gtirb::Context& /* Ctx */, Module& M) {
   std::vector<std::reference_wrapper<Section>> Sections(M.sections_begin(),
                                                         M.sections_end());
   for (auto& S : Sections) {
