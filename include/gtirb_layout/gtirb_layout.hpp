@@ -16,11 +16,16 @@
 #define GTIRB_LAYOUT_H
 
 #include "Export.hpp"
-#include <gtirb/Module.hpp>
+#include <gtirb/gtirb.hpp>
 
 namespace gtirb_layout {
-bool GTIRB_LAYOUT_EXPORT_API layoutModule(gtirb::Module& M);
-bool GTIRB_LAYOUT_EXPORT_API removeModuleLayout(gtirb::Module& M);
+void GTIRB_LAYOUT_EXPORT_API fixIntegralSymbols(gtirb::Context& Ctx,
+                                                gtirb::Module& M);
+
+bool GTIRB_LAYOUT_EXPORT_API layoutModule(gtirb::Context& Ctx,
+                                          gtirb::Module& M);
+bool GTIRB_LAYOUT_EXPORT_API removeModuleLayout(gtirb::Context& Ctx,
+                                                gtirb::Module& M);
 } // namespace gtirb_layout
 
 #endif /* GTIRB_LAYOUT_H */

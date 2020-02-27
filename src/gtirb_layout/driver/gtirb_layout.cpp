@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
   if (vm.count("remove") == 0) {
     for (auto& M : ir->modules()) {
       LOG_INFO << "Laying out module " << M.getUUID() << "..." << std::endl;
-      if (!gtirb_layout::layoutModule(M)) {
+      if (!gtirb_layout::layoutModule(ctx, M)) {
         LOG_ERROR << "Laying out module failed!" << std::endl;
         return EXIT_FAILURE;
       }
@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
     for (auto& M : ir->modules()) {
       LOG_INFO << "Removing layout from module " << M.getUUID() << "..."
                << std::endl;
-      if (!gtirb_layout::removeModuleLayout(M)) {
+      if (!gtirb_layout::removeModuleLayout(ctx, M)) {
         LOG_ERROR << "Removing layout from module failed!" << std::endl;
         return EXIT_FAILURE;
       }

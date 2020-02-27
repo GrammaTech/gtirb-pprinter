@@ -109,17 +109,21 @@ int main(int argc, char** argv) {
   // Layout the modules so that evereything has nonoverlapping addresses if
   // needed.
   for (auto& M : ir->modules()) {
-    if (!M.getAddress() || std::any_of(M.symbols_begin(), M.symbols_end(),
-                                       [](const gtirb::Symbol& Sym) {
-                                         return !Sym.hasReferent() &&
-                                                Sym.getAddress();
-                                       })) {
+    if (!M.getAddress()) {
       // FIXME: There could be other kinds of invalid layouts than one in which
       // an interval has no address; for example, one where sections overlap...
       LOG_INFO << "Module " << M.getUUID()
                << " has invalid layout; laying out module automatically..."
                << std::endl;
-      gtirb_layout::layoutModule(M);
+      gtirb_layout::layoutModule(ctx, M);
+    } else if (std::any_of(M.symbols_begin(), M.symbols_end(),
+                           [](const gtirb::Symbol& Sym) {
+                             return !Sym.hasReferent() && Sym.getAddress();
+                           })) {
+      LOG_INFO << "Module " << M.getUUID()
+               << " has integral symbols; attempting to assign referents..."
+               << std::endl;
+      gtirb_layout::fixIntegralSymbols(ctx, M);
     }
   }
 
