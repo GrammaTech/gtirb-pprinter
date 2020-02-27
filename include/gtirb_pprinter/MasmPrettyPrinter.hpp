@@ -117,8 +117,8 @@ protected:
 
   void fixupInstruction(cs_insn& inst) override;
 
-  void printSymbolDefinitionsAtAddress(std::ostream& os, gtirb::Addr ea,
-                                       bool inData) override;
+  void printSymbolDefinition(std::ostream& os,
+                             const gtirb::Symbol& symbol) override;
 
   void printSymbolicExpression(std::ostream& os,
                                const gtirb::SymAddrConst* sexpr,

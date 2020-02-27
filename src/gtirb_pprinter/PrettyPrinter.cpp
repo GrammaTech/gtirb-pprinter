@@ -202,58 +202,12 @@ const gtirb::SymAddrConst* PrettyPrinterBase::getSymbolicImmediate(
 std::ostream& PrettyPrinterBase::print(std::ostream& os) {
   printHeader(os);
 
-  gtirb::Addr last{0};
-  for (auto& node : module.blocks()) {
-    if (auto* cb = dyn_cast<gtirb::CodeBlock>(&node)) {
-      last = printBlockOrWarning(os, *cb, last);
-    } else if (auto* db = dyn_cast<gtirb::DataBlock>(&node)) {
-      last = printDataBlockOrWarning(os, *db, last);
-    } else {
-      assert(!"non-block found in block iterator");
-    }
+  for (const auto& section : module.sections()) {
+    printSection(os, section);
   }
 
-  bool inData = !module.findDataBlocksOn(last).empty();
-  printSymbolDefinitionsAtAddress(os, last, inData);
-  printSectionFooter(os, std::nullopt, last);
   printFooter(os);
   return os;
-}
-
-gtirb::Addr PrettyPrinterBase::printBlockOrWarning(
-    std::ostream& os, const gtirb::CodeBlock& block, gtirb::Addr last) {
-  gtirb::Addr nextAddr = *block.getAddress();
-  if (nextAddr < last) {
-    printOverlapWarning(os, nextAddr);
-    return last;
-  } else {
-    if (nextAddr > last) {
-      bool inData = !module.findDataBlocksOn(last).empty();
-      printSymbolDefinitionsAtAddress(os, last, inData);
-    }
-    printSectionFooter(os, nextAddr, last);
-    printSectionHeader(os, nextAddr);
-    printBlock(os, block);
-    return *block.getAddress() + block.getSize();
-  }
-}
-
-gtirb::Addr PrettyPrinterBase::printDataBlockOrWarning(
-    std::ostream& os, const gtirb::DataBlock& dataObject, gtirb::Addr last) {
-  gtirb::Addr nextAddr = *dataObject.getAddress();
-  if (nextAddr < last) {
-    printOverlapWarning(os, nextAddr);
-    return last;
-  } else {
-    if (nextAddr > last) {
-      bool inData = !module.findDataBlocksOn(last).empty();
-      printSymbolDefinitionsAtAddress(os, last, inData);
-    }
-    printSectionFooter(os, nextAddr, last);
-    printSectionHeader(os, nextAddr);
-    printDataBlock(os, dataObject);
-    return *dataObject.getAddress() + dataObject.getSize();
-  }
 }
 
 void PrettyPrinterBase::printOverlapWarning(std::ostream& os,
@@ -264,13 +218,18 @@ void PrettyPrinterBase::printOverlapWarning(std::ostream& os,
   os.flags(flags);
 }
 
-void PrettyPrinterBase::printBlock(std::ostream& os,
-                                   const gtirb::CodeBlock& x) {
-  if (skipEA(*x.getAddress())) {
+void PrettyPrinterBase::printCodeBlock(std::ostream& os,
+                                       const gtirb::CodeBlock& x) {
+  if (shouldSkip(x)) {
     return;
   }
   printFunctionHeader(os, *x.getAddress());
   os << '\n';
+
+  for (const auto& sym :
+       x.getByteInterval()->getSection()->getModule()->findSymbols(x)) {
+    printSymbolDefinition(os, sym);
+  }
 
   cs_insn* insn;
   cs_option(this->csHandle, CS_OPT_DETAIL, CS_OPT_ON);
@@ -296,13 +255,8 @@ void PrettyPrinterBase::printBlock(std::ostream& os,
 }
 
 void PrettyPrinterBase::printSectionHeader(std::ostream& os,
-                                           const gtirb::Addr addr) {
-  const auto found_section = module.findSectionsAt(addr);
-  if (found_section.begin() == found_section.end())
-    return;
-  std::string sectionName = found_section.begin()->getName();
-  if (policy.skipSections.count(sectionName))
-    return;
+                                           const gtirb::Section& section) {
+  std::string sectionName = section.getName();
   os << '\n';
   printBar(os);
   if (sectionName == syntax.textSection()) {
@@ -312,43 +266,22 @@ void PrettyPrinterBase::printSectionHeader(std::ostream& os,
   } else if (sectionName == syntax.bssSection()) {
     os << syntax.bss() << '\n';
   } else {
-    printSectionHeaderDirective(os, *(found_section.begin()));
-    printSectionProperties(os, *(found_section.begin()));
+    printSectionHeaderDirective(os, section);
+    printSectionProperties(os, section);
     os << std::endl;
   }
   if (policy.arraySections.count(sectionName))
     os << syntax.align() << " 8\n";
   else
-    printAlignment(os, addr);
+    printAlignment(os, *section.getAddress());
   printBar(os);
   os << '\n';
 }
 
-void PrettyPrinterBase::printSectionFooter(
-    std::ostream& os, const std::optional<const gtirb::Addr> addr,
-    const gtirb::Addr last) {
-
-  std::optional<const gtirb::Section*> prev_section =
-      getContainerSection(last - 1);
-  if (!prev_section)
-    // No previous section, no footer to print.
-    return;
-
-  const std::string& section_name = (*prev_section)->getName();
-  if (policy.skipSections.count(section_name))
-    // Don't print footer for skipped section.
-    return;
-
-  std::optional<const gtirb::Section*> next_section =
-      addr ? getContainerSection(*addr) : std::nullopt;
-  if (next_section && next_section == prev_section)
-    // Section has not changed, continue.
-    return;
-
-  // Sections changed or ended, print footer for previous section.
+void PrettyPrinterBase::printSectionFooter(std::ostream& os,
+                                           const gtirb::Section& section) {
   printBar(os);
-  printSectionFooterDirective(os, **prev_section);
-  os << '\n';
+  printSectionFooterDirective(os, section);
   printBar(os);
 }
 
@@ -369,7 +302,7 @@ void PrettyPrinterBase::printSymbolReference(std::ostream& os,
     os << forwardedName.value();
     return;
   }
-  if (symbol->getAddress() && skipEA(*symbol->getAddress())) {
+  if (shouldSkip(*symbol)) {
     os << static_cast<uint64_t>(*symbol->getAddress());
     return;
   }
@@ -379,16 +312,12 @@ void PrettyPrinterBase::printSymbolReference(std::ostream& os,
     os << syntax.formatSymbolName(symbol->getName());
 }
 
-void PrettyPrinterBase::printSymbolDefinitionsAtAddress(std::ostream& os,
-                                                        gtirb::Addr ea,
-                                                        bool /* inData */) {
-  for (const gtirb::Symbol& symbol : module.findSymbols(ea)) {
-    if (!symbol.getAddress())
-      continue;
-    if (this->isAmbiguousSymbol(symbol.getName()))
-      os << getSymbolName(*symbol.getAddress()) << ":\n";
-    else
-      os << syntax.formatSymbolName(symbol.getName()) << ":\n";
+void PrettyPrinterBase::printSymbolDefinition(std::ostream& os,
+                                              const gtirb::Symbol& symbol) {
+  if (isAmbiguousSymbol(symbol.getName())) {
+    os << getSymbolName(*symbol.getAddress()) << ":\n";
+  } else {
+    os << syntax.formatSymbolName(symbol.getName()) << ":\n";
   }
 }
 
@@ -442,7 +371,6 @@ void PrettyPrinterBase::printInstruction(std::ostream& os, const cs_insn& inst,
                                          const gtirb::Offset& offset) {
 
   gtirb::Addr ea(inst.address);
-  printSymbolDefinitionsAtAddress(os, ea);
   printComments(os, offset, inst.size);
   printCFIDirectives(os, offset);
   printEA(os, ea);
@@ -531,19 +459,17 @@ void PrettyPrinterBase::printOperand(std::ostream& os, const cs_insn& inst,
 
 void PrettyPrinterBase::printDataBlock(std::ostream& os,
                                        const gtirb::DataBlock& dataObject) {
-  gtirb::Addr addr = *dataObject.getAddress();
-  if (skipEA(addr)) {
-    return;
+  for (const auto& sym :
+       dataObject.getByteInterval()->getSection()->getModule()->findSymbols(
+           dataObject)) {
+    printSymbolDefinition(os, sym);
   }
+
+  gtirb::Addr addr = *dataObject.getAddress();
   printComments(os, gtirb::Offset(dataObject.getUUID(), 0),
                 dataObject.getSize());
-  printSymbolDefinitionsAtAddress(os, addr, true);
   if (this->debug)
     os << std::hex << static_cast<uint64_t>(addr) << std::dec << ':';
-  const auto section = getContainerSection(addr);
-  assert(section && "Found a data object outside all sections");
-  if (shouldExcludeDataElement(**section, dataObject))
-    return;
 
   const auto& foundSymbolic =
       module.findSymbolicExpressionsAt(*dataObject.getAddress());
@@ -721,36 +647,55 @@ void PrettyPrinterBase::printString(std::ostream& os,
   os << '"';
 }
 
-bool PrettyPrinterBase::shouldExcludeDataElement(
-    const gtirb::Section& /* section */,
-    const gtirb::DataBlock& /* dataObject */) const {
-  return false;
+bool PrettyPrinterBase::shouldSkip(const gtirb::Section& section) const {
+  return !this->debug && policy.skipSections.count(section.getName());
 }
 
-bool PrettyPrinterBase::skipEA(const gtirb::Addr x) const {
-  return !this->debug && (isInSkippedSection(x) || isInSkippedFunction(x));
-}
-
-bool PrettyPrinterBase::isInSkippedSection(const gtirb::Addr addr) const {
-  if (debug)
+bool PrettyPrinterBase::shouldSkip(const gtirb::Symbol& symbol) const {
+  if (debug) {
     return false;
-  const auto section = getContainerSection(addr);
-  return section && policy.skipSections.count((*section)->getName());
+  }
+
+  if (symbol.hasReferent()) {
+    const auto* Referent = symbol.getReferent<gtirb::Node>();
+    if (auto* CB = dyn_cast<gtirb::CodeBlock>(Referent)) {
+      return shouldSkip(*CB);
+    } else if (auto* DB = dyn_cast<gtirb::DataBlock>(Referent)) {
+      return shouldSkip(*DB);
+    } else if (isa<gtirb::ProxyBlock>(Referent)) {
+      return false;
+    } else {
+      assert(!"non block in symbol referent!");
+    }
+  } else if (auto Addr = symbol.getAddress()) {
+    auto FunctionName = getContainerFunctionName(*Addr);
+    return FunctionName && policy.skipFunctions.count(*FunctionName);
+  } else {
+    return false;
+  }
 }
 
-bool PrettyPrinterBase::isInSkippedFunction(const gtirb::Addr x) const {
-  // If it has a symbol with a blacklisted name, skip it.
-  for (const auto& sym : module.findSymbols(x)) {
+bool PrettyPrinterBase::shouldSkip(const gtirb::CodeBlock& block) const {
+  if (debug) {
+    return false;
+  }
+
+  auto FunctionName = getContainerFunctionName(*block.getAddress());
+  return FunctionName && policy.skipFunctions.count(*FunctionName);
+}
+
+bool PrettyPrinterBase::shouldSkip(const gtirb::DataBlock& block) const {
+  if (debug) {
+    return false;
+  }
+
+  for (const auto& sym : module.findSymbols(block)) {
     if (policy.skipFunctions.count(sym.getName())) {
       return true;
     }
   }
 
-  // If it's in a blacklisted function, skip it.
-  std::optional<std::string> xFunctionName = getContainerFunctionName(x);
-  if (!xFunctionName)
-    return false;
-  return policy.skipFunctions.count(*xFunctionName);
+  return false;
 }
 
 bool PrettyPrinterBase::isFunctionEntry(const gtirb::Addr x) const {
@@ -888,6 +833,27 @@ bool PrettyPrinterBase::isAmbiguousSymbol(const std::string& name) const {
   // Are there multiple symbols with this name?
   auto found = module.findSymbols(name);
   return distance(begin(found), end(found)) > 1;
+}
+
+void PrettyPrinterBase::printSection(std::ostream& os,
+                                     const gtirb::Section& section) {
+  if (shouldSkip(section)) {
+    return;
+  }
+
+  printSectionHeader(os, section);
+
+  for (const auto& Block : section.blocks()) {
+    if (auto* CB = dyn_cast<gtirb::CodeBlock>(&Block)) {
+      printCodeBlock(os, *CB);
+    } else if (auto* DB = dyn_cast<gtirb::DataBlock>(&Block)) {
+      printDataBlock(os, *DB);
+    } else {
+      assert(!"non block in block iterator!");
+    }
+  }
+
+  printSectionFooter(os, section);
 }
 
 void registerAuxDataTypes() {

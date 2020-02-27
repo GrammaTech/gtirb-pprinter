@@ -53,8 +53,24 @@ bool PePrettyPrinter::isInSkippedDataDirectory(const gtirb::Addr x) const {
   return false;
 }
 
-bool PePrettyPrinter::skipEA(const gtirb::Addr x) const {
-  return isInSkippedDataDirectory(x) || PrettyPrinterBase::skipEA(x);
+bool PePrettyPrinter::shouldSkip(const gtirb::Section& x) const {
+  return isInSkippedDataDirectory(*x.getAddress()) ||
+         PrettyPrinterBase::shouldSkip(x);
+}
+
+bool PePrettyPrinter::shouldSkip(const gtirb::Symbol& x) const {
+  return isInSkippedDataDirectory(*x.getAddress()) ||
+         PrettyPrinterBase::shouldSkip(x);
+}
+
+bool PePrettyPrinter::shouldSkip(const gtirb::CodeBlock& x) const {
+  return isInSkippedDataDirectory(*x.getAddress()) ||
+         PrettyPrinterBase::shouldSkip(x);
+}
+
+bool PePrettyPrinter::shouldSkip(const gtirb::DataBlock& x) const {
+  return isInSkippedDataDirectory(*x.getAddress()) ||
+         PrettyPrinterBase::shouldSkip(x);
 }
 
 } // namespace gtirb_pprint

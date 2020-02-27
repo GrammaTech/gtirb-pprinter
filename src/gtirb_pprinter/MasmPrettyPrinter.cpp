@@ -173,11 +173,12 @@ void MasmPrettyPrinter::printSectionFooterDirective(
   // Special .CODE .DATA and .DATA? directives do not need footers.
   if (section_name == "_TEXT" || section_name == "_DATA" ||
       section_name == "_BSS") {
-    os << syntax.comment() << ' ' << section_name << ' ' << masmSyntax.ends();
+    os << syntax.comment() << ' ' << section_name << ' ' << masmSyntax.ends()
+       << '\n';
     return;
   }
 
-  os << section_name << ' ' << masmSyntax.ends();
+  os << section_name << ' ' << masmSyntax.ends() << '\n';
 }
 
 void MasmPrettyPrinter::printFunctionHeader(std::ostream& /* os */,
@@ -215,30 +216,26 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
   PrettyPrinterBase::fixupInstruction(inst);
 }
 
-void MasmPrettyPrinter::printSymbolDefinitionsAtAddress(std::ostream& os,
-                                                        gtirb::Addr ea,
-                                                        bool inData) {
+void MasmPrettyPrinter::printSymbolDefinition(std::ostream& os,
+                                              const gtirb::Symbol& symbol) {
+  auto ea = *symbol.getAddress();
   if (isFunctionEntry(ea) || ea == gtirb::Addr(0)) {
     return;
   }
 
   // Print public definitions
-  for (const gtirb::Symbol& symbol : module.findSymbols(ea)) {
-    if (Exports.count(symbol.getUUID())) {
-      if (symbol.getAddress()) {
-        os << '\n' << syntax.global() << ' ' << symbol.getName() << '\n';
-      }
+  if (Exports.count(symbol.getUUID())) {
+    if (symbol.getAddress()) {
+      os << '\n' << syntax.global() << ' ' << symbol.getName() << '\n';
     }
   }
 
   // Print label
-  PrettyPrinterBase::printSymbolDefinitionsAtAddress(os, ea, false);
+  PrettyPrinterBase::printSymbolDefinition(os, symbol);
 
-  if (inData) {
-    // Print name for data object
-    if (!module.findSymbols(ea).empty()) {
-      os << 'N' << getSymbolName(ea).substr(2);
-    }
+  // Print name for data block
+  if (symbol.getReferent<gtirb::DataBlock>()) {
+    os << 'N' << getSymbolName(ea).substr(2);
   }
 }
 
@@ -264,10 +261,7 @@ void MasmPrettyPrinter::printOpImmediate(
     // The operand is symbolic.
 
     // Symbols for skipped addresses degrade to literals.
-    std::optional<gtirb::Addr> addr = s->Sym->getAddress();
-    bool becomes_literal = (addr && skipEA(*addr));
-
-    if (!is_call && !is_jump && !becomes_literal)
+    if (!is_call && !is_jump && !shouldSkip(*s->Sym))
       os << masmSyntax.offset() << ' ';
 
     printSymbolicExpression(os, s, !is_call && !is_jump);

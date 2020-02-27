@@ -40,7 +40,11 @@ public:
   static const PrintingPolicy& defaultPrintingPolicy();
 
 protected:
-  bool skipEA(const gtirb::Addr x) const override;
+  bool shouldSkip(const gtirb::Section& x) const override;
+  bool shouldSkip(const gtirb::Symbol& x) const override;
+  bool shouldSkip(const gtirb::CodeBlock& x) const override;
+  bool shouldSkip(const gtirb::DataBlock& x) const override;
+
   bool isInSkippedDataDirectory(const gtirb::Addr x) const;
 
 private:
