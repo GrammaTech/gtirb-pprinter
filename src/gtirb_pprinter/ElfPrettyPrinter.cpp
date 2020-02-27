@@ -134,6 +134,13 @@ void ElfPrettyPrinter::printSymbolDefinition(std::ostream& os,
         printBar(os, false);
       } else if (SymbolVisibility == "LOCAL") {
         // Do nothing; just print the label.
+      } else if (SymbolVisibility == "GNU_UNIQUE") {
+        printBar(os, false);
+        printAlignment(os, ea);
+        os << syntax.global() << ' ' << sym.getName() << '\n';
+        os << elfSyntax.type() << ' ' << sym.getName() << ", @gnu_unique_object"
+           << "\n";
+        printBar(os, false);
       } else {
         assert(!"Unknown symbol type in symbolType aux data");
       }
