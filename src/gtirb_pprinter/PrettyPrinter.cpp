@@ -463,12 +463,31 @@ void PrettyPrinterBase::printDataBlock(std::ostream& os,
     return;
   }
 
+  // Print symbols associated with block.
   for (const auto& sym :
        dataObject.getByteInterval()->getSection()->getModule()->findSymbols(
            dataObject)) {
     printSymbolDefinition(os, sym);
   }
 
+  // If this occurs in an array section, and the block points to something we
+  // should skip: Skip contents, but do not skip label, so things can refer to
+  // the array as a whole.
+  if (policy.arraySections.count(
+          dataObject.getByteInterval()->getSection()->getName())) {
+    if (auto SymExpr = dataObject.getByteInterval()->getSymbolicExpression(
+            dataObject.getOffset())) {
+      if (std::holds_alternative<gtirb::SymAddrConst>(*SymExpr)) {
+        if (shouldSkip(*std::get<gtirb::SymAddrConst>(*SymExpr).Sym)) {
+          return;
+        }
+      } else {
+        assert(!"Unexpected sym expr type in array section!");
+      }
+    }
+  }
+
+  // Print block contents.
   gtirb::Addr addr = *dataObject.getAddress();
   printComments(os, gtirb::Offset(dataObject.getUUID(), 0),
                 dataObject.getSize());
