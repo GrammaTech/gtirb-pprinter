@@ -98,21 +98,6 @@ void ElfPrettyPrinter::printByte(std::ostream& os, std::byte byte) {
 
 void ElfPrettyPrinter::printFooter(std::ostream& /* os */){};
 
-bool ElfPrettyPrinter::shouldSkip(const gtirb::DataBlock& dataObject) const {
-  if (!policy.arraySections.count(
-          dataObject.getByteInterval()->getSection()->getName()))
-    return false;
-  auto foundSymbolic =
-      module.findSymbolicExpressionsAt(*dataObject.getAddress());
-  if (!foundSymbolic.empty()) {
-    if (const auto* s = std::get_if<gtirb::SymAddrConst>(
-            &foundSymbolic.begin()->getSymbolicExpression())) {
-      return PrettyPrinterBase::shouldSkip(*s->Sym);
-    }
-  }
-  return false;
-}
-
 void ElfPrettyPrinter::printSymbolDefinition(std::ostream& os,
                                              const gtirb::Symbol& sym) {
   const auto* SymbolTypes =
