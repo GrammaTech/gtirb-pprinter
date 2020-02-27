@@ -37,9 +37,12 @@ const PrintingPolicy& ElfPrettyPrinter::defaultPrintingPolicy() {
        ".plt.sec", ".eh_frame_hdr"},
 
       /// Functions to avoid printing.
+      // TODO: Take __dso_handle, etc. off the list once we can represent global
+      // hidden symbols.
       {"_start", "deregister_tm_clones", "register_tm_clones",
        "__do_global_dtors_aux", "frame_dummy", "__libc_csu_fini",
-       "__libc_csu_init", "_dl_relocate_static_pie", "_IO_stdin_used"},
+       "__libc_csu_init", "_dl_relocate_static_pie", "_IO_stdin_used",
+       "__data_start", "__dso_handle"},
 
       /// Sections with possible data object exclusion.
       {".init_array", ".fini_array"},
