@@ -109,7 +109,11 @@ int main(int argc, char** argv) {
   // Layout the modules so that evereything has nonoverlapping addresses if
   // needed.
   for (auto& M : ir->modules()) {
-    if (!M.getAddress()) {
+    if (!M.getAddress() || std::any_of(M.symbols_begin(), M.symbols_end(),
+                                       [](const gtirb::Symbol& Sym) {
+                                         return !Sym.hasReferent() &&
+                                                Sym.getAddress();
+                                       })) {
       // FIXME: There could be other kinds of invalid layouts than one in which
       // an interval has no address; for example, one where sections overlap...
       LOG_INFO << "Module " << M.getUUID()
