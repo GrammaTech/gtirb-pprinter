@@ -176,12 +176,95 @@ bool ::gtirb_layout::layoutRequired(IR& ir) {
   return false;
 }
 
+// TODO: layoutModule needs a context as an argument.
+static Context Ctx;
+
 bool ::gtirb_layout::layoutModule(Module& M) {
-  Addr A = Addr{0};
+  // Fix symbols with integral referents that point to known objects.
+  std::vector<Symbol*> IntSyms;
+  for (auto& Sym : M.symbols()) {
+    if (!Sym.hasReferent() && Sym.getAddress()) {
+      IntSyms.push_back(&Sym);
+    }
+  }
+
+  for (auto* Sym : IntSyms) {
+    auto Addr = *Sym->getAddress();
+    bool FoundReferent = false;
+
+    // If a byte interval encompasses this address, then we can redirect
+    // the symbol to point to it.
+    for (auto& BI : M.findByteIntervalsOn(Addr)) {
+      FoundReferent = true;
+
+      // do we have a block at this exact address?
+      Node* ExactMatch = nullptr;
+      for (auto& Block : BI.findBlocksAt(Addr)) {
+        ExactMatch = &Block;
+        break;
+      }
+      if (ExactMatch) {
+        // If so, set the referent to it.
+        if (isa<CodeBlock>(ExactMatch)) {
+          Sym->setReferent(cast<CodeBlock>(ExactMatch));
+        } else if (isa<DataBlock>(ExactMatch)) {
+          Sym->setReferent(cast<DataBlock>(ExactMatch));
+        } else {
+          assert(!"found non-block in block iterator!");
+        }
+        break;
+      }
+
+      // Do we have a block encompassing this exact address?
+      Node* ApproxMatch = nullptr;
+      for (auto& Block : BI.findBlocksOn(Addr)) {
+        ApproxMatch = &Block;
+        break;
+      }
+      if (ApproxMatch) {
+        // If so, make a new 0-length block of the same type.
+        if (isa<CodeBlock>(ApproxMatch)) {
+          CodeBlock* NewRef =
+              BI.addBlock<CodeBlock>(Ctx, Addr - *BI.getAddress(), 0);
+          Sym->setReferent(NewRef);
+        } else if (isa<DataBlock>(ApproxMatch)) {
+          DataBlock* NewRef =
+              BI.addBlock<DataBlock>(Ctx, Addr - *BI.getAddress(), 0);
+          Sym->setReferent(NewRef);
+        } else {
+          assert(!"found non-block in block iterator!");
+        }
+        break;
+      }
+
+      // if all else fails, make it a new 0-length data block.
+      DataBlock* NewRef =
+          BI.addBlock<DataBlock>(Ctx, Addr - *BI.getAddress(), 0);
+      Sym->setReferent(NewRef);
+      break;
+    }
+
+    if (FoundReferent)
+      continue;
+    // This symbol may refer to the end of a byte interval.
+    // If so, make a new 0-length data block pointing at the end of the BI.
+    for (auto& BI : M.findByteIntervalsOn(Addr - 1)) {
+      FoundReferent = true;
+      DataBlock* NewRef =
+          BI.addBlock<DataBlock>(Ctx, Addr - *BI.getAddress(), 0);
+      Sym->setReferent(NewRef);
+      break;
+    }
+
+    // TODO: if !FoundReferent, then emit a warning that an integral symbol
+    // was not relocated.
+  }
+
   // Store a list of sections and then iterate over them, because
   // setting the address of a BI invalidates parent iterators.
   // FIXME: This should not be true, but is because of boost::multi_index.
   // GTIRB needs a fix for this.
+  Addr A = Addr{0};
   std::vector<std::reference_wrapper<Section>> Sections(M.sections_begin(),
                                                         M.sections_end());
   for (auto& S : Sections) {
