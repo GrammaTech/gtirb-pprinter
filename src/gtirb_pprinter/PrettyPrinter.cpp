@@ -201,35 +201,18 @@ const gtirb::SymAddrConst* PrettyPrinterBase::getSymbolicImmediate(
 
 std::ostream& PrettyPrinterBase::print(std::ostream& os) {
   printHeader(os);
-  // FIXME: simplify once block interation order is guaranteed by gtirb
-  auto address_order_block = [](const gtirb::CodeBlock* a,
-                                const gtirb::CodeBlock* b) {
-    return a->getAddress() < b->getAddress();
-  };
-  std::vector<const gtirb::CodeBlock*> blocks;
-  for (const gtirb::CodeBlock& block :
-       gtirb::blocks(module.getIR()->getCFG())) {
-    if (block.getByteInterval()->getSection()->getModule() == &module) {
-      blocks.push_back(&block);
-    }
-  }
-  std::sort(blocks.begin(), blocks.end(), address_order_block);
-  auto blockIt = blocks.begin();
-  auto dataIt = module.data_blocks_begin();
+
   gtirb::Addr last{0};
-  while (blockIt != blocks.end() && dataIt != module.data_blocks_end()) {
-    if ((*blockIt)->getAddress() <= dataIt->getAddress()) {
-      last = printBlockOrWarning(os, **blockIt, last);
-      blockIt++;
+  for (auto& node : module.blocks()) {
+    if (auto* cb = dyn_cast<gtirb::CodeBlock>(&node)) {
+      last = printBlockOrWarning(os, *cb, last);
+    } else if (auto* db = dyn_cast<gtirb::DataBlock>(&node)) {
+      last = printDataBlockOrWarning(os, *db, last);
     } else {
-      last = printDataBlockOrWarning(os, *dataIt, last);
-      dataIt++;
+      assert(!"non-block found in block iterator");
     }
   }
-  for (; blockIt != blocks.end(); blockIt++)
-    last = printBlockOrWarning(os, **blockIt, last);
-  for (; dataIt != module.data_blocks_end(); dataIt++)
-    last = printDataBlockOrWarning(os, *dataIt, last);
+
   bool inData = !module.findDataBlocksOn(last).empty();
   printSymbolDefinitionsAtAddress(os, last, inData);
   printSectionFooter(os, std::nullopt, last);
@@ -753,6 +736,14 @@ bool PrettyPrinterBase::isInSkippedSection(const gtirb::Addr addr) const {
 }
 
 bool PrettyPrinterBase::isInSkippedFunction(const gtirb::Addr x) const {
+  // If it has a symbol with a blacklisted name, skip it.
+  for (const auto& sym : module.findSymbols(x)) {
+    if (policy.skipFunctions.count(sym.getName())) {
+      return true;
+    }
+  }
+
+  // If it's in a blacklisted function, skip it.
   std::optional<std::string> xFunctionName = getContainerFunctionName(x);
   if (!xFunctionName)
     return false;
