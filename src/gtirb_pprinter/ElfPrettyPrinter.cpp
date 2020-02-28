@@ -101,8 +101,8 @@ void ElfPrettyPrinter::printByte(std::ostream& os, std::byte byte) {
 
 void ElfPrettyPrinter::printFooter(std::ostream& /* os */){};
 
-void ElfPrettyPrinter::printSymbolDefinition(std::ostream& os,
-                                             const gtirb::Symbol& sym) {
+void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
+                                         const gtirb::Symbol& sym) {
   const auto* SymbolTypes =
       module.getAuxData<std::map<gtirb::UUID, std::string>>("symbolType");
 
@@ -149,8 +149,26 @@ void ElfPrettyPrinter::printSymbolDefinition(std::ostream& os,
       }
     }
   }
+}
 
+void ElfPrettyPrinter::printSymbolDefinition(std::ostream& os,
+                                             const gtirb::Symbol& sym) {
+  printSymbolHeader(os, sym);
   PrettyPrinterBase::printSymbolDefinition(os, sym);
+}
+
+void ElfPrettyPrinter::printSymbolDefinitionInTermsOf(
+    std::ostream& os, const gtirb::Symbol& sym, const gtirb::Symbol& baseSym,
+    uint64_t offset) {
+  printSymbolHeader(os, sym);
+
+  os << elfSyntax.set() << ' ' << sym.getName() << ", ";
+  if (shouldSkip(baseSym)) {
+    os << baseSym.getAddress();
+  } else {
+    os << baseSym.getName();
+  }
+  os << " + " << offset << '\n';
 }
 
 } // namespace gtirb_pprint
