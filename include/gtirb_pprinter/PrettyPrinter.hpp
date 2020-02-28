@@ -300,6 +300,10 @@ protected:
   virtual void printOverlapWarning(std::ostream& os, gtirb::Addr ea);
   virtual void printDataBlockType(std::ostream& os,
                                   const gtirb::DataBlock& dataObject);
+  virtual void
+  printSymbolDefinitionInTermsOf(std::ostream& os, const gtirb::Symbol& symbol,
+                                 const gtirb::Symbol& baseSymbol,
+                                 uint64_t offsetFromBaseSymbol) = 0;
 
   virtual bool shouldSkip(const gtirb::Section& section) const;
   virtual bool shouldSkip(const gtirb::Symbol& symbol) const;
@@ -343,6 +347,10 @@ protected:
   getForwardedSymbolName(const gtirb::Symbol* symbol, bool inData) const;
 
   bool isAmbiguousSymbol(const std::string& ea) const;
+
+  // If the input block should be considered as overlapping another block,
+  // this function returns that block. Else it returns nullptr.
+  const gtirb::Node* getOverlappingBlock(const gtirb::Node* block) const;
 
 private:
   std::set<gtirb::Addr> functionEntry;

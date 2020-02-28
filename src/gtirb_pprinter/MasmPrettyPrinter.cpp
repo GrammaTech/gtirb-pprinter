@@ -219,7 +219,7 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
 void MasmPrettyPrinter::printSymbolDefinition(std::ostream& os,
                                               const gtirb::Symbol& symbol) {
   auto ea = *symbol.getAddress();
-  if (isFunctionEntry(ea) || ea == gtirb::Addr(0)) {
+  if (ea == gtirb::Addr(0)) {
     return;
   }
 
@@ -232,6 +232,36 @@ void MasmPrettyPrinter::printSymbolDefinition(std::ostream& os,
 
   // Print label
   PrettyPrinterBase::printSymbolDefinition(os, symbol);
+
+  // Print name for data block
+  if (symbol.getReferent<gtirb::DataBlock>()) {
+    os << 'N' << getSymbolName(ea).substr(2);
+  }
+}
+
+void MasmPrettyPrinter::printSymbolDefinitionInTermsOf(
+    std::ostream& os, const gtirb::Symbol& symbol,
+    const gtirb::Symbol& baseSymbol, uint64_t offsetFromBaseSymbol) {
+  auto ea = *symbol.getAddress();
+  if (ea == gtirb::Addr(0)) {
+    return;
+  }
+
+  // Print public definitions
+  if (Exports.count(symbol.getUUID())) {
+    if (symbol.getAddress()) {
+      os << '\n' << syntax.global() << ' ' << symbol.getName() << '\n';
+    }
+  }
+
+  // Print label
+  os << symbol.getName() << " = ";
+  if (shouldSkip(baseSymbol)) {
+    os << baseSymbol.getAddress();
+  } else {
+    os << baseSymbol.getName();
+  }
+  os << " + " << offsetFromBaseSymbol << '\n';
 
   // Print name for data block
   if (symbol.getReferent<gtirb::DataBlock>()) {

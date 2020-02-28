@@ -223,19 +223,30 @@ void PrettyPrinterBase::printCodeBlock(std::ostream& os,
   if (shouldSkip(x)) {
     return;
   }
-  printFunctionHeader(os, *x.getAddress());
+
+  gtirb::Addr addr = *x.getAddress();
+  printFunctionHeader(os, addr);
   os << '\n';
 
-  for (const auto& sym :
-       x.getByteInterval()->getSection()->getModule()->findSymbols(x)) {
-    printSymbolDefinition(os, sym);
+  if (const auto* overlapping = getOverlappingBlock(&x)) {
+    printOverlapWarning(os, addr);
+    for (const auto& sym : module.findSymbols(x)) {
+      for (const auto& baseSym : module.findSymbols(*overlapping)) {
+        printSymbolDefinitionInTermsOf(os, sym, baseSym,
+                                       addr - *baseSym.getAddress());
+      }
+    }
+  } else {
+    for (const auto& sym : module.findSymbols(x)) {
+      printSymbolDefinition(os, sym);
+    }
   }
 
   cs_insn* insn;
   cs_option(this->csHandle, CS_OPT_DETAIL, CS_OPT_ON);
 
   size_t count = cs_disasm(this->csHandle, x.rawBytes<uint8_t>(), x.getSize(),
-                           static_cast<uint64_t>(*x.getAddress()), 0, &insn);
+                           static_cast<uint64_t>(addr), 0, &insn);
 
   // Exception-safe cleanup of instructions
   std::unique_ptr<cs_insn, std::function<void(cs_insn*)>> freeInsn(
@@ -251,7 +262,7 @@ void PrettyPrinterBase::printCodeBlock(std::ostream& os,
   // print any CFI directives located at the end of the block
   // e.g. '.cfi_endproc' is usually attached to the end of the block
   printCFIDirectives(os, offset);
-  printFunctionFooter(os, *x.getAddress());
+  printFunctionFooter(os, addr);
 }
 
 void PrettyPrinterBase::printSectionHeader(std::ostream& os,
@@ -464,10 +475,19 @@ void PrettyPrinterBase::printDataBlock(std::ostream& os,
   }
 
   // Print symbols associated with block.
-  for (const auto& sym :
-       dataObject.getByteInterval()->getSection()->getModule()->findSymbols(
-           dataObject)) {
-    printSymbolDefinition(os, sym);
+  gtirb::Addr addr = *dataObject.getAddress();
+  if (const auto* overlapping = getOverlappingBlock(&dataObject)) {
+    printOverlapWarning(os, addr);
+    for (const auto& sym : module.findSymbols(dataObject)) {
+      for (const auto& baseSym : module.findSymbols(*overlapping)) {
+        printSymbolDefinitionInTermsOf(os, sym, baseSym,
+                                       addr - *baseSym.getAddress());
+      }
+    }
+  } else {
+    for (const auto& sym : module.findSymbols(dataObject)) {
+      printSymbolDefinition(os, sym);
+    }
   }
 
   // If this occurs in an array section, and the block points to something we
@@ -488,7 +508,6 @@ void PrettyPrinterBase::printDataBlock(std::ostream& os,
   }
 
   // Print block contents.
-  gtirb::Addr addr = *dataObject.getAddress();
   printComments(os, gtirb::Offset(dataObject.getUUID(), 0),
                 dataObject.getSize());
   if (this->debug)
@@ -900,6 +919,59 @@ void PrettyPrinterBase::printSection(std::ostream& os,
   }
 
   printSectionFooter(os, section);
+}
+
+const gtirb::Node*
+PrettyPrinterBase::getOverlappingBlock(const gtirb::Node* Block) const {
+  const gtirb::ByteInterval* BI;
+  gtirb::Addr Addr;
+
+  if (auto CB = dyn_cast<gtirb::CodeBlock>(Block)) {
+    BI = CB->getByteInterval();
+    Addr = *CB->getAddress();
+  } else if (auto DB = dyn_cast<gtirb::DataBlock>(Block)) {
+    BI = DB->getByteInterval();
+    Addr = *DB->getAddress();
+  } else {
+    assert(!"non-block given to getOverlappingBlock!");
+    return nullptr;
+  }
+
+  bool FoundUs = false;
+  const gtirb::Node* Earliest = nullptr;
+  gtirb::Addr EarliestAddr;
+
+  for (const auto& OtherBlock : BI->findDataBlocksOn(Addr)) {
+    gtirb::Addr OtherAddr;
+
+    if (auto CB = dyn_cast<gtirb::CodeBlock>(&OtherBlock)) {
+      OtherAddr = *CB->getAddress();
+    } else if (auto DB = dyn_cast<gtirb::DataBlock>(&OtherBlock)) {
+      OtherAddr = *DB->getAddress();
+    } else {
+      assert(!"non-block in block iterator!");
+      return nullptr;
+    }
+
+    // We only want to report something at the same address as us as overlapping
+    // if it came before us in iteration order.
+    if (Addr == OtherAddr) {
+      if (Block == &OtherBlock) {
+        FoundUs = true;
+        continue;
+      } else if (FoundUs) {
+        continue;
+      }
+    }
+
+    // If it comes earlier, it's overlapping.
+    if (!Earliest || OtherAddr < EarliestAddr) {
+      Earliest = &OtherBlock;
+      EarliestAddr = OtherAddr;
+    }
+  }
+
+  return Earliest;
 }
 
 void registerAuxDataTypes() {

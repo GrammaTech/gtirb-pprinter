@@ -119,6 +119,10 @@ protected:
 
   void printSymbolDefinition(std::ostream& os,
                              const gtirb::Symbol& symbol) override;
+  void printSymbolDefinitionInTermsOf(std::ostream& os,
+                                      const gtirb::Symbol& symbol,
+                                      const gtirb::Symbol& baseSymbol,
+                                      uint64_t offsetFromBaseSymbol) override;
 
   void printSymbolicExpression(std::ostream& os,
                                const gtirb::SymAddrConst* sexpr,
