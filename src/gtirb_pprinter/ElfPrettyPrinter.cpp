@@ -171,4 +171,12 @@ void ElfPrettyPrinter::printSymbolDefinitionInTermsOf(
   os << " + " << offset << '\n';
 }
 
+void ElfPrettyPrinter::printIntegralSymbol(std::ostream& os,
+                                           const gtirb::Symbol& sym) {
+  printSymbolHeader(os, sym);
+
+  os << elfSyntax.set() << ' ' << sym.getName() << ", " << *sym.getAddress()
+     << '\n';
+}
+
 } // namespace gtirb_pprint
