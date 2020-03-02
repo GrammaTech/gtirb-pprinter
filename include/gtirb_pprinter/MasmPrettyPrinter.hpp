@@ -117,12 +117,17 @@ protected:
 
   void fixupInstruction(cs_insn& inst) override;
 
+  virtual void printSymbolHeader(std::ostream& os, const gtirb::Symbol& symbol);
+  virtual void printSymbolFooter(std::ostream& os, const gtirb::Symbol& symbol);
+
   void printSymbolDefinition(std::ostream& os,
                              const gtirb::Symbol& symbol) override;
   void printSymbolDefinitionInTermsOf(std::ostream& os,
                                       const gtirb::Symbol& symbol,
                                       const gtirb::Symbol& baseSymbol,
                                       uint64_t offsetFromBaseSymbol) override;
+  void printIntegralSymbol(std::ostream& os,
+                           const gtirb::Symbol& symbol) override;
 
   void printSymbolicExpression(std::ostream& os,
                                const gtirb::SymAddrConst* sexpr,

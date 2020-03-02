@@ -304,6 +304,8 @@ protected:
   printSymbolDefinitionInTermsOf(std::ostream& os, const gtirb::Symbol& symbol,
                                  const gtirb::Symbol& baseSymbol,
                                  uint64_t offsetFromBaseSymbol) = 0;
+  virtual void printIntegralSymbol(std::ostream& os,
+                                   const gtirb::Symbol& symbol) = 0;
 
   virtual bool shouldSkip(const gtirb::Section& section) const;
   virtual bool shouldSkip(const gtirb::Symbol& symbol) const;

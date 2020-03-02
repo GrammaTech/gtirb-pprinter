@@ -94,6 +94,8 @@ protected:
                                       const gtirb::Symbol& symbol,
                                       const gtirb::Symbol& baseSymbol,
                                       uint64_t offsetFromBaseSymbol) override;
+  void printIntegralSymbol(std::ostream& os,
+                           const gtirb::Symbol& symbol) override;
 
   void printSymbolHeader(std::ostream& os, const gtirb::Symbol& symbol);
 };

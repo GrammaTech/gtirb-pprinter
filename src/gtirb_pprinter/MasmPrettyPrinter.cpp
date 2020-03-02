@@ -216,6 +216,24 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
   PrettyPrinterBase::fixupInstruction(inst);
 }
 
+void MasmPrettyPrinter::printSymbolHeader(std::ostream& os,
+                                          const gtirb::Symbol& symbol) {
+  // Print public definitions
+  if (Exports.count(symbol.getUUID())) {
+    if (symbol.getAddress()) {
+      os << '\n' << syntax.global() << ' ' << symbol.getName() << '\n';
+    }
+  }
+}
+
+void MasmPrettyPrinter::printSymbolFooter(std::ostream& os,
+                                          const gtirb::Symbol& symbol) {
+  // Print name for data block
+  if (symbol.getReferent<gtirb::DataBlock>()) {
+    os << 'N' << getSymbolName(*symbol.getAddress()).substr(2);
+  }
+}
+
 void MasmPrettyPrinter::printSymbolDefinition(std::ostream& os,
                                               const gtirb::Symbol& symbol) {
   auto ea = *symbol.getAddress();
@@ -223,38 +241,20 @@ void MasmPrettyPrinter::printSymbolDefinition(std::ostream& os,
     return;
   }
 
-  // Print public definitions
-  if (Exports.count(symbol.getUUID())) {
-    if (symbol.getAddress()) {
-      os << '\n' << syntax.global() << ' ' << symbol.getName() << '\n';
-    }
-  }
-
-  // Print label
+  printSymbolHeader(os, symbol);
   PrettyPrinterBase::printSymbolDefinition(os, symbol);
-
-  // Print name for data block
-  if (symbol.getReferent<gtirb::DataBlock>()) {
-    os << 'N' << getSymbolName(ea).substr(2);
-  }
+  printSymbolFooter(os, symbol);
 }
 
 void MasmPrettyPrinter::printSymbolDefinitionInTermsOf(
     std::ostream& os, const gtirb::Symbol& symbol,
     const gtirb::Symbol& baseSymbol, uint64_t offsetFromBaseSymbol) {
-  auto ea = *symbol.getAddress();
-  if (ea == gtirb::Addr(0)) {
+  if (*symbol.getAddress() == gtirb::Addr(0)) {
     return;
   }
 
-  // Print public definitions
-  if (Exports.count(symbol.getUUID())) {
-    if (symbol.getAddress()) {
-      os << '\n' << syntax.global() << ' ' << symbol.getName() << '\n';
-    }
-  }
+  printSymbolHeader(os, symbol);
 
-  // Print label
   os << symbol.getName() << " = ";
   if (shouldSkip(baseSymbol)) {
     os << baseSymbol.getAddress();
@@ -263,10 +263,20 @@ void MasmPrettyPrinter::printSymbolDefinitionInTermsOf(
   }
   os << " + " << offsetFromBaseSymbol << '\n';
 
-  // Print name for data block
-  if (symbol.getReferent<gtirb::DataBlock>()) {
-    os << 'N' << getSymbolName(ea).substr(2);
+  printSymbolFooter(os, symbol);
+}
+
+void MasmPrettyPrinter::printIntegralSymbol(std::ostream& os,
+                                            const gtirb::Symbol& symbol) {
+  if (*symbol.getAddress() == gtirb::Addr(0)) {
+    return;
   }
+
+  printSymbolHeader(os, symbol);
+
+  os << symbol.getName() << " = " << *symbol.getAddress() << '\n';
+
+  printSymbolFooter(os, symbol);
 }
 
 void MasmPrettyPrinter::printOpRegdirect(std::ostream& os,

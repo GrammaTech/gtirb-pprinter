@@ -202,10 +202,22 @@ const gtirb::SymAddrConst* PrettyPrinterBase::getSymbolicImmediate(
 std::ostream& PrettyPrinterBase::print(std::ostream& os) {
   printHeader(os);
 
+  // print every section
   for (const auto& section : module.sections()) {
     printSection(os, section);
   }
 
+  // print integral symbols
+  for (const auto& sym : module.symbols()) {
+    if (auto addr = sym.getAddress();
+        addr && !sym.hasReferent() && !shouldSkip(sym)) {
+      os << syntax.comment() << "WARNING: integral symbol " << sym.getName()
+         << " may not have been correctly relocated\n";
+      printIntegralSymbol(os, sym);
+    }
+  }
+
+  // print footer
   printFooter(os);
   return os;
 }
