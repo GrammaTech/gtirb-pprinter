@@ -211,7 +211,7 @@ std::ostream& PrettyPrinterBase::print(std::ostream& os) {
   for (const auto& sym : module.symbols()) {
     if (auto addr = sym.getAddress();
         addr && !sym.hasReferent() && !shouldSkip(sym)) {
-      os << syntax.comment() << "WARNING: integral symbol " << sym.getName()
+      os << syntax.comment() << " WARNING: integral symbol " << sym.getName()
          << " may not have been correctly relocated\n";
       printIntegralSymbol(os, sym);
     }
@@ -230,8 +230,8 @@ void PrettyPrinterBase::printOverlapWarning(std::ostream& os,
                "overlapping elements."
             << std::endl;
   std::ios_base::fmtflags flags = os.flags();
-  os << syntax.comment() << " WARNING: found overlapping element at address "
-     << std::hex << static_cast<uint64_t>(addr) << ": ";
+  os << syntax.comment() << " WARNING: found overlapping blocks at address "
+     << std::hex << static_cast<uint64_t>(addr) << '\n';
   os.flags(flags);
 }
 
