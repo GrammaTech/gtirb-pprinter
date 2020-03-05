@@ -142,8 +142,6 @@ protected:
 
   void printString(std::ostream& os, const gtirb::DataBlock& x) override;
 
-  std::string getSymbolName(gtirb::Addr x) const override;
-
 private:
   gtirb::Addr ImageBase;
   std::unordered_set<gtirb::UUID> Imports;
