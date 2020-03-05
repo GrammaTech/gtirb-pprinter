@@ -154,10 +154,12 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
     : syntax(syntax_), policy(policy_),
       debug(policy.debug == DebugMessages ? true : false), context(context_),
       module(module_), functionEntry(), functionLastBlock() {
+  // Set up Capstone.
   [[maybe_unused]] cs_err err =
       cs_open(CS_ARCH_X86, CS_MODE_64, &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
 
+  // Set up cache for fast lookup of functions by address.
   if (const auto* functionEntries =
           module.getAuxData<gtirb::schema::FunctionEntries>()) {
     for (auto const& function : *functionEntries) {
@@ -183,6 +185,54 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
           lastAddr = *block->getAddress();
       }
       functionLastBlock.insert(lastAddr);
+    }
+  }
+
+  // Set up overlap cache, for quickly detecting what blocks should be
+  // considered the "base" block in terms of symbol printing when blocks
+  // overlap.
+  for (auto& BI : module.byte_intervals()) {
+    std::multimap<uint64_t, gtirb::Node*> BlocksOverlapping;
+
+    for (auto& B : BI.blocks()) {
+      // Get offset and size of block.
+      uint64_t Offset, Size;
+
+      if (auto* CB = dyn_cast<gtirb::CodeBlock>(&B)) {
+        Offset = CB->getOffset();
+        Size = CB->getSize();
+      } else if (auto* DB = dyn_cast<gtirb::DataBlock>(&B)) {
+        Offset = DB->getOffset();
+        Size = DB->getSize();
+      } else {
+        assert(!"Non-block in block iterator!");
+      }
+
+      // Find value to insert into overlapCache.
+      const gtirb::Node* Earliest = nullptr;
+      uint64_t EarliestOffset;
+
+      auto Range = BlocksOverlapping.equal_range(Offset);
+      for (auto& [OtherOffset, OtherBlock] :
+           boost::make_iterator_range(Range.first, Range.second)) {
+        if (!Earliest || OtherOffset < EarliestOffset) {
+          Earliest = OtherBlock;
+          EarliestOffset = OtherOffset;
+        }
+      }
+
+      if (Earliest) {
+        overlapCache[&B] = Earliest;
+      }
+
+      // Populate block overlap information.
+      if (Size == 0) {
+        Size = 1;
+      }
+
+      for (uint64_t I = Offset; I < Offset + Size; ++I) {
+        BlocksOverlapping.emplace(I, &B);
+      }
     }
   }
 }
@@ -938,55 +988,10 @@ void PrettyPrinterBase::printSection(std::ostream& os,
 
 const gtirb::Node*
 PrettyPrinterBase::getOverlappingBlock(const gtirb::Node* Block) const {
-  const gtirb::ByteInterval* BI;
-  gtirb::Addr Addr;
-
-  if (auto CB = dyn_cast<gtirb::CodeBlock>(Block)) {
-    BI = CB->getByteInterval();
-    Addr = *CB->getAddress();
-  } else if (auto DB = dyn_cast<gtirb::DataBlock>(Block)) {
-    BI = DB->getByteInterval();
-    Addr = *DB->getAddress();
-  } else {
-    assert(!"non-block given to getOverlappingBlock!");
-    return nullptr;
+  if (auto it = overlapCache.find(Block); it != overlapCache.end()) {
+    return it->second;
   }
-
-  bool FoundUs = false;
-  const gtirb::Node* Earliest = nullptr;
-  gtirb::Addr EarliestAddr;
-
-  for (const auto& OtherBlock : BI->findDataBlocksOn(Addr)) {
-    gtirb::Addr OtherAddr;
-
-    if (auto CB = dyn_cast<gtirb::CodeBlock>(&OtherBlock)) {
-      OtherAddr = *CB->getAddress();
-    } else if (auto DB = dyn_cast<gtirb::DataBlock>(&OtherBlock)) {
-      OtherAddr = *DB->getAddress();
-    } else {
-      assert(!"non-block in block iterator!");
-      return nullptr;
-    }
-
-    // We only want to report something at the same address as us as overlapping
-    // if it came before us in iteration order.
-    if (Addr == OtherAddr) {
-      if (Block == &OtherBlock) {
-        FoundUs = true;
-        continue;
-      } else if (FoundUs) {
-        continue;
-      }
-    }
-
-    // If it comes earlier, it's overlapping.
-    if (!Earliest || OtherAddr < EarliestAddr) {
-      Earliest = &OtherBlock;
-      EarliestAddr = OtherAddr;
-    }
-  }
-
-  return Earliest;
+  return nullptr;
 }
 
 void registerAuxDataTypes() {
