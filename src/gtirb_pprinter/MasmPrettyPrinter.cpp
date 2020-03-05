@@ -61,15 +61,19 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
     Exports.insert(EntryPoint->getUUID());
   }
 
-  const auto* SymbolTypes =
-      module.getAuxData<std::map<gtirb::UUID, std::string>>("symbolType");
-  if (SymbolTypes) {
-    for (const auto& [UUID, Type] : *SymbolTypes) {
-      if (Type == "EXTERN") {
-        Imports.insert(UUID);
-      } else if (Type == "PUBLIC") {
-        Exports.insert(UUID);
-      }
+  const auto* ImportedSymbols =
+      module.getAuxData<std::vector<gtirb::UUID>>("peImportedSymbols");
+  if (ImportedSymbols) {
+    for (const auto& UUID : *ImportedSymbols) {
+      Imports.insert(UUID);
+    }
+  }
+
+  const auto* ExportedSymbols =
+      module.getAuxData<std::vector<gtirb::UUID>>("peExportedSymbols");
+  if (ExportedSymbols) {
+    for (const auto& UUID : *ExportedSymbols) {
+      Exports.insert(UUID);
     }
   }
 }
