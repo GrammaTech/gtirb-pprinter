@@ -19,6 +19,8 @@
 #include <gtirb/gtirb.hpp>
 
 namespace gtirb_layout {
+void GTIRB_LAYOUT_EXPORT_API
+addOverlapDisambiguationSymbols(gtirb::Context& Ctx, gtirb::Module& M);
 void GTIRB_LAYOUT_EXPORT_API fixIntegralSymbols(gtirb::Context& Ctx,
                                                 gtirb::Module& M);
 

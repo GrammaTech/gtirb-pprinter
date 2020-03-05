@@ -237,6 +237,75 @@ void ::gtirb_layout::fixIntegralSymbols(gtirb::Context& Ctx, gtirb::Module& M) {
   }
 }
 
+void ::gtirb_layout::addOverlapDisambiguationSymbols(gtirb::Context& Ctx,
+                                                     gtirb::Module& M) {
+  bool Found = false;
+  gtirb::Addr FoundAt;
+  std::vector<gtirb::Symbol*> SymsToAdd;
+
+  for (auto& Block : M.blocks()) {
+    gtirb::ByteInterval* BI;
+    gtirb::Addr Addr;
+    uint64_t Size;
+
+    if (auto* CB = dyn_cast<gtirb::CodeBlock>(&Block)) {
+      BI = CB->getByteInterval();
+      Addr = *CB->getAddress();
+      Size = CB->getSize();
+    } else if (auto* DB = dyn_cast<gtirb::DataBlock>(&Block)) {
+      BI = DB->getByteInterval();
+      Addr = *DB->getAddress();
+      Size = DB->getSize();
+    } else {
+      assert(!"Non-block in block iterator!");
+    }
+
+    // We only want the first block in iteration to have such a symbol,
+    // in the case that blocks overlap at the same exact address.
+    if (Found) {
+      if (FoundAt == Addr) {
+        continue;
+      } else {
+        Found = false;
+      }
+    }
+
+    gtirb::ByteInterval::block_range Range;
+    if (Size == 0) {
+      Range = BI->findBlocksAt(Addr);
+    } else {
+      Range = BI->findBlocksAt(Addr, Addr + Size);
+    }
+    assert(!Range.empty());
+
+    if (std::distance(Range.begin(), Range.end()) > 1) {
+      if (M.findSymbols(Block).empty()) {
+        // symbol has overlaps occuring; this means the pretty printer needs
+        // a symbol so it can make references in terms of it.
+
+        std::string NewSymName =
+            ".gtirb_layout_" + std::to_string(static_cast<uint64_t>(Addr));
+        assert(M.findSymbols(NewSymName).empty());
+
+        if (auto* CB = dyn_cast<gtirb::CodeBlock>(&Block)) {
+          SymsToAdd.push_back(gtirb::Symbol::Create(Ctx, CB, NewSymName));
+        } else if (auto* DB = dyn_cast<gtirb::DataBlock>(&Block)) {
+          SymsToAdd.push_back(gtirb::Symbol::Create(Ctx, DB, NewSymName));
+        } else {
+          assert(!"Non-block in block iterator!");
+        }
+
+        Found = true;
+        FoundAt = Addr;
+      }
+    }
+  }
+
+  for (auto* Sym : SymsToAdd) {
+    M.addSymbol(Sym);
+  }
+}
+
 bool ::gtirb_layout::layoutModule(gtirb::Context& Ctx, Module& M) {
   // Fix symbols with integral referents that point to known objects.
   fixIntegralSymbols(Ctx, M);
@@ -260,6 +329,10 @@ bool ::gtirb_layout::layoutModule(gtirb::Context& Ctx, Module& M) {
       A += BI.getSize();
     }
   }
+
+  // Add symbols where the pretty printer needs them to refer to offsets
+  // in the case of overlapping blocks.
+  addOverlapDisambiguationSymbols(Ctx, M);
 
   return true;
 }
