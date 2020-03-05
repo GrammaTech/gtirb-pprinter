@@ -248,9 +248,11 @@ void PrettyPrinterBase::printCodeBlock(std::ostream& os,
   if (const auto* overlapping = getOverlappingBlock(&x)) {
     printOverlapWarning(os, addr);
     for (const auto& sym : module.findSymbols(x)) {
+      assert(!module.findSymbols(*overlapping).empty());
       for (const auto& baseSym : module.findSymbols(*overlapping)) {
         printSymbolDefinitionInTermsOf(os, sym, baseSym,
                                        addr - *baseSym.getAddress());
+        break;
       }
     }
   } else {
@@ -490,9 +492,11 @@ void PrettyPrinterBase::printDataBlock(std::ostream& os,
   if (const auto* overlapping = getOverlappingBlock(&dataObject)) {
     printOverlapWarning(os, addr);
     for (const auto& sym : module.findSymbols(dataObject)) {
+      assert(!module.findSymbols(*overlapping).empty());
       for (const auto& baseSym : module.findSymbols(*overlapping)) {
         printSymbolDefinitionInTermsOf(os, sym, baseSym,
                                        addr - *baseSym.getAddress());
+        break;
       }
     }
   } else {

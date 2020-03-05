@@ -20,6 +20,8 @@
 
 namespace gtirb_layout {
 bool GTIRB_LAYOUT_EXPORT_API layoutRequired(gtirb::IR& ir);
+void GTIRB_LAYOUT_EXPORT_API
+addOverlapDisambiguationSymbols(gtirb::Context& Ctx, gtirb::Module& M);
 void GTIRB_LAYOUT_EXPORT_API fixIntegralSymbols(gtirb::Context& Ctx,
                                                 gtirb::Module& M);
 bool GTIRB_LAYOUT_EXPORT_API layoutModule(gtirb::Context& Ctx,
