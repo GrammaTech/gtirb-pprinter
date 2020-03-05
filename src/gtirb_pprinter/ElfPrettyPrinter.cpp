@@ -121,27 +121,26 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
       }
 
       auto ea = *sym.getAddress();
+      auto name = getSymbolName(sym);
       if (SymbolVisibility == "GLOBAL") {
         printBar(os, false);
         printAlignment(os, ea);
-        os << syntax.global() << ' ' << sym.getName() << '\n';
-        os << elfSyntax.type() << ' ' << sym.getName() << ", @" << TypeName
-           << "\n";
+        os << syntax.global() << ' ' << name << '\n';
+        os << elfSyntax.type() << ' ' << name << ", @" << TypeName << "\n";
         printBar(os, false);
       } else if (SymbolVisibility == "WEAK") {
         printBar(os, false);
         printAlignment(os, ea);
-        os << elfSyntax.weak() << ' ' << sym.getName() << '\n';
-        os << elfSyntax.type() << ' ' << sym.getName() << ", @" << TypeName
-           << "\n";
+        os << elfSyntax.weak() << ' ' << name << '\n';
+        os << elfSyntax.type() << ' ' << name << ", @" << TypeName << "\n";
         printBar(os, false);
       } else if (SymbolVisibility == "LOCAL") {
         // Do nothing; just print the label.
       } else if (SymbolVisibility == "GNU_UNIQUE") {
         printBar(os, false);
         printAlignment(os, ea);
-        os << syntax.global() << ' ' << sym.getName() << '\n';
-        os << elfSyntax.type() << ' ' << sym.getName() << ", @gnu_unique_object"
+        os << syntax.global() << ' ' << name << '\n';
+        os << elfSyntax.type() << ' ' << name << ", @gnu_unique_object"
            << "\n";
         printBar(os, false);
       } else {
@@ -162,11 +161,11 @@ void ElfPrettyPrinter::printSymbolDefinitionInTermsOf(
     uint64_t offset) {
   printSymbolHeader(os, sym);
 
-  os << elfSyntax.set() << ' ' << sym.getName() << ", ";
+  os << elfSyntax.set() << ' ' << getSymbolName(sym) << ", ";
   if (shouldSkip(baseSym)) {
     os << baseSym.getAddress();
   } else {
-    os << baseSym.getName();
+    os << getSymbolName(baseSym);
   }
   os << " + " << offset << '\n';
 }
@@ -175,8 +174,8 @@ void ElfPrettyPrinter::printIntegralSymbol(std::ostream& os,
                                            const gtirb::Symbol& sym) {
   printSymbolHeader(os, sym);
 
-  os << elfSyntax.set() << ' ' << sym.getName() << ", " << *sym.getAddress()
-     << '\n';
+  os << elfSyntax.set() << ' ' << getSymbolName(sym) << ", "
+     << *sym.getAddress() << '\n';
 }
 
 } // namespace gtirb_pprint

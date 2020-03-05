@@ -386,19 +386,12 @@ void PrettyPrinterBase::printSymbolReference(std::ostream& os,
     os << static_cast<uint64_t>(*symbol->getAddress());
     return;
   }
-  if (this->isAmbiguousSymbol(symbol->getName()))
-    os << getSymbolName(*symbol->getAddress());
-  else
-    os << syntax.formatSymbolName(symbol->getName());
+  os << getSymbolName(*symbol);
 }
 
 void PrettyPrinterBase::printSymbolDefinition(std::ostream& os,
                                               const gtirb::Symbol& symbol) {
-  if (isAmbiguousSymbol(symbol.getName())) {
-    os << getSymbolName(*symbol.getAddress()) << ":\n";
-  } else {
-    os << syntax.formatSymbolName(symbol.getName()) << ":\n";
-  }
+  os << getSymbolName(symbol) << ":\n";
 }
 
 void PrettyPrinterBase::fixupInstruction(cs_insn& inst) {
@@ -919,10 +912,17 @@ std::string PrettyPrinterBase::getFunctionName(gtirb::Addr x) const {
   return std::string{};
 }
 
-std::string PrettyPrinterBase::getSymbolName(gtirb::Addr x) const {
-  std::stringstream ss;
-  ss << ".L_" << std::hex << uint64_t(x) << std::dec;
-  return ss.str();
+std::string
+PrettyPrinterBase::getSymbolName(const gtirb::Symbol& symbol) const {
+  if (isAmbiguousSymbol(symbol.getName())) {
+    std::stringstream ss;
+    ss << symbol.getName() << "_disambig_"
+       << reinterpret_cast<uint64_t>(&symbol);
+    assert(module.findSymbols(ss.str()).empty());
+    return syntax.formatSymbolName(ss.str());
+  } else {
+    return syntax.formatSymbolName(symbol.getName());
+  }
 }
 
 std::optional<std::string>
@@ -935,7 +935,7 @@ PrettyPrinterBase::getForwardedSymbolName(const gtirb::Symbol* symbol,
     auto found = symbolForwarding->find(symbol->getUUID());
     if (found != symbolForwarding->end()) {
       gtirb::Node* destSymbol = gtirb::Node::getByUUID(context, found->second);
-      return (cast<gtirb::Symbol>(destSymbol))->getName() +
+      return getSymbolName(*cast<gtirb::Symbol>(destSymbol)) +
              getForwardedSymbolEnding(symbol, inData);
     }
   }

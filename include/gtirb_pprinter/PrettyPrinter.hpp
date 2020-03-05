@@ -344,7 +344,7 @@ protected:
   gtirb::Module& module;
 
   virtual std::string getFunctionName(gtirb::Addr x) const;
-  virtual std::string getSymbolName(gtirb::Addr x) const;
+  virtual std::string getSymbolName(const gtirb::Symbol& symbol) const;
   virtual std::optional<std::string>
   getForwardedSymbolName(const gtirb::Symbol* symbol, bool inData) const;
 
