@@ -455,6 +455,7 @@ void PrettyPrinterBase::printInstruction(std::ostream& os, const cs_insn& inst,
   ////////////////////////////////////////////////////////////////////
   // special cases
 
+  // TODO: look into this line
   if (inst.id == X86_INS_NOP) {
     os << "  " << syntax.nop();
     for (uint64_t i = 1; i < inst.size; ++i) {

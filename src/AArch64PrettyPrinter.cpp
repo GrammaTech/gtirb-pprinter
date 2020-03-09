@@ -12,9 +12,9 @@ AArch64PrettyPrinter::AArch64PrettyPrinter(gtirb::Context& context_,
     : ElfPrettyPrinter(context_, module_, syntax_, policy_, CS_ARCH_ARM64, CS_MODE_ARM) {}
 
 void AArch64PrettyPrinter::printHeader(std::ostream& os) {
+    // TODO: check this part
     this->printBar(os);
-    // TODO hmm?
-    os << "[HEADER]" << '\n';
+    os << ".intel_syntax noprefix\n";
     this->printBar(os);
     os << '\n';
 
@@ -38,6 +38,11 @@ void AArch64PrettyPrinter::printOperandList(std::ostream& os,
             os << ',';
         }
         printOperand(os, inst, i);
+    }
+
+    // TODO: correct placement?
+    if (detail.writeback) {
+        os << "!";
     }
 }
 
@@ -117,6 +122,33 @@ void AArch64PrettyPrinter::printOpIndirect(std::ostream& os,
         }
         first = false;
         os << getRegisterName(op.mem.index);
+    }
+
+    // add shift
+    // TODO: extenders?
+    if (op.shift.type != ARM64_SFT_INVALID && op.shift.value != 0) {
+        assert(!first && "unexpected shift operator");
+        os << ", ";
+        switch (op.shift.type) {
+            case ARM64_SFT_LSL:
+                os << "lsl";
+                break;
+            case ARM64_SFT_MSL:
+                os << "msl";
+                break;
+            case ARM64_SFT_LSR:
+                os << "lsr";
+                break;
+            case ARM64_SFT_ASR:
+                os << "asr";
+                break;
+            case ARM64_SFT_ROR:
+                os << "ror";
+                break;
+            default:
+                assert(false && "unexpected case");
+        }
+        os << " #" << op.shift.value;
     }
 
     os << "]";
