@@ -256,11 +256,13 @@ protected:
   /// \param os   the output stream to print to
   /// \param inst the instruction to print
   /// \param insnOffset   the offset of the instruction
-  virtual void printInstruction(std::ostream& os, const cs_insn& inst,
+  virtual void printInstruction(std::ostream& os, const gtirb::CodeBlock& block,
+                                const cs_insn& inst,
                                 const gtirb::Offset& offset);
 
   virtual void printEA(std::ostream& os, gtirb::Addr ea);
-  virtual void printOperandList(std::ostream& os, const cs_insn& inst);
+  virtual void printOperandList(std::ostream& os, const gtirb::CodeBlock& block,
+                                const cs_insn& inst);
   virtual void printComments(std::ostream& os, const gtirb::Offset& offset,
                              uint64_t range);
   virtual void printCFIDirectives(std::ostream& os, const gtirb::Offset& ea);
@@ -284,8 +286,8 @@ protected:
                            bool first = false);
   virtual void printString(std::ostream& os, const gtirb::DataBlock& x);
 
-  virtual void printOperand(std::ostream& os, const cs_insn& inst,
-                            uint64_t index);
+  virtual void printOperand(std::ostream& os, const gtirb::CodeBlock& block,
+                            const cs_insn& inst, uint64_t index);
   virtual void printOpRegdirect(std::ostream& os, const cs_insn& inst,
                                 const cs_x86_op& op) = 0;
   virtual void printOpImmediate(std::ostream& os,
