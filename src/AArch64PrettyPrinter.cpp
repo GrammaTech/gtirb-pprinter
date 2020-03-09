@@ -25,11 +25,7 @@ void AArch64PrettyPrinter::printHeader(std::ostream& os) {
 }
 
 std::string AArch64PrettyPrinter::getRegisterName(unsigned int reg) const {
-    if (reg == ARM64_REG_INVALID) {
-        return "";
-    } else {
-        return cs_reg_name(this->csHandle, reg);
-    }
+    return reg == ARM64_REG_INVALID ? "" : cs_reg_name(this->csHandle, reg);
 }
 
 void AArch64PrettyPrinter::printOperandList(std::ostream& os,
@@ -50,16 +46,15 @@ void AArch64PrettyPrinter::printOperand(std::ostream& os,
     gtirb::Addr ea(inst.address);
     const cs_arm64_op& op = inst.detail->arm64.operands[index];
 
+    // TODO: symbolic stuff
     switch (op.type) {
     case ARM64_OP_REG:
         printOpRegdirect(os, inst, op.reg);
         return;
     case ARM64_OP_IMM:
-        // TODO: symbolic stuff
         printOpImmediate(os, nullptr, inst, index);
         return;
     case ARM64_OP_MEM:
-        // TODO: symbolic stuff
         printOpIndirect(os, nullptr, inst, index);
         return;
     case ARM64_OP_INVALID:
@@ -79,22 +74,52 @@ void AArch64PrettyPrinter::printOpRegdirect(std::ostream& os,
 void AArch64PrettyPrinter::printOpImmediate(std::ostream& os,
         const gtirb::SymbolicExpression* symbolic,
         const cs_insn& inst, uint64_t index) {
-    // TODO: deal with symbolic stuff
     (void) symbolic;
     const cs_arm64_op& op = inst.detail->arm64.operands[index];
     assert(op.type == ARM64_OP_IMM &&
             "printOpImmediate called without an immediate operand");
-    os << op.imm;
+    os << "#" << op.imm;
 }
 
 void AArch64PrettyPrinter::printOpIndirect(std::ostream& os,
         const gtirb::SymbolicExpression* symbolic,
         const cs_insn& inst, uint64_t index) {
     (void) symbolic;
-    (void) inst;
-    (void) index;
-    // TODO: do this
-    os << "[INDIRECT]";
+    const cs_arm64& detail = inst.detail->arm64;
+    const cs_arm64_op& op = detail.operands[index];
+    assert(op.type == ARM64_OP_MEM &&
+            "printOpIndirect called without a memory operand");
+
+    // TODO: ptr stuff
+    bool first = true;
+
+    os << "[";
+
+    // base register
+    if (op.mem.base != ARM64_REG_INVALID) {
+        first = false;
+        os << getRegisterName(op.mem.base);
+    }
+
+    // displacement (constant)
+    if (op.mem.disp != 0) {
+        if (!first) {
+            os << ", ";
+        }
+        first = false;
+        os << "#" << op.mem.disp;
+    }
+
+    // index register
+    if (op.mem.index != ARM64_REG_INVALID) {
+        if (!first) {
+            os << ", ";
+        }
+        first = false;
+        os << getRegisterName(op.mem.index);
+    }
+
+    os << "]";
 }
 
 const PrintingPolicy& AArch64PrettyPrinterFactory::defaultPrintingPolicy() const {
