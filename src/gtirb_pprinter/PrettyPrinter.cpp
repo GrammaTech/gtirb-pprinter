@@ -571,12 +571,13 @@ void PrettyPrinterBase::printDataBlock(std::ostream& os,
   if (this->debug)
     os << std::hex << static_cast<uint64_t>(addr) << std::dec << ':';
 
-  const auto& foundSymbolic =
-      module.findSymbolicExpressionsAt(*dataObject.getAddress());
+  const auto* foundSymbolic =
+      dataObject.getByteInterval()->getSymbolicExpression(
+          dataObject.getOffset());
   auto dataObjectBytes = dataObject.bytes<uint8_t>();
   if (std::all_of(dataObjectBytes.begin(), dataObjectBytes.end(),
                   [](uint8_t x) { return x == 0; }) &&
-      foundSymbolic.empty())
+      !foundSymbolic)
     printZeroDataBlock(os, dataObject);
   else
     printNonZeroDataBlock(os, dataObject);
@@ -588,12 +589,12 @@ void PrettyPrinterBase::printNonZeroDataBlock(
     return;
   }
 
-  const auto& foundSymbolic =
-      module.findSymbolicExpressionsAt(*dataObject.getAddress());
-  if (!foundSymbolic.empty()) {
+  const auto* foundSymbolic =
+      dataObject.getByteInterval()->getSymbolicExpression(
+          dataObject.getOffset());
+  if (foundSymbolic) {
     os << syntax.tab();
-    printSymbolicData(os, &foundSymbolic.begin()->getSymbolicExpression(),
-                      dataObject);
+    printSymbolicData(os, foundSymbolic, dataObject);
     os << '\n';
     return;
   }
