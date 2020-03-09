@@ -324,7 +324,7 @@ void PrettyPrinterBase::printCodeBlock(std::ostream& os,
   gtirb::Offset offset(x.getUUID(), 0);
   for (size_t i = 0; i < count; i++) {
     fixupInstruction(insn[i]);
-    printInstruction(os, insn[i], offset);
+    printInstruction(os, x, insn[i], offset);
     offset.Displacement += insn[i].size;
     os << '\n';
   }
@@ -440,7 +440,9 @@ void PrettyPrinterBase::fixupInstruction(cs_insn& inst) {
   }
 }
 
-void PrettyPrinterBase::printInstruction(std::ostream& os, const cs_insn& inst,
+void PrettyPrinterBase::printInstruction(std::ostream& os,
+                                         const gtirb::CodeBlock& block,
+                                         const cs_insn& inst,
                                          const gtirb::Offset& offset) {
 
   gtirb::Addr ea(inst.address);
@@ -467,7 +469,7 @@ void PrettyPrinterBase::printInstruction(std::ostream& os, const cs_insn& inst,
 
   std::string opcode = ascii_str_tolower(inst.mnemonic);
   os << "  " << opcode << ' ';
-  printOperandList(os, inst);
+  printOperandList(os, block, inst);
 }
 
 void PrettyPrinterBase::printEA(std::ostream& os, gtirb::Addr ea) {
@@ -478,6 +480,7 @@ void PrettyPrinterBase::printEA(std::ostream& os, gtirb::Addr ea) {
 }
 
 void PrettyPrinterBase::printOperandList(std::ostream& os,
+                                         const gtirb::CodeBlock& block,
                                          const cs_insn& inst) {
   cs_x86& detail = inst.detail->x86;
   uint8_t opCount = detail.op_count;
@@ -486,12 +489,13 @@ void PrettyPrinterBase::printOperandList(std::ostream& os,
     if (i != 0) {
       os << ',';
     }
-    printOperand(os, inst, i);
+    printOperand(os, block, inst, i);
   }
 }
 
-void PrettyPrinterBase::printOperand(std::ostream& os, const cs_insn& inst,
-                                     uint64_t index) {
+void PrettyPrinterBase::printOperand(std::ostream& os,
+                                     const gtirb::CodeBlock& block,
+                                     const cs_insn& inst, uint64_t index) {
   gtirb::Addr ea(inst.address);
   const cs_x86_op& op = inst.detail->x86.operands[index];
 
@@ -503,18 +507,15 @@ void PrettyPrinterBase::printOperand(std::ostream& os, const cs_insn& inst,
   case X86_OP_REG:
     printOpRegdirect(os, inst, op);
     return;
-  case X86_OP_IMM: {
-    auto found = module.findSymbolicExpressionsAt(ea + immOffset);
-    if (!found.empty())
-      symbolic = &found.begin()->getSymbolicExpression();
-  }
+  case X86_OP_IMM:
+    symbolic = block.getByteInterval()->getSymbolicExpression(
+        ea + immOffset - *block.getByteInterval()->getAddress());
     printOpImmediate(os, symbolic, inst, index);
     return;
   case X86_OP_MEM:
     if (dispOffset > 0) {
-      auto found = module.findSymbolicExpressionsAt(ea + dispOffset);
-      if (!found.empty())
-        symbolic = &found.begin()->getSymbolicExpression();
+      symbolic = block.getByteInterval()->getSymbolicExpression(
+          ea + dispOffset - *block.getByteInterval()->getAddress());
     }
     printOpIndirect(os, symbolic, inst, index);
     return;
