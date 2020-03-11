@@ -128,12 +128,23 @@ static bool findAndMergeBIs(Section& S) {
 
         // They can be merged. Merge them now.
         SourceBI.setSize(SourceBI.getSize() + TargetBI.getSize());
+
+        std::vector<gtirb::CodeBlock*> CodeBlocks;
         for (auto& B : TargetBI.code_blocks()) {
-          SourceBI.addBlock(BaseOffset + B.getOffset(), &B);
+          CodeBlocks.push_back(&B);
         }
+        for (auto* B : CodeBlocks) {
+          SourceBI.addBlock(BaseOffset + B->getOffset(), B);
+        }
+
+        std::vector<gtirb::DataBlock*> DataBlocks;
         for (auto& B : TargetBI.data_blocks()) {
-          SourceBI.addBlock(BaseOffset + B.getOffset(), &B);
+          DataBlocks.push_back(&B);
         }
+        for (auto* B : DataBlocks) {
+          SourceBI.addBlock(BaseOffset + B->getOffset(), B);
+        }
+
         for (auto SEE : TargetBI.symbolic_expressions()) {
           SourceBI.addSymbolicExpression(BaseOffset + SEE.getOffset(),
                                          SEE.getSymbolicExpression());
