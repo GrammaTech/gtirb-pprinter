@@ -54,6 +54,7 @@ public:
            const gtirb_pprint::PrettyPrinter& pp, gtirb::Context& context,
            gtirb::IR& ir) const;
 };
+
 } // namespace gtirb_bprint
 
 #endif /* GTIRB_PP_ELF_BINARY_PRINTER_H */

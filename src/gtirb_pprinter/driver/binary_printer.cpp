@@ -16,6 +16,8 @@ namespace fs = std::experimental::filesystem;
 namespace po = boost::program_options;
 
 int main(int argc, char** argv) {
+  gtirb_pprint::registerAuxDataTypes();
+
   po::options_description desc("Allowed options");
   desc.add_options()("help,h", "Produce help message.");
   desc.add_options()("ir,i", po::value<std::string>(), "gtirb file to print.");

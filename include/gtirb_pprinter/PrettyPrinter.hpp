@@ -349,6 +349,9 @@ private:
                                        bool inData) const;
 };
 
+/// !brief Register AuxData types used by the pretty printer.
+void registerAuxDataTypes();
+
 } // namespace gtirb_pprint
 
 #endif /* GTIRB_PP_PRETTY_PRINTER_H */
