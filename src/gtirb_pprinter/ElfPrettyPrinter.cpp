@@ -19,6 +19,22 @@
 
 namespace gtirb_pprint {
 
+struct ElfSymbolInfo {
+  using AuxDataType =
+      std::tuple<uint64_t, std::string, std::string, std::string, uint64_t>;
+
+  uint64_t Size;
+  std::string Type;
+  std::string Binding;
+  std::string Visibility;
+  uint64_t SectionIndex;
+
+  ElfSymbolInfo(const AuxDataType& tuple)
+      : Size(std::get<0>(tuple)), Type(std::get<1>(tuple)),
+        Binding(std::get<2>(tuple)), Visibility(std::get<3>(tuple)),
+        SectionIndex(std::get<4>(tuple)) {}
+};
+
 ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
                                    gtirb::Module& module_,
                                    const ElfSyntax& syntax_,
@@ -104,50 +120,62 @@ void ElfPrettyPrinter::printFooter(std::ostream& /* os */){};
 void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
                                          const gtirb::Symbol& sym) {
   const auto* SymbolTypes =
-      module.getAuxData<std::map<gtirb::UUID, std::string>>("symbolType");
-
-  if (SymbolTypes) {
-    if (auto SymTypeIt = SymbolTypes->find(sym.getUUID());
-        SymTypeIt != SymbolTypes->end()) {
-      const auto& SymbolVisibility = SymTypeIt->second;
-
-      std::string TypeName;
-      if (sym.getReferent<gtirb::CodeBlock>()) {
-        TypeName = "function";
-      } else if (sym.getReferent<gtirb::DataBlock>()) {
-        TypeName = "object";
-      } else {
-        TypeName = "notype";
-      }
-
-      auto ea = *sym.getAddress();
-      auto name = getSymbolName(sym);
-      if (SymbolVisibility == "GLOBAL") {
-        printBar(os, false);
-        printAlignment(os, ea);
-        os << syntax.global() << ' ' << name << '\n';
-        os << elfSyntax.type() << ' ' << name << ", @" << TypeName << "\n";
-        printBar(os, false);
-      } else if (SymbolVisibility == "WEAK") {
-        printBar(os, false);
-        printAlignment(os, ea);
-        os << elfSyntax.weak() << ' ' << name << '\n';
-        os << elfSyntax.type() << ' ' << name << ", @" << TypeName << "\n";
-        printBar(os, false);
-      } else if (SymbolVisibility == "LOCAL") {
-        // Do nothing; just print the label.
-      } else if (SymbolVisibility == "GNU_UNIQUE") {
-        printBar(os, false);
-        printAlignment(os, ea);
-        os << syntax.global() << ' ' << name << '\n';
-        os << elfSyntax.type() << ' ' << name << ", @gnu_unique_object"
-           << "\n";
-        printBar(os, false);
-      } else {
-        assert(!"Unknown symbol type in symbolType aux data");
-      }
-    }
+      module.getAuxData<std::map<gtirb::UUID, ElfSymbolInfo::AuxDataType>>(
+          "elfSymbolInfo");
+  if (!SymbolTypes) {
+    return;
   }
+
+  auto SymTypeIt = SymbolTypes->find(sym.getUUID());
+  if (SymTypeIt == SymbolTypes->end()) {
+    return;
+  }
+
+  ElfSymbolInfo SymbolInfo{SymTypeIt->second};
+
+  if (SymbolInfo.Binding == "LOCAL") {
+    return;
+  }
+
+  auto ea = *sym.getAddress();
+  auto name = getSymbolName(sym);
+
+  printBar(os, false);
+  printAlignment(os, ea);
+
+  if (SymbolInfo.Binding == "GLOBAL") {
+    os << syntax.global() << ' ' << name << '\n';
+  } else if (SymbolInfo.Binding == "WEAK") {
+    os << elfSyntax.weak() << ' ' << name << '\n';
+  } else if (SymbolInfo.Binding == "UNIQUE") {
+    os << elfSyntax.global() << ' ' << name << '\n';
+  } else {
+    assert(!"unknown binding in elfSymbolInfo!");
+  }
+
+  if (SymbolInfo.Visibility == "DEFAULT") {
+    // do nothing
+  } else if (SymbolInfo.Visibility == "HIDDEN") {
+    os << elfSyntax.hidden() << ' ' << name << '\n';
+  } else {
+    assert(!"unknown visibility in elfSymbolInfo!");
+  }
+
+  static const std::unordered_map<std::string, std::string> TypeNameConversion =
+      {
+          {"FUNC", "function"},
+          {"OBJECT", "object"},
+          {"NOTYPE", "notype"},
+      };
+  auto TypeNameIt = TypeNameConversion.find(SymbolInfo.Type);
+  if (TypeNameIt == TypeNameConversion.end()) {
+    assert(!"unknown type in elfSymbolInfo!");
+  }
+  const auto& TypeName =
+      SymbolInfo.Binding == "UNIQUE" ? "gnu_unique_object" : TypeNameIt->second;
+  os << elfSyntax.type() << ' ' << name << ", @" << TypeName << "\n";
+
+  printBar(os, false);
 }
 
 void ElfPrettyPrinter::printSymbolDefinition(std::ostream& os,
