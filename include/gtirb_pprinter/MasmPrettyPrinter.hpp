@@ -143,7 +143,8 @@ protected:
   void printString(std::ostream& os, const gtirb::DataBlock& x) override;
 
 private:
-  gtirb::Addr ImageBase;
+  gtirb::Addr BaseAddress;
+  gtirb::Symbol* ImageBase;
   std::unordered_set<gtirb::UUID> Imports;
   std::unordered_set<gtirb::UUID> Exports;
 

@@ -52,10 +52,9 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
 
   const auto* BaseAddress = module.getAuxData<gtirb::schema::BaseAddress>();
   if (BaseAddress) {
-    ImageBase = *BaseAddress;
     if (auto It = module.findSymbols("__ImageBase"); !It.empty()) {
-      gtirb::Symbol& Symbol = *It.begin();
-      Symbol.setReferent(module.addProxyBlock(context));
+      ImageBase = &*It.begin();
+      ImageBase->setReferent(module.addProxyBlock(context));
     }
   }
 
@@ -82,7 +81,7 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
       Exports.insert(UUID);
     }
   }
-}
+} // namespace gtirb_pprint
 
 void MasmPrettyPrinter::printIncludes(std::ostream& os) {
   const auto* libraries = module.getAuxData<gtirb::schema::Libraries>();
@@ -363,7 +362,7 @@ void MasmPrettyPrinter::printOpIndirect(
   }
 
   if (op.mem.base == X86_REG_RIP && symbolic == nullptr) {
-    if (gtirb::Addr(inst.address + inst.size + op.mem.disp) == ImageBase) {
+    if (gtirb::Addr(inst.address + inst.size + op.mem.disp) == BaseAddress) {
       os << "__ImageBase]";
       return;
     }
@@ -400,7 +399,7 @@ void MasmPrettyPrinter::printSymbolicExpression(
 void MasmPrettyPrinter::printSymbolicExpression(std::ostream& os,
                                                 const gtirb::SymAddrAddr* sexpr,
                                                 bool inData) {
-  if (inData && sexpr->Sym2->getAddress() == ImageBase) {
+  if (inData && sexpr->Sym2 == ImageBase) {
     os << masmSyntax.imagerel() << ' ';
     printSymbolReference(os, sexpr->Sym1, inData);
     return;
