@@ -455,6 +455,11 @@ void PrettyPrinterBase::fixupInstruction(cs_insn& inst) {
       detail.operands[1].type == X86_OP_MEM && detail.operands[1].size == 16) {
     detail.operands[1].size = 8;
   }
+
+  // FXSAVE operands should not have a size annotation
+  if (inst.id == X86_INS_FXSAVE && detail.op_count == 1) {
+    detail.operands[0].size = 0;
+  }
 }
 
 void PrettyPrinterBase::printInstruction(std::ostream& os, const cs_insn& inst,
