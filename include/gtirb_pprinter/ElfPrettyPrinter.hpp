@@ -41,6 +41,7 @@ public:
   const std::string& type() const { return TypeDirective; }
   const std::string& weak() const { return WeakDirective; }
   const std::string& set() const { return SetDirective; }
+  const std::string& hidden() const { return HiddenDirective; }
 
 private:
   const std::string CommentStyle{"#"};
@@ -63,6 +64,7 @@ private:
   const std::string TypeDirective{".type"};
   const std::string WeakDirective{".weak"};
   const std::string SetDirective{".set"};
+  const std::string HiddenDirective{".hidden"};
 };
 
 class ElfPrettyPrinter : public PrettyPrinterBase {
