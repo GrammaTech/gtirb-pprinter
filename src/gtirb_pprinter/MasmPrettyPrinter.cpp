@@ -53,11 +53,16 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
   const auto* BaseAddress = module.getAuxData<gtirb::schema::BaseAddress>();
   if (BaseAddress) {
     ImageBase = *BaseAddress;
+    if (auto It = module.findSymbols("__ImageBase"); !It.empty()) {
+      gtirb::Symbol& Symbol = *It.begin();
+      Symbol.setReferent(module.addProxyBlock(context));
+    }
   }
 
   if (gtirb::CodeBlock* Block = module.getEntryPoint(); Block->getAddress()) {
     auto* EntryPoint =
         gtirb::Symbol::Create(context, *(Block->getAddress()), "__EntryPoint");
+    EntryPoint->setReferent<gtirb::CodeBlock>(Block);
     module.addSymbol(EntryPoint);
     Exports.insert(EntryPoint->getUUID());
   }
