@@ -81,7 +81,7 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
       Exports.insert(UUID);
     }
   }
-} // namespace gtirb_pprint
+}
 
 void MasmPrettyPrinter::printIncludes(std::ostream& os) {
   const auto* libraries = module.getAuxData<gtirb::schema::Libraries>();
