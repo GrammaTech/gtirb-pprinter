@@ -439,6 +439,23 @@ void PrettyPrinterBase::fixupInstruction(cs_insn& inst) {
     cs_x86_op& op = detail.operands[2];
     op.imm = static_cast<int32_t>(op.imm);
   }
+
+  // GCC assembler does not like endbr64 instructions
+  if (inst.id == X86_INS_ENDBR64) {
+    inst.id = X86_INS_NOP;
+  }
+
+  // The first operand of fxch  st(0) is implicit
+  if (inst.id == X86_INS_FXCH && detail.op_count == 2) {
+    detail.operands[0] = detail.operands[1];
+    detail.op_count = 1;
+  }
+
+  // Comisd loads 64 bits from memory not 128
+  if (inst.id == X86_INS_COMISD && detail.op_count == 2 &&
+      detail.operands[1].type == X86_OP_MEM && detail.operands[1].size == 16) {
+    detail.operands[1].size = 8;
+  }
 }
 
 void PrettyPrinterBase::printInstruction(std::ostream& os, const cs_insn& inst,
