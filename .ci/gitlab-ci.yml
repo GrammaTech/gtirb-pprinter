@@ -146,12 +146,12 @@ test-and-tag-arch-clang:
      COMPILER: 'clang'
    <<: *test-and-tag
 
-test-debian-install:
+test-make-install:
   stage: test-and-tag
   variables:
     OS: 'ubuntu18'
     COMPILER: 'gcc'
-    INSTALLER: 'dpkg -i gtirb_pprinter-*-Linux.deb'
+    INSTALLER: 'make install'
   script:
     - export LOCAL_IMAGE=$(echo ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} |  tr A-Z a-z)
     - docker build --rm -f .ci/Dockerfile.test-install -t ${LOCAL_IMAGE_NAME}-${CI_JOB_NAME} --build-arg IMAGE=$LOCAL_IMAGE --build-arg INSTALLER="$INSTALLER" .
