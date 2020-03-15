@@ -212,7 +212,7 @@ cleanup-arch-clang:
 debian-installer:
   stage: deploy
   variables:
-    OS: 'ubuntu18'
+    OS: 'ubuntu16'
     COMPILER: 'gcc'
   artifacts:
     name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
@@ -226,3 +226,6 @@ debian-installer:
     - rm -rf $(dirname $CONTAINER_FILE)
     - mv ./build-artifacts/gtirb_pprinter-*-Linux.deb ./
     - rm -rf ./build-artifacts
+    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/bfairservice/debian-dependencies/download?job=debian-installer-ubuntu16 --output "gtirb16-artifacts.zip"
+    - unzip gtirb16-artifacts.zip
+    - docker build -f .ci/Dockerfile.test-${OS}-package --build-arg CXX_COMPILER=${COMPILER} .
