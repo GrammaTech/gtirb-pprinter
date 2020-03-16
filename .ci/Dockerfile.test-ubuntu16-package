@@ -7,6 +7,8 @@ RUN apt-get -y update && apt-get -y install build-essential dpkg-dev software-pr
 # gcc-7 is used by the test
 RUN add-apt-repository ppa:jonathonf/gcc-7.1
 RUN apt-get update && apt-get install -y gcc-7 g++-7
+RUN update-alternatives --install /usr/bin/cc cc /usr/bin/gcc-7 60
+RUN update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-7 60
 
 # for protobuf >=3.0.0
 RUN add-apt-repository ppa:maarten-fonville/protobuf
