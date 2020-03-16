@@ -50,6 +50,7 @@ void AArch64PrettyPrinter::printOperand(std::ostream& os,
         const cs_insn& inst, uint64_t index) {
     gtirb::Addr ea(inst.address);
     const cs_arm64_op& op = inst.detail->arm64.operands[index];
+    const gtirb::SymbolicExpression* symbolic = nullptr;
 
     // TODO: symbolic stuff
     switch (op.type) {
@@ -57,12 +58,25 @@ void AArch64PrettyPrinter::printOperand(std::ostream& os,
         printOpRegdirect(os, inst, op.reg);
         return;
     case ARM64_OP_IMM:
-        printOpImmediate(os, nullptr, inst, index);
+        {
+            auto pos = module.findSymbolicExpressionsAt(ea);
+            if (!pos.empty()) {
+                symbolic = &pos.begin()->getSymbolicExpression();
+            }
+        }
+        printOpImmediate(os, symbolic, inst, index);
         return;
     case ARM64_OP_MEM:
-        printOpIndirect(os, nullptr, inst, index);
+        {
+            auto pos = module.findSymbolicExpressionsAt(ea);
+            if (!pos.empty()) {
+                symbolic = &pos.begin()->getSymbolicExpression();
+            }
+        }
+        printOpIndirect(os, symbolic, inst, index);
         return;
     case ARM64_OP_INVALID:
+        std::cout << "BREWWW" << std::endl;
         std::cerr << "invalid operand\n";
         exit(1);
     default:
@@ -76,20 +90,56 @@ void AArch64PrettyPrinter::printOpRegdirect(std::ostream& os,
     os << getRegisterName(reg);
 }
 
+void printShift(std::ostream& os, const arm64_shifter type, unsigned int value) {
+    switch (type) {
+        case ARM64_SFT_LSL:
+            os << "lsl";
+            break;
+        case ARM64_SFT_MSL:
+            os << "msl";
+            break;
+        case ARM64_SFT_LSR:
+            os << "lsr";
+            break;
+        case ARM64_SFT_ASR:
+            os << "asr";
+            break;
+        case ARM64_SFT_ROR:
+            os << "ror";
+            break;
+        default:
+            assert(false && "unexpected case");
+    }
+    os << " #" << value;
+}
+
 void AArch64PrettyPrinter::printOpImmediate(std::ostream& os,
         const gtirb::SymbolicExpression* symbolic,
         const cs_insn& inst, uint64_t index) {
-    (void) symbolic;
     const cs_arm64_op& op = inst.detail->arm64.operands[index];
     assert(op.type == ARM64_OP_IMM &&
             "printOpImmediate called without an immediate operand");
-    os << "#" << op.imm;
+
+    bool is_jump = cs_insn_group(this->csHandle, &inst, ARM64_GRP_JUMP);
+
+    if (const gtirb::SymAddrConst* s = this->getSymbolicImmediate(symbolic)) {
+        if (!is_jump) {
+            os << ' ';
+        }
+        this->printSymbolicExpression(os, s, !is_jump);
+    } else {
+        os << "#" << op.imm;
+        if (op.shift.type != ARM64_SFT_INVALID && op.shift.value != 0) {
+            os << ",";
+            printShift(os, op.shift.type, op.shift.value);
+        }
+    }
 }
 
 void AArch64PrettyPrinter::printOpIndirect(std::ostream& os,
         const gtirb::SymbolicExpression* symbolic,
         const cs_insn& inst, uint64_t index) {
-    (void) symbolic;
+    if (symbolic) os << "<indirect_symbol>";
     const cs_arm64& detail = inst.detail->arm64;
     const cs_arm64_op& op = detail.operands[index];
     assert(op.type == ARM64_OP_MEM &&
@@ -109,7 +159,7 @@ void AArch64PrettyPrinter::printOpIndirect(std::ostream& os,
     // displacement (constant)
     if (op.mem.disp != 0) {
         if (!first) {
-            os << ", ";
+            os << ",";
         }
         first = false;
         os << "#" << op.mem.disp;
@@ -118,7 +168,7 @@ void AArch64PrettyPrinter::printOpIndirect(std::ostream& os,
     // index register
     if (op.mem.index != ARM64_REG_INVALID) {
         if (!first) {
-            os << ", ";
+            os << ",";
         }
         first = false;
         os << getRegisterName(op.mem.index);
@@ -127,28 +177,9 @@ void AArch64PrettyPrinter::printOpIndirect(std::ostream& os,
     // add shift
     // TODO: extenders?
     if (op.shift.type != ARM64_SFT_INVALID && op.shift.value != 0) {
+        os << ",";
         assert(!first && "unexpected shift operator");
-        os << ", ";
-        switch (op.shift.type) {
-            case ARM64_SFT_LSL:
-                os << "lsl";
-                break;
-            case ARM64_SFT_MSL:
-                os << "msl";
-                break;
-            case ARM64_SFT_LSR:
-                os << "lsr";
-                break;
-            case ARM64_SFT_ASR:
-                os << "asr";
-                break;
-            case ARM64_SFT_ROR:
-                os << "ror";
-                break;
-            default:
-                assert(false && "unexpected case");
-        }
-        os << " #" << op.shift.value;
+        printShift(os, op.shift.type, op.shift.value);
     }
 
     os << "]";

@@ -86,7 +86,7 @@ protected:
 
   bool
   shouldExcludeDataElement(const gtirb::Section& section,
-                           const gtirb::DataObject& dataObject) const override;
+                           const gtirb::DataBlock& dataObject) const override;
 };
 
 } // namespace gtirb_pprint

@@ -12,11 +12,11 @@
 //  endorsement should be inferred.
 //
 //===----------------------------------------------------------------------===//
-#ifndef GTIRB_PP_EXPORT_H
-#define GTIRB_PP_EXPORT_H
+#ifndef GTIRB_LAYOUT_EXPORT_H
+#define GTIRB_LAYOUT_EXPORT_H
 
 ///
-/// \define DEBLOAT_PrettyPrinter_EXPORTS
+/// \define gtirb_layout_EXPORTS
 ///
 /// Defined by the build system (CMake or SCons).
 /// This should only be defined by the build system which generates the GT-IRB
@@ -24,7 +24,7 @@
 ///
 
 ///
-/// \define DEBLOAT_PRETTYPRINTER_EXPORT_API
+/// \define GTIRB_LAYOUT_EXPORT_API
 ///
 /// This controls the visibility of exported symbols (i.e. classes) in Windows
 /// DLL's and Linux Shared Objects.
@@ -41,15 +41,15 @@
 /// @endcond
 
 #if defined(_MSC_VER) || __has_declspec_attribute(dllexport)
-#if defined DEBLOAT_debloatPrettyPrinter_EXPORTS
-#define DEBLOAT_PRETTYPRINTER_EXPORT_API _declspec(dllexport)
+#if defined gtirb_layout_EXPORTS
+#define GTIRB_LAYOUT_EXPORT_API _declspec(dllexport)
 #else
-#define DEBLOAT_PRETTYPRINTER_EXPORT_API _declspec(dllimport)
+#define GTIRB_LAYOUT_EXPORT_API _declspec(dllimport)
 #endif
 #elif defined(__GNUC__) || __has_attribute(visibility)
-#define DEBLOAT_PRETTYPRINTER_EXPORT_API __attribute__((visibility("default")))
+#define GTIRB_LAYOUT_EXPORT_API __attribute__((visibility("default")))
 #else
-#define DEBLOAT_PRETTYPRINTER_EXPORT_API
+#define GTIRB_LAYOUT_EXPORT_API
 #endif
 
-#endif /* GTIRB_PP_EXPORT_H */
+#endif /* GTIRB_LAYOUT_EXPORT_H */

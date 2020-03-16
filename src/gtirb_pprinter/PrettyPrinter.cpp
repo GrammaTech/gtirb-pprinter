@@ -14,6 +14,7 @@
 //===----------------------------------------------------------------------===//
 #include "PrettyPrinter.hpp"
 
+#include "AuxDataSchema.hpp"
 #include "string_utils.hpp"
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/lexical_cast.hpp>
@@ -69,23 +70,23 @@ std::set<std::tuple<std::string, std::string>> getRegisteredTargets() {
 }
 
 std::string getModuleFileFormat(const gtirb::Module& module) {
-  switch (module.getFileFormat()) {
-  case gtirb::FileFormat::Undefined:
+  switch ((int)module.getFileFormat()) {
+  case (int)gtirb::FileFormat::Undefined:
     return "undefined";
-  case gtirb::FileFormat::COFF:
+  case (int)gtirb::FileFormat::COFF:
     return "coff";
-  case gtirb::FileFormat::ELF:
+  case (int)gtirb::FileFormat::ELF:
     return "elf";
-  case gtirb::FileFormat::PE:
+  case (int)gtirb::FileFormat::PE:
     return "pe";
-  case gtirb::FileFormat::IdaProDb32:
-  case gtirb::FileFormat::IdaProDb64:
+  case (int)gtirb::FileFormat::IdaProDb32:
+  case (int)gtirb::FileFormat::IdaProDb64:
     return "idb";
-  case gtirb::FileFormat::XCOFF:
+  case (int)gtirb::FileFormat::XCOFF:
     return "xcoff";
-  case gtirb::FileFormat::MACHO:
+  case (int)gtirb::FileFormat::MACHO:
     return "macho";
-  case gtirb::FileFormat::RAW:
+  case (int)gtirb::FileFormat::RAW:
     return "raw";
   }
   return "undefined";
@@ -169,29 +170,28 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
   assert(err == CS_ERR_OK && "Capstone failure");
 
   if (const auto* functionEntries =
-          module.getAuxData<std::map<gtirb::UUID, std::set<gtirb::UUID>>>(
-              "functionEntries")) {
+          module.getAuxData<gtirb::schema::FunctionEntries>()) {
     for (auto const& function : *functionEntries) {
       for (auto& entryBlockUUID : function.second) {
-        const auto* block = nodeFromUUID<gtirb::Block>(context, entryBlockUUID);
+        const auto* block =
+            nodeFromUUID<gtirb::CodeBlock>(context, entryBlockUUID);
         assert(block && "UUID references non-existent block.");
         if (block)
-          functionEntry.insert(block->getAddress());
+          functionEntry.insert(*block->getAddress());
       }
     }
   }
 
   if (const auto* functionBlocks =
-          module.getAuxData<std::map<gtirb::UUID, std::set<gtirb::UUID>>>(
-              "functionBlocks")) {
+          module.getAuxData<gtirb::schema::FunctionBlocks>()) {
     for (auto const& function : *functionBlocks) {
       assert(function.second.size() > 0);
       gtirb::Addr lastAddr{0};
       for (auto& blockUUID : function.second) {
-        const auto* block = nodeFromUUID<gtirb::Block>(context, blockUUID);
+        const auto* block = nodeFromUUID<gtirb::CodeBlock>(context, blockUUID);
         assert(block && "UUID references non-existent block.");
         if (block && block->getAddress() > lastAddr)
-          lastAddr = block->getAddress();
+          lastAddr = *block->getAddress();
       }
       functionLastBlock.insert(lastAddr);
     }
@@ -213,71 +213,74 @@ const gtirb::SymAddrConst* PrettyPrinterBase::getSymbolicImmediate(
 std::ostream& PrettyPrinterBase::print(std::ostream& os) {
   printHeader(os);
   // FIXME: simplify once block interation order is guaranteed by gtirb
-  auto address_order_block = [](const gtirb::Block* a, const gtirb::Block* b) {
+  auto address_order_block = [](const gtirb::CodeBlock* a,
+                                const gtirb::CodeBlock* b) {
     return a->getAddress() < b->getAddress();
   };
-  std::vector<const gtirb::Block*> blocks;
-  for (const gtirb::Block& block : gtirb::blocks(module.getCFG())) {
-    blocks.push_back(&block);
+  std::vector<const gtirb::CodeBlock*> blocks;
+  for (const gtirb::CodeBlock& block :
+       gtirb::blocks(module.getIR()->getCFG())) {
+    if (block.getByteInterval()->getSection()->getModule() == &module) {
+      blocks.push_back(&block);
+    }
   }
   std::sort(blocks.begin(), blocks.end(), address_order_block);
   auto blockIt = blocks.begin();
-  auto dataIt = module.data_begin();
+  auto dataIt = module.data_blocks_begin();
   gtirb::Addr last{0};
-  while (blockIt != blocks.end() && dataIt != module.data_end()) {
+  while (blockIt != blocks.end() && dataIt != module.data_blocks_end()) {
     if ((*blockIt)->getAddress() <= dataIt->getAddress()) {
       last = printBlockOrWarning(os, **blockIt, last);
       blockIt++;
     } else {
-      last = printDataObjectOrWarning(os, *dataIt, last);
+      last = printDataBlockOrWarning(os, *dataIt, last);
       dataIt++;
     }
   }
   for (; blockIt != blocks.end(); blockIt++)
     last = printBlockOrWarning(os, **blockIt, last);
-  for (; dataIt != module.data_end(); dataIt++)
-    last = printDataObjectOrWarning(os, *dataIt, last);
-  bool inData = !module.findData(last).empty();
+  for (; dataIt != module.data_blocks_end(); dataIt++)
+    last = printDataBlockOrWarning(os, *dataIt, last);
+  bool inData = !module.findDataBlocksOn(last).empty();
   printSymbolDefinitionsAtAddress(os, last, inData);
   printSectionFooter(os, std::nullopt, last);
   printFooter(os);
   return os;
 }
 
-gtirb::Addr PrettyPrinterBase::printBlockOrWarning(std::ostream& os,
-                                                   const gtirb::Block& block,
-                                                   gtirb::Addr last) {
-  gtirb::Addr nextAddr = block.getAddress();
+gtirb::Addr PrettyPrinterBase::printBlockOrWarning(
+    std::ostream& os, const gtirb::CodeBlock& block, gtirb::Addr last) {
+  gtirb::Addr nextAddr = *block.getAddress();
   if (nextAddr < last) {
     printOverlapWarning(os, nextAddr);
     return last;
   } else {
     if (nextAddr > last) {
-      bool inData = !module.findData(last).empty();
+      bool inData = !module.findDataBlocksOn(last).empty();
       printSymbolDefinitionsAtAddress(os, last, inData);
     }
     printSectionFooter(os, nextAddr, last);
     printSectionHeader(os, nextAddr);
     printBlock(os, block);
-    return block.getAddress() + block.getSize();
+    return *block.getAddress() + block.getSize();
   }
 }
 
-gtirb::Addr PrettyPrinterBase::printDataObjectOrWarning(
-    std::ostream& os, const gtirb::DataObject& dataObject, gtirb::Addr last) {
-  gtirb::Addr nextAddr = dataObject.getAddress();
+gtirb::Addr PrettyPrinterBase::printDataBlockOrWarning(
+    std::ostream& os, const gtirb::DataBlock& dataObject, gtirb::Addr last) {
+  gtirb::Addr nextAddr = *dataObject.getAddress();
   if (nextAddr < last) {
     printOverlapWarning(os, nextAddr);
     return last;
   } else {
     if (nextAddr > last) {
-      bool inData = !module.findData(last).empty();
+      bool inData = !module.findDataBlocksOn(last).empty();
       printSymbolDefinitionsAtAddress(os, last, inData);
     }
     printSectionFooter(os, nextAddr, last);
     printSectionHeader(os, nextAddr);
-    printDataObject(os, dataObject);
-    return dataObject.getAddress() + dataObject.getSize();
+    printDataBlock(os, dataObject);
+    return *dataObject.getAddress() + dataObject.getSize();
   }
 }
 
@@ -289,21 +292,19 @@ void PrettyPrinterBase::printOverlapWarning(std::ostream& os,
   os.flags(flags);
 }
 
-void PrettyPrinterBase::printBlock(std::ostream& os, const gtirb::Block& x) {
-  if (skipEA(x.getAddress())) {
+void PrettyPrinterBase::printBlock(std::ostream& os,
+                                   const gtirb::CodeBlock& x) {
+  if (skipEA(*x.getAddress())) {
     return;
   }
-  printFunctionHeader(os, x.getAddress());
+  printFunctionHeader(os, *x.getAddress());
   os << '\n';
 
   cs_insn* insn;
   cs_option(this->csHandle, CS_OPT_DETAIL, CS_OPT_ON);
 
-  gtirb::ImageByteMap::const_range bytes2 =
-      getBytes(module.getImageByteMap(), x);
-  size_t count =
-      cs_disasm(this->csHandle, reinterpret_cast<const uint8_t*>(&bytes2[0]),
-                bytes2.size(), static_cast<uint64_t>(x.getAddress()), 0, &insn);
+  size_t count = cs_disasm(this->csHandle, x.rawBytes<uint8_t>(), x.getSize(),
+                           static_cast<uint64_t>(*x.getAddress()), 0, &insn);
 
   // Exception-safe cleanup of instructions
   std::unique_ptr<cs_insn, std::function<void(cs_insn*)>> freeInsn(
@@ -319,15 +320,13 @@ void PrettyPrinterBase::printBlock(std::ostream& os, const gtirb::Block& x) {
   // print any CFI directives located at the end of the block
   // e.g. '.cfi_endproc' is usually attached to the end of the block
   printCFIDirectives(os, offset);
-  printFunctionFooter(os, x.getAddress());
+  printFunctionFooter(os, *x.getAddress());
 }
 
 void PrettyPrinterBase::printSectionHeader(std::ostream& os,
                                            const gtirb::Addr addr) {
-  const auto found_section = module.findSection(addr);
+  const auto found_section = module.findSectionsAt(addr);
   if (found_section.begin() == found_section.end())
-    return;
-  if (found_section.begin()->getAddress() != addr)
     return;
   std::string sectionName = found_section.begin()->getName();
   if (policy.skipSections.count(sectionName))
@@ -441,6 +440,23 @@ void PrettyPrinterBase::fixupInstruction(cs_insn& inst) {
     cs_x86_op& op = detail.operands[2];
     op.imm = static_cast<int32_t>(op.imm);
   }
+
+  // GCC assembler does not like endbr64 instructions
+  if (inst.id == X86_INS_ENDBR64) {
+    inst.id = X86_INS_NOP;
+  }
+
+  // The first operand of fxch  st(0) is implicit
+  if (inst.id == X86_INS_FXCH && detail.op_count == 2) {
+    detail.operands[0] = detail.operands[1];
+    detail.op_count = 1;
+  }
+
+  // Comisd loads 64 bits from memory not 128
+  if (inst.id == X86_INS_COMISD && detail.op_count == 2 &&
+      detail.operands[1].type == X86_OP_MEM && detail.operands[1].size == 16) {
+    detail.operands[1].size = 8;
+  }
 }
 
 void PrettyPrinterBase::printInstruction(std::ostream& os, const cs_insn& inst,
@@ -509,17 +525,17 @@ void PrettyPrinterBase::printOperand(std::ostream& os, const cs_insn& inst,
     printOpRegdirect(os, inst, op.reg);
     return;
   case X86_OP_IMM: {
-    auto found = module.findSymbolicExpression(ea + immOffset);
-    if (found != module.symbolic_expr_end())
-      symbolic = &*found;
+    auto found = module.findSymbolicExpressionsAt(ea + immOffset);
+    if (!found.empty())
+      symbolic = &found.begin()->getSymbolicExpression();
   }
     printOpImmediate(os, symbolic, inst, index);
     return;
   case X86_OP_MEM:
     if (dispOffset > 0) {
-      auto found = module.findSymbolicExpression(ea + dispOffset);
-      if (found != module.symbolic_expr_end())
-        symbolic = &*found;
+      auto found = module.findSymbolicExpressionsAt(ea + dispOffset);
+      if (!found.empty())
+        symbolic = &found.begin()->getSymbolicExpression();
     }
     printOpIndirect(os, symbolic, inst, index);
     return;
@@ -529,9 +545,9 @@ void PrettyPrinterBase::printOperand(std::ostream& os, const cs_insn& inst,
   }
 }
 
-void PrettyPrinterBase::printDataObject(std::ostream& os,
-                                        const gtirb::DataObject& dataObject) {
-  gtirb::Addr addr = dataObject.getAddress();
+void PrettyPrinterBase::printDataBlock(std::ostream& os,
+                                       const gtirb::DataBlock& dataObject) {
+  gtirb::Addr addr = *dataObject.getAddress();
   if (skipEA(addr)) {
     return;
   }
@@ -544,25 +560,30 @@ void PrettyPrinterBase::printDataObject(std::ostream& os,
   assert(section && "Found a data object outside all sections");
   if (shouldExcludeDataElement(**section, dataObject))
     return;
-  auto dataObjectBytes = getBytes(module.getImageByteMap(), dataObject);
-  if (dataObjectBytes.empty())
-    printZeroDataObject(os, dataObject);
+
+  const auto& foundSymbolic =
+      module.findSymbolicExpressionsAt(*dataObject.getAddress());
+  auto dataObjectBytes = dataObject.bytes<uint8_t>();
+  if (std::all_of(dataObjectBytes.begin(), dataObjectBytes.end(),
+                  [](uint8_t x) { return x == 0; }) &&
+      foundSymbolic.empty())
+    printZeroDataBlock(os, dataObject);
   else
-    printNonZeroDataObject(os, dataObject);
+    printNonZeroDataBlock(os, dataObject);
 }
 
-void PrettyPrinterBase::printNonZeroDataObject(
-    std::ostream& os, const gtirb::DataObject& dataObject) {
+void PrettyPrinterBase::printNonZeroDataBlock(
+    std::ostream& os, const gtirb::DataBlock& dataObject) {
   const auto& foundSymbolic =
-      module.findSymbolicExpression(dataObject.getAddress());
-  if (foundSymbolic != module.symbolic_expr_end()) {
+      module.findSymbolicExpressionsAt(*dataObject.getAddress());
+  if (!foundSymbolic.empty()) {
     os << syntax.tab();
-    printSymbolicData(os, &*foundSymbolic, dataObject);
+    printSymbolicData(os, &foundSymbolic.begin()->getSymbolicExpression(),
+                      dataObject);
     os << '\n';
     return;
   }
-  const auto* types =
-      module.getAuxData<std::map<gtirb::UUID, std::string>>("encodings");
+  const auto* types = module.getAuxData<gtirb::schema::Encodings>();
   if (types) {
     auto foundType = types->find(dataObject.getUUID());
     if (foundType != types->end() && foundType->second == "string") {
@@ -572,14 +593,14 @@ void PrettyPrinterBase::printNonZeroDataObject(
       return;
     }
   }
-  for (std::byte byte : getBytes(module.getImageByteMap(), dataObject)) {
+  for (auto byte : dataObject.bytes<uint8_t>()) {
     os << syntax.tab();
-    printByte(os, byte);
+    printByte(os, static_cast<std::byte>(static_cast<unsigned char>(byte)));
   }
 }
 
-void PrettyPrinterBase::printZeroDataObject(
-    std::ostream& os, const gtirb::DataObject& dataObject) {
+void PrettyPrinterBase::printZeroDataBlock(std::ostream& os,
+                                           const gtirb::DataBlock& dataObject) {
   os << syntax.tab();
   os << " .zero " << dataObject.getSize() << '\n';
 }
@@ -590,8 +611,7 @@ void PrettyPrinterBase::printComments(std::ostream& os,
   if (!this->debug)
     return;
 
-  if (const auto* comments =
-          module.getAuxData<std::map<gtirb::Offset, std::string>>("comments")) {
+  if (const auto* comments = module.getAuxData<gtirb::schema::Comments>()) {
     gtirb::Offset endOffset(offset.ElementId, offset.Displacement + range);
     for (auto p = comments->lower_bound(offset);
          p != comments->end() && p->first < endOffset; ++p) {
@@ -605,10 +625,7 @@ void PrettyPrinterBase::printComments(std::ostream& os,
 
 void PrettyPrinterBase::printCFIDirectives(std::ostream& os,
                                            const gtirb::Offset& offset) {
-  const auto* cfiDirectives = module.getAuxData<std::map<
-      gtirb::Offset,
-      std::vector<std::tuple<std::string, std::vector<int64_t>, gtirb::UUID>>>>(
-      "cfiDirectives");
+  const auto* cfiDirectives = module.getAuxData<gtirb::schema::CfiDirectives>();
   if (!cfiDirectives)
     return;
   const auto entry = cfiDirectives->find(offset);
@@ -638,8 +655,8 @@ void PrettyPrinterBase::printCFIDirectives(std::ostream& os,
 
 void PrettyPrinterBase::printSymbolicData(
     std::ostream& os, const gtirb::SymbolicExpression* symbolic,
-    const gtirb::DataObject& dataObject) {
-  printDataObjectType(os, dataObject);
+    const gtirb::DataBlock& dataObject) {
+  printDataBlockType(os, dataObject);
   os << " ";
   if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
     printSymbolicExpression(os, s, true);
@@ -648,10 +665,9 @@ void PrettyPrinterBase::printSymbolicData(
   }
 }
 
-void PrettyPrinterBase::printDataObjectType(
-    std::ostream& os, const gtirb::DataObject& dataObject) {
-  const auto* types =
-      module.getAuxData<std::map<gtirb::UUID, std::string>>("encodings");
+void PrettyPrinterBase::printDataBlockType(std::ostream& os,
+                                           const gtirb::DataBlock& dataObject) {
+  const auto* types = module.getAuxData<gtirb::schema::Encodings>();
   if (types) {
     auto foundType = types->find(dataObject.getUUID());
     if (foundType != types->end()) {
@@ -693,7 +709,7 @@ void PrettyPrinterBase::printSymbolicExpression(std::ostream& os,
 }
 
 void PrettyPrinterBase::printString(std::ostream& os,
-                                    const gtirb::DataObject& x) {
+                                    const gtirb::DataBlock& x) {
   auto cleanByte = [](uint8_t b) {
     std::string cleaned;
     cleaned += b;
@@ -712,9 +728,9 @@ void PrettyPrinterBase::printString(std::ostream& os,
 
   os << syntax.string() << " \"";
 
-  for (const std::byte& b : getBytes(module.getImageByteMap(), x)) {
-    if (b != std::byte(0)) {
-      os << cleanByte(uint8_t(b));
+  for (auto b : x.bytes<uint8_t>()) {
+    if (b != 0) {
+      os << cleanByte(b);
     }
   }
 
@@ -723,7 +739,7 @@ void PrettyPrinterBase::printString(std::ostream& os,
 
 bool PrettyPrinterBase::shouldExcludeDataElement(
     const gtirb::Section& /* section */,
-    const gtirb::DataObject& /* dataObject */) const {
+    const gtirb::DataBlock& /* dataObject */) const {
   return false;
 }
 
@@ -764,7 +780,7 @@ PrettyPrinterBase::getContainerFunctionName(const gtirb::Addr x) const {
 
 const std::optional<const gtirb::Section*>
 PrettyPrinterBase::getContainerSection(const gtirb::Addr addr) const {
-  auto found_sections = module.findSection(addr);
+  auto found_sections = module.findSectionsOn(addr);
   if (found_sections.begin() == found_sections.end())
     return std::nullopt;
   else
@@ -846,7 +862,7 @@ std::optional<std::string>
 PrettyPrinterBase::getForwardedSymbolName(const gtirb::Symbol* symbol,
                                           bool inData) const {
   const auto* symbolForwarding =
-      module.getAuxData<std::map<gtirb::UUID, gtirb::UUID>>("symbolForwarding");
+      module.getAuxData<gtirb::schema::SymbolForwarding>();
 
   if (symbolForwarding) {
     auto found = symbolForwarding->find(symbol->getUUID());
@@ -864,7 +880,7 @@ PrettyPrinterBase::getForwardedSymbolEnding(const gtirb::Symbol* symbol,
                                             bool inData) const {
   if (symbol->getAddress()) {
     gtirb::Addr addr = *symbol->getAddress();
-    const auto container_sections = module.findSection(addr);
+    const auto container_sections = module.findSectionsOn(addr);
     if (container_sections.begin() == container_sections.end())
       return std::string{};
     std::string section_name = container_sections.begin()->getName();
@@ -880,6 +896,19 @@ bool PrettyPrinterBase::isAmbiguousSymbol(const std::string& name) const {
   // Are there multiple symbols with this name?
   auto found = module.findSymbols(name);
   return distance(begin(found), end(found)) > 1;
+}
+
+void registerAuxDataTypes() {
+  using namespace gtirb::schema;
+  gtirb::AuxDataContainer::registerAuxDataType<Comments>();
+  gtirb::AuxDataContainer::registerAuxDataType<FunctionEntries>();
+  gtirb::AuxDataContainer::registerAuxDataType<FunctionBlocks>();
+  gtirb::AuxDataContainer::registerAuxDataType<SymbolForwarding>();
+  gtirb::AuxDataContainer::registerAuxDataType<Encodings>();
+  gtirb::AuxDataContainer::registerAuxDataType<ElfSectionProperties>();
+  gtirb::AuxDataContainer::registerAuxDataType<CfiDirectives>();
+  gtirb::AuxDataContainer::registerAuxDataType<Libraries>();
+  gtirb::AuxDataContainer::registerAuxDataType<LibraryPaths>();
 }
 
 } // namespace gtirb_pprint

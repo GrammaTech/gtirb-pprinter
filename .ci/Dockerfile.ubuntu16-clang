@@ -12,7 +12,8 @@ SHELL ["/bin/bash", "-c"]
 
 # Install common packages
 RUN apt-get -y update && \
-    apt-get -y install build-essential curl git make python3 software-properties-common wget
+    apt-get -y install apt-transport-https build-essential curl git make \
+        python3 software-properties-common wget
 
 # Install libstdc++
 RUN add-apt-repository ppa:jonathonf/gcc-7.1 && \
@@ -65,7 +66,10 @@ RUN cd /usr/local/src \
 
 # Install GTIRB and build gtirb-pprinter
 COPY . /gt/gtirb-pprinter/
-ENV LD_LIBRARY_PATH /gt/gtirb-pprinter/gtirb/build/lib
+ENV LD_LIBRARY_PATH /gt/gtirb-pprinter/gtirb/build/lib:$LD_LIBRARY_PATH
 RUN /gt/gtirb-pprinter/.ci/build-linux.sh clang++-8
+ARG CPACK_GENERATOR=""
+RUN if [ ! -z "${CPACK_GENERATOR}" ] ; then cd /gt/gtirb-pprinter/build && cpack -G "${CPACK_GENERATOR}"; fi
+
 WORKDIR /gt/gtirb-pprinter/
 ENV PATH=/gt/gtirb-pprinter/build/bin:$PATH

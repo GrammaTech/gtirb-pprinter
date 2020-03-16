@@ -14,7 +14,9 @@ cmake_install.cmake
 install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
-/gtirb/
+/gtirb
 /datalog_disasm/
 /include/gsl/*
-include/gtirb_pprinter/version.h
+/.vscode/
+.mypy_cache/
+__pycache__/
