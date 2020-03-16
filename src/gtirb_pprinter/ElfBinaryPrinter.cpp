@@ -14,6 +14,7 @@
 //===----------------------------------------------------------------------===//
 #include "ElfBinaryPrinter.hpp"
 
+#include "AuxDataSchema.hpp"
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpragmas"
@@ -96,14 +97,13 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
   for (gtirb::Module& module : ir.modules()) {
 
     if (const auto* binaryLibraryPaths =
-            module.getAuxData<std::vector<std::string>>("libraryPaths"))
+            module.getAuxData<gtirb::schema::LibraryPaths>())
       allBinaryPaths.insert(allBinaryPaths.end(), binaryLibraryPaths->begin(),
                             binaryLibraryPaths->end());
   }
   // add needed libraries
   for (gtirb::Module& module : ir.modules()) {
-    if (const auto* libraries =
-            module.getAuxData<std::vector<std::string>>("libraries")) {
+    if (const auto* libraries = module.getAuxData<gtirb::schema::Libraries>()) {
       for (const auto& library : *libraries) {
         // if they match the lib*.so pattern we let the compiler look for them
         std::optional<std::string> infixLibraryName =
@@ -130,7 +130,7 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
   // add binary library paths (add them to rpath as well)
   for (gtirb::Module& module : ir.modules()) {
     if (const auto* binaryLibraryPaths =
-            module.getAuxData<std::vector<std::string>>("libraryPaths")) {
+            module.getAuxData<gtirb::schema::LibraryPaths>()) {
       for (const auto& libraryPath : *binaryLibraryPaths) {
         args.push_back("-L" + libraryPath);
         args.push_back("-Wl,-rpath," + libraryPath);

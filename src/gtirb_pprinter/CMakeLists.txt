@@ -5,6 +5,7 @@ configure_file("${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/version.h.in"
                "${CMAKE_BINARY_DIR}/include/gtirb_pprinter/version.h" @ONLY)
 
 set(${PROJECT_NAME}_H
+    ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/AuxDataSchema.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/BinaryPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Export.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/PrettyPrinter.hpp

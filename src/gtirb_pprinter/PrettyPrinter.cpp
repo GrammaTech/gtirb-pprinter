@@ -14,6 +14,7 @@
 //===----------------------------------------------------------------------===//
 #include "PrettyPrinter.hpp"
 
+#include "AuxDataSchema.hpp"
 #include "string_utils.hpp"
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/lexical_cast.hpp>
@@ -167,8 +168,7 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
   assert(err == CS_ERR_OK && "Capstone failure");
 
   if (const auto* functionEntries =
-          module.getAuxData<std::map<gtirb::UUID, std::set<gtirb::UUID>>>(
-              "functionEntries")) {
+          module.getAuxData<gtirb::schema::FunctionEntries>()) {
     for (auto const& function : *functionEntries) {
       for (auto& entryBlockUUID : function.second) {
         const auto* block =
@@ -181,8 +181,7 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
   }
 
   if (const auto* functionBlocks =
-          module.getAuxData<std::map<gtirb::UUID, std::set<gtirb::UUID>>>(
-              "functionBlocks")) {
+          module.getAuxData<gtirb::schema::FunctionBlocks>()) {
     for (auto const& function : *functionBlocks) {
       assert(function.second.size() > 0);
       gtirb::Addr lastAddr{0};
@@ -572,8 +571,7 @@ void PrettyPrinterBase::printNonZeroDataBlock(
     os << '\n';
     return;
   }
-  const auto* types =
-      module.getAuxData<std::map<gtirb::UUID, std::string>>("encodings");
+  const auto* types = module.getAuxData<gtirb::schema::Encodings>();
   if (types) {
     auto foundType = types->find(dataObject.getUUID());
     if (foundType != types->end() && foundType->second == "string") {
@@ -601,8 +599,7 @@ void PrettyPrinterBase::printComments(std::ostream& os,
   if (!this->debug)
     return;
 
-  if (const auto* comments =
-          module.getAuxData<std::map<gtirb::Offset, std::string>>("comments")) {
+  if (const auto* comments = module.getAuxData<gtirb::schema::Comments>()) {
     gtirb::Offset endOffset(offset.ElementId, offset.Displacement + range);
     for (auto p = comments->lower_bound(offset);
          p != comments->end() && p->first < endOffset; ++p) {
@@ -616,10 +613,7 @@ void PrettyPrinterBase::printComments(std::ostream& os,
 
 void PrettyPrinterBase::printCFIDirectives(std::ostream& os,
                                            const gtirb::Offset& offset) {
-  const auto* cfiDirectives = module.getAuxData<std::map<
-      gtirb::Offset,
-      std::vector<std::tuple<std::string, std::vector<int64_t>, gtirb::UUID>>>>(
-      "cfiDirectives");
+  const auto* cfiDirectives = module.getAuxData<gtirb::schema::CfiDirectives>();
   if (!cfiDirectives)
     return;
   const auto entry = cfiDirectives->find(offset);
@@ -661,8 +655,7 @@ void PrettyPrinterBase::printSymbolicData(
 
 void PrettyPrinterBase::printDataBlockType(std::ostream& os,
                                            const gtirb::DataBlock& dataObject) {
-  const auto* types =
-      module.getAuxData<std::map<gtirb::UUID, std::string>>("encodings");
+  const auto* types = module.getAuxData<gtirb::schema::Encodings>();
   if (types) {
     auto foundType = types->find(dataObject.getUUID());
     if (foundType != types->end()) {
@@ -857,7 +850,7 @@ std::optional<std::string>
 PrettyPrinterBase::getForwardedSymbolName(const gtirb::Symbol* symbol,
                                           bool inData) const {
   const auto* symbolForwarding =
-      module.getAuxData<std::map<gtirb::UUID, gtirb::UUID>>("symbolForwarding");
+      module.getAuxData<gtirb::schema::SymbolForwarding>();
 
   if (symbolForwarding) {
     auto found = symbolForwarding->find(symbol->getUUID());
@@ -891,6 +884,24 @@ bool PrettyPrinterBase::isAmbiguousSymbol(const std::string& name) const {
   // Are there multiple symbols with this name?
   auto found = module.findSymbols(name);
   return distance(begin(found), end(found)) > 1;
+}
+
+void registerAuxDataTypes() {
+  using namespace gtirb::schema;
+  gtirb::AuxDataContainer::registerAuxDataType<Comments>();
+  gtirb::AuxDataContainer::registerAuxDataType<FunctionEntries>();
+  gtirb::AuxDataContainer::registerAuxDataType<FunctionBlocks>();
+  gtirb::AuxDataContainer::registerAuxDataType<SymbolForwarding>();
+  gtirb::AuxDataContainer::registerAuxDataType<Encodings>();
+  gtirb::AuxDataContainer::registerAuxDataType<ElfSectionProperties>();
+  gtirb::AuxDataContainer::registerAuxDataType<PeSectionProperties>();
+  gtirb::AuxDataContainer::registerAuxDataType<CfiDirectives>();
+  gtirb::AuxDataContainer::registerAuxDataType<Libraries>();
+  gtirb::AuxDataContainer::registerAuxDataType<LibraryPaths>();
+  gtirb::AuxDataContainer::registerAuxDataType<DataDirectories>();
+  gtirb::AuxDataContainer::registerAuxDataType<BaseAddress>();
+  gtirb::AuxDataContainer::registerAuxDataType<PeImportedSymbols>();
+  gtirb::AuxDataContainer::registerAuxDataType<PeExportedSymbols>();
 }
 
 } // namespace gtirb_pprint

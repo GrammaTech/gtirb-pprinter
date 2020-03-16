@@ -14,6 +14,7 @@
 //===----------------------------------------------------------------------===//
 #include "ElfPrettyPrinter.hpp"
 
+#include "AuxDataSchema.hpp"
 #include <elf.h>
 
 namespace gtirb_pprint {
@@ -24,10 +25,7 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
                                    const PrintingPolicy& policy_)
     : PrettyPrinterBase(context_, module_, syntax_, policy_),
       elfSyntax(syntax_) {
-  if (module.getAuxData<std::map<
-          gtirb::Offset, std::vector<std::tuple<
-                             std::string, std::vector<int64_t>, gtirb::UUID>>>>(
-          "cfiDirectives")) {
+  if (module.getAuxData<gtirb::schema::CfiDirectives>()) {
     policy.skipSections.insert(".eh_frame");
   }
 }
@@ -58,8 +56,7 @@ void ElfPrettyPrinter::printSectionHeaderDirective(
 void ElfPrettyPrinter::printSectionProperties(std::ostream& os,
                                               const gtirb::Section& section) {
   const auto* elfSectionProperties =
-      module.getAuxData<std::map<gtirb::UUID, std::tuple<uint64_t, uint64_t>>>(
-          "elfSectionProperties");
+      module.getAuxData<gtirb::schema::ElfSectionProperties>();
   if (!elfSectionProperties)
     return;
   auto sectionProperties = elfSectionProperties->find(section.getUUID());

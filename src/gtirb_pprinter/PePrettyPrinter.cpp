@@ -14,6 +14,7 @@
 //===----------------------------------------------------------------------===//
 #include "PePrettyPrinter.hpp"
 
+#include "AuxDataSchema.hpp"
 #include <iostream>
 
 namespace gtirb_pprint {
@@ -22,10 +23,7 @@ PePrettyPrinter::PePrettyPrinter(gtirb::Context& context_,
                                  const PrintingPolicy& policy_)
     : PrettyPrinterBase(context_, module_, syntax_, policy_) {
 
-  const auto* directories =
-      module
-          .getAuxData<std::vector<std::tuple<std::string, uint64_t, uint64_t>>>(
-              "dataDirectories");
+  const auto* directories = module.getAuxData<gtirb::schema::DataDirectories>();
   for (auto const& entry : *directories) {
     dataDirectories.push_back(entry);
   }

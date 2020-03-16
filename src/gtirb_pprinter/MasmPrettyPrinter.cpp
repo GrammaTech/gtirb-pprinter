@@ -15,6 +15,7 @@
 
 #include "MasmPrettyPrinter.hpp"
 
+#include "AuxDataSchema.hpp"
 #include "regex"
 #include "string_utils.hpp"
 #include <boost/algorithm/string/replace.hpp>
@@ -49,7 +50,7 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
     : PePrettyPrinter(context_, module_, syntax_, policy_),
       masmSyntax(syntax_) {
 
-  const auto* BaseAddress = module.getAuxData<gtirb::Addr>("baseAddress");
+  const auto* BaseAddress = module.getAuxData<gtirb::schema::BaseAddress>();
   if (BaseAddress) {
     ImageBase = *BaseAddress;
   }
@@ -62,7 +63,7 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
   }
 
   const auto* ImportedSymbols =
-      module.getAuxData<std::vector<gtirb::UUID>>("peImportedSymbols");
+      module.getAuxData<gtirb::schema::PeImportedSymbols>();
   if (ImportedSymbols) {
     for (const auto& UUID : *ImportedSymbols) {
       Imports.insert(UUID);
@@ -70,7 +71,7 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
   }
 
   const auto* ExportedSymbols =
-      module.getAuxData<std::vector<gtirb::UUID>>("peExportedSymbols");
+      module.getAuxData<gtirb::schema::PeExportedSymbols>();
   if (ExportedSymbols) {
     for (const auto& UUID : *ExportedSymbols) {
       Exports.insert(UUID);
@@ -79,8 +80,7 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
 }
 
 void MasmPrettyPrinter::printIncludes(std::ostream& os) {
-  const auto* libraries =
-      module.getAuxData<std::vector<std::string>>("libraries");
+  const auto* libraries = module.getAuxData<gtirb::schema::Libraries>();
   if (libraries) {
     for (const auto& library : *libraries) {
       // Include replacement libs.
@@ -107,8 +107,7 @@ void MasmPrettyPrinter::printIncludes(std::ostream& os) {
 void MasmPrettyPrinter::printExterns(std::ostream& os) {
   // Declare EXTERN symbols
   if (const auto* symbolForwarding =
-          module.getAuxData<std::map<gtirb::UUID, gtirb::UUID>>(
-              "symbolForwarding")) {
+          module.getAuxData<gtirb::schema::SymbolForwarding>()) {
     std::set<std::string> externs;
     for (auto& forward : *symbolForwarding) {
       if (const auto* symbol = dyn_cast_or_null<gtirb::Symbol>(
@@ -139,7 +138,7 @@ void MasmPrettyPrinter::printSectionHeaderDirective(
 void MasmPrettyPrinter::printSectionProperties(std::ostream& os,
                                                const gtirb::Section& section) {
   const auto* peSectionProperties =
-      module.getAuxData<std::map<gtirb::UUID, uint64_t>>("peSectionProperties");
+      module.getAuxData<gtirb::schema::PeSectionProperties>();
   if (!peSectionProperties)
     return;
   const auto sectionProperties = peSectionProperties->find(section.getUUID());
