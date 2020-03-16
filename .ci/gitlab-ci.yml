@@ -228,7 +228,8 @@ debian-installer:
     - rm -rf $(dirname $CONTAINER_FILE)
     - mv ./build-artifacts/gtirb_pprinter-*-Linux.deb ./
     - rm -rf ./build-artifacts/
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/bfairservice/debian-dependencies/download?job=debian-installer-ubuntu16 --output "gtirb16-artifacts.zip"
-    - unzip gtirb16-artifacts.zip
     - cp /u1/bfairservice/share/extra-packages/libcapstone-dev_4.0.1-1_amd64.deb ./
+    - GTIRB_BRANCH=$(grep -Eo "check_gtirb_branch\([^)]+" CMakeLists.txt | sed 's/check_gtirb_branch(//')
+    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-ubuntu16 --output "gtirb16-artifacts.zip"
+    - unzip gtirb16-artifacts.zip
     - docker build -f .ci/Dockerfile.test-${OS}-package --build-arg CXX_COMPILER=${COMPILER} .
