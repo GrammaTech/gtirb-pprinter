@@ -220,7 +220,7 @@ debian-installer:
     paths:
       - ./gtirb_pprinter-*-Linux.deb
   script:
-    - export COMPILER_NAME=$(echo ${COMPILER} | sed 's/clang++/clang/;s/g++/gcc/;s/-*//g' )
+    - export COMPILER_NAME=$(echo ${COMPILER} | sed 's/clang++/clang/;s/g++/gcc/;s/\(-[0-9]\)*//g' )
     - export CONTAINER_FILE=$(mktemp -d)/cidfile
     - docker create --cidfile=${CONTAINER_FILE} ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER_NAME}
     - docker cp $(cat ${CONTAINER_FILE}):/gt/gtirb-pprinter/build ./build-artifacts
