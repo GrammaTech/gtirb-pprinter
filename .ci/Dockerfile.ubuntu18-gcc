@@ -1,5 +1,7 @@
 FROM ubuntu:18.04
 
+ARG PROTOBUF_VERSION=3.0.0-9.1ubuntu1
+
 ENV LD_LIBRARY_PATH /usr/local/lib:$LD_LIBRARY_PATH
 
 # Minimum required version
@@ -10,17 +12,13 @@ SHELL ["/bin/bash", "-c"]
 
 # install common packages
 RUN apt-get -y update && apt-get -y install build-essential binutils cmake \
-    clang curl doxygen git graphviz libprotobuf-dev make protobuf-compiler python3 unzip wget
+    clang curl doxygen git graphviz make python3 software-properties-common \
+    unzip wget
 
-# Install Boost
-RUN curl -L https://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION//./_}.tar.gz > boost.tar.gz && \
-    tar vxfz boost.tar.gz > /dev/null && \
-    cd boost_${BOOST_VERSION//./_} && \
-    ./bootstrap.sh --prefix=/usr/local --with-libraries=filesystem,program_options,system > /dev/null && \
-    ./b2 install --prefix=/usr/local > /dev/null && \
-    rm ../boost.tar.gz && \
-    cd .. && \
-    rm -rf boost_${BOOST_VERSION//./_}
+# Install boost & protobuf
+RUN add-apt-repository ppa:mhier/libboost-latest && \
+    apt-get -y update && \
+    apt-get -y install libboost1.67-dev libprotobuf-dev=$PROTOBUF_VERSION protobuf-compiler=$PROTOBUF_VERSION libprotoc-dev=$PROTOBUF_VERSION
 
 # Install capstone
 RUN cd /usr/local/src \
@@ -30,8 +28,14 @@ RUN cd /usr/local/src \
     && CAPSTONE_ARCHS=x86 ./make.sh \
     && CAPSTONE_ARCHS=x86 ./make.sh install
 
-# Install GTIRB and build gtirb-pprinter
+# Install GTIRB
 COPY . /gt/gtirb-pprinter/
+WORKDIR /gt/gtirb-pprinter
+RUN GTIRB_BRANCH=$(grep -Eo "check_gtirb_branch\([^)]+" CMakeLists.txt | sed 's/check_gtirb_branch(//') && \
+    curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-ubuntu18 --output "/gt/gtirb-artifacts.zip"
+RUN cd /gt/ && unzip gtirb-artifacts.zip && dpkg -i GTIRB*.deb
+
+# Build gtirb-pprinter
 ENV LD_LIBRARY_PATH /gt/gtirb-pprinter/gtirb/build/lib:$LD_LIBRARY_PATH
 RUN /gt/gtirb-pprinter/.ci/build-linux.sh g++
 ARG CPACK_GENERATOR=""

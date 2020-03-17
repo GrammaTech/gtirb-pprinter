@@ -4,8 +4,7 @@ ENV LD_LIBRARY_PATH /usr/local/lib:$LD_LIBRARY_PATH
 
 # Minimum required version
 ARG CMAKE_VERSION=3.9
-ARG BOOST_VERSION=1.67.0
-ARG PROTOBUF_VERSION=3.7.0
+ARG PROTOBUF_VERSION=3.1.0-0ubuntu1~maarten0
 
 # Use bash for more convenient variable substitution syntax
 SHELL ["/bin/bash", "-c"]
@@ -26,27 +25,13 @@ RUN update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-7 60
 RUN curl -SL https://cmake.org/files/v$CMAKE_VERSION/cmake-$CMAKE_VERSION.0-Linux-x86_64.tar.gz \
     |tar -xz --strip-components=1 -C /usr/local
 
-# Install Boost
-RUN curl -L https://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION//./_}.tar.gz > boost.tar.gz && \
-    tar vxfz boost.tar.gz > /dev/null && \
-    cd boost_${BOOST_VERSION//./_} && \
-    ./bootstrap.sh --prefix=/usr/local --with-libraries=filesystem,program_options,system > /dev/null && \
-    ./b2 install --prefix=/usr/local > /dev/null && \
-    rm ../boost.tar.gz && \
-    cd .. && \
-    rm -rf boost_${BOOST_VERSION//./_}
 
-# Install protobuf
-RUN cd /usr/local/src \
-    && wget https://github.com/google/protobuf/releases/download/v${PROTOBUF_VERSION}/protobuf-cpp-${PROTOBUF_VERSION}.tar.gz \
-    && tar xf protobuf-cpp-${PROTOBUF_VERSION}.tar.gz \
-    && cd protobuf-${PROTOBUF_VERSION} \
-    && ./configure \
-    && make \
-    && make install \
-    && cd .. \
-    && rm -rf protobuf-${PROTOBUF_VERSION} protobuf-cpp-${PROTOBUF_VERSION}.tar.gz
-RUN ldconfig
+# Install boost & protobuf
+RUN add-apt-repository ppa:mhier/libboost-latest && \
+    add-apt-repository ppa:maarten-fonville/protobuf && \
+    apt-get -y update && \
+    apt-get -y install libboost1.67-dev libprotobuf-dev=$PROTOBUF_VERSION \
+        protobuf-compiler=$PROTOBUF_VERSION
 
 # Install capstone
 RUN cd /usr/local/src \
@@ -56,8 +41,14 @@ RUN cd /usr/local/src \
     && CAPSTONE_ARCHS=x86 ./make.sh \
     && CAPSTONE_ARCHS=x86 ./make.sh install
 
-# Install GTIRB and build gtirb-pprinter
+# Install GTIRB
 COPY . /gt/gtirb-pprinter/
+WORKDIR /gt/gtirb-pprinter
+RUN GTIRB_BRANCH=$(grep -Eo "check_gtirb_branch\([^)]+" CMakeLists.txt | sed 's/check_gtirb_branch(//') && \
+    curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-ubuntu16 --output "/gt/gtirb-artifacts.zip"
+RUN cd /gt/ && unzip gtirb-artifacts.zip && dpkg -i GTIRB*.deb
+
+# Build gtirb-pprinter
 ENV LD_LIBRARY_PATH /gt/gtirb-pprinter/gtirb/build/lib:$LD_LIBRARY_PATH
 RUN /gt/gtirb-pprinter/.ci/build-linux.sh g++-7
 ARG CPACK_GENERATOR=""

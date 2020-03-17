@@ -30,7 +30,6 @@ check-format:
 .build-template: &build
   stage: build
   script:
-    - git clone https://git.grammatech.com/rewriting/gtirb.git
     - docker build -f .ci/Dockerfile.$OS-$COMPILER -t ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} --build-arg CPACK_GENERATOR=${CPACK_GENERATOR} .
 
 .windows-build-template: &windows-build

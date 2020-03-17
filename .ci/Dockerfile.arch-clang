@@ -1,18 +1,10 @@
 FROM archlinux/base
 
 RUN pacman -Syu --noconfirm autoconf automake boost clang cmake doxygen \
-    fakeroot gcc git libtool make mcpp pkg-config python3 wget zlib
+    fakeroot gcc git libtool make mcpp pkg-config protobuf python3 unzip wget \
+    zlib
 
-# Install protobuf
-RUN cd /usr/local/src \
-    && wget https://github.com/google/protobuf/releases/download/v3.6.0/protobuf-cpp-3.6.0.tar.gz \
-    && tar xf protobuf-cpp-3.6.0.tar.gz \
-    && cd protobuf-3.6.0 \
-    && ./configure \
-    && make \
-    && make install
 RUN ldconfig
-
 
 # Install capstone
 RUN cd /usr/local/src \
@@ -22,8 +14,15 @@ RUN cd /usr/local/src \
     && CAPSTONE_ARCHS=x86 ./make.sh \
     && CAPSTONE_ARCHS=x86 ./make.sh install
 
-# Install GTIRB and build gtirb-pprinter
+# Install GTIRB
 COPY . /gt/gtirb-pprinter/
+WORKDIR /gt/
+RUN GTIRB_BRANCH=$(grep -Eo "check_gtirb_branch\([^)]+" gtirb-pprinter/CMakeLists.txt | sed 's/check_gtirb_branch(//') && \
+    curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=tar-arch --output "/gt/gtirb-artifacts.zip"
+RUN unzip gtirb-artifacts.zip && ls && tar xzf GTIRB*.tar.gz
+RUN cp -r $(find . -type d -name GTIRB-*-Linux)/* /usr/
+
+# Build gtirb-pprinter
 ENV LD_LIBRARY_PATH /gt/gtirb-pprinter/gtirb/build/lib
 RUN /gt/gtirb-pprinter/.ci/build-linux.sh clang++
 WORKDIR /gt/gtirb-pprinter/
