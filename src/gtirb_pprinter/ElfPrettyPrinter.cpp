@@ -143,12 +143,15 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
   printBar(os, false);
   printAlignment(os, ea);
 
+  bool unique = false;
   if (SymbolInfo.Binding == "GLOBAL") {
     os << syntax.global() << ' ' << name << '\n';
   } else if (SymbolInfo.Binding == "WEAK") {
     os << elfSyntax.weak() << ' ' << name << '\n';
-  } else if (SymbolInfo.Binding == "UNIQUE") {
+  } else if (SymbolInfo.Binding == "UNIQUE" ||
+             SymbolInfo.Binding == "GNU_UNIQUE") {
     os << elfSyntax.global() << ' ' << name << '\n';
+    unique = true;
   } else {
     assert(!"unknown binding in elfSymbolInfo!");
   }
@@ -157,6 +160,8 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
     // do nothing
   } else if (SymbolInfo.Visibility == "HIDDEN") {
     os << elfSyntax.hidden() << ' ' << name << '\n';
+  } else if (SymbolInfo.Visibility == "PROTECTED") {
+    os << elfSyntax.protected_() << ' ' << name << '\n';
   } else {
     assert(!"unknown visibility in elfSymbolInfo!");
   }
@@ -166,13 +171,13 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
           {"FUNC", "function"},
           {"OBJECT", "object"},
           {"NOTYPE", "notype"},
+          {"TLS", "tls_object"},
       };
   auto TypeNameIt = TypeNameConversion.find(SymbolInfo.Type);
   if (TypeNameIt == TypeNameConversion.end()) {
     assert(!"unknown type in elfSymbolInfo!");
   }
-  const auto& TypeName =
-      SymbolInfo.Binding == "UNIQUE" ? "gnu_unique_object" : TypeNameIt->second;
+  const auto& TypeName = unique ? "gnu_unique_object" : TypeNameIt->second;
   os << elfSyntax.type() << ' ' << name << ", @" << TypeName << "\n";
 
   printBar(os, false);
