@@ -6,6 +6,7 @@
 cmake_minimum_required(VERSION 3.9.0)
 
 project(gtirb_pprinter)
+set(PACKAGE_BRANCH bfairservice/debian-dependencies)
 
 # get version information
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" ver)
@@ -283,6 +284,7 @@ endif()
 # ---------------------------------------------------------------------------
 
 find_package(gtirb REQUIRED)
+check_gtirb_branch(bfairservice/debian-dependencies)
 
 # ---------------------------------------------------------------------------
 # Boost
