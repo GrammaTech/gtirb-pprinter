@@ -707,7 +707,7 @@ void PrettyPrinterBase::printDataBlockType(std::ostream& os,
     os << syntax.quadData();
     break;
   default:
-    assert("Data object with unknown type has incompatible size");
+    assert(!"Data object with unknown type has incompatible size");
     break;
   }
 }
