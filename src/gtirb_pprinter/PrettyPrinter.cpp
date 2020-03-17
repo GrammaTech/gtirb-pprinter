@@ -302,7 +302,7 @@ void PrettyPrinterBase::printCodeBlock(std::ostream& os,
       for (const auto& baseSym : module.findSymbols(*overlapping)) {
         printSymbolDefinitionInTermsOf(os, sym, baseSym,
                                        addr - *baseSym.getAddress());
-        break;
+        return;
       }
     }
   } else {
@@ -540,7 +540,7 @@ void PrettyPrinterBase::printDataBlock(std::ostream& os,
       for (const auto& baseSym : module.findSymbols(*overlapping)) {
         printSymbolDefinitionInTermsOf(os, sym, baseSym,
                                        addr - *baseSym.getAddress());
-        break;
+        return;
       }
     }
   } else {
