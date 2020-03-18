@@ -52,17 +52,19 @@ void AttPrettyPrinter::printOpImmediate(
   assert(op.type == X86_OP_IMM &&
          "printOpImmediate called without an immediate operand");
 
-  bool is_call = cs_insn_group(this->csHandle, &inst, CS_GRP_CALL);
-  bool is_jump = cs_insn_group(this->csHandle, &inst, CS_GRP_JUMP);
+  bool referencesCode =
+      cs_insn_group(this->csHandle, &inst, CS_GRP_JUMP) ||
+      cs_insn_group(this->csHandle, &inst, CS_GRP_CALL) ||
+      cs_insn_group(this->csHandle, &inst, CS_GRP_BRANCH_RELATIVE);
 
-  if (!is_call && !is_jump)
+  if (!referencesCode)
     os << '$';
 
   if (const gtirb::SymAddrConst* s = this->getSymbolicImmediate(symbolic)) {
-    this->printSymbolicExpression(os, s, !is_call && !is_jump);
+    this->printSymbolicExpression(os, s, !referencesCode);
   } else {
     std::ios_base::fmtflags flags = os.flags();
-    if (is_call || is_jump)
+    if (referencesCode)
       os << std::setbase(16) << std::showbase;
     os << op.imm;
     os.flags(flags);
