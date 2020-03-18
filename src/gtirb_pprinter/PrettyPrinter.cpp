@@ -468,6 +468,11 @@ void PrettyPrinterBase::printInstruction(std::ostream& os,
   ////////////////////////////////////////////////////////////////////
 
   std::string opcode = ascii_str_tolower(inst.mnemonic);
+  // workaround for this bug: https://github.com/aquynh/capstone/issues/1603
+  if (opcode.rfind("rdrand", 0) != std::string::npos) {
+    opcode = "rdrand";
+  }
+  // end woraround
   os << "  " << opcode << ' ';
   printOperandList(os, block, inst);
 }
