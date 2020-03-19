@@ -1012,6 +1012,7 @@ void registerAuxDataTypes() {
   gtirb::AuxDataContainer::registerAuxDataType<CfiDirectives>();
   gtirb::AuxDataContainer::registerAuxDataType<Libraries>();
   gtirb::AuxDataContainer::registerAuxDataType<LibraryPaths>();
+  gtirb::AuxDataContainer::registerAuxDataType<ElfSymbolInfo>();
 }
 
 } // namespace gtirb_pprint
