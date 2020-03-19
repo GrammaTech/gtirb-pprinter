@@ -1018,6 +1018,7 @@ void registerAuxDataTypes() {
   gtirb::AuxDataContainer::registerAuxDataType<BaseAddress>();
   gtirb::AuxDataContainer::registerAuxDataType<PeImportedSymbols>();
   gtirb::AuxDataContainer::registerAuxDataType<PeExportedSymbols>();
+  gtirb::AuxDataContainer::registerAuxDataType<ElfSymbolInfo>();
 }
 
 } // namespace gtirb_pprint

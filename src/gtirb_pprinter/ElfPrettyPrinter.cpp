@@ -119,9 +119,7 @@ void ElfPrettyPrinter::printFooter(std::ostream& /* os */){};
 
 void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
                                          const gtirb::Symbol& sym) {
-  const auto* SymbolTypes =
-      module.getAuxData<std::map<gtirb::UUID, ElfSymbolInfo::AuxDataType>>(
-          "elfSymbolInfo");
+  const auto* SymbolTypes = module.getAuxData<gtirb::schema::ElfSymbolInfo>();
   if (!SymbolTypes) {
     return;
   }
