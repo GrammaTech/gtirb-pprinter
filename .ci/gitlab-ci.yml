@@ -35,7 +35,6 @@ check-format:
 .windows-build-template: &windows-build
   stage: build
   script:
-    - git clone https://git.grammatech.com/rewriting/gtirb.git
     - .ci/build-windows.sh $BUILD_TYPE
 
 .test-and-tag-template: &test-and-tag
