@@ -208,15 +208,8 @@ cleanup-arch-clang:
 #   only:
 #     - master
 
-debian-installer:
+.test-debian-installer-template: &test-debian-installer
   stage: deploy
-  variables:
-    OS: 'ubuntu16'
-    COMPILER: 'g++-7'
-  artifacts:
-    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
-    paths:
-      - ./gtirb_pprinter-*-Linux.deb
   script:
     - export COMPILER_NAME=$(echo ${COMPILER} | sed 's/clang++/clang/;s/g++/gcc/;s/\(-[0-9]\)*//g' )
     - export CONTAINER_FILE=$(mktemp -d)/cidfile
@@ -228,6 +221,26 @@ debian-installer:
     - rm -rf ./build-artifacts/
     - cp /u1/bfairservice/share/extra-packages/libcapstone-dev_4.0.1-1_amd64.deb ./
     - GTIRB_BRANCH=$(grep -Eo "check_gtirb_branch\([^)]+" CMakeLists.txt | sed 's/check_gtirb_branch(//')
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-ubuntu16 --output "gtirb16-artifacts.zip"
-    - unzip gtirb16-artifacts.zip
+    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-${OS} --output "gtirb-artifacts.zip"
+    - unzip gtirb-artifacts.zip
     - docker build -f .ci/Dockerfile.test-${OS}-package --build-arg CXX_COMPILER=${COMPILER} .
+
+ubuntu16-installer:
+  variables:
+    OS: 'ubuntu16'
+    COMPILER: 'g++-7'
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
+    paths:
+      - ./gtirb_pprinter-*-Linux.deb
+  <<: *test-debian-installer
+
+ubuntu18-installer:
+  variables:
+    OS: 'ubuntu18'
+    COMPILER: 'g++-7'
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
+    paths:
+      - ./gtirb_pprinter-*-Linux.deb
+  <<: *test-debian-installer
