@@ -1,7 +1,6 @@
 FROM ubuntu:18.04
 
 ARG BOOST_VERSION=1.67
-ARG PROTOBUF_VERSION=3.0.0-9.1ubuntu1
 
 ENV LD_LIBRARY_PATH /usr/local/lib:$LD_LIBRARY_PATH
 
@@ -16,7 +15,7 @@ RUN apt-get -y update && apt-get -y install build-essential binutils cmake \
 # Install boost & protobuf
 RUN add-apt-repository ppa:mhier/libboost-latest && \
     apt-get -y update && \
-    apt-get -y install libboost${BOOST_VERSION}-dev libprotobuf-dev=$PROTOBUF_VERSION protobuf-compiler=$PROTOBUF_VERSION libprotoc-dev=$PROTOBUF_VERSION
+    apt-get -y install libboost${BOOST_VERSION}-dev libprotobuf-dev libprotoc-dev protobuf-compiler
 
 # Install capstone
 COPY libcapstone-dev_4.0.1-1_amd64.deb ./
