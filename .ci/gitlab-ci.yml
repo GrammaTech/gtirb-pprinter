@@ -37,7 +37,7 @@ check-format:
   artifacts:
     name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
     paths:
-      - 'gtirb_pprinter*.tar.gz'
+      - 'gtirb_pprinter*.zip'
   script:
     - .ci/build-windows.sh $BUILD_TYPE
 
