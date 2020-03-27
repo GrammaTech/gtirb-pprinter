@@ -1,18 +1,10 @@
 FROM archlinux/base
 
-RUN pacman -Syu --noconfirm autoconf automake boost clang cmake doxygen \
-    fakeroot gcc git libtool make mcpp pkg-config protobuf python3 unzip wget \
-    zlib
+RUN pacman -Syu --noconfirm autoconf automake boost capstone clang cmake \
+    doxygen fakeroot gcc git libtool make mcpp pkg-config protobuf python3 \
+    unzip wget zlib
 
 RUN ldconfig
-
-# Install capstone
-RUN cd /usr/local/src \
-    && wget https://github.com/aquynh/capstone/archive/4.0.1.tar.gz \
-    && tar xf 4.0.1.tar.gz \
-    && cd capstone-4.0.1 \
-    && CAPSTONE_ARCHS=x86 ./make.sh \
-    && CAPSTONE_ARCHS=x86 ./make.sh install
 
 # Install GTIRB
 COPY . /gt/gtirb-pprinter/
