@@ -28,9 +28,8 @@ COPY .ci/test-install.cpp test-install.cpp
 RUN apt-get update && apt-get install -y --allow-unauthenticated gtirb_pprinter
 
 # build the c++ test
-ARG CXX_COMPILER=c++
 ENV LD_LIBRARY_PATH /usr/local/lib:$LD_LIBRARY_PATH
-RUN $CXX_COMPILER test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs
+RUN g++ test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs
 
 # run the c++ test
 RUN ./test-install
