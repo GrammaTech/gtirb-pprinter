@@ -10,7 +10,7 @@ set -o pipefail
 BUILD_TYPE=$1
 
 # Install gtirb
-GTIRB_BRANCH=$(grep -Eo "check_gtirb_branch\([^)]+" CMakeLists.txt | sed 's/check_gtirb_branch(//')
+GTIRB_BRANCH=$((grep -Eo "check_gtirb_branch\([^)]+" CMakeLists.txt || echo "master") | sed 's/check_gtirb_branch(//')
 curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=build-windows-msvc-${BUILD_TYPE,,} --output "gtirb-artifacts.zip"
 unzip gtirb-artifacts.zip
 unzip GTIRB-*-win64.zip

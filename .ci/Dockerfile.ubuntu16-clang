@@ -48,9 +48,9 @@ RUN dpkg -i libcapstone-dev_4.0.1-1_amd64.deb
 # Install GTIRB
 COPY . /gt/gtirb-pprinter/
 WORKDIR /gt/gtirb-pprinter
-RUN GTIRB_BRANCH=$(grep -Eo "check_gtirb_branch\([^)]+" CMakeLists.txt | sed 's/check_gtirb_branch(//') && \
-    curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-ubuntu16 --output "/gt/gtirb-artifacts.zip"
-RUN cd /gt/ && unzip gtirb-artifacts.zip && dpkg -i GTIRB*.deb
+RUN GTIRB_BRANCH=$((grep -Eo "check_gtirb_branch\([^)]+" CMakeLists.txt || echo "master") | sed 's/check_gtirb_branch(//') && \
+    curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-ubuntu16 --output "gtirb-artifacts.zip"
+RUN unzip -o gtirb-artifacts.zip && dpkg -i GTIRB*.deb
 
 # Build gtirb-pprinter
 ENV LD_LIBRARY_PATH /gt/gtirb-pprinter/gtirb/build/lib:$LD_LIBRARY_PATH

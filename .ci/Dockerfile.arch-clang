@@ -9,8 +9,8 @@ RUN ldconfig
 # Install GTIRB
 COPY . /gt/gtirb-pprinter/
 WORKDIR /gt/
-RUN GTIRB_BRANCH=$(grep -Eo "check_gtirb_branch\([^)]+" gtirb-pprinter/CMakeLists.txt | sed 's/check_gtirb_branch(//') && \
-    curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=tar-arch --output "/gt/gtirb-artifacts.zip"
+RUN GTIRB_BRANCH=$((grep -Eo "check_gtirb_branch\([^)]+" /gt/gtirb-pprinter/CMakeLists.txt || echo "master") | sed 's/check_gtirb_branch(//') && \
+    curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=tar-arch --output "gtirb-artifacts.zip"
 RUN unzip gtirb-artifacts.zip && ls && tar xzf GTIRB*.tar.gz
 RUN cp -r $(find . -type d -name GTIRB-*-Linux)/* /usr/
 
