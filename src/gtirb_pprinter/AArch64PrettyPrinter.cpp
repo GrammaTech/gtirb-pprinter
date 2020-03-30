@@ -61,6 +61,42 @@ void AArch64PrettyPrinter::printOperandList(std::ostream& os,
     }
 }
 
+void printExtender(std::ostream& os, const arm64_extender& ext, const arm64_shifter shiftType, uint64_t shiftValue) {
+    switch (ext) {
+        case ARM64_EXT_UXTB:
+            os << "uxtb";
+            break;
+        case ARM64_EXT_UXTH:
+            os << "uxth";
+            break;
+        case ARM64_EXT_UXTW:
+            os << "uxtw";
+            break;
+        case ARM64_EXT_UXTX:
+            os << "uxtx";
+            break;
+        case ARM64_EXT_SXTB:
+            os << "sxtb";
+            break;
+        case ARM64_EXT_SXTH:
+            os << "sxth";
+            break;
+        case ARM64_EXT_SXTW:
+            os << "sxtw";
+            break;
+        case ARM64_EXT_SXTX:
+            os << "sxtx";
+            break;
+        default:
+            assert(false && "unexpected case");
+    }
+    if (shiftType != ARM64_SFT_INVALID) {
+        assert(shiftType == ARM64_SFT_LSL && "unexpected shift type in extender");
+        os << " #" << shiftValue;
+    }
+
+}
+
 void AArch64PrettyPrinter::printOperand(std::ostream& os,
         const cs_insn& inst, uint64_t index) {
     gtirb::Addr ea(inst.address);
@@ -70,6 +106,12 @@ void AArch64PrettyPrinter::printOperand(std::ostream& os,
     switch (op.type) {
         case ARM64_OP_REG:
             printOpRegdirect(os, inst, op.reg);
+
+            // add extender if needed
+            if (op.ext != ARM64_EXT_INVALID) {
+                os << ", ";
+                printExtender(os, op.ext, op.shift.type, op.shift.value);
+            }
             return;
         case ARM64_OP_IMM:
             {
@@ -153,7 +195,7 @@ void AArch64PrettyPrinter::printOpRawValue(std::ostream& os, const cs_insn& inst
     const char* operandEnd = pos;
 
     // skip leading whitespace
-    while (isspace(operandStart)) operandStart++;
+    while (isspace(*operandStart)) operandStart++;
 
     // print every character in the operand
     for (const char* cur = operandStart; cur < operandEnd; cur++) {
@@ -329,7 +371,6 @@ void AArch64PrettyPrinter::printOpIndirect(std::ostream& os,
     assert(op.type == ARM64_OP_MEM &&
             "printOpIndirect called without a memory operand");
 
-    // TODO: ptr stuff
     bool first = true;
 
     os << "[";
@@ -359,7 +400,6 @@ void AArch64PrettyPrinter::printOpIndirect(std::ostream& os,
     }
 
     // add shift
-    // TODO: extenders?
     if (op.shift.type != ARM64_SFT_INVALID && op.shift.value != 0) {
         os << ",";
         assert(!first && "unexpected shift operator");
