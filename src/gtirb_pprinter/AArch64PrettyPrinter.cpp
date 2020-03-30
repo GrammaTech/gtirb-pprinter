@@ -27,14 +27,14 @@ AArch64PrettyPrinter::AArch64PrettyPrinter(gtirb::Context& context_,
     : ElfPrettyPrinter(context_, module_, syntax_, policy_, CS_ARCH_ARM64, CS_MODE_ARM) {}
 
 void AArch64PrettyPrinter::printHeader(std::ostream& os) {
-    // TODO: check this part
+    // TODO (azreika): add proper header
     this->printBar(os);
     os << ".intel_syntax noprefix\n";
     this->printBar(os);
     os << '\n';
 
     for (int i = 0; i < 8; i++) {
-        // TODO why is this here?
+        // TODO (azreika): why is this here?
         os << syntax.nop() << '\n';
     }
 }
@@ -55,7 +55,7 @@ void AArch64PrettyPrinter::printOperandList(std::ostream& os,
         printOperand(os, inst, i);
     }
 
-    // TODO: fix placement - should only be here for pre-indexed
+    // TODO (azreika): fix placement - should only be here for pre-indexed
     if (detail.writeback) {
         os << "!";
     }
@@ -67,7 +67,6 @@ void AArch64PrettyPrinter::printOperand(std::ostream& os,
     const cs_arm64_op& op = inst.detail->arm64.operands[index];
     const gtirb::SymbolicExpression* symbolic = nullptr;
 
-    // TODO: symbolic stuff
     switch (op.type) {
         case ARM64_OP_REG:
             printOpRegdirect(os, inst, op.reg);
@@ -94,19 +93,12 @@ void AArch64PrettyPrinter::printOperand(std::ostream& os,
             os << "#" << op.fp;
             return;
         case ARM64_OP_CIMM:
-            printOpRawString(os, inst, index);
-            return;
         case ARM64_OP_REG_MRS:
-            printOpRawString(os, inst, index);
-            return;
         case ARM64_OP_REG_MSR:
-            printOpRawString(os, inst, index);
-            return;
         case ARM64_OP_PSTATE:
-            printOpRawString(os, inst, index);
-            return;
         case ARM64_OP_SYS:
-            printOpRawString(os, inst, index);
+            // print the operand directly
+            printOpRawValue(os, inst, index);
             return;
         case ARM64_OP_PREFETCH:
             printOpPrefetch(os, op.prefetch);
@@ -121,46 +113,51 @@ void AArch64PrettyPrinter::printOperand(std::ostream& os,
     }
 }
 
-void AArch64PrettyPrinter::printOpRawString(std::ostream& os, const cs_insn& inst, uint64_t index) {
-    const char* op_str = inst.op_str;
+void AArch64PrettyPrinter::printOpRawValue(std::ostream& os, const cs_insn& inst, uint64_t index) {
+    // grab the full operand string
+    const char* opStr = inst.op_str;
 
-    // go to the correct one
-    unsigned int curr_operand = 0;
-    bool in_block = false;
-    const char* op_start = nullptr;
+    // flick through to the start of the operand
+    unsigned int currOperand = 0;
+    bool inBlock = false;
+    const char* pos;
+    for (pos = opStr; *pos != '\0' && currOperand != index; pos++) {
+        char cur = *pos;
+        if (cur == '[') {
+            // entering an indirect memory access
+            inBlock = true;
+        } else if (cur == ']') {
+            // exiting an indirect memory access
+            inBlock = false;
+        } else if (!inBlock && cur == ',') {
+            // hit a new operand
+            currOperand++;
+        }
+    }
+    assert(currOperand == index && "unexpected end of operands");
+    const char* operandStart = pos;
 
-    while (*op_str != '\0') {
-        char c = *op_str;
-        if (c == '[') in_block = true;
-        else if (c == ']') in_block = false;
-        else if (!in_block && c == ',') curr_operand++;
-        else if (curr_operand == index) {
-            op_start = op_str;
+    // find the end of the operand
+    while (*pos != '\0') {
+        char cur = *pos;
+        if (cur == '[') {
+            inBlock = true;
+        } else if (cur == ']') {
+            inBlock = false;
+        } else if (!inBlock && cur == ',') {
+            // found end of operand
             break;
         }
-        op_str++;
+        pos++;
     }
+    const char* operandEnd = pos;
 
-    assert(op_start != nullptr && "expected correct amount of operands");
     // skip leading whitespace
-    while (isspace(*op_start)) op_start++;
+    while (isspace(operandStart)) operandStart++;
 
-    // check for the end of the op
-    const char* op_end = nullptr;
-    while (*op_str != '\0') {
-        char c = *op_str;
-        if (c == '[') in_block = true;
-        else if (c == ']') in_block = false;
-        else if (!in_block && c == ',') {
-            op_end = op_str;
-            break;
-        }
-        op_str++;
-    }
-    op_end = op_end == nullptr ? op_str : op_end;
-
-    for (const char* curr = op_start; curr < op_end; curr++) {
-        os << *curr;
+    // print every character in the operand
+    for (const char* cur = operandStart; cur < operandEnd; cur++) {
+        os << *cur;
     }
 }
 
