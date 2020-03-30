@@ -54,34 +54,98 @@ void AArch64PrettyPrinter::printOperand(std::ostream& os,
 
     // TODO: symbolic stuff
     switch (op.type) {
-    case ARM64_OP_REG:
-        printOpRegdirect(os, inst, op.reg);
-        return;
-    case ARM64_OP_IMM:
-        {
-            auto pos = module.findSymbolicExpressionsAt(ea);
-            if (!pos.empty()) {
-                symbolic = &pos.begin()->getSymbolicExpression();
+        case ARM64_OP_REG:
+            printOpRegdirect(os, inst, op.reg);
+            return;
+        case ARM64_OP_IMM:
+            {
+                auto pos = module.findSymbolicExpressionsAt(ea);
+                if (!pos.empty()) {
+                    symbolic = &pos.begin()->getSymbolicExpression();
+                }
             }
-        }
-        printOpImmediate(os, symbolic, inst, index);
-        return;
-    case ARM64_OP_MEM:
-        {
-            auto pos = module.findSymbolicExpressionsAt(ea);
-            if (!pos.empty()) {
-                symbolic = &pos.begin()->getSymbolicExpression();
+            printOpImmediate(os, symbolic, inst, index);
+            return;
+        case ARM64_OP_MEM:
+            {
+                auto pos = module.findSymbolicExpressionsAt(ea);
+                if (!pos.empty()) {
+                    symbolic = &pos.begin()->getSymbolicExpression();
+                }
             }
+            printOpIndirect(os, symbolic, inst, index);
+            return;
+        case ARM64_OP_FP:
+            os << "#" << op.fp;
+            return;
+        case ARM64_OP_CIMM:
+            printOpRawString(os, inst, index);
+            return;
+        case ARM64_OP_REG_MRS:
+            printOpRawString(os, inst, index);
+            return;
+        case ARM64_OP_REG_MSR:
+            printOpRawString(os, inst, index);
+            return;
+        case ARM64_OP_PSTATE:
+            printOpRawString(os, inst, index);
+            return;
+        case ARM64_OP_SYS:
+            printOpRawString(os, inst, index);
+            return;
+        case ARM64_OP_PREFETCH:
+            printOpPrefetch(os, op.prefetch);
+            return;
+        case ARM64_OP_BARRIER:
+            printOpBarrier(os, op.barrier);
+            return;
+        case ARM64_OP_INVALID:
+        default:
+            std::cerr << "invalid operand\n";
+            exit(1);
+    }
+}
+
+void AArch64PrettyPrinter::printOpRawString(std::ostream& os, const cs_insn& inst, uint64_t index) {
+    const char* op_str = inst.op_str;
+
+    // go to the correct one
+    unsigned int curr_operand = 0;
+    bool in_block = false;
+    const char* op_start = nullptr;
+
+    while (*op_str != '\0') {
+        char c = *op_str;
+        if (c == '[') in_block = true;
+        else if (c == ']') in_block = false;
+        else if (!in_block && c == ',') curr_operand++;
+        else if (curr_operand == index) {
+            op_start = op_str;
+            break;
         }
-        printOpIndirect(os, symbolic, inst, index);
-        return;
-    case ARM64_OP_INVALID:
-        std::cout << "BREWWW" << std::endl;
-        std::cerr << "invalid operand\n";
-        exit(1);
-    default:
-        os << "[?OPERAND]";
-        return;
+        op_str++;
+    }
+
+    assert(op_start != nullptr && "expected correct amount of operands");
+    // skip leading whitespace
+    while (isspace(*op_start)) op_start++;
+
+    // check for the end of the op
+    const char* op_end = nullptr;
+    while (*op_str != '\0') {
+        char c = *op_str;
+        if (c == '[') in_block = true;
+        else if (c == ']') in_block = false;
+        else if (!in_block && c == ',') {
+            op_end = op_str;
+            break;
+        }
+        op_str++;
+    }
+    op_end = op_end == nullptr ? op_str : op_end;
+
+    for (const char* curr = op_start; curr < op_end; curr++) {
+        os << *curr;
     }
 }
 

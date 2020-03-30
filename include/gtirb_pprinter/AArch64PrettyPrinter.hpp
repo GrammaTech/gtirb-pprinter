@@ -27,6 +27,7 @@ protected:
     void printOpIndirect(std::ostream& os,
                        const gtirb::SymbolicExpression* symbolic,
                        const cs_insn& inst, uint64_t index) override;
+    void printOpRawString(std::ostream& os, const cs_insn& inst, uint64_t index);
     void printOpPrefetch(std::ostream& os, const arm64_prefetch_op prefetch);
     void printOpBarrier(std::ostream& os, const arm64_barrier_op barrier);
 
