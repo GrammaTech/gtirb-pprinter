@@ -1,4 +1,20 @@
-// TODO: copyright
+//===- AArch64PrettyPrinter.hpp ---------------------------------*- C++ -*-===//
+//
+//  Copyright (c) 2020, The Binrat Developers.
+//
+//  This code is licensed under the GNU Affero General Public License
+//  as published by the Free Software Foundation, either version 3 of
+//  the License, or (at your option) any later version. See the
+//  LICENSE.txt file in the project root for license terms or visit
+//  https://www.gnu.org/licenses/agpl.txt.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//  GNU Affero General Public License for more details.
+//
+//===----------------------------------------------------------------------===//
+
 
 #ifndef GTIRB_PP_A64ASM_PRINTER_H
 #define GTIRB_PP_A64ASM_PRINTER_H
