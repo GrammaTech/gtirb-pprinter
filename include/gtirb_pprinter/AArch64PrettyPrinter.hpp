@@ -15,7 +15,6 @@ public:
 protected:
     std::string getRegisterName(unsigned int reg) const override;
 
-    // TODO: see what else needs to be covered
     void printHeader(std::ostream& os) override;
     void printOperandList(std::ostream& os, const cs_insn& inst) override;
     void printOperand(std::ostream& os, const cs_insn& inst,
@@ -28,6 +27,8 @@ protected:
     void printOpIndirect(std::ostream& os,
                        const gtirb::SymbolicExpression* symbolic,
                        const cs_insn& inst, uint64_t index) override;
+    void printOpPrefetch(std::ostream& os, const arm64_prefetch_op prefetch);
+    void printOpBarrier(std::ostream& os, const arm64_barrier_op barrier);
 
 private:
     static volatile bool registered;

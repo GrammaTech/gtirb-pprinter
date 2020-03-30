@@ -40,7 +40,7 @@ void AArch64PrettyPrinter::printOperandList(std::ostream& os,
         printOperand(os, inst, i);
     }
 
-    // TODO: correct placement?
+    // TODO: fix placement - should only be here for pre-indexed
     if (detail.writeback) {
         os << "!";
     }
@@ -88,6 +88,114 @@ void AArch64PrettyPrinter::printOperand(std::ostream& os,
 void AArch64PrettyPrinter::printOpRegdirect(std::ostream& os,
         const cs_insn& /* inst */, unsigned int reg) {
     os << getRegisterName(reg);
+}
+
+void AArch64PrettyPrinter::printOpBarrier(std::ostream& os, const arm64_barrier_op barrier) {
+    switch (barrier) {
+        case ARM64_BARRIER_OSHLD:
+            os << "oshld";
+            return;
+        case ARM64_BARRIER_OSHST:
+            os << "oshst";
+            return;
+        case ARM64_BARRIER_OSH:
+            os << "osh";
+            return;
+        case ARM64_BARRIER_NSHLD:
+            os << "nshld";
+            return;
+        case ARM64_BARRIER_NSHST:
+            os << "nshst";
+            return;
+        case ARM64_BARRIER_NSH:
+            os << "nsh";
+            return;
+        case ARM64_BARRIER_ISHLD:
+            os << "ishld";
+            return;
+        case ARM64_BARRIER_ISHST:
+            os << "ishst";
+            return;
+        case ARM64_BARRIER_ISH:
+            os << "ish";
+            return;
+        case ARM64_BARRIER_LD:
+            os << "ld";
+            return;
+        case ARM64_BARRIER_ST:
+            os << "st";
+            return;
+        case ARM64_BARRIER_SY:
+            os << "sy";
+            return;
+        case ARM64_BARRIER_INVALID:
+        default:
+            std::cerr << "invalid operand\n";
+            exit(1);
+    }
+}
+
+void AArch64PrettyPrinter::printOpPrefetch(std::ostream& os, const arm64_prefetch_op prefetch) {
+    switch (prefetch) {
+        case ARM64_PRFM_PLDL1KEEP:
+            os << "pldl1keep";
+            return;
+        case ARM64_PRFM_PLDL1STRM:
+            os << "pldl1strm";
+            return;
+        case ARM64_PRFM_PLDL2KEEP:
+            os << "pldl2keep";
+            return;
+        case ARM64_PRFM_PLDL2STRM:
+            os << "pldl2strm";
+            return;
+        case ARM64_PRFM_PLDL3KEEP:
+            os << "pldl3keep";
+            return;
+        case ARM64_PRFM_PLDL3STRM:
+            os << "pldl3strm";
+            return;
+        case ARM64_PRFM_PLIL1KEEP:
+            os << "plil1keep";
+            return;
+        case ARM64_PRFM_PLIL1STRM:
+            os << "plil1strm";
+            return;
+        case ARM64_PRFM_PLIL2KEEP:
+            os << "plil2keep";
+            return;
+        case ARM64_PRFM_PLIL2STRM:
+            os << "plil2strm";
+            return;
+        case ARM64_PRFM_PLIL3KEEP:
+            os << "plil3keep";
+            return;
+        case ARM64_PRFM_PLIL3STRM:
+            os << "plil3strm";
+            return;
+        case ARM64_PRFM_PSTL1KEEP:
+            os << "pstl1keep";
+            return;
+        case ARM64_PRFM_PSTL1STRM:
+            os << "pstl1strm";
+            return;
+        case ARM64_PRFM_PSTL2KEEP:
+            os << "pstl2keep";
+            return;
+        case ARM64_PRFM_PSTL2STRM:
+            os << "pstl2strm";
+            return;
+        case ARM64_PRFM_PSTL3KEEP:
+            os << "pstl3keep";
+            return;
+        case ARM64_PRFM_PSTL3STRM:
+            os << "pstl3strm";
+            return;
+        case ARM64_PRFM_INVALID:
+        default:
+            std::cerr << "invalid operand\n";
+            exit(1);
+    }
 }
 
 void printShift(std::ostream& os, const arm64_shifter type, unsigned int value) {
