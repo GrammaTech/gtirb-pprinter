@@ -282,7 +282,8 @@ endif()
 # ---------------------------------------------------------------------------
 # gtirb
 # ---------------------------------------------------------------------------
-find_package(gtirb REQUIRED)
+set(GTIRB_VERSION 1.2.0)
+find_package(gtirb "${GTIRB_VERSION}" REQUIRED)
 check_gtirb_branch(bfairservice/debian-dependencies)
 
 # ---------------------------------------------------------------------------
@@ -421,7 +422,7 @@ set(CPACK_PACKAGE_RESOURCE_FILE_LICENSE ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt)
 set(CPACK_DEBIAN_PACKAGE_SECTION devel)
 
 set(CPACK_DEBIAN_PACKAGE_DEPENDS
-    "gtirb (>=0.3.0), libboost-dev (>=1.67) | libboost1.67-dev, libcapstone-dev (>=4.0.1)"
+    "gtirb (>=${GTIRB_VERSION}), libboost-dev (>=1.67) | libboost1.67-dev, libcapstone-dev (>=${CSTOOL_VERSION})"
 )
 
 include(CPack)
