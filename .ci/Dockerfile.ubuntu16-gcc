@@ -10,7 +10,7 @@ ARG PROTOBUF_VERSION=3.7.0
 # Use bash for more convenient variable substitution syntax
 SHELL ["/bin/bash", "-c"]
 
-# install common packages
+# Install common packages
 RUN apt-get -y update && \
     apt-get -y install software-properties-common && \
     add-apt-repository ppa:jonathonf/gcc-7.1
