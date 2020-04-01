@@ -32,7 +32,7 @@ static CFG* getCFG(CfgNode* B) {
   } else if (auto* PB = dyn_cast<ProxyBlock>(B)) {
     return &PB->getModule()->getIR()->getCFG();
   } else {
-    assert(!"getEdges recieved an unknown node kind!");
+    assert(!"getEdges received an unknown node kind!");
     return nullptr;
   }
 }
