@@ -1,6 +1,10 @@
 #!/bin/bash
 
 # Called by the linux Dockerfiles
+set -o xtrace
+set -o nounset
+set -o errexit
+set -o pipefail
 
 CXX_COMPILER=$1
 

@@ -37,7 +37,7 @@ static CFG* getCFG(CfgNode* B) {
   }
 }
 
-static std::size_t blockToCFGIndex(CFG& Cfg, CfgNode* B) {
+static CFG::vertex_descriptor blockToCFGIndex(CFG& Cfg, CfgNode* B) {
   auto Pair = boost::vertices(Cfg);
   for (auto V : boost::make_iterator_range(Pair.first, Pair.second)) {
     if (Cfg[V] == B) {
