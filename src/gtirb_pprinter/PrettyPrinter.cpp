@@ -438,6 +438,12 @@ void PrettyPrinterBase::fixupInstruction(cs_insn& inst) {
   if (inst.id == X86_INS_FXSAVE && detail.op_count == 1) {
     detail.operands[0].size = 0;
   }
+
+  // RDRAND should be printed with no suffix:
+  // https://github.com/aquynh/capstone/issues/1603
+  if (inst.id == X86_INS_RDRAND) {
+    strcpy(inst.mnemonic, "rdrand");
+  }
 }
 
 void PrettyPrinterBase::printInstruction(std::ostream& os,
@@ -468,11 +474,6 @@ void PrettyPrinterBase::printInstruction(std::ostream& os,
   ////////////////////////////////////////////////////////////////////
 
   std::string opcode = ascii_str_tolower(inst.mnemonic);
-  // workaround for this bug: https://github.com/aquynh/capstone/issues/1603
-  if (opcode.rfind("rdrand", 0) != std::string::npos) {
-    opcode = "rdrand";
-  }
-  // end woraround
   os << "  " << opcode << ' ';
   printOperandList(os, block, inst);
 }
