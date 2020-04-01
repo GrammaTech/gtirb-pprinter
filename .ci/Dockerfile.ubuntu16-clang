@@ -35,14 +35,9 @@ RUN curl -SL https://cmake.org/files/v$CMAKE_VERSION/cmake-$CMAKE_VERSION.0-Linu
     |tar -xz --strip-components=1 -C /usr/local
 
 # Install Boost
-RUN curl -L https://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION//./_}.tar.gz > boost.tar.gz && \
-    tar vxfz boost.tar.gz > /dev/null && \
-    cd boost_${BOOST_VERSION//./_} && \
-    ./bootstrap.sh --prefix=/usr/local --with-libraries=filesystem,program_options,system --with-toolset=clang > /dev/null && \
-    ./b2 install --prefix=/usr/local toolset=clang > /dev/null && \
-    rm ../boost.tar.gz && \
-    cd .. && \
-    rm -rf boost_${BOOST_VERSION//./_}
+RUN add-apt-repository ppa:mhier/libboost-latest && \
+    apt-get -y update && \
+    apt-get -y install libboost${BOOST_VERSION}-dev
 
 # Install protobuf
 RUN cd /usr/local/src \

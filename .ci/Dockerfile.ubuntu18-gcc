@@ -13,14 +13,9 @@ RUN apt-get -y update && apt-get -y install build-essential binutils cmake \
     clang curl doxygen git graphviz libprotobuf-dev make protobuf-compiler python3 unzip wget
 
 # Install Boost
-RUN curl -L https://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION//./_}.tar.gz > boost.tar.gz && \
-    tar vxfz boost.tar.gz > /dev/null && \
-    cd boost_${BOOST_VERSION//./_} && \
-    ./bootstrap.sh --prefix=/usr/local --with-libraries=filesystem,program_options,system > /dev/null && \
-    ./b2 install --prefix=/usr/local > /dev/null && \
-    rm ../boost.tar.gz && \
-    cd .. && \
-    rm -rf boost_${BOOST_VERSION//./_}
+RUN add-apt-repository ppa:mhier/libboost-latest && \
+    apt-get -y update && \
+    apt-get -y install libboost${BOOST_VERSION}-dev
 
 # Install capstone
 RUN cd /usr/local/src \
