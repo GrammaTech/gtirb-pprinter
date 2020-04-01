@@ -63,16 +63,6 @@ struct GetEdge {
   }
 };
 
-// static boost::iterator_range<
-//     boost::transform_iterator<GetEdge, CFG::in_edge_iterator>>
-// getIncomingEdges(CfgNode* B) {
-//   CFG* Cfg = getCFG(B);
-//   auto Pair = boost::in_edges(blockToCFGIndex(*Cfg, B), *Cfg);
-//   return boost::make_iterator_range(
-//       boost::make_transform_iterator(Pair.first, GetEdge(Cfg)),
-//       boost::make_transform_iterator(Pair.second, GetEdge(Cfg)));
-// }
-
 static boost::iterator_range<
     boost::transform_iterator<GetEdge, CFG::out_edge_iterator>>
 getOutgoingEdges(CfgNode* B) {
