@@ -4,7 +4,7 @@ ENV LD_LIBRARY_PATH /usr/local/lib:$LD_LIBRARY_PATH
 
 # Minimum required version
 ARG CMAKE_VERSION=3.9
-ARG BOOST_VERSION=1.67.0
+ARG BOOST_VERSION=1.67
 ARG PROTOBUF_VERSION=3.7.0
 
 # Use bash for more convenient variable substitution syntax
