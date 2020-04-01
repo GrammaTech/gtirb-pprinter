@@ -46,6 +46,7 @@ protected:
     void printOpRawValue(std::ostream& os, const cs_insn& inst, uint64_t index);
     void printOpPrefetch(std::ostream& os, const arm64_prefetch_op prefetch);
     void printOpBarrier(std::ostream& os, const arm64_barrier_op barrier);
+    std::optional<std::string> getForwardedSymbolName(const gtirb::Symbol* symbol, bool inData) const;
 
 private:
     static volatile bool registered;

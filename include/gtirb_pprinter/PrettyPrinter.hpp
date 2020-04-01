@@ -338,15 +338,14 @@ protected:
   virtual std::string getSymbolName(gtirb::Addr x) const;
   virtual std::optional<std::string>
   getForwardedSymbolName(const gtirb::Symbol* symbol, bool inData) const;
+  std::string getForwardedSymbolEnding(const gtirb::Symbol* symbol,
+                                       bool inData) const;
 
   bool isAmbiguousSymbol(const std::string& ea) const;
 
 private:
   std::set<gtirb::Addr> functionEntry;
   std::set<gtirb::Addr> functionLastBlock;
-
-  std::string getForwardedSymbolEnding(const gtirb::Symbol* symbol,
-                                       bool inData) const;
 };
 
 /// !brief Register AuxData types used by the pretty printer.

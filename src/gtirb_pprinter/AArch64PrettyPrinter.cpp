@@ -29,7 +29,7 @@ AArch64PrettyPrinter::AArch64PrettyPrinter(gtirb::Context& context_,
 void AArch64PrettyPrinter::printHeader(std::ostream& os) {
     // TODO (azreika): add proper header
     this->printBar(os);
-    os << ".intel_syntax noprefix\n";
+    // os << ".intel_syntax noprefix\n";
     this->printBar(os);
     os << '\n';
 
@@ -53,11 +53,6 @@ void AArch64PrettyPrinter::printOperandList(std::ostream& os,
             os << ',';
         }
         printOperand(os, inst, i);
-    }
-
-    // TODO (azreika): fix placement - should only be here for pre-indexed
-    if (detail.writeback) {
-        os << "!";
     }
 }
 
@@ -153,6 +148,20 @@ void AArch64PrettyPrinter::printOperand(std::ostream& os,
             std::cerr << "invalid operand\n";
             exit(1);
     }
+}
+
+std::optional<std::string> AArch64PrettyPrinter::getForwardedSymbolName(const gtirb::Symbol* symbol, bool /* inData */) const {
+    const auto* symbolForwarding =
+        module.getAuxData<gtirb::schema::SymbolForwarding>();
+
+    if (symbolForwarding) {
+        auto found = symbolForwarding->find(symbol->getUUID());
+        if (found != symbolForwarding->end()) {
+            gtirb::Node* destSymbol = gtirb::Node::getByUUID(context, found->second);
+            return cast<gtirb::Symbol>(destSymbol)->getName();
+        }
+    }
+    return {};
 }
 
 void AArch64PrettyPrinter::printOpRawValue(std::ostream& os, const cs_insn& inst, uint64_t index) {
@@ -407,6 +416,10 @@ void AArch64PrettyPrinter::printOpIndirect(std::ostream& os,
     }
 
     os << "]";
+
+    if (detail.writeback && index + 1 == detail.op_count) {
+        os << "!";
+    }
 }
 
 const PrintingPolicy& AArch64PrettyPrinterFactory::defaultPrintingPolicy() const {
