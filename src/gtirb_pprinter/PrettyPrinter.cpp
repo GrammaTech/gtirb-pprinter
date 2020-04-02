@@ -280,31 +280,12 @@ void PrettyPrinterBase::printOverlapWarning(std::ostream& os,
   os.flags(flags);
 }
 
-void PrettyPrinterBase::printCodeBlock(std::ostream& os,
-                                       const gtirb::CodeBlock& x) {
-  if (shouldSkip(x)) {
-    return;
-  }
-
+void PrettyPrinterBase::printBlockContents(std::ostream& os,
+                                           const gtirb::CodeBlock& x,
+                                           uint64_t /*offset*/) {
   gtirb::Addr addr = *x.getAddress();
   printFunctionHeader(os, addr);
   os << '\n';
-
-  if (const auto* overlapping = getOverlappingBlock(&x)) {
-    printOverlapWarning(os, addr);
-    for (const auto& sym : module.findSymbols(x)) {
-      assert(!module.findSymbols(*overlapping).empty());
-      for (const auto& baseSym : module.findSymbols(*overlapping)) {
-        printSymbolDefinitionInTermsOf(os, sym, baseSym,
-                                       addr - *baseSym.getAddress());
-        return;
-      }
-    }
-  } else {
-    for (const auto& sym : module.findSymbols(x)) {
-      printSymbolDefinition(os, sym);
-    }
-  }
 
   cs_insn* insn;
   cs_option(this->csHandle, CS_OPT_DETAIL, CS_OPT_ON);
@@ -532,17 +513,17 @@ void PrettyPrinterBase::printOperand(std::ostream& os,
   }
 }
 
-void PrettyPrinterBase::printDataBlock(std::ostream& os,
-                                       const gtirb::DataBlock& dataObject) {
-  if (shouldSkip(dataObject)) {
+template <typename BlockType>
+void PrettyPrinterBase::printBlockImpl(std::ostream& os, BlockType& block) {
+  if (shouldSkip(block)) {
     return;
   }
 
   // Print symbols associated with block.
-  gtirb::Addr addr = *dataObject.getAddress();
-  if (const auto* overlapping = getOverlappingBlock(&dataObject)) {
+  gtirb::Addr addr = *block.getAddress();
+  if (const auto* overlapping = getOverlappingBlock(&block)) {
     printOverlapWarning(os, addr);
-    for (const auto& sym : module.findSymbols(dataObject)) {
+    for (const auto& sym : module.findSymbols(block)) {
       assert(!module.findSymbols(*overlapping).empty());
       for (const auto& baseSym : module.findSymbols(*overlapping)) {
         printSymbolDefinitionInTermsOf(os, sym, baseSym,
@@ -551,7 +532,7 @@ void PrettyPrinterBase::printDataBlock(std::ostream& os,
       }
     }
   } else {
-    for (const auto& sym : module.findSymbols(dataObject)) {
+    for (const auto& sym : module.findSymbols(block)) {
       printSymbolDefinition(os, sym);
     }
   }
@@ -560,9 +541,9 @@ void PrettyPrinterBase::printDataBlock(std::ostream& os,
   // should skip: Skip contents, but do not skip label, so things can refer to
   // the array as a whole.
   if (policy.arraySections.count(
-          dataObject.getByteInterval()->getSection()->getName())) {
-    if (auto SymExpr = dataObject.getByteInterval()->getSymbolicExpression(
-            dataObject.getOffset())) {
+          block.getByteInterval()->getSection()->getName())) {
+    if (auto SymExpr =
+            block.getByteInterval()->getSymbolicExpression(block.getOffset())) {
       if (std::holds_alternative<gtirb::SymAddrConst>(*SymExpr)) {
         if (shouldSkip(*std::get<gtirb::SymAddrConst>(*SymExpr).Sym)) {
           return;
@@ -573,7 +554,24 @@ void PrettyPrinterBase::printDataBlock(std::ostream& os,
     }
   }
 
-  // Print block contents.
+  // Print actual block contents.
+  printBlockContents(os, block, 0);
+}
+
+void PrettyPrinterBase::printBlock(std::ostream& os,
+                                   const gtirb::DataBlock& block) {
+  printBlockImpl(os, block);
+}
+
+void PrettyPrinterBase::printBlock(std::ostream& os,
+                                   const gtirb::CodeBlock& block) {
+  printBlockImpl(os, block);
+}
+
+void PrettyPrinterBase::printBlockContents(std::ostream& os,
+                                           const gtirb::DataBlock& dataObject,
+                                           uint64_t /*offset*/) {
+  gtirb::Addr addr = *dataObject.getAddress();
   printComments(os, gtirb::Offset(dataObject.getUUID(), 0),
                 dataObject.getSize());
   if (this->debug)
@@ -984,9 +982,9 @@ void PrettyPrinterBase::printSection(std::ostream& os,
 
   for (const auto& Block : section.blocks()) {
     if (auto* CB = dyn_cast<gtirb::CodeBlock>(&Block)) {
-      printCodeBlock(os, *CB);
+      printBlock(os, *CB);
     } else if (auto* DB = dyn_cast<gtirb::DataBlock>(&Block)) {
-      printDataBlock(os, *DB);
+      printBlock(os, *DB);
     } else {
       assert(!"non block in block iterator!");
     }

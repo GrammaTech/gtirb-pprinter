@@ -236,9 +236,14 @@ protected:
                                            const gtirb::Section& section) = 0;
   virtual void printFunctionHeader(std::ostream& os, gtirb::Addr addr) = 0;
   virtual void printFunctionFooter(std::ostream& os, gtirb::Addr addr) = 0;
-  virtual void printCodeBlock(std::ostream& os, const gtirb::CodeBlock& x);
-  virtual void printDataBlock(std::ostream& os,
-                              const gtirb::DataBlock& dataObject);
+  virtual void printBlock(std::ostream& os, const gtirb::CodeBlock& block);
+  virtual void printBlock(std::ostream& os, const gtirb::DataBlock& block);
+  virtual void printBlockContents(std::ostream& os,
+                                  const gtirb::CodeBlock& block,
+                                  uint64_t offset);
+  virtual void printBlockContents(std::ostream& os,
+                                  const gtirb::DataBlock& block,
+                                  uint64_t offset);
   virtual void printNonZeroDataBlock(std::ostream& os,
                                      const gtirb::DataBlock& dataObject);
   virtual void printZeroDataBlock(std::ostream& os,
@@ -363,6 +368,9 @@ private:
 
   std::string getForwardedSymbolEnding(const gtirb::Symbol* symbol,
                                        bool inData) const;
+
+  template <typename BlockType>
+  void printBlockImpl(std::ostream& os, BlockType& block);
 };
 
 /// !brief Register AuxData types used by the pretty printer.
