@@ -368,6 +368,7 @@ private:
   std::set<gtirb::Addr> functionEntry;
   std::set<gtirb::Addr> functionLastBlock;
   std::unordered_map<const gtirb::Node*, const gtirb::Node*> overlapCache;
+  std::unordered_map<const gtirb::Node*, uint64_t> overlapOffsetCache;
 
   std::string getForwardedSymbolEnding(const gtirb::Symbol* symbol,
                                        bool inData) const;

@@ -211,6 +211,8 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
       // Find value to insert into overlapCache.
       const gtirb::Node* Earliest = nullptr;
       uint64_t EarliestOffset;
+      const gtirb::Node* Latest = nullptr;
+      uint64_t LatestOffset;
 
       auto Range = BlocksOverlapping.equal_range(Offset);
       for (auto& [OtherOffset, OtherBlock] :
@@ -219,10 +221,37 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
           Earliest = OtherBlock;
           EarliestOffset = OtherOffset;
         }
+
+        uint64_t OtherBegin;
+        if (auto* CB = dyn_cast<gtirb::CodeBlock>(OtherBlock)) {
+          OtherBegin = CB->getOffset();
+        } else if (auto* DB = dyn_cast<gtirb::DataBlock>(OtherBlock)) {
+          OtherBegin = DB->getOffset();
+        } else {
+          assert(!"Non-block in block iterator!");
+        }
+
+        if (!Latest || OtherBegin > LatestOffset) {
+          Latest = OtherBlock;
+          LatestOffset = OtherBegin;
+        }
       }
 
       if (Earliest) {
         overlapCache[&B] = Earliest;
+      }
+
+      if (Latest) {
+        uint64_t LatestSize;
+        if (auto* CB = dyn_cast<gtirb::CodeBlock>(Latest)) {
+          LatestSize = CB->getSize();
+        } else if (auto* DB = dyn_cast<gtirb::DataBlock>(Latest)) {
+          LatestSize = DB->getSize();
+        } else {
+          assert(!"Non-block in block iterator!");
+        }
+
+        overlapOffsetCache[&B] = (LatestOffset + LatestSize) - Offset;
       }
 
       // Populate block overlap information.
@@ -528,6 +557,10 @@ void PrettyPrinterBase::printBlockImpl(std::ostream& os, BlockType& block) {
       for (const auto& baseSym : module.findSymbols(*overlapping)) {
         printSymbolDefinitionInTermsOf(os, sym, baseSym,
                                        addr - *baseSym.getAddress());
+        if (auto It = overlapOffsetCache.find(&block);
+            It != overlapOffsetCache.end()) {
+          printBlockContents(os, block, It->second);
+        }
         return;
       }
     }
