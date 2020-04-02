@@ -287,7 +287,7 @@ void PrettyPrinterBase::printOverlapWarning(std::ostream& os,
 
 void PrettyPrinterBase::printBlockContents(std::ostream& os,
                                            const gtirb::CodeBlock& x,
-                                           uint64_t /*offset*/) {
+                                           uint64_t offset) {
   gtirb::Addr addr = *x.getAddress();
   printFunctionHeader(os, addr);
   os << '\n';
@@ -295,23 +295,24 @@ void PrettyPrinterBase::printBlockContents(std::ostream& os,
   cs_insn* insn;
   cs_option(this->csHandle, CS_OPT_DETAIL, CS_OPT_ON);
 
-  size_t count = cs_disasm(this->csHandle, x.rawBytes<uint8_t>(), x.getSize(),
-                           static_cast<uint64_t>(addr), 0, &insn);
+  size_t count = cs_disasm(this->csHandle, x.rawBytes<uint8_t>() + offset,
+                           x.getSize() - offset,
+                           static_cast<uint64_t>(addr) + offset, 0, &insn);
 
   // Exception-safe cleanup of instructions
   std::unique_ptr<cs_insn, std::function<void(cs_insn*)>> freeInsn(
       insn, [count](cs_insn* i) { cs_free(i, count); });
 
-  gtirb::Offset offset(x.getUUID(), 0);
+  gtirb::Offset blockOffset(x.getUUID(), offset);
   for (size_t i = 0; i < count; i++) {
     fixupInstruction(insn[i]);
-    printInstruction(os, x, insn[i], offset);
-    offset.Displacement += insn[i].size;
+    printInstruction(os, x, insn[i], blockOffset);
+    blockOffset.Displacement += insn[i].size;
     os << '\n';
   }
   // print any CFI directives located at the end of the block
   // e.g. '.cfi_endproc' is usually attached to the end of the block
-  printCFIDirectives(os, offset);
+  printCFIDirectives(os, blockOffset);
   printFunctionFooter(os, addr);
 }
 
@@ -569,34 +570,34 @@ void PrettyPrinterBase::printBlock(std::ostream& os,
 
 void PrettyPrinterBase::printBlockContents(std::ostream& os,
                                            const gtirb::DataBlock& dataObject,
-                                           uint64_t /*offset*/) {
-  gtirb::Addr addr = *dataObject.getAddress();
-  printComments(os, gtirb::Offset(dataObject.getUUID(), 0),
-                dataObject.getSize());
+                                           uint64_t offset) {
+  printComments(os, gtirb::Offset(dataObject.getUUID(), offset),
+                dataObject.getSize() - offset);
   if (this->debug)
-    os << std::hex << static_cast<uint64_t>(addr) << std::dec << ':';
+    os << std::hex << static_cast<uint64_t>(*dataObject.getAddress() + offset)
+       << std::dec << ':';
 
   const auto* foundSymbolic =
       dataObject.getByteInterval()->getSymbolicExpression(
-          dataObject.getOffset());
+          dataObject.getOffset() + offset);
   auto dataObjectBytes = dataObject.bytes<uint8_t>();
-  if (std::all_of(dataObjectBytes.begin(), dataObjectBytes.end(),
+  if (std::all_of(dataObjectBytes.begin() + offset, dataObjectBytes.end(),
                   [](uint8_t x) { return x == 0; }) &&
       !foundSymbolic)
-    printZeroDataBlock(os, dataObject);
+    printZeroDataBlock(os, dataObject, offset);
   else
-    printNonZeroDataBlock(os, dataObject);
+    printNonZeroDataBlock(os, dataObject, offset);
 }
 
 void PrettyPrinterBase::printNonZeroDataBlock(
-    std::ostream& os, const gtirb::DataBlock& dataObject) {
-  if (!dataObject.getSize()) {
+    std::ostream& os, const gtirb::DataBlock& dataObject, uint64_t offset) {
+  if (dataObject.getSize() - offset == 0) {
     return;
   }
 
   const auto* foundSymbolic =
       dataObject.getByteInterval()->getSymbolicExpression(
-          dataObject.getOffset());
+          dataObject.getOffset() + offset);
   if (foundSymbolic) {
     os << syntax.tab();
     printSymbolicData(os, foundSymbolic, dataObject);
@@ -608,22 +609,26 @@ void PrettyPrinterBase::printNonZeroDataBlock(
     auto foundType = types->find(dataObject.getUUID());
     if (foundType != types->end() && foundType->second == "string") {
       os << syntax.tab();
-      printString(os, dataObject);
+      printString(os, dataObject, offset);
       os << '\n';
       return;
     }
   }
-  for (auto byte : dataObject.bytes<uint8_t>()) {
+
+  auto Range = dataObject.bytes<uint8_t>();
+  for (auto byte :
+       boost::make_iterator_range(Range.begin() + offset, Range.end())) {
     os << syntax.tab();
     printByte(os, static_cast<std::byte>(static_cast<unsigned char>(byte)));
   }
 }
 
 void PrettyPrinterBase::printZeroDataBlock(std::ostream& os,
-                                           const gtirb::DataBlock& dataObject) {
-  if (auto size = dataObject.getSize()) {
+                                           const gtirb::DataBlock& dataObject,
+                                           uint64_t offset) {
+  if (auto size = dataObject.getSize() - offset) {
     os << syntax.tab();
-    os << " .zero " << size << '\n';
+    os << ".zero " << size << '\n';
   }
 }
 
@@ -730,8 +735,8 @@ void PrettyPrinterBase::printSymbolicExpression(std::ostream& os,
   printSymbolReference(os, sexpr->Sym2, inData);
 }
 
-void PrettyPrinterBase::printString(std::ostream& os,
-                                    const gtirb::DataBlock& x) {
+void PrettyPrinterBase::printString(std::ostream& os, const gtirb::DataBlock& x,
+                                    uint64_t offset) {
   auto cleanByte = [](uint8_t b) {
     std::string cleaned;
     cleaned += b;
@@ -750,7 +755,9 @@ void PrettyPrinterBase::printString(std::ostream& os,
 
   os << syntax.string() << " \"";
 
-  for (auto b : x.bytes<uint8_t>()) {
+  auto Range = x.bytes<uint8_t>();
+  for (auto b :
+       boost::make_iterator_range(Range.begin() + offset, Range.end())) {
     if (b != 0) {
       os << cleanByte(b);
     }
