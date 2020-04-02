@@ -51,6 +51,8 @@ public:
   virtual const std::string& global() const = 0;
   virtual const std::string& align() const = 0;
 
+  virtual const std::string& programCounter() const = 0;
+
   // Formatting helpers
   virtual std::string formatSectionName(const std::string& x) const;
   virtual std::string formatFunctionName(const std::string& x) const;

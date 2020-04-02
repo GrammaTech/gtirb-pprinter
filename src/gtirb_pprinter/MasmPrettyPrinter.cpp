@@ -251,22 +251,22 @@ void MasmPrettyPrinter::printSymbolDefinition(std::ostream& os,
   printSymbolFooter(os, symbol);
 }
 
-void MasmPrettyPrinter::printSymbolDefinitionInTermsOf(
-    std::ostream& os, const gtirb::Symbol& symbol,
-    const gtirb::Symbol& baseSymbol, uint64_t offsetFromBaseSymbol) {
-  if (*symbol.getAddress() == gtirb::Addr(0)) {
+void MasmPrettyPrinter::printSymbolDefinitionRelativeToPC(
+    std::ostream& os, const gtirb::Symbol& symbol, gtirb::Addr pc) {
+  auto symAddr = *symbol.getAddress();
+  if (symAddr == gtirb::Addr(0)) {
     return;
   }
 
   printSymbolHeader(os, symbol);
 
-  os << getSymbolName(symbol) << " = ";
-  if (shouldSkip(baseSymbol)) {
-    os << baseSymbol.getAddress();
-  } else {
-    os << getSymbolName(baseSymbol);
+  os << getSymbolName(symbol) << " = " << syntax.programCounter();
+  if (symAddr > pc) {
+    os << " + " << (symAddr - pc);
+  } else if (symAddr < pc) {
+    os << " - " << (pc - symAddr);
   }
-  os << " + " << offsetFromBaseSymbol << '\n';
+  os << "\n";
 
   printSymbolFooter(os, symbol);
 }

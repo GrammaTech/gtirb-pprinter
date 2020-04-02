@@ -40,6 +40,10 @@ public:
   const std::string& global() const override { return GlobalDirective; }
   const std::string& align() const override { return AlignDirective; }
 
+  const std::string& programCounter() const override {
+    return ProgramCounterName;
+  }
+
   // MASM directives
   const std::string& offset() const { return OffsetDirective; }
   const std::string& extrn() const { return ExternDirective; }
@@ -68,6 +72,8 @@ private:
   const std::string TextDirective{".CODE"};
   const std::string DataDirective{".DATA"};
   const std::string BssDirective{".DATA?"};
+
+  const std::string ProgramCounterName{"$"};
 
   const std::string SectionDirective{"SEGMENT"};
   const std::string GlobalDirective{"PUBLIC"};
@@ -122,10 +128,9 @@ protected:
 
   void printSymbolDefinition(std::ostream& os,
                              const gtirb::Symbol& symbol) override;
-  void printSymbolDefinitionInTermsOf(std::ostream& os,
-                                      const gtirb::Symbol& symbol,
-                                      const gtirb::Symbol& baseSymbol,
-                                      uint64_t offsetFromBaseSymbol) override;
+  void printSymbolDefinitionRelativeToPC(std::ostream& os,
+                                         const gtirb::Symbol& symbol,
+                                         gtirb::Addr pc) override;
   void printIntegralSymbol(std::ostream& os,
                            const gtirb::Symbol& symbol) override;
 

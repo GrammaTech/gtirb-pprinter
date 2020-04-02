@@ -38,6 +38,10 @@ public:
   const std::string& global() const override { return GlobalDirective; }
   const std::string& align() const override { return AlignDirective; }
 
+  const std::string& programCounter() const override {
+    return ProgramCounterName;
+  }
+
   const std::string& type() const { return TypeDirective; }
   const std::string& weak() const { return WeakDirective; }
   const std::string& set() const { return SetDirective; }
@@ -61,6 +65,8 @@ private:
   const std::string SectionDirective{".section"};
   const std::string GlobalDirective{".globl"};
   const std::string AlignDirective{".align"};
+
+  const std::string ProgramCounterName{"."};
 
   const std::string TypeDirective{".type"};
   const std::string WeakDirective{".weak"};
@@ -94,10 +100,9 @@ protected:
 
   void printSymbolDefinition(std::ostream& os,
                              const gtirb::Symbol& symbol) override;
-  void printSymbolDefinitionInTermsOf(std::ostream& os,
-                                      const gtirb::Symbol& symbol,
-                                      const gtirb::Symbol& baseSymbol,
-                                      uint64_t offsetFromBaseSymbol) override;
+  void printSymbolDefinitionRelativeToPC(std::ostream& os,
+                                         const gtirb::Symbol& symbol,
+                                         gtirb::Addr pc) override;
   void printIntegralSymbol(std::ostream& os,
                            const gtirb::Symbol& symbol) override;
 
