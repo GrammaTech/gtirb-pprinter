@@ -416,16 +416,20 @@ void MasmPrettyPrinter::printByte(std::ostream& os, std::byte byte) {
 }
 
 void MasmPrettyPrinter::printZeroDataBlock(std::ostream& os,
-                                           const gtirb::DataBlock& dataObject) {
+                                           const gtirb::DataBlock& dataObject,
+                                           uint64_t offset) {
   os << syntax.tab();
-  os << "DB " << dataObject.getSize() << " DUP(0)" << '\n';
+  os << "DB " << (dataObject.getSize() - offset) << " DUP(0)" << '\n';
 }
 
-void MasmPrettyPrinter::printString(std::ostream& os,
-                                    const gtirb::DataBlock& x) {
+void MasmPrettyPrinter::printString(std::ostream& os, const gtirb::DataBlock& x,
+                                    uint64_t offset) {
 
   std::string Chunk{""};
-  for (uint8_t b : x.bytes<uint8_t>()) {
+
+  auto Range = x.bytes<uint8_t>();
+  for (uint8_t b :
+       boost::make_iterator_range(Range.begin() + offset, Range.end())) {
     // NOTE: MASM only supports strings smaller than 256 bytes.
     //  and  MASM only supports statements with 50 comma-separated items.
     if (Chunk.size() >= 64) {

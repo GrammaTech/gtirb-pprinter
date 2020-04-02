@@ -245,9 +245,11 @@ protected:
                                   const gtirb::DataBlock& block,
                                   uint64_t offset);
   virtual void printNonZeroDataBlock(std::ostream& os,
-                                     const gtirb::DataBlock& dataObject);
+                                     const gtirb::DataBlock& dataObject,
+                                     uint64_t offset);
   virtual void printZeroDataBlock(std::ostream& os,
-                                  const gtirb::DataBlock& dataObject);
+                                  const gtirb::DataBlock& dataObject,
+                                  uint64_t offset);
   virtual void printByte(std::ostream& os, std::byte byte) = 0;
 
   virtual void fixupInstruction(cs_insn& inst);
@@ -289,7 +291,8 @@ protected:
                                     bool inData) const;
   virtual void printAddend(std::ostream& os, int64_t number,
                            bool first = false);
-  virtual void printString(std::ostream& os, const gtirb::DataBlock& x);
+  virtual void printString(std::ostream& os, const gtirb::DataBlock& x,
+                           uint64_t offset);
 
   virtual void printOperand(std::ostream& os, const gtirb::CodeBlock& block,
                             const cs_insn& inst, uint64_t index);

@@ -137,10 +137,11 @@ protected:
                                bool inData = false) override;
 
   void printByte(std::ostream& os, std::byte byte) override;
-  void printZeroDataBlock(std::ostream& os,
-                          const gtirb::DataBlock& dataObject) override;
+  void printZeroDataBlock(std::ostream& os, const gtirb::DataBlock& dataObject,
+                          uint64_t offset) override;
 
-  void printString(std::ostream& os, const gtirb::DataBlock& x) override;
+  void printString(std::ostream& os, const gtirb::DataBlock& x,
+                   uint64_t offset) override;
 
 private:
   gtirb::Addr BaseAddress;
