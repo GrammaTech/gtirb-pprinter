@@ -234,21 +234,21 @@ cleanup-arch-clang:
     - cp /u1/bfairservice/share/extra-packages/libcapstone-dev_4.0.1-1_amd64.deb ./
     - if [ -f .ci/Dockerfile.test-${OS}-package ]; then docker build -f .ci/Dockerfile.test-${OS}-package --build-arg CXX_COMPILER=${COMPILER} .; fi
 
-ubuntu16-installer:
+debian-installer-ubuntu16:
   variables:
     OS: 'ubuntu16'
     COMPILER: 'g++-7'
     EXTENSION: 'deb'
   <<: *linux-installer
 
-ubuntu18-installer:
+debian-installer-ubuntu18:
   variables:
     OS: 'ubuntu18'
     COMPILER: 'g++-7'
     EXTENSION: 'deb'
   <<: *linux-installer
 
-arch-tar:
+tar-arch:
   variables:
     OS: 'arch'
     COMPILER: 'g++'
