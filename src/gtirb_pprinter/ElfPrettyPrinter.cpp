@@ -183,18 +183,19 @@ void ElfPrettyPrinter::printSymbolDefinition(std::ostream& os,
   PrettyPrinterBase::printSymbolDefinition(os, sym);
 }
 
-void ElfPrettyPrinter::printSymbolDefinitionInTermsOf(
-    std::ostream& os, const gtirb::Symbol& sym, const gtirb::Symbol& baseSym,
-    uint64_t offset) {
+void ElfPrettyPrinter::printSymbolDefinitionRelativeToPC(
+    std::ostream& os, const gtirb::Symbol& sym, gtirb::Addr pc) {
   printSymbolHeader(os, sym);
 
-  os << elfSyntax.set() << ' ' << getSymbolName(sym) << ", ";
-  if (shouldSkip(baseSym)) {
-    os << baseSym.getAddress();
-  } else {
-    os << getSymbolName(baseSym);
+  os << elfSyntax.set() << ' ' << getSymbolName(sym) << ", "
+     << syntax.programCounter();
+  auto symAddr = *sym.getAddress();
+  if (symAddr > pc) {
+    os << " + " << (symAddr - pc);
+  } else if (symAddr < pc) {
+    os << " - " << (pc - symAddr);
   }
-  os << " + " << offset << '\n';
+  os << "\n";
 }
 
 void ElfPrettyPrinter::printIntegralSymbol(std::ostream& os,

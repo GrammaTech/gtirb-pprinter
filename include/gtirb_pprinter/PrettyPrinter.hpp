@@ -310,10 +310,9 @@ protected:
   virtual void printOverlapWarning(std::ostream& os, gtirb::Addr ea);
   virtual void printDataBlockType(std::ostream& os,
                                   const gtirb::DataBlock& dataObject);
-  virtual void
-  printSymbolDefinitionInTermsOf(std::ostream& os, const gtirb::Symbol& symbol,
-                                 const gtirb::Symbol& baseSymbol,
-                                 uint64_t offsetFromBaseSymbol) = 0;
+  virtual void printSymbolDefinitionRelativeToPC(std::ostream& os,
+                                                 const gtirb::Symbol& symbol,
+                                                 gtirb::Addr pc) = 0;
   virtual void printIntegralSymbol(std::ostream& os,
                                    const gtirb::Symbol& symbol) = 0;
 

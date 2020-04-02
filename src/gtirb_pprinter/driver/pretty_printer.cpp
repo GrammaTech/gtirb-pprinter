@@ -155,10 +155,6 @@ int main(int argc, char** argv) {
                << " has integral symbols; attempting to assign referents..."
                << std::endl;
       gtirb_layout::fixIntegralSymbols(ctx, M);
-      gtirb_layout::addOverlapDisambiguationSymbols(ctx, M);
-    }
-    else {
-      gtirb_layout::addOverlapDisambiguationSymbols(ctx, M);
     }
   }
 
