@@ -29,8 +29,14 @@ RUN GTIRB_BRANCH=$((grep -Eo "check_gtirb_branch\([^)]+" CMakeLists.txt || echo 
 RUN unzip -o gtirb-artifacts.zip && dpkg -i GTIRB*.deb
 
 # Build gtirb-pprinter
-ENV LD_LIBRARY_PATH /gt/gtirb-pprinter/gtirb/build/lib:$LD_LIBRARY_PATH
-RUN /gt/gtirb-pprinter/.ci/build-linux.sh clang++
+RUN rm -rf /gt/gtirb-pprinter/build /gt/gtirb-pprinter/CMakeCache.txt /gt/gtirb-pprinter/CMakeFiles /gt/gtirb-pprinter/CMakeScripts
+RUN mkdir -p /gt/gtirb-pprinter/build
+WORKDIR /gt/gtirb-pprinter/build
+ARG CXX_COMPILER="g++"
+RUN cmake ../ -DCMAKE_CXX_COMPILER=$CXX_COMPILER
+RUN make -j
+
+# Package generation
 ARG CPACK_GENERATOR=""
 RUN if [ ! -z "${CPACK_GENERATOR}" ] ; then cd /gt/gtirb-pprinter/build && cpack -G "${CPACK_GENERATOR}"; fi
 
