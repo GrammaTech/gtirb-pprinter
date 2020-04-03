@@ -554,25 +554,14 @@ void PrettyPrinterBase::printBlockImpl(std::ostream& os, BlockType& block) {
   if (const auto* overlapping = getOverlappingBlock(&block)) {
     printOverlapWarning(os, addr);
     for (const auto& sym : module.findSymbols(block)) {
-      gtirb::Addr overlappingAddr;
-      uint64_t overlappingSize;
-      if (auto* CB = dyn_cast<gtirb::CodeBlock>(overlapping)) {
-        overlappingAddr = *CB->getAddress();
-        overlappingSize = CB->getSize();
-      } else if (auto* DB = dyn_cast<gtirb::DataBlock>(overlapping)) {
-        overlappingAddr = *DB->getAddress();
-        overlappingSize = DB->getSize();
-      } else {
-        assert(!"non-block in block iterator!");
-      }
-
-      printSymbolDefinitionRelativeToPC(os, sym,
-                                        overlappingAddr + overlappingSize);
+      printSymbolDefinitionRelativeToPC(os, sym, programCounter);
 
       if (auto It = overlapOffsetCache.find(&block);
           It != overlapOffsetCache.end()) {
         printBlockContents(os, block, It->second);
       }
+
+      programCounter = std::max(programCounter, addr + block.getSize());
       return;
     }
   } else {
@@ -600,6 +589,9 @@ void PrettyPrinterBase::printBlockImpl(std::ostream& os, BlockType& block) {
 
   // Print actual block contents.
   printBlockContents(os, block, 0);
+
+  // Update the program counter.
+  programCounter = addr + block.getSize();
 }
 
 void PrettyPrinterBase::printBlock(std::ostream& os,
