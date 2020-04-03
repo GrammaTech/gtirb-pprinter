@@ -296,7 +296,7 @@ void PrettyPrinterBase::printBlockContents(std::ostream& os,
 }
 
 void PrettyPrinterBase::setDecodeMode(std::ostream& /*os*/,
-                                        const gtirb::CodeBlock& /*x*/) {}
+                                      const gtirb::CodeBlock& /*x*/) {}
 
 void PrettyPrinterBase::printSectionHeader(std::ostream& os,
                                            const gtirb::Section& section) {
