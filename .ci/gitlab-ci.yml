@@ -29,8 +29,9 @@ check-format:
 .build-template: &build
   stage: build
   script:
+    - export COMPILER_NAME=$(echo ${COMPILER} | sed 's/clang++/clang/;s/g++/gcc/;s/\(-[0-9]\)*//g' )
     - cp /u4/TARBALLS/debloat/pkgs/libcapstone-dev_4.0.1-1_amd64.deb ./
-    - docker build -f .ci/Dockerfile.$OS -t ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} --build-arg CXX_COMPILER=${COMPILER} --build-arg CPACK_GENERATOR=${CPACK_GENERATOR} .
+    - docker build -f .ci/Dockerfile.$OS -t ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER_NAME} --build-arg CXX_COMPILER=${COMPILER} --build-arg CPACK_GENERATOR=${CPACK_GENERATOR} .
 
 .windows-build-template: &windows-build
   stage: build
@@ -77,40 +78,40 @@ check-format:
 build-ubuntu16-gcc:
   variables:
     OS: 'ubuntu16'
-    COMPILER: 'gcc'
+    COMPILER: 'g++-7'
     CPACK_GENERATOR: 'DEB'
   <<: *build
 
 build-ubuntu16-clang:
   variables:
     OS: 'ubuntu16'
-    COMPILER: 'clang'
+    COMPILER: 'clang++'
   <<: *build
 
 build-ubuntu18-gcc:
   variables:
     OS: 'ubuntu18'
-    COMPILER: 'gcc'
+    COMPILER: 'g++-7'
     CPACK_GENERATOR: 'DEB'
   <<: *build
 
 build-ubuntu18-clang:
   variables:
     OS: 'ubuntu18'
-    COMPILER: 'clang'
+    COMPILER: 'clang++'
   <<: *build
 
 build-arch-gcc:
   variables:
     OS: 'arch'
-    COMPILER: 'gcc'
+    COMPILER: 'g++'
     CPACK_GENERATOR: 'TGZ'
   <<: *build
 
 build-arch-clang:
   variables:
     OS: 'arch'
-    COMPILER: 'clang'
+    COMPILER: 'clang++'
   <<: *build
 
 build-windows-debug:
