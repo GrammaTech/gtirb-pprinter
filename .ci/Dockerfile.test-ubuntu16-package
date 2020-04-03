@@ -33,6 +33,7 @@ RUN cp *.deb /gt/apt-repo/
 RUN cd /gt/apt-repo && dpkg-scanpackages . /dev/null > Packages
 RUN echo $'\ndeb file:/gt/apt-repo ./\n' >> /etc/apt/sources.list
 
+# install pprinter
 COPY .ci/test-install.cpp test-install.cpp
 RUN apt-get update && apt-get install -y --allow-unauthenticated gtirb_pprinter
 

@@ -245,7 +245,7 @@ cleanup-arch-clang:
     - mv ./build-artifacts/gtirb_pprinter-*-Linux.${EXTENSION} ./
     - rm -rf ./build-artifacts/
     - cp /u1/bfairservice/share/extra-packages/libcapstone-dev_4.0.1-1_amd64.deb ./
-    - if [ -f .ci/Dockerfile.test-${OS}-package ]; then docker build -f .ci/Dockerfile.test-${OS}-package --build-arg CXX_COMPILER=${COMPILER} .; fi
+    - if [ -f .ci/Dockerfile.test-${OS}-package ]; then docker build -f .ci/Dockerfile.test-${OS}-package .; fi
 
 debian-installer-ubuntu16:
   variables:
