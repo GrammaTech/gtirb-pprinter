@@ -38,7 +38,7 @@ void ArmPrettyPrinter::printHeader(std::ostream& os) {
 }
 
 void ArmPrettyPrinter::setDecodeMode(std::ostream& os,
-                                       const gtirb::CodeBlock& x) {
+                                     const gtirb::CodeBlock& x) {
   // 1 for THUMB 0 for regular ARM
   if (x.getDecodeMode()) {
     os << ".thumb" << std::endl;
