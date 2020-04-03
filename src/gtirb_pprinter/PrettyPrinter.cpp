@@ -190,7 +190,10 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
 
   // Set up overlap cache, for quickly detecting what blocks should be
   // considered the "base" block in terms of symbol printing when blocks
-  // overlap.
+  // overlap. See getOverlappingBlock for details.
+  // We also set up the "overlap offset cache" here, which helps us calculate
+  // how many bytes are trailing after the overlapping region in the case of
+  // overlaps. See printBlockImpl for details.
   for (auto& BI : module.byte_intervals()) {
     std::multimap<uint64_t, gtirb::Node*> BlocksOverlapping;
 
@@ -237,6 +240,7 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
         }
       }
 
+      // Update the caches.
       if (Earliest) {
         overlapCache[&B] = Earliest;
       }
@@ -551,16 +555,27 @@ void PrettyPrinterBase::printBlockImpl(std::ostream& os, BlockType& block) {
   // Print symbols associated with block.
   gtirb::Addr addr = *block.getAddress();
   if (const auto* overlapping = getOverlappingBlock(&block)) {
+    // If getOverlappingBlock returned something, then we've already
+    // pretty-printed that overlapping block, so we need to print a symbol
+    // definition after the fact (rather than place a label in the middle).
+
     printOverlapWarning(os, addr);
     for (const auto& sym : module.findSymbols(block)) {
       printSymbolDefinitionRelativeToPC(os, sym, programCounter);
 
       if (auto It = overlapOffsetCache.find(&block);
           It != overlapOffsetCache.end()) {
+        // If two blocks overlap, then there may be bytes at the end of
+        // our block that do not belong to the overlapping block.
+        // Those trailing bytes need printed.
+
         printBlockContents(os, block, It->second);
+        programCounter = std::max(programCounter, addr + block.getSize());
       }
 
-      programCounter = std::max(programCounter, addr + block.getSize());
+      // If the overlap is complete (that is, no trailing bytes), then the
+      // overlapping block can be considered to "own" all the bytes of this
+      // block, so no bytes will be emitted.
       return;
     }
   } else {

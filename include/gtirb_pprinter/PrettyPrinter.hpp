@@ -360,7 +360,16 @@ protected:
   bool isAmbiguousSymbol(const std::string& ea) const;
 
   // If the input block should be considered as overlapping another block,
-  // this function returns that block. Else it returns nullptr.
+  // this function returns that block, else it returns nullptr. It has
+  // the following guarantees:
+  // 1. It is a stable ordering. Calling this function on the same block will
+  // yield the same result, even if 3 or more blocks overlap each other.
+  // 2. It will always yield the overlapping block that comes first in
+  // iteration order. This implies that it will find the overlapping block
+  // that starts the soonest.
+  // 3. It will treat 0-length blocks at 1-length for the purpose of overlaps,
+  // so a 0-length block can be considered as being in the middle of other
+  // blocks. This is different behavior than GTIRB's findBlocksOn methods.
   const gtirb::Node* getOverlappingBlock(const gtirb::Node* block) const;
 
 private:

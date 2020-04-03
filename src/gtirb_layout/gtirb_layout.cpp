@@ -32,7 +32,7 @@ static CFG* getCFG(CfgNode* B) {
   } else if (auto* PB = dyn_cast<ProxyBlock>(B)) {
     return &PB->getModule()->getIR()->getCFG();
   } else {
-    assert(!"getEdges received an unknown node kind!");
+    assert(!"getCFG received an unknown node kind!");
     return nullptr;
   }
 }
@@ -157,7 +157,6 @@ static bool findAndMergeBIs(Section& S) {
   return true;
 }
 
-<<<<<<< HEAD
 // NOTE: Only checks for missing addresses, not overlapping addresses.
 bool ::gtirb_layout::layoutRequired(IR& ir) {
   for (auto& M : ir.modules()) {
@@ -178,14 +177,13 @@ bool ::gtirb_layout::layoutRequired(IR& ir) {
   return false;
 }
 
-// TODO: layoutModule needs a context as an argument.
-static Context Ctx;
-
-bool ::gtirb_layout::layoutModule(Module& M) {
-  // Fix symbols with integral referents that point to known objects.
-=======
 void ::gtirb_layout::fixIntegralSymbols(gtirb::Context& Ctx, gtirb::Module& M) {
->>>>>>> 08ee876... Clean up gtirb-layout's API
+  // In general, we want as many integral symbols to not be integral as
+  // possible. If they point to blocks, even 0-length ones, instead of raw
+  // addresses, then they automatically get moved around when we adjust
+  // addresses later in the layout process. This also removes the need
+  // for the pretty-printer to check if it needs to print a symbol every time
+  // the program counter increments.
   std::vector<Symbol*> IntSyms;
   for (auto& Sym : M.symbols()) {
     if (!Sym.hasReferent() && Sym.getAddress()) {
@@ -272,8 +270,6 @@ bool ::gtirb_layout::layoutModule(gtirb::Context& Ctx, Module& M) {
 
   // Store a list of sections and then iterate over them, because
   // setting the address of a BI invalidates parent iterators.
-  // FIXME: This should not be true, but is because of boost::multi_index.
-  // GTIRB needs a fix for this.
   Addr A = Addr{0};
   std::vector<std::reference_wrapper<Section>> Sections(M.sections_begin(),
                                                         M.sections_end());
@@ -293,7 +289,12 @@ bool ::gtirb_layout::layoutModule(gtirb::Context& Ctx, Module& M) {
   return true;
 }
 
-bool ::gtirb_layout::removeModuleLayout(gtirb::Context& /* Ctx */, Module& M) {
+bool ::gtirb_layout::removeModuleLayout(gtirb::Context& Ctx, Module& M) {
+  // Fix symbols with integral referents that point to known objects.
+  fixIntegralSymbols(Ctx, M);
+
+  // Remove addresses from all byte intervals. We can always re-layout
+  // the module later, usually without loss to pretty-printability.
   std::vector<std::reference_wrapper<Section>> Sections(M.sections_begin(),
                                                         M.sections_end());
   for (auto& S : Sections) {
