@@ -33,7 +33,7 @@ protected:
   void printHeader(std::ostream& os) override;
   void printFunctionHeader(std::ostream& os, gtirb::Addr addr) override;
   void printSectionHeader(std::ostream& os, const gtirb::Addr addr) override;
-  void printDecodeMode(std::ostream& os, const gtirb::Block& x) override;
+  void setDecodeMode(std::ostream& os, const gtirb::CodeBlock& x) override;
   void fixupInstruction(cs_insn& inst) override;
   void printInstruction(std::ostream& os, const cs_insn& inst,
                         const gtirb::Offset& offset) override;

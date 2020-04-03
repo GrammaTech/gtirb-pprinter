@@ -99,10 +99,10 @@ std::string getModuleFileFormat(const gtirb::Module& module) {
 }
 
 std::string getModuleISA(const gtirb::Module& module) {
-  switch (module.getISAID()) {
-  case gtirb::ISAID::ARM:
+  switch (module.getISA()) {
+  case gtirb::ISA::ARM:
     return "arm";
-  case gtirb::ISAID::X64:
+  case gtirb::ISA::X64:
     return "x64";
   default:
     return "undefined";
@@ -272,7 +272,7 @@ void PrettyPrinterBase::printBlockContents(std::ostream& os,
 
   cs_insn* insn;
   cs_option(this->csHandle, CS_OPT_DETAIL, CS_OPT_ON);
-  printDecodeMode(os, x);
+  setDecodeMode(os, x);
 
   size_t count = cs_disasm(this->csHandle, x.rawBytes<uint8_t>() + offset,
                            x.getSize() - offset,
@@ -295,8 +295,8 @@ void PrettyPrinterBase::printBlockContents(std::ostream& os,
   printFunctionFooter(os, addr);
 }
 
-void PrettyPrinterBase::printDecodeMode(std::ostream& /*os*/,
-                                        const gtirb::Block& /*x*/) {}
+void PrettyPrinterBase::setDecodeMode(std::ostream& /*os*/,
+                                        const gtirb::CodeBlock& /*x*/) {}
 
 void PrettyPrinterBase::printSectionHeader(std::ostream& os,
                                            const gtirb::Section& section) {

@@ -37,8 +37,8 @@ void ArmPrettyPrinter::printHeader(std::ostream& os) {
   os << ".syntax unified" << std::endl;
 }
 
-void ArmPrettyPrinter::printDecodeMode(std::ostream& os,
-                                       const gtirb::Block& x) {
+void ArmPrettyPrinter::setDecodeMode(std::ostream& os,
+                                       const gtirb::CodeBlock& x) {
   // 1 for THUMB 0 for regular ARM
   if (x.getDecodeMode()) {
     os << ".thumb" << std::endl;
@@ -53,7 +53,7 @@ void ArmPrettyPrinter::fixupInstruction(cs_insn& /*inst*/) {}
 
 void ArmPrettyPrinter::printSectionHeader(std::ostream& os,
                                           const gtirb::Addr addr) {
-  const auto found_section = module.findSection(addr);
+  const auto found_section = module.findSectionsAt(addr);
   if (found_section.begin() == found_section.end())
     return;
   if (found_section.begin()->getAddress() != addr)
@@ -151,17 +151,17 @@ void ArmPrettyPrinter::printOperand(std::ostream& os, const cs_insn& inst,
   case ARM_OP_IMM:
   case ARM_OP_PIMM:
   case ARM_OP_CIMM: {
-    auto found = module.findSymbolicExpression(ea);
-    if (found != module.symbolic_expr_end())
-      symbolic = &*found;
+    auto found = module.findSymbolicExpressionsAt(ea);
+    if (!found.empty())
+      symbolic = &found.begin()->getSymbolicExpression();
 
     printOpImmediate(os, symbolic, inst, index);
     return;
   }
   case ARM_OP_MEM: {
-    auto found = module.findSymbolicExpression(ea);
-    if (found != module.symbolic_expr_end())
-      symbolic = &*found;
+    auto found = module.findSymbolicExpressionsAt(ea);
+    if (!found.empty())
+      symbolic = &found.begin()->getSymbolicExpression();
     printOpIndirect(os, symbolic, inst, index);
     return;
   }
