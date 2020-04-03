@@ -422,7 +422,7 @@ set(CPACK_PACKAGE_RESOURCE_FILE_LICENSE ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt)
 set(CPACK_DEBIAN_PACKAGE_SECTION devel)
 
 set(CPACK_DEBIAN_PACKAGE_DEPENDS
-    "gtirb (>=${GTIRB_VERSION}), libboost-dev (>=1.67) | libboost1.67-dev, libcapstone-dev (>=${CSTOOL_VERSION})"
+    "libstdc++6, libc6, libgcc1, gtirb (>=${GTIRB_VERSION}), libboost-dev (>=1.67) | libboost1.67-dev, libcapstone-dev (>=${CSTOOL_VERSION})"
 )
 
 include(CPack)
