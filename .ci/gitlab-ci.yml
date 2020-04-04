@@ -51,9 +51,16 @@ check-format:
     - cd build
     - cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && C:\\PROGRA~1\\CMake\\bin\\cmake.exe -G \"Ninja\" -DBOOST_ROOT=\"C:\\Boost\" -DCMAKE_CXX_FLAGS=\"/DBOOST_ALL_DYN_LINK\" -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=1 -DCAPSTONE=\"C:\\capstone-${BUILD_TYPE}\\lib\\capstone.lib\" -DCAPSTONE_INCLUDE_DIRS=\"C:\\capstone-${BUILD_TYPE}\\include\" -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_PROGRAM_PATH=\"C:\\capstone-${BUILD_TYPE}\\bin\" -Dgtirb_DIR=$GTIRB_DIR .."
     - cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && ninja"
+    # Build ZIP package, and include DLLs needed to run exes.
     - cmd.exe /C "C:\\PROGRA~1\\CMake\\bin\\cpack.exe -G \"ZIP\""
-    - cp *.zip ../
-
+    - ZIP_FILE=(gtirb_pprinter*win64.zip)
+    - BASE_DIRECTORY="${ZIP_FILE%.*}"
+    - mkdir -p $BASE_DIRECTORY/bin
+    - cp /cygdrive/c/Boost/lib/boost_*-vc141-mt$(echo $BUILD_TYPE | sed 's/Debug/-gd/;s/Release//')-x64-1_67.dll $BASE_DIRECTORY/bin/
+    - GTIRB_DLL=$GTIRB_DIR/../../bin/gtirb$(echo $BUILD_TYPE | sed 's/Debug/d/;s/Release//').dll
+    - cp $GTIRB_DLL $BASE_DIRECTORY/bin/$(basename $GTIRB_DLL)
+    - zip -u $ZIP_FILE $BASE_DIRECTORY/bin/*.dll
+    - cp $ZIP_FILE ../
 
 .test-and-tag-template: &test-and-tag
   stage: test-and-tag
