@@ -92,7 +92,7 @@ build-ubuntu16-gcc:
 build-ubuntu16-clang:
   variables:
     OS: 'ubuntu16'
-    COMPILER: 'clang++'
+    COMPILER: 'clang++-8'
   <<: *build
 
 build-ubuntu18-gcc:
