@@ -308,14 +308,15 @@ void PrettyPrinterBase::printBlock(std::ostream& os,
 
   // Exception-safe cleanup of instructions
   std::unique_ptr<cs_insn, std::function<void(cs_insn*)>> freeInsn(
-      insn, [count](cs_insn* i) { cs_free(i, count); });
+          insn, [count](cs_insn* i) { cs_free(i, count); });
 
   gtirb::Offset offset(x.getUUID(), 0);
   for (size_t i = 0; i < count; i++) {
-    fixupInstruction(insn[i]);
-    printInstruction(os, insn[i], offset);
-    offset.Displacement += insn[i].size;
-    os << '\n';
+      prefix_curr = (i > 0 && insn[i-1].id == ARM64_INS_ADRP && insn[i].id == ARM64_INS_ADD);
+      fixupInstruction(insn[i]);
+      printInstruction(os, insn[i], offset);
+      offset.Displacement += insn[i].size;
+      os << '\n';
   }
   // print any CFI directives located at the end of the block
   // e.g. '.cfi_endproc' is usually attached to the end of the block

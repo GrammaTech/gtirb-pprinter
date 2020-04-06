@@ -343,6 +343,9 @@ protected:
 
   bool isAmbiguousSymbol(const std::string& ea) const;
 
+protected:
+  bool prefix_curr{false};
+
 private:
   std::set<gtirb::Addr> functionEntry;
   std::set<gtirb::Addr> functionLastBlock;

@@ -361,6 +361,7 @@ void AArch64PrettyPrinter::printOpImmediate(std::ostream& os,
         if (!is_jump) {
             os << ' ';
         }
+        if (prefix_curr) os << ":lo12:";
         this->printSymbolicExpression(os, s, !is_jump);
     } else {
         os << "#" << op.imm;
