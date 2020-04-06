@@ -284,7 +284,6 @@ endif()
 # ---------------------------------------------------------------------------
 set(GTIRB_VERSION 1.2.0)
 find_package(gtirb "${GTIRB_VERSION}" REQUIRED)
-check_gtirb_branch(bfairservice/debian-dependencies-bak)
 
 # ---------------------------------------------------------------------------
 # Boost
