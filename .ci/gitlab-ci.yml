@@ -251,7 +251,7 @@ cleanup-arch-clang:
     - rm -rf $(dirname $CONTAINER_FILE)
     - mv ./build-artifacts/gtirb_pprinter-*-Linux.${EXTENSION} ./
     - rm -rf ./build-artifacts/
-    - cp /u1/bfairservice/share/extra-packages/libcapstone-dev_4.0.1-1_amd64.deb ./
+    - cp /u4/TARBALLS/debloat/pkgs/libcapstone-dev_4.0.1-1_amd64.deb ./
     - if [ -f .ci/Dockerfile.test-${OS}-package ]; then docker build -f .ci/Dockerfile.test-${OS}-package .; fi
 
 debian-installer-ubuntu16:
