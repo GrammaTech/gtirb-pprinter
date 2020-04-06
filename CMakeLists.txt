@@ -362,7 +362,8 @@ export(PACKAGE gtirb_pprinter)
 
 # --- For the installed copy ---
 # Main config file for find_package, just includes the targets file.
-configure_file("${CMAKE_CURRENT_LIST_DIR}/gtirb_pprinterConfig.cmake.in"
+configure_file(
+  "${CMAKE_CURRENT_LIST_DIR}/gtirb_pprinterConfig.cmake.in"
   "${CMAKE_CURRENT_BINARY_DIR}/export/gtirb_pprinterConfig.cmake" @ONLY)
 # In this mode, find_package also seems to require a version file
 set(version_file
