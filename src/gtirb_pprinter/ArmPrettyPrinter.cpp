@@ -210,6 +210,18 @@ void ArmPrettyPrinter::printOpIndirect(
   const cs_arm_op& op = detail.operands[index];
   assert(op.type == ARM_OP_MEM &&
          "printOpIndirect called without a memory operand");
+
+  // PC-relative operand
+  if (op.mem.base == ARM_REG_PC) {
+    if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
+      printSymbolicExpression(os, s, false);
+    } else {
+      if (op.mem.disp != 0)
+        os << "#" << op.mem.disp;
+    }
+    return;
+  }
+
   bool first = true;
   os << '[';
 
