@@ -362,16 +362,8 @@ export(PACKAGE gtirb_pprinter)
 
 # --- For the installed copy ---
 # Main config file for find_package, just includes the targets file.
-file(
-  WRITE "${CMAKE_CURRENT_BINARY_DIR}/export/gtirb_pprinterConfig.cmake"
-  "
-            function(check_gtirb_pprinter_branch GTIRB_PPRINTER_BRANCH_NAME)
-              if(NOT \"\$\{GTIRB_PPRINTER_BRANCH_NAME\}\" STREQUAL \"${PACKAGE_BRANCH}\")
-                message(SEND_ERROR \"The requested gtirb-pprinter branch $\{GTIRB_PPRINTER_BRANCH_NAME\} is not the branch which was used in the gtirb-pprinter build.  Gtirb-pprinter's package branch was: ${PACKAGE_BRANCH}.\")
-              endif()
-            endfunction()
-            include(\"\$\{CMAKE_CURRENT_LIST_DIR\}/gtirb_pprinterTargets.cmake\")
-         ")
+configure_file("${CMAKE_CURRENT_LIST_DIR}/gtirb_pprinterConfig.cmake.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/export/gtirb_pprinterConfig.cmake" @ONLY)
 # In this mode, find_package also seems to require a version file
 set(version_file
     "${CMAKE_CURRENT_BINARY_DIR}/gtirb_pprinterConfig-version.cmake")
