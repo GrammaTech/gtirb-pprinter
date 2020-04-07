@@ -321,6 +321,10 @@ void PrettyPrinterBase::printOverlapWarning(std::ostream& os,
 void PrettyPrinterBase::printBlockContents(std::ostream& os,
                                            const gtirb::CodeBlock& x,
                                            uint64_t offset) {
+  if (offset > x.getSize()) {
+    return;
+  }
+
   gtirb::Addr addr = *x.getAddress();
   printFunctionHeader(os, addr);
   os << '\n';
@@ -621,6 +625,10 @@ void PrettyPrinterBase::printBlock(std::ostream& os,
 void PrettyPrinterBase::printBlockContents(std::ostream& os,
                                            const gtirb::DataBlock& dataObject,
                                            uint64_t offset) {
+  if (offset > dataObject.getSize()) {
+    return;
+  }
+
   printComments(os, gtirb::Offset(dataObject.getUUID(), offset),
                 dataObject.getSize() - offset);
   if (this->debug)
