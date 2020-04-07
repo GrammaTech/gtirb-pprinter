@@ -424,7 +424,20 @@ void AArch64PrettyPrinter::printOpIndirect(std::ostream& os,
 }
 
 const PrintingPolicy& AArch64PrettyPrinterFactory::defaultPrintingPolicy() const {
-    return ElfPrettyPrinter::defaultPrintingPolicy();
+  static PrintingPolicy DefaultPolicy{
+      /// Sections to avoid printing.
+      {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
+       ".plt.sec", ".eh_frame_hdr"},
+
+      /// Functions to avoid printing.
+      {"_start", "deregister_tm_clones", "register_tm_clones",
+       "__do_global_dtors_aux", "frame_dummy", "__libc_csu_fini",
+       "__libc_csu_init", "_dl_relocate_static_pie", "call_weak_fn"},
+
+      /// Sections with possible data object exclusion.
+      {".init_array", ".fini_array"},
+  };
+  return DefaultPolicy;
 }
 
 std::unique_ptr<PrettyPrinterBase>
