@@ -22,13 +22,11 @@ COPY libcapstone-dev_4.0.1-1_amd64.deb ./
 RUN dpkg -i libcapstone-dev_4.0.1-1_amd64.deb
 
 # Install GTIRB
-COPY . /gt/gtirb-pprinter/
-WORKDIR /gt/gtirb-pprinter
-RUN GTIRB_BRANCH=$((grep -Eo "check_gtirb_branch\([^)]+" CMakeLists.txt || echo "master") | sed 's/check_gtirb_branch(//') && \
-    curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-ubuntu18 --output "gtirb-artifacts.zip"
+COPY gtirb-ubuntu18-artifacts.zip ./gtirb-artifacts.zip
 RUN unzip -o gtirb-artifacts.zip && dpkg -i GTIRB*.deb
 
 # Build gtirb-pprinter
+COPY . /gt/gtirb-pprinter/
 RUN rm -rf /gt/gtirb-pprinter/build /gt/gtirb-pprinter/CMakeCache.txt /gt/gtirb-pprinter/CMakeFiles /gt/gtirb-pprinter/CMakeScripts
 RUN mkdir -p /gt/gtirb-pprinter/build
 WORKDIR /gt/gtirb-pprinter/build
