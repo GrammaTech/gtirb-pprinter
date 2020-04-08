@@ -273,9 +273,10 @@ protected:
   virtual void printComments(std::ostream& os, const gtirb::Offset& offset,
                              uint64_t range);
   virtual void printCFIDirectives(std::ostream& os, const gtirb::Offset& ea);
-  virtual void printSymbolicData(std::ostream& os,
-                                 const gtirb::SymbolicExpression* symbolic,
-                                 const gtirb::DataBlock& dataObject);
+  virtual void printSymbolicData(
+      std::ostream& os,
+      const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE,
+      uint64_t Size);
   virtual void printSymbolicExpression(std::ostream& os,
                                        const gtirb::SymAddrConst* sexpr,
                                        bool inData = false);
@@ -308,8 +309,6 @@ protected:
   virtual void printSymbolDefinition(std::ostream& os,
                                      const gtirb::Symbol& symbol);
   virtual void printOverlapWarning(std::ostream& os, gtirb::Addr ea);
-  virtual void printDataBlockType(std::ostream& os,
-                                  const gtirb::DataBlock& dataObject);
   virtual void printSymbolDefinitionRelativeToPC(std::ostream& os,
                                                  const gtirb::Symbol& symbol,
                                                  gtirb::Addr pc) = 0;
@@ -371,6 +370,13 @@ protected:
   // so a 0-length block can be considered as being in the middle of other
   // blocks. This is different behavior than GTIRB's findBlocksOn methods.
   const gtirb::Node* getOverlappingBlock(const gtirb::Node* block) const;
+
+  // Currently, this only works for symbolic expressions in data blocks.
+  // For the symbolic expressions that are part of code blocks, Capstone
+  // always provides the information using the instruction context, so
+  // printCodeBlock, etc. doesn't bother to call this method.
+  uint64_t getSymbolicExpressionSize(
+      const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE) const;
 
 private:
   std::set<gtirb::Addr> functionEntry;
