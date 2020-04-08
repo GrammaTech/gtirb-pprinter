@@ -23,11 +23,10 @@ RUN cd /gt/apt-repo && dpkg-scanpackages . /dev/null > Packages
 RUN echo $'\ndeb [trusted=yes] file:/gt/apt-repo ./\n' >> /etc/apt/sources.list
 
 # install pprinter
-COPY .ci/test-install.cpp test-install.cpp
 RUN apt-get update && apt-get install -y --allow-unauthenticated gtirb_pprinter
 
 # build the c++ test
-ENV LD_LIBRARY_PATH /usr/local/lib:$LD_LIBRARY_PATH
+COPY .ci/test-install.cpp test-install.cpp
 RUN g++ test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs
 
 # run the c++ test
