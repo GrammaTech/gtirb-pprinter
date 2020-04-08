@@ -32,7 +32,7 @@ check-format:
     - export COMPILER_NAME=$(echo ${COMPILER} | sed 's/clang++/clang/;s/g++/gcc/;s/\(-[0-9]\)*//g' )
     - cp /u4/TARBALLS/debloat/pkgs/libcapstone-dev_4.0.1-1_amd64.deb ./
     - GTIRB_BRANCH=$((grep -Eo "check_gtirb_branch\([^)]+" CMakeLists.txt || echo "v1.2.1") | sed 's/check_gtirb_branch(//')
-    - echo "GTIRB_BRANCH is: $GTIRB_BRANCH"
+    - "echo \"GTIRB_BRANCH is: $GTIRB_BRANCH\""
     - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=tar-arch --output "gtirb-arch-artifacts.zip"
     - unzip -l gtirb-arch-artifacts.zip
     - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-ubuntu16 --output "gtirb-ubuntu16-artifacts.zip"
