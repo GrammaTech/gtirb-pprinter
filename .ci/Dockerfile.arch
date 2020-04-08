@@ -12,7 +12,6 @@ RUN unzip gtirb-artifacts.zip && \
 
 # Build gtirb-pprinter
 COPY . /gt/gtirb-pprinter/
-RUN rm -rf /gt/gtirb-pprinter/build /gt/gtirb-pprinter/CMakeCache.txt /gt/gtirb-pprinter/CMakeFiles /gt/gtirb-pprinter/CMakeScripts
 RUN mkdir -p /gt/gtirb-pprinter/build
 WORKDIR /gt/gtirb-pprinter/build
 ARG CXX_COMPILER="g++"
