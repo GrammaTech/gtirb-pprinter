@@ -27,9 +27,7 @@ RUN GTIRB_BRANCH=$((grep -Eo "check_gtirb_branch\([^)]+" CMakeLists.txt || echo 
 RUN unzip gtirb-artifacts.zip
 
 # setup apt repository
-COPY *.deb ./
-RUN mkdir -p /gt/apt-repo
-RUN cp *.deb /gt/apt-repo/
+COPY *.deb /gt/apt-repo/
 RUN cd /gt/apt-repo && dpkg-scanpackages . /dev/null > Packages
 RUN echo $'\ndeb file:/gt/apt-repo ./\n' >> /etc/apt/sources.list
 
