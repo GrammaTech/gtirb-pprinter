@@ -653,15 +653,7 @@ void PrettyPrinterBase::printNonZeroDataBlock(
     return;
   }
 
-  const auto* foundSymbolic =
-      dataObject.getByteInterval()->getSymbolicExpression(
-          dataObject.getOffset() + offset);
-  if (foundSymbolic) {
-    os << syntax.tab();
-    printSymbolicData(os, foundSymbolic, dataObject);
-    os << '\n';
-    return;
-  }
+  // If this is a string, print it as one.
   const auto* types = module.getAuxData<gtirb::schema::Encodings>();
   if (types) {
     auto foundType = types->find(dataObject.getUUID());
@@ -673,11 +665,27 @@ void PrettyPrinterBase::printNonZeroDataBlock(
     }
   }
 
-  auto Range = dataObject.bytes<uint8_t>();
-  for (auto byte :
-       boost::make_iterator_range(Range.begin() + offset, Range.end())) {
+  // Otherwise, print each byte and/or symbolic expression in order.
+  auto ByteRange = dataObject.bytes<uint8_t>();
+  uint64_t ByteI = dataObject.getOffset() + offset;
+  for (auto ByteIt = ByteRange.begin() + offset; ByteIt != ByteRange.end();) {
     os << syntax.tab();
-    printByte(os, static_cast<std::byte>(static_cast<unsigned char>(byte)));
+
+    if (auto FoundSymExprRange =
+            dataObject.getByteInterval()->findSymbolicExpressionsAtOffset(
+                ByteI);
+        !FoundSymExprRange.empty()) {
+      const auto SEE = FoundSymExprRange.front();
+      auto Size = getSymbolicExpressionSize(SEE);
+      printSymbolicData(os, SEE, Size);
+      ByteI += Size;
+      ByteIt += Size;
+    } else {
+      printByte(os,
+                static_cast<std::byte>(static_cast<unsigned char>(*ByteIt)));
+      ByteI++;
+      ByteIt++;
+    }
   }
 }
 
@@ -739,28 +747,10 @@ void PrettyPrinterBase::printCFIDirectives(std::ostream& os,
 }
 
 void PrettyPrinterBase::printSymbolicData(
-    std::ostream& os, const gtirb::SymbolicExpression* symbolic,
-    const gtirb::DataBlock& dataObject) {
-  printDataBlockType(os, dataObject);
-  os << " ";
-  if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
-    printSymbolicExpression(os, s, true);
-  } else if (const auto* sa = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
-    printSymbolicExpression(os, sa, true);
-  }
-}
-
-void PrettyPrinterBase::printDataBlockType(std::ostream& os,
-                                           const gtirb::DataBlock& dataObject) {
-  const auto* types = module.getAuxData<gtirb::schema::Encodings>();
-  if (types) {
-    auto foundType = types->find(dataObject.getUUID());
-    if (foundType != types->end()) {
-      os << "." << foundType->second;
-      return;
-    }
-  }
-  switch (dataObject.getSize()) {
+    std::ostream& os,
+    const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE,
+    uint64_t Size) {
+  switch (Size) {
   case 1:
     os << syntax.byteData();
     break;
@@ -774,9 +764,21 @@ void PrettyPrinterBase::printDataBlockType(std::ostream& os,
     os << syntax.quadData();
     break;
   default:
-    assert(!"Data object with unknown type has incompatible size");
+    assert(!"Can't print symbolic expression of given size!");
     break;
   }
+
+  os << " ";
+
+  if (const auto* s =
+          std::get_if<gtirb::SymAddrConst>(&SEE.getSymbolicExpression())) {
+    printSymbolicExpression(os, s, true);
+  } else if (const auto* sa = std::get_if<gtirb::SymAddrAddr>(
+                 &SEE.getSymbolicExpression())) {
+    printSymbolicExpression(os, sa, true);
+  }
+
+  os << "\n";
 }
 
 void PrettyPrinterBase::printSymbolicExpression(
@@ -1065,6 +1067,44 @@ PrettyPrinterBase::getOverlappingBlock(const gtirb::Node* Block) const {
   return nullptr;
 }
 
+uint64_t PrettyPrinterBase::getSymbolicExpressionSize(
+    const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE) const {
+  // Check if it is present in aux data.
+  if (auto* SymExprSizes =
+          SEE.getByteInterval()
+              ->getSection()
+              ->getModule()
+              ->getAuxData<gtirb::schema::SymbolicExpressionSizes>()) {
+    gtirb::Offset Off{SEE.getByteInterval()->getUUID(), SEE.getOffset()};
+    if (auto It = SymExprSizes->find(Off); It != SymExprSizes->end()) {
+      return It->second;
+    }
+  }
+
+  // If not, it's the size of that largest data block at this address that is:
+  // (a) a power of 2
+  // (b) a pointer-width or smaller
+  const gtirb::DataBlock* LargestBlock = nullptr;
+  for (auto& Block :
+       SEE.getByteInterval()->findDataBlocksAtOffset(SEE.getOffset())) {
+    auto BlockSize = Block.getSize();
+    if (BlockSize != 1 && BlockSize != 2 && BlockSize != 4 && BlockSize != 8)
+      continue;
+
+    if (!LargestBlock || BlockSize > LargestBlock->getSize()) {
+      LargestBlock = &Block;
+    }
+  }
+
+  if (LargestBlock) {
+    return LargestBlock->getSize();
+  }
+
+  // No size found, report an error.
+  assert(!"Size of symbolic expression could not be determined!");
+  return 0;
+}
+
 void registerAuxDataTypes() {
   using namespace gtirb::schema;
   gtirb::AuxDataContainer::registerAuxDataType<Comments>();
@@ -1077,6 +1117,7 @@ void registerAuxDataTypes() {
   gtirb::AuxDataContainer::registerAuxDataType<Libraries>();
   gtirb::AuxDataContainer::registerAuxDataType<LibraryPaths>();
   gtirb::AuxDataContainer::registerAuxDataType<ElfSymbolInfo>();
+  gtirb::AuxDataContainer::registerAuxDataType<SymbolicExpressionSizes>();
 }
 
 } // namespace gtirb_pprint

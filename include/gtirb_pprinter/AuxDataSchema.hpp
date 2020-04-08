@@ -70,6 +70,12 @@ struct ElfSymbolInfo {
       Type;
 };
 
+/// \brief Auxiliary data that stores the size of symbolic expressions.
+struct SymbolicExpressionSizes {
+  static constexpr const char* Name = "symbolicExpressionSizes";
+  typedef std::map<gtirb::Offset, uint64_t> Type;
+};
+
 } // namespace schema
 } // namespace gtirb
 
