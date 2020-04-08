@@ -4,8 +4,6 @@ RUN pacman -Syu --noconfirm autoconf automake boost capstone clang cmake \
     doxygen fakeroot gcc git libtool make mcpp pkg-config protobuf python3 \
     unzip wget zlib
 
-RUN ldconfig
-
 # Install GTIRB
 COPY . /gt/gtirb-pprinter/
 WORKDIR /gt/
