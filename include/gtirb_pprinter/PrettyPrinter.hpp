@@ -79,6 +79,30 @@ void setDefaultSyntax(const std::string& format, const std::string& syntax);
 /// Return the default syntax for a file format.
 std::optional<std::string> getDefaultSyntax(const std::string& format);
 
+/// A set of options to give to PrettyPrinterBase's policy in one category.
+/// Essentially, contains whether or not a set of strings to skip is cleared,
+/// and what strings are added/removed from the set to skip.
+class PolicyOptions {
+public:
+  void skip(const std::string& s) { m_skip.insert(s); }
+
+  void keep(const std::string& s) { m_keep.insert(s); }
+
+  void useDefaults(bool value = true) { m_use_defaults = value; }
+
+  void apply(std::unordered_set<std::string>& c) const {
+    if (!m_use_defaults) {
+      c.clear();
+    }
+    c.insert(m_skip.begin(), m_skip.end());
+    c.erase(m_keep.begin(), m_keep.end());
+  }
+
+private:
+  std::unordered_set<std::string> m_skip, m_keep;
+  bool m_use_defaults = true;
+};
+
 /// The primary interface for pretty-printing GTIRB objects. The typical flow
 /// is to create a PrettyPrinter, configure it (e.g., set the output syntax,
 /// enable/disable debugging messages, etc.), then print one or more IR objects.
@@ -114,16 +138,6 @@ public:
   /// \c false.
   bool getDebug() const;
 
-  /// Skip the named function when printing.
-  ///
-  /// \param functionName name of the function to skip
-  void skipFunction(const std::string& functionName);
-
-  /// Do not skip the named function when printing.
-  ///
-  /// \param functionName name of the function to keep
-  void keepFunction(const std::string& functionName);
-
   /// Pretty-print the IR module to a stream. The default output target is
   /// deduced from the file format of the IR if it is not explicitly set with
   /// \link setTarget.
@@ -137,12 +151,22 @@ public:
   std::error_condition print(std::ostream& stream, gtirb::Context& context,
                              gtirb::Module& module) const;
 
+  PolicyOptions& symbolPolicy() { return m_symbol_policy; }
+  const PolicyOptions& symbolPolicy() const { return m_symbol_policy; }
+
+  PolicyOptions& sectionPolicy() { return m_section_policy; }
+  const PolicyOptions& sectionPolicy() const { return m_section_policy; }
+
+  PolicyOptions& arraySectionPolicy() { return m_array_section_policy; }
+  const PolicyOptions& arraySectionPolicy() const {
+    return m_array_section_policy;
+  }
+
 private:
-  std::set<std::string> m_skip_funcs;
-  std::set<std::string> m_keep_funcs;
   std::string m_format;
   std::string m_syntax;
   DebugStyle m_debug;
+  PolicyOptions m_symbol_policy, m_section_policy, m_array_section_policy;
 };
 
 struct PrintingPolicy {
