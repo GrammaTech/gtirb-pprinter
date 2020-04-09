@@ -23,13 +23,6 @@ int main(int argc, char** argv) {
   desc.add_options()("ir,i", po::value<std::string>(), "gtirb file to print.");
   desc.add_options()("binary,b", po::value<std::string>(),
                      "The name of the binary output file.");
-  desc.add_options()("keep-functions,k",
-                     po::value<std::vector<std::string>>()->multitoken(),
-                     "Print the given functions even if they are skipped by "
-                     "default (e.g. _start)");
-  desc.add_options()("skip-functions,n",
-                     po::value<std::vector<std::string>>()->multitoken(),
-                     "Do not print the given functions.");
   desc.add_options()("compiler-args,c",
                      po::value<std::vector<std::string>>()->multitoken(),
                      "Additional arguments to pass to the compiler");
@@ -38,6 +31,40 @@ int main(int argc, char** argv) {
                      "Library paths to be passed to the linker");
   desc.add_options()("syntax,s", po::value<std::string>(),
                      "The syntax of the assembly file to pass to the compiler");
+
+  desc.add_options()("keep-symbol",
+                     po::value<std::vector<std::string>>()->multitoken(),
+                     "Print the given symbol even if they are skipped by "
+                     "default (e.g. _start).");
+  desc.add_options()("skip-symbol",
+                     po::value<std::vector<std::string>>()->multitoken(),
+                     "Do not print the given symbol.");
+  desc.add_options()("keep-all-symbols",
+                     "Do not use the default list of symbols to skip.");
+
+  desc.add_options()("keep-section",
+                     po::value<std::vector<std::string>>()->multitoken(),
+                     "Print the given section even if they are skipped by "
+                     "default (e.g. .text).");
+  desc.add_options()("skip-section",
+                     po::value<std::vector<std::string>>()->multitoken(),
+                     "Do not print the given section.");
+  desc.add_options()("keep-all-sections",
+                     "Do not use the default list of sections to skip.");
+
+  desc.add_options()(
+      "keep-array-section", po::value<std::vector<std::string>>()->multitoken(),
+      "Print the given array section even if they are skipped by "
+      "default (e.g. .fini_array).");
+  desc.add_options()("skip-array-section",
+                     po::value<std::vector<std::string>>()->multitoken(),
+                     "Do not print the contents of the given array section.");
+  desc.add_options()("keep-all-array-sections",
+                     "Do not use the default list of array sections to skip.");
+
+  desc.add_options()("keep-all,k",
+                     "Combination of --keep-all-symbols, --keep-all-sections, "
+                     "and --keep-all-array-sections.");
 
   po::positional_options_description pd;
   pd.add("ir", -1);
@@ -117,17 +144,53 @@ int main(int argc, char** argv) {
   }
   pp.setTarget(std::move(target));
 
-  if (vm.count("keep-functions") != 0) {
-    for (const auto& keep :
-         vm["keep-functions"].as<std::vector<std::string>>()) {
-      pp.keepFunction(keep);
+  if (vm.count("keep-all") != 0) {
+    pp.symbolPolicy().useDefaults(false);
+    pp.sectionPolicy().useDefaults(false);
+    pp.arraySectionPolicy().useDefaults(false);
+  }
+
+  if (vm.count("keep-all-symbols") != 0) {
+    pp.symbolPolicy().useDefaults(false);
+  }
+  if (vm.count("keep-symbol") != 0) {
+    for (const auto& s : vm["keep-symbol"].as<std::vector<std::string>>()) {
+      pp.symbolPolicy().keep(s);
+    }
+  }
+  if (vm.count("skip-symbol") != 0) {
+    for (const auto& s : vm["skip-symbol"].as<std::vector<std::string>>()) {
+      pp.symbolPolicy().skip(s);
     }
   }
 
-  if (vm.count("skip-functions") != 0) {
-    for (const auto& skip :
-         vm["skip-functions"].as<std::vector<std::string>>()) {
-      pp.skipFunction(skip);
+  if (vm.count("keep-all-sections") != 0) {
+    pp.sectionPolicy().useDefaults(false);
+  }
+  if (vm.count("keep-section") != 0) {
+    for (const auto& s : vm["keep-section"].as<std::vector<std::string>>()) {
+      pp.sectionPolicy().keep(s);
+    }
+  }
+  if (vm.count("skip-section") != 0) {
+    for (const auto& s : vm["skip-section"].as<std::vector<std::string>>()) {
+      pp.sectionPolicy().skip(s);
+    }
+  }
+
+  if (vm.count("keep-all-array-sections") != 0) {
+    pp.sectionPolicy().useDefaults(false);
+  }
+  if (vm.count("keep-array-section") != 0) {
+    for (const auto& s :
+         vm["keep-array-section"].as<std::vector<std::string>>()) {
+      pp.arraySectionPolicy().keep(s);
+    }
+  }
+  if (vm.count("skip-array-section") != 0) {
+    for (const auto& s :
+         vm["skip-array-section"].as<std::vector<std::string>>()) {
+      pp.arraySectionPolicy().skip(s);
     }
   }
 
