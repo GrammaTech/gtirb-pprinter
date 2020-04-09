@@ -137,9 +137,9 @@ std::error_condition PrettyPrinter::print(std::ostream& stream,
   // Configure printing policy.
   PrintingPolicy policy(factory->defaultPrintingPolicy());
   policy.debug = m_debug;
-  m_symbol_policy.apply(policy.skipFunctions);
-  m_section_policy.apply(policy.skipSections);
-  m_array_section_policy.apply(policy.arraySections);
+  SymbolPolicy.apply(policy.skipFunctions);
+  SectionPolicy.apply(policy.skipSections);
+  ArraySectionPolicy.apply(policy.arraySections);
 
   // Create the pretty printer and print the IR.
   factory->create(context, module, policy)->print(stream);

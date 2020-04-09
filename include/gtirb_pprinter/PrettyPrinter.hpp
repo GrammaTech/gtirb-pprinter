@@ -84,23 +84,23 @@ std::optional<std::string> getDefaultSyntax(const std::string& format);
 /// and what strings are added/removed from the set to skip.
 class PolicyOptions {
 public:
-  void skip(const std::string& s) { m_skip.insert(s); }
+  void skip(const std::string& s) { Skip.insert(s); }
 
-  void keep(const std::string& s) { m_keep.insert(s); }
+  void keep(const std::string& s) { Keep.insert(s); }
 
-  void useDefaults(bool value = true) { m_use_defaults = value; }
+  void useDefaults(bool value = true) { UseDefaults = value; }
 
   void apply(std::unordered_set<std::string>& c) const {
-    if (!m_use_defaults) {
+    if (!UseDefaults) {
       c.clear();
     }
-    c.insert(m_skip.begin(), m_skip.end());
-    c.erase(m_keep.begin(), m_keep.end());
+    c.insert(Skip.begin(), Skip.end());
+    c.erase(Keep.begin(), Keep.end());
   }
 
 private:
-  std::unordered_set<std::string> m_skip, m_keep;
-  bool m_use_defaults = true;
+  std::unordered_set<std::string> Skip, Keep;
+  bool UseDefaults = true;
 };
 
 /// The primary interface for pretty-printing GTIRB objects. The typical flow
@@ -151,22 +151,20 @@ public:
   std::error_condition print(std::ostream& stream, gtirb::Context& context,
                              gtirb::Module& module) const;
 
-  PolicyOptions& symbolPolicy() { return m_symbol_policy; }
-  const PolicyOptions& symbolPolicy() const { return m_symbol_policy; }
+  PolicyOptions& symbolPolicy() { return SymbolPolicy; }
+  const PolicyOptions& symbolPolicy() const { return SymbolPolicy; }
 
-  PolicyOptions& sectionPolicy() { return m_section_policy; }
-  const PolicyOptions& sectionPolicy() const { return m_section_policy; }
+  PolicyOptions& sectionPolicy() { return SectionPolicy; }
+  const PolicyOptions& sectionPolicy() const { return SectionPolicy; }
 
-  PolicyOptions& arraySectionPolicy() { return m_array_section_policy; }
-  const PolicyOptions& arraySectionPolicy() const {
-    return m_array_section_policy;
-  }
+  PolicyOptions& arraySectionPolicy() { return ArraySectionPolicy; }
+  const PolicyOptions& arraySectionPolicy() const { return ArraySectionPolicy; }
 
 private:
   std::string m_format;
   std::string m_syntax;
   DebugStyle m_debug;
-  PolicyOptions m_symbol_policy, m_section_policy, m_array_section_policy;
+  PolicyOptions SymbolPolicy, SectionPolicy, ArraySectionPolicy;
 };
 
 struct PrintingPolicy {
