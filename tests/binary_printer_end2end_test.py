@@ -10,7 +10,7 @@ class TestBinaryGeneration(unittest.TestCase):
     def test_generate_binary(self):
         output = subprocess.check_output(
             [
-                "gtirb-binary-printer",
+                "gtirb-pprinter",
                 "--ir",
                 str(two_modules_gtirb),
                 "-b",

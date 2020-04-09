@@ -63,10 +63,11 @@ ld hello.o -o hello
 ./hello
 ```
 ### Generate a new binary
-gtirb-binary-printer generates a new binary by calling `gcc` directly.
+The `--binary` flag to gtirb-pprinter generates a new binary by
+calling `gcc` directly.
 
 ```sh
-gtirb-binary-printer hello.gtirb --binary hello
+gtirb-pprinter hello.gtirb --binary hello
 ```
 
 This option admits an argument `--library-paths` or `-L` to
@@ -74,7 +75,7 @@ specify additional paths where libraries might be located.
 
 For example:
 ```sh
-gtirb-binary-printer hello.gtirb --binary hello -L . -L /usr/local/lib
+gtirb-pprinter hello.gtirb --binary hello -L . -L /usr/local/lib
 ```
 
 ## AuxData Used by the Pretty Printer
@@ -94,12 +95,5 @@ associated types and contents in this table.
 | encodings            | `std::map<gtirb::UUID,std::string>`            | Map from (typed) data objects to the encoding of the data,  expressed as a std::string containing an assembler encoding specifier: "string", "uleb128" or "sleb128".     |
 | elfSectionProperties | `std::map<gtirb::UUID, std::tuple<uint64_t, uint64_t>>` | Map from section UUIDs to tuples with the ELF section types and flags. |
 | cfiDirectives   | `std::map<gtirb::Offset, std::vector<std::tuple<std::string, std::vector<int64_t>, gtirb::UUID>>>` | Map from Offsets to  vector of cfi directives. A cfi directive contains: a string describing the directive, a vector  of numeric arguments, and an optional symbolic argument (represented with the UUID of the symbol). |
-
-## AuxData Used by the Binary Printer
-
-In order to generate new binaries, gtirb-binary-printer also uses the following tables:
-
-| Key              | Type                             | Purpose                                                                          |
-|------------------|----------------------------------|----------------------------------------------------------------------------------|
-| libraries        | `std::vector<std::string>`       | Names of the libraries that are needed.                                          |
-| libraryPaths     | `std::vector<std::string>`       | Paths contained in the rpath of the binary                                       |
+| libraries        | `std::vector<std::string>`       | Names of the libraries that are needed when linking a binary                                          |
+| libraryPaths     | `std::vector<std::string>`       | Paths contained in the rpath when linking a binary                                       |

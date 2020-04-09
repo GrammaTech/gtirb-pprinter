@@ -42,6 +42,16 @@ int main(int argc, char** argv) {
       "prints to the standard output. If the IR has more "
       "than one module, files of the form FILE, FILE_2 ... "
       "FILE_n with the content of each of the modules");
+  desc.add_options()("binary,b", po::value<std::string>(),
+                     "The name of the binary output file.");
+  desc.add_options()("compiler-args,c",
+                     po::value<std::vector<std::string>>()->multitoken(),
+                     "Additional arguments to pass to the compiler. Only used "
+                     "for binary printing.");
+  desc.add_options()("library-paths,L",
+                     po::value<std::vector<std::string>>()->multitoken(),
+                     "Library paths to be passed to the linker. Only used "
+                     "for binary printing.");
   desc.add_options()("module,m", po::value<int>()->default_value(0),
                      "The index of the module to be printed if printing to the "
                      "standard output.");
@@ -215,7 +225,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  // Do we write it to a file?
+  // Write ASM to a file.
   if (vm.count("asm") != 0) {
     const auto asmPath = fs::path(vm["asm"].as<std::string>());
     if (!asmPath.has_filename()) {
@@ -237,7 +247,19 @@ int main(int argc, char** argv) {
       }
       ++i;
     }
-    // or to the standard output
+    // Link directly to a binary.
+  } else if (vm.count("binary") != 0) {
+    gtirb_bprint::ElfBinaryPrinter binaryPrinter(true);
+    const auto binaryPath = fs::path(vm["binary"].as<std::string>());
+    std::vector<std::string> extraCompilerArgs;
+    if (vm.count("compiler-args") != 0)
+      extraCompilerArgs = vm["compiler-args"].as<std::vector<std::string>>();
+    std::vector<std::string> libraryPaths;
+    if (vm.count("library-paths") != 0)
+      libraryPaths = vm["library-paths"].as<std::vector<std::string>>();
+    binaryPrinter.link(binaryPath.string(), extraCompilerArgs, libraryPaths, pp,
+                       ctx, *ir);
+    // Write ASM to the standard output.
   } else {
     gtirb::Module* module = nullptr;
     int i = 0;
