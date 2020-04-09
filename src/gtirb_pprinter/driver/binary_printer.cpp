@@ -154,13 +154,13 @@ int main(int argc, char** argv) {
     pp.symbolPolicy().useDefaults(false);
   }
   if (vm.count("keep-symbol") != 0) {
-    for (const auto& s : vm["keep-symbol"].as<std::vector<std::string>>()) {
-      pp.symbolPolicy().keep(s);
+    for (const auto& S : vm["keep-symbol"].as<std::vector<std::string>>()) {
+      pp.symbolPolicy().keep(S);
     }
   }
   if (vm.count("skip-symbol") != 0) {
-    for (const auto& s : vm["skip-symbol"].as<std::vector<std::string>>()) {
-      pp.symbolPolicy().skip(s);
+    for (const auto& S : vm["skip-symbol"].as<std::vector<std::string>>()) {
+      pp.symbolPolicy().skip(S);
     }
   }
 
@@ -168,13 +168,13 @@ int main(int argc, char** argv) {
     pp.sectionPolicy().useDefaults(false);
   }
   if (vm.count("keep-section") != 0) {
-    for (const auto& s : vm["keep-section"].as<std::vector<std::string>>()) {
-      pp.sectionPolicy().keep(s);
+    for (const auto& S : vm["keep-section"].as<std::vector<std::string>>()) {
+      pp.sectionPolicy().keep(S);
     }
   }
   if (vm.count("skip-section") != 0) {
-    for (const auto& s : vm["skip-section"].as<std::vector<std::string>>()) {
-      pp.sectionPolicy().skip(s);
+    for (const auto& S : vm["skip-section"].as<std::vector<std::string>>()) {
+      pp.sectionPolicy().skip(S);
     }
   }
 
@@ -182,15 +182,15 @@ int main(int argc, char** argv) {
     pp.sectionPolicy().useDefaults(false);
   }
   if (vm.count("keep-array-section") != 0) {
-    for (const auto& s :
+    for (const auto& S :
          vm["keep-array-section"].as<std::vector<std::string>>()) {
-      pp.arraySectionPolicy().keep(s);
+      pp.arraySectionPolicy().keep(S);
     }
   }
   if (vm.count("skip-array-section") != 0) {
-    for (const auto& s :
+    for (const auto& S :
          vm["skip-array-section"].as<std::vector<std::string>>()) {
-      pp.arraySectionPolicy().skip(s);
+      pp.arraySectionPolicy().skip(S);
     }
   }
 
