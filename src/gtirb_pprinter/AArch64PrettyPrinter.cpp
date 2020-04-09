@@ -19,6 +19,19 @@
 
 #include <capstone/capstone.h>
 
+struct SymbolPrefixInfo {
+    uint64_t index;
+    std::string prefix;
+};
+
+namespace gtirb {
+    namespace schema {
+        struct SymbolPrefixes {
+            static constexpr const char* Name = "symbolPrefixes";
+            typedef std::map<gtirb::Addr, SymbolPrefixInfo> Type;
+        };
+    }
+}
 namespace gtirb_pprint {
 
 AArch64PrettyPrinter::AArch64PrettyPrinter(gtirb::Context& context_,
@@ -147,6 +160,17 @@ void AArch64PrettyPrinter::printOperand(std::ostream& os,
         default:
             std::cerr << "invalid operand\n";
             exit(1);
+    }
+}
+
+void AArch64PrettyPrinter::printPrefix(std::ostream& os,
+        const cs_insn& inst, uint64_t index) {
+    auto *SymbolPrefix = module.getAuxData<gtirb::schema::SymbolPrefixes>();
+    // TODO: what if multiple? diff indexes?
+    for (const auto& pair : *SymbolPrefix) {
+        if (pair.first == gtirb::Addr(inst.address) && index == pair.second.index) {
+            os << pair.second.prefix;
+        }
     }
 }
 
@@ -361,7 +385,7 @@ void AArch64PrettyPrinter::printOpImmediate(std::ostream& os,
         if (!is_jump) {
             os << ' ';
         }
-        if (prefix_curr) os << ":lo12:";
+        printPrefix(os, inst, index);
         this->printSymbolicExpression(os, s, !is_jump);
     } else {
         os << "#" << op.imm;
@@ -375,7 +399,6 @@ void AArch64PrettyPrinter::printOpImmediate(std::ostream& os,
 void AArch64PrettyPrinter::printOpIndirect(std::ostream& os,
         const gtirb::SymbolicExpression* symbolic,
         const cs_insn& inst, uint64_t index) {
-    if (symbolic) os << "<indirect_symbol>";
     const cs_arm64& detail = inst.detail->arm64;
     const cs_arm64_op& op = detail.operands[index];
     assert(op.type == ARM64_OP_MEM &&
@@ -396,8 +419,13 @@ void AArch64PrettyPrinter::printOpIndirect(std::ostream& os,
         if (!first) {
             os << ",";
         }
+        if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
+            printPrefix(os, inst, index);
+            printSymbolicExpression(os, s, false);
+        } else {
+            os << "#" << op.mem.disp;
+        }
         first = false;
-        os << "#" << op.mem.disp;
     }
 
     // index register

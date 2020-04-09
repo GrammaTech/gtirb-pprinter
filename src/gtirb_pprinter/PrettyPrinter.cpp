@@ -312,7 +312,6 @@ void PrettyPrinterBase::printBlock(std::ostream& os,
 
   gtirb::Offset offset(x.getUUID(), 0);
   for (size_t i = 0; i < count; i++) {
-      prefix_curr = (i > 0 && insn[i-1].id == ARM64_INS_ADRP && insn[i].id == ARM64_INS_ADD);
       fixupInstruction(insn[i]);
       printInstruction(os, insn[i], offset);
       offset.Displacement += insn[i].size;
