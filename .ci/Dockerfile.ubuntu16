@@ -19,9 +19,6 @@ RUN apt-get -y install software-properties-common && \
     apt-get -y update && \
     apt-get -y install gcc-7 g++-7
 
-# Install libstdc++
-RUN apt-get -y install libstdc++-7-dev
-
 # Install Clang++
 RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|apt-key add - && \
     add-apt-repository 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-8 main' && \
@@ -29,6 +26,9 @@ RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|apt-key add - && \
     apt-get -y install clang-8 && \
     update-alternatives --install /usr/bin/clang clang /usr/bin/clang-8 60 \
                         --slave /usr/bin/clang++ clang++ /usr/bin/clang++-8
+
+# Install libstdc++ (this is required when building with both g++ and clang++)
+RUN apt-get -y install libstdc++-7-dev
 
 # Install CMake
 RUN curl -SL https://cmake.org/files/v$CMAKE_VERSION/cmake-$CMAKE_VERSION.0-Linux-x86_64.tar.gz \
