@@ -2,8 +2,6 @@ FROM ubuntu:18.04
 
 ARG BOOST_VERSION=1.67
 
-ENV LD_LIBRARY_PATH /usr/local/lib:$LD_LIBRARY_PATH
-
 # Use bash for more convenient variable substitution syntax
 SHELL ["/bin/bash", "-c"]
 
