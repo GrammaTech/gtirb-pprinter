@@ -247,8 +247,9 @@ int main(int argc, char** argv) {
       }
       ++i;
     }
-    // Link directly to a binary.
-  } else if (vm.count("binary") != 0) {
+  }
+  // Link directly to a binary.
+  if (vm.count("binary") != 0) {
     gtirb_bprint::ElfBinaryPrinter binaryPrinter(true);
     const auto binaryPath = fs::path(vm["binary"].as<std::string>());
     std::vector<std::string> extraCompilerArgs;
@@ -259,8 +260,9 @@ int main(int argc, char** argv) {
       libraryPaths = vm["library-paths"].as<std::vector<std::string>>();
     binaryPrinter.link(binaryPath.string(), extraCompilerArgs, libraryPaths, pp,
                        ctx, *ir);
-    // Write ASM to the standard output.
-  } else {
+  }
+  // Write ASM to the standard output if no other action was taken.
+  if ((vm.count("asm") == 0) && (vm.count("binary") == 0)) {
     gtirb::Module* module = nullptr;
     int i = 0;
     for (gtirb::Module& m : ir->modules()) {
