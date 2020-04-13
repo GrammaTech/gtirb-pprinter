@@ -34,13 +34,14 @@ int main(int argc, char** argv) {
 
   desc.add_options()("keep-symbol",
                      po::value<std::vector<std::string>>()->multitoken(),
-                     "Print the given symbol even if they are skipped by "
-                     "default (e.g. _start).");
+                     "Print the given function/symbol even if they are skipped"
+                     " by default (e.g. _start).");
   desc.add_options()("skip-symbol",
                      po::value<std::vector<std::string>>()->multitoken(),
-                     "Do not print the given symbol.");
+                     "Do not print the given function/symbol.");
   desc.add_options()("keep-all-symbols",
-                     "Do not use the default list of symbols to skip.");
+                     "Do not use the default list of functions and symbols to "
+                     "skip.");
 
   desc.add_options()("keep-section",
                      po::value<std::vector<std::string>>()->multitoken(),
