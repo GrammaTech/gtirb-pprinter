@@ -358,19 +358,6 @@ protected:
 
   bool isAmbiguousSymbol(const std::string& ea) const;
 
-  // If the input block should be considered as overlapping another block,
-  // this function returns that block, else it returns nullptr. It has
-  // the following guarantees:
-  // 1. It is a stable ordering. Calling this function on the same block will
-  // yield the same result, even if 3 or more blocks overlap each other.
-  // 2. It will always yield the overlapping block that comes first in
-  // iteration order. This implies that it will find the overlapping block
-  // that starts the soonest.
-  // 3. It will treat 0-length blocks at 1-length for the purpose of overlaps,
-  // so a 0-length block can be considered as being in the middle of other
-  // blocks. This is different behavior than GTIRB's findBlocksOn methods.
-  const gtirb::Node* getOverlappingBlock(const gtirb::Node* block) const;
-
   // Currently, this only works for symbolic expressions in data blocks.
   // For the symbolic expressions that are part of code blocks, Capstone
   // always provides the information using the instruction context, so
@@ -381,8 +368,6 @@ protected:
 private:
   std::set<gtirb::Addr> functionEntry;
   std::set<gtirb::Addr> functionLastBlock;
-  std::unordered_map<const gtirb::Node*, const gtirb::Node*> overlapCache;
-  std::unordered_map<const gtirb::Node*, uint64_t> overlapOffsetCache;
   gtirb::Addr programCounter;
 
   std::string getForwardedSymbolEnding(const gtirb::Symbol* symbol,

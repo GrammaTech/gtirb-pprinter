@@ -187,87 +187,6 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
       functionLastBlock.insert(lastAddr);
     }
   }
-
-  // Set up overlap cache, for quickly detecting what blocks should be
-  // considered the "base" block in terms of symbol printing when blocks
-  // overlap. See getOverlappingBlock for details.
-  // We also set up the "overlap offset cache" here, which helps us calculate
-  // how many bytes are trailing after the overlapping region in the case of
-  // overlaps. See printBlockImpl for details.
-  for (auto& BI : module.byte_intervals()) {
-    std::multimap<uint64_t, gtirb::Node*> BlocksOverlapping;
-
-    for (auto& B : BI.blocks()) {
-      // Get offset and size of block.
-      uint64_t Offset, Size;
-
-      if (auto* CB = dyn_cast<gtirb::CodeBlock>(&B)) {
-        Offset = CB->getOffset();
-        Size = CB->getSize();
-      } else if (auto* DB = dyn_cast<gtirb::DataBlock>(&B)) {
-        Offset = DB->getOffset();
-        Size = DB->getSize();
-      } else {
-        assert(!"Non-block in block iterator!");
-      }
-
-      // Find value to insert into overlapCache.
-      const gtirb::Node* Earliest = nullptr;
-      uint64_t EarliestOffset;
-      const gtirb::Node* Latest = nullptr;
-      uint64_t LatestOffset;
-
-      auto Range = BlocksOverlapping.equal_range(Offset);
-      for (auto& [OtherOffset, OtherBlock] :
-           boost::make_iterator_range(Range.first, Range.second)) {
-        if (!Earliest || OtherOffset < EarliestOffset) {
-          Earliest = OtherBlock;
-          EarliestOffset = OtherOffset;
-        }
-
-        uint64_t OtherBegin;
-        if (auto* CB = dyn_cast<gtirb::CodeBlock>(OtherBlock)) {
-          OtherBegin = CB->getOffset();
-        } else if (auto* DB = dyn_cast<gtirb::DataBlock>(OtherBlock)) {
-          OtherBegin = DB->getOffset();
-        } else {
-          assert(!"Non-block in block iterator!");
-        }
-
-        if (!Latest || OtherBegin > LatestOffset) {
-          Latest = OtherBlock;
-          LatestOffset = OtherBegin;
-        }
-      }
-
-      // Update the caches.
-      if (Earliest) {
-        overlapCache[&B] = Earliest;
-      }
-
-      if (Latest) {
-        uint64_t LatestSize;
-        if (auto* CB = dyn_cast<gtirb::CodeBlock>(Latest)) {
-          LatestSize = CB->getSize();
-        } else if (auto* DB = dyn_cast<gtirb::DataBlock>(Latest)) {
-          LatestSize = DB->getSize();
-        } else {
-          assert(!"Non-block in block iterator!");
-        }
-
-        overlapOffsetCache[&B] = (LatestOffset + LatestSize) - Offset;
-      }
-
-      // Populate block overlap information.
-      if (Size == 0) {
-        Size = 1;
-      }
-
-      for (uint64_t I = Offset; I < Offset + Size; ++I) {
-        BlocksOverlapping.emplace(I, &B);
-      }
-    }
-  }
 }
 
 PrettyPrinterBase::~PrettyPrinterBase() { cs_close(&this->csHandle); }
@@ -558,31 +477,22 @@ void PrettyPrinterBase::printBlockImpl(std::ostream& os, BlockType& block) {
 
   // Print symbols associated with block.
   gtirb::Addr addr = *block.getAddress();
-  if (const auto* overlapping = getOverlappingBlock(&block)) {
-    // If getOverlappingBlock returned something, then we've already
-    // pretty-printed that overlapping block, so we need to print a symbol
-    // definition after the fact (rather than place a label in the middle).
+  uint64_t offset;
 
+  if (addr < programCounter) {
+    // If the program counter is beyond the address already, then overlap is
+    // occuring, so we need to print a symbol definition after the fact (rather
+    // than place a label in the middle).
+
+    offset = programCounter - addr;
     printOverlapWarning(os, addr);
     for (const auto& sym : module.findSymbols(block)) {
       printSymbolDefinitionRelativeToPC(os, sym, programCounter);
-
-      if (auto It = overlapOffsetCache.find(&block);
-          It != overlapOffsetCache.end()) {
-        // If two blocks overlap, then there may be bytes at the end of
-        // our block that do not belong to the overlapping block.
-        // Those trailing bytes need printed.
-
-        printBlockContents(os, block, It->second);
-        programCounter = std::max(programCounter, addr + block.getSize());
-      }
-
-      // If the overlap is complete (that is, no trailing bytes), then the
-      // overlapping block can be considered to "own" all the bytes of this
-      // block, so no bytes will be emitted.
-      return;
     }
   } else {
+    // Notmal symbol; print labels before block.
+
+    offset = 0;
     for (const auto& sym : module.findSymbols(block)) {
       printSymbolDefinition(os, sym);
     }
@@ -606,10 +516,10 @@ void PrettyPrinterBase::printBlockImpl(std::ostream& os, BlockType& block) {
   }
 
   // Print actual block contents.
-  printBlockContents(os, block, 0);
+  printBlockContents(os, block, offset);
 
   // Update the program counter.
-  programCounter = addr + block.getSize();
+  programCounter = std::max(programCounter, addr + block.getSize());
 }
 
 void PrettyPrinterBase::printBlock(std::ostream& os,
@@ -1057,14 +967,6 @@ void PrettyPrinterBase::printSection(std::ostream& os,
   }
 
   printSectionFooter(os, section);
-}
-
-const gtirb::Node*
-PrettyPrinterBase::getOverlappingBlock(const gtirb::Node* Block) const {
-  if (auto it = overlapCache.find(Block); it != overlapCache.end()) {
-    return it->second;
-  }
-  return nullptr;
 }
 
 uint64_t PrettyPrinterBase::getSymbolicExpressionSize(
