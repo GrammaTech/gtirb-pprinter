@@ -764,6 +764,7 @@ bool PrettyPrinterBase::shouldSkip(const gtirb::Symbol& symbol) const {
       return false;
     } else {
       assert(!"non block in symbol referent!");
+      return false;
     }
   } else if (auto Addr = symbol.getAddress()) {
     auto FunctionName = getContainerFunctionName(*Addr);
