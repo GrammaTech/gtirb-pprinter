@@ -59,6 +59,8 @@ int main(int argc, char** argv) {
                      "The format of the target binary object.");
   desc.add_options()("syntax,s", po::value<std::string>(),
                      "The syntax of the assembly file to generate.");
+  desc.add_options()("layout,l", "Layout code and data in memory to "
+                                 "avoid overlap");
   desc.add_options()("debug,d", "Turn on debugging (will break assembly)");
 
   desc.add_options()("keep-symbol",
@@ -136,7 +138,7 @@ int main(int argc, char** argv) {
   }
 
   // Layout IR in memory without overlap.
-  if (gtirb_layout::layoutRequired(*ir)) {
+  if (vm.count("layout") || gtirb_layout::layoutRequired(*ir)) {
     for (auto& M : ir->modules()) {
       gtirb_layout::layoutModule(M);
     }
