@@ -277,7 +277,8 @@ void PrettyPrinterBase::printOverlapWarning(std::ostream& os,
                                             const gtirb::Addr addr) {
   std::cerr << "WARNING: found overlapping element at address " << std::hex
             << static_cast<uint64_t>(addr) << std::endl
-            << "Pass --layout option to gtirb-pprinter to fix overlaps."
+            << "The --layout option to gtirb-pprinter can fix "
+               "overlapping elements."
             << std::endl;
   std::ios_base::fmtflags flags = os.flags();
   os << syntax.comment() << " WARNING: found overlapping element at address "
