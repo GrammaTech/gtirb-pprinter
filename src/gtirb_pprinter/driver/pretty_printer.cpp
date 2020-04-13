@@ -135,15 +135,9 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
 
-  // Layout the modules so that evereything has nonoverlapping addresses if
-  // needed.
-  for (auto& M : ir->modules()) {
-    if (!M.getAddress()) {
-      // FIXME: There could be other kinds of invalid layouts than one in which
-      // an interval has no address; for example, one where sections overlap...
-      LOG_INFO << "Module " << M.getUUID()
-               << " has invalid layout; laying out module automatically..."
-               << std::endl;
+  // Layout IR in memory without overlap.
+  if (gtirb_layout::layoutRequired(*ir)) {
+    for (auto& M : ir->modules()) {
       gtirb_layout::layoutModule(M);
     }
   }

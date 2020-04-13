@@ -19,6 +19,7 @@
 #include <gtirb/Module.hpp>
 
 namespace gtirb_layout {
+bool GTIRB_LAYOUT_EXPORT_API layoutRequired(gtirb::IR& ir);
 bool GTIRB_LAYOUT_EXPORT_API layoutModule(gtirb::Module& M);
 bool GTIRB_LAYOUT_EXPORT_API removeModuleLayout(gtirb::Module& M);
 } // namespace gtirb_layout
