@@ -177,6 +177,15 @@ bool ::gtirb_layout::layoutRequired(IR& ir) {
   return false;
 }
 
+#if defined(_MSC_VER)
+// Some versions of MSVC fail to properly work with range-based for loops
+// (https://developercommunity.visualstudio.com/content/problem/859129/
+// warning-c4702-for-range-based-for-loop.html), so in MSVC we disable the
+// spurious warning where it is known to occur.
+#pragma warning(push)
+#pragma warning(disable : 4702) // unreachable code
+#endif
+
 void ::gtirb_layout::fixIntegralSymbols(gtirb::Context& Ctx, gtirb::Module& M) {
   // In general, we want as many integral symbols to not be integral as
   // possible. If they point to blocks, even 0-length ones, instead of raw
@@ -288,6 +297,14 @@ bool ::gtirb_layout::layoutModule(gtirb::Context& Ctx, Module& M) {
 
   return true;
 }
+
+#if defined(_MSC_VER)
+// Some versions of MSVC fail to properly work with range-based for loops
+// (https://developercommunity.visualstudio.com/content/problem/859129/
+// warning-c4702-for-range-based-for-loop.html), so in MSVC we disable the
+// spurious warning where it is known to occur.
+#pragma warning(pop)
+#endif
 
 bool ::gtirb_layout::removeModuleLayout(gtirb::Context& Ctx, Module& M) {
   // Fix symbols with integral referents that point to known objects.
