@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
       return 1;
     }
   } catch (std::exception& e) {
-    std::cerr << "Error: " << e.what() << "\nTry '" << argv[0]
+    std::cerr << "ERROR: " << e.what() << "\nTry '" << argv[0]
               << " --help' for more information.\n";
     return 1;
   }
