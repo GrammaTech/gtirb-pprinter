@@ -56,7 +56,7 @@ const PrintingPolicy& ElfPrettyPrinter::defaultPrintingPolicy() {
       {"_start", "deregister_tm_clones", "register_tm_clones",
        "__do_global_dtors_aux", "frame_dummy", "__libc_csu_fini",
        "__libc_csu_init", "_dl_relocate_static_pie", "_IO_stdin_used",
-       "__data_start"},
+       "__data_start", "__dso_handle", "__TMC_END__"},
 
       /// Sections with possible data object exclusion.
       {".init_array", ".fini_array"},
