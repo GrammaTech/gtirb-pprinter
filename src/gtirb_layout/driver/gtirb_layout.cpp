@@ -18,8 +18,8 @@ namespace fs = std::experimental::filesystem;
 namespace po = boost::program_options;
 
 int main(int argc, char** argv) {
-  po::options_description desc("gtirb-layout - a tool to prepare GTIRB files "
-                               "for pretty printers.\n\n"
+  po::options_description desc("gtirb-layout - layout code and data in memory "
+                               "without overlap.\n\n"
                                "Allowed options");
   desc.add_options()("help,h", "Produce this help message.");
   desc.add_options()("in,i", po::value<std::string>()->required(),
