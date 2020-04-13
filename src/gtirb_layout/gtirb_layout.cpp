@@ -156,20 +156,21 @@ static bool findAndMergeBIs(Section& S) {
   return true;
 }
 
+// NOTE: Only checks for missing addresses, not overlapping addresses.
 bool ::gtirb_layout::layoutRequired(IR& ir) {
   for (auto& M : ir.modules()) {
-    // FIXME: There could be other kinds of invalid layouts than one
-    // in which an interval has no address; for example, one where
-    // sections overlap...  Furthermore, it is not clear that we
-    // should be checking and forcing layouts at all.  E.g., we
-    // probably don't want to take the runtime to loop over every
-    // section and block checking for overlaps here.  Maybe it is
-    // better to remove this method entirely and just print warnings
-    // to STDERR when missing addresses or bad overlaps are found.
-    // Or, maybe we just check for missing addresses here and check
-    // for overlapping address when running.
     if (!M.getAddress()) {
       return true;
+    }
+    for (auto& S : M.sections()) {
+      if (!S.getAddress()) {
+        return true;
+      }
+      for (auto& BI : S.byte_intervals()) {
+        if (!BI.getAddress()) {
+          return true;
+        }
+      }
     }
   }
   return false;
