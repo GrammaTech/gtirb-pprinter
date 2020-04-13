@@ -148,14 +148,17 @@ int main(int argc, char** argv) {
                << std::endl;
       gtirb_layout::layoutModule(ctx, M);
     }
-    else if (std::any_of(M.symbols_begin(), M.symbols_end(),
-                         [](const gtirb::Symbol& Sym) {
-                           return !Sym.hasReferent() && Sym.getAddress();
-                         })) {
-      LOG_INFO << "Module " << M.getUUID()
-               << " has integral symbols; attempting to assign referents..."
-               << std::endl;
-      gtirb_layout::fixIntegralSymbols(ctx, M);
+  } else {
+    for (auto& M : ir->modules()) {
+      if (std::any_of(M.symbols_begin(), M.symbols_end(),
+                      [](const gtirb::Symbol& Sym) {
+                        return !Sym.hasReferent() && Sym.getAddress();
+                      })) {
+        LOG_INFO << "Module " << M.getUUID()
+                 << " has integral symbols; attempting to assign referents..."
+                 << std::endl;
+        gtirb_layout::fixIntegralSymbols(ctx, M);
+      }
     }
   }
 
