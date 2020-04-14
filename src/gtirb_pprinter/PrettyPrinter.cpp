@@ -595,7 +595,7 @@ void PrettyPrinterBase::printNonZeroDataBlock(
     }
   }
   for (auto byte : dataObject.bytes<uint8_t>()) {
-    os << syntax.tab();
+    os << syntax.tab() << "#";
     printByte(os, static_cast<std::byte>(static_cast<unsigned char>(byte)));
   }
 }
