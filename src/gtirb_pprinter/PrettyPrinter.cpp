@@ -159,12 +159,14 @@ std::error_condition PrettyPrinter::print(std::ostream& stream,
 PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
                                      gtirb::Module& module_,
                                      const Syntax& syntax_,
-                                     const PrintingPolicy& policy_)
+                                     const PrintingPolicy& policy_,
+                                     cs_arch arch,
+                                     cs_mode mode)
     : syntax(syntax_), policy(policy_),
       debug(policy.debug == DebugMessages ? true : false), context(context_),
       module(module_), functionEntry(), functionLastBlock() {
   [[maybe_unused]] cs_err err =
-      cs_open(CS_ARCH_X86, CS_MODE_64, &this->csHandle);
+      cs_open(arch, mode, &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
 
   if (const auto* functionEntries =
@@ -306,14 +308,14 @@ void PrettyPrinterBase::printBlock(std::ostream& os,
 
   // Exception-safe cleanup of instructions
   std::unique_ptr<cs_insn, std::function<void(cs_insn*)>> freeInsn(
-      insn, [count](cs_insn* i) { cs_free(i, count); });
+          insn, [count](cs_insn* i) { cs_free(i, count); });
 
   gtirb::Offset offset(x.getUUID(), 0);
   for (size_t i = 0; i < count; i++) {
-    fixupInstruction(insn[i]);
-    printInstruction(os, insn[i], offset);
-    offset.Displacement += insn[i].size;
-    os << '\n';
+      fixupInstruction(insn[i]);
+      printInstruction(os, insn[i], offset);
+      offset.Displacement += insn[i].size;
+      os << '\n';
   }
   // print any CFI directives located at the end of the block
   // e.g. '.cfi_endproc' is usually attached to the end of the block
@@ -342,8 +344,9 @@ void PrettyPrinterBase::printSectionHeader(std::ostream& os,
     printSectionProperties(os, *(found_section.begin()));
     os << std::endl;
   }
-  if (policy.arraySections.count(sectionName))
-    os << syntax.align() << " 8\n";
+  if (policy.arraySections.count(sectionName)) {
+    // os << syntax.align() << " 8\n";
+  }
   else
     printAlignment(os, addr);
   printBar(os);
@@ -469,6 +472,7 @@ void PrettyPrinterBase::printInstruction(std::ostream& os, const cs_insn& inst,
   ////////////////////////////////////////////////////////////////////
   // special cases
 
+  // TODO: look into this line
   if (inst.id == X86_INS_NOP) {
     os << "  " << syntax.nop();
     for (uint64_t i = 1; i < inst.size; ++i) {
@@ -519,7 +523,7 @@ void PrettyPrinterBase::printOperand(std::ostream& os, const cs_insn& inst,
 
   switch (op.type) {
   case X86_OP_REG:
-    printOpRegdirect(os, inst, op);
+    printOpRegdirect(os, inst, op.reg);
     return;
   case X86_OP_IMM: {
     auto found = module.findSymbolicExpressionsAt(ea + immOffset);
