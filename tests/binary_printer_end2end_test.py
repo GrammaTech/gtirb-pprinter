@@ -10,10 +10,10 @@ class TestBinaryGeneration(unittest.TestCase):
     def test_generate_binary(self):
         output = subprocess.check_output(
             [
-                "gtirb-binary-printer",
+                "gtirb-pprinter",
                 "--ir",
                 str(ex1_gtirb),
-                "--binary",
+                "-b",
                 "/tmp/ex1",
                 "--compiler-args",
                 "-no-pie",

@@ -6,6 +6,7 @@
 cmake_minimum_required(VERSION 3.9.0)
 
 project(gtirb_pprinter)
+set(PACKAGE_BRANCH master)
 
 # get version information
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" ver)
@@ -281,8 +282,7 @@ endif()
 # ---------------------------------------------------------------------------
 # gtirb
 # ---------------------------------------------------------------------------
-
-find_package(gtirb REQUIRED)
+find_package(gtirb 1.2.1 REQUIRED)
 
 # ---------------------------------------------------------------------------
 # Boost
@@ -316,7 +316,15 @@ else()
   find_library(CAPSTONE NAMES libcapstone.a)
 endif()
 
-if(NOT CAPSTONE)
+if(CAPSTONE)
+  find_program(CSTOOL "cstool")
+  execute_process(COMMAND "${CSTOOL}" "-v" OUTPUT_VARIABLE CSTOOL_VERSION)
+  string(REGEX MATCH "v([0-9]+\.[0-9]+\.[0-9]+)" CSTOOL_VERSION
+               "${CSTOOL_VERSION}")
+  set(CSTOOL_VERSION "${CMAKE_MATCH_1}")
+endif()
+
+if(NOT CAPSTONE OR "${CSTOOL_VERSION}" VERSION_LESS "4.0.1")
   message(
     FATAL_ERROR
       " No Capstone installation found.\n"
@@ -353,8 +361,9 @@ export(PACKAGE gtirb_pprinter)
 
 # --- For the installed copy ---
 # Main config file for find_package, just includes the targets file.
-file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/export/gtirb_pprinterConfig.cmake"
-     "include(\"\$\{CMAKE_CURRENT_LIST_DIR\}/gtirb_pprinterTargets.cmake\")")
+configure_file(
+  "${CMAKE_CURRENT_LIST_DIR}/gtirb_pprinterConfig.cmake.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/export/gtirb_pprinterConfig.cmake" @ONLY)
 # In this mode, find_package also seems to require a version file
 set(version_file
     "${CMAKE_CURRENT_BINARY_DIR}/gtirb_pprinterConfig-version.cmake")
@@ -402,5 +411,9 @@ set(CPACK_PACKAGE_DESCRIPTION_FILE ${CMAKE_CURRENT_SOURCE_DIR}/README.md)
 set(CPACK_PACKAGE_RESOURCE_FILE_LICENSE ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt)
 
 set(CPACK_DEBIAN_PACKAGE_SECTION devel)
+
+set(CPACK_DEBIAN_PACKAGE_DEPENDS
+    "libstdc++6, libc6, libgcc1, gtirb (>=${gtirb_VERSION}), libboost-dev (>=1.67) | libboost1.67-dev, libcapstone-dev (>=${CSTOOL_VERSION})"
+)
 
 include(CPack)

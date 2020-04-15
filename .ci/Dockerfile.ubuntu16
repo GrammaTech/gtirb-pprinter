@@ -1,0 +1,65 @@
+FROM ubuntu:16.04
+
+# Minimum required version
+ARG BOOST_VERSION=1.67
+ARG CMAKE_VERSION=3.9
+ARG PROTOBUF_VERSION=3.1.0-0ubuntu1~maarten0
+
+# Use bash for more convenient variable substitution syntax
+SHELL ["/bin/bash", "-c"]
+
+# Install common packages
+RUN apt-get -y update && apt-get -y install make git \
+    apt-transport-https build-essential binutils doxygen graphviz wget curl \
+    unzip gcc-multilib g++-multilib libc++1 libc++abi1 python3
+
+# Install gcc-7
+RUN apt-get -y install software-properties-common && \
+    add-apt-repository ppa:jonathonf/gcc-7.1 && \
+    apt-get -y update && \
+    apt-get -y install gcc-7 g++-7
+
+# Install Clang++
+RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|apt-key add - && \
+    add-apt-repository 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-8 main' && \
+    apt-get -y update && \
+    apt-get -y install clang-8 && \
+    update-alternatives --install /usr/bin/clang clang /usr/bin/clang-8 60 \
+                        --slave /usr/bin/clang++ clang++ /usr/bin/clang++-8
+
+# Install libstdc++ (this is required when building with both g++ and clang++)
+RUN apt-get -y install libstdc++-7-dev
+
+# Install CMake
+RUN curl -SL https://cmake.org/files/v$CMAKE_VERSION/cmake-$CMAKE_VERSION.0-Linux-x86_64.tar.gz \
+    |tar -xz --strip-components=1 -C /usr/local
+
+# Install boost & protobuf
+RUN add-apt-repository ppa:mhier/libboost-latest && \
+    add-apt-repository ppa:maarten-fonville/protobuf && \
+    apt-get -y update && \
+    apt-get -y install libboost${BOOST_VERSION}-dev libprotobuf-dev=$PROTOBUF_VERSION \
+        protobuf-compiler=$PROTOBUF_VERSION
+
+# Install capstone
+COPY libcapstone-dev_4.0.1-1_amd64.deb ./
+RUN dpkg -i libcapstone-dev_4.0.1-1_amd64.deb
+
+# Install GTIRB
+COPY gtirb-ubuntu16-artifacts.zip ./gtirb-artifacts.zip
+RUN unzip -o gtirb-artifacts.zip && dpkg -i GTIRB*.deb
+
+# Build gtirb-pprinter
+COPY . /gt/gtirb-pprinter/
+RUN mkdir -p /gt/gtirb-pprinter/build
+WORKDIR /gt/gtirb-pprinter/build
+ARG CXX_COMPILER="g++-7"
+RUN cmake ../ -DCMAKE_CXX_COMPILER=$CXX_COMPILER
+RUN make -j
+
+# Build package
+ARG CPACK_GENERATOR=""
+RUN if [ ! -z "${CPACK_GENERATOR}" ] ; then cd /gt/gtirb-pprinter/build && cpack -G "${CPACK_GENERATOR}"; fi
+
+WORKDIR /gt/gtirb-pprinter/
+ENV PATH=/gt/gtirb-pprinter/build/bin:$PATH

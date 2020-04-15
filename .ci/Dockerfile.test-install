@@ -4,6 +4,8 @@
 ARG IMAGE=docker.grammatech.com/rewriting/gtirb-pprinter/ubuntu18-gcc
 FROM $IMAGE
 
+ENV LD_LIBRARY_PATH /usr/local/lib:$LD_LIBRARY_PATH
+
 # install
 ARG INSTALLER="make install"
 WORKDIR /gt/gtirb-pprinter/build

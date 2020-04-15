@@ -1,0 +1,46 @@
+FROM ubuntu:16.04
+
+# Use bash for more convenient variable substitution syntax
+SHELL ["/bin/bash", "-c"]
+
+# dpkg-dev: for dpkg-scanpackages
+# software-properties-common: for add-apt-repository
+RUN apt-get -y update && apt-get -y install build-essential curl dpkg-dev software-properties-common \
+    unzip
+
+# gcc-7 is used by the test
+RUN add-apt-repository ppa:jonathonf/gcc-7.1
+RUN apt-get update && apt-get install -y gcc-7 g++-7
+RUN update-alternatives --install /usr/bin/cc cc /usr/bin/gcc-7 60
+RUN update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-7 60
+
+# for protobuf >=3.0.0
+RUN add-apt-repository ppa:maarten-fonville/protobuf
+
+# for boost 1.67
+RUN add-apt-repository ppa:mhier/libboost-latest
+
+# setup gtirb package
+COPY gtirb-ubuntu16-artifacts.zip gtirb-artifacts.zip
+RUN unzip gtirb-artifacts.zip
+
+# setup apt repository
+COPY *.deb ./
+RUN mkdir -p /gt/apt-repo/ && cp *.deb /gt/apt-repo
+RUN cd /gt/apt-repo && dpkg-scanpackages . /dev/null > Packages
+RUN echo $'\ndeb file:/gt/apt-repo ./\n' >> /etc/apt/sources.list
+
+# install pprinter
+RUN apt-get update && apt-get install -y --allow-unauthenticated gtirb_pprinter
+
+# build the c++ test
+COPY .ci/test-install.cpp test-install.cpp
+RUN g++-7 test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs
+
+# run the c++ test
+RUN ./test-install
+
+# run the python tests, which will test if the pprinter binaries have been
+# installed
+COPY . /gt/gtirb-pprinter/
+RUN cd /gt/gtirb-pprinter && python3 -m unittest discover tests "*_test.py"

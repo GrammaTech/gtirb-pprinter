@@ -63,10 +63,11 @@ ld hello.o -o hello
 ./hello
 ```
 ### Generate a new binary
-gtirb-binary-printer generates a new binary by calling `gcc` directly.
+The `--binary` flag to gtirb-pprinter generates a new binary by
+calling `gcc` directly.
 
 ```sh
-gtirb-binary-printer hello.gtirb --binary hello
+gtirb-pprinter hello.gtirb --binary hello
 ```
 
 This option admits an argument `--library-paths` or `-L` to
@@ -74,7 +75,7 @@ specify additional paths where libraries might be located.
 
 For example:
 ```sh
-gtirb-binary-printer hello.gtirb --binary hello -L . -L /usr/local/lib
+gtirb-pprinter hello.gtirb --binary hello -L . -L /usr/local/lib
 ```
 
 ## AuxData Used by the Pretty Printer

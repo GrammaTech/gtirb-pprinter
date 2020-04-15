@@ -1,0 +1,26 @@
+FROM archlinux/base
+
+RUN pacman -Syu --noconfirm autoconf automake boost capstone clang cmake \
+    doxygen fakeroot gcc git libtool make mcpp pkg-config protobuf python3 \
+    unzip wget zlib
+
+# Install GTIRB
+COPY gtirb-arch-artifacts.zip ./gtirb-artifacts.zip
+RUN unzip gtirb-artifacts.zip && \
+    tar xzf GTIRB*.tar.gz --strip-components=1 -C /usr/local && \
+    rm GTIRB*.tar.gz
+
+# Build gtirb-pprinter
+COPY . /gt/gtirb-pprinter/
+RUN mkdir -p /gt/gtirb-pprinter/build
+WORKDIR /gt/gtirb-pprinter/build
+ARG CXX_COMPILER="g++"
+RUN cmake ../ -DCMAKE_CXX_COMPILER=$CXX_COMPILER
+RUN make -j
+
+
+# Package generation
+ARG CPACK_GENERATOR=""
+RUN if [ ! -z "${CPACK_GENERATOR}" ] ; then cd /gt/gtirb-pprinter/build && cpack -G "${CPACK_GENERATOR}"; fi
+WORKDIR /gt/gtirb-pprinter/
+ENV PATH=/gt/gtirb-pprinter/build/bin:$PATH

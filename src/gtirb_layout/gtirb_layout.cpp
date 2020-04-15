@@ -157,6 +157,26 @@ static bool findAndMergeBIs(Section& S) {
   return true;
 }
 
+// NOTE: Only checks for missing addresses, not overlapping addresses.
+bool ::gtirb_layout::layoutRequired(IR& ir) {
+  for (auto& M : ir.modules()) {
+    if (!M.getAddress()) {
+      return true;
+    }
+    for (auto& S : M.sections()) {
+      if (!S.getAddress()) {
+        return true;
+      }
+      for (auto& BI : S.byte_intervals()) {
+        if (!BI.getAddress()) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
 #if defined(_MSC_VER)
 // Some versions of MSVC fail to properly work with range-based for loops
 // (https://developercommunity.visualstudio.com/content/problem/859129/
@@ -173,7 +193,6 @@ void ::gtirb_layout::fixIntegralSymbols(gtirb::Context& Ctx, gtirb::Module& M) {
   // addresses later in the layout process. This also removes the need
   // for the pretty-printer to check if it needs to print a symbol every time
   // the program counter increments.
-
   std::vector<Symbol*> IntSyms;
   for (auto& Sym : M.symbols()) {
     if (!Sym.hasReferent() && Sym.getAddress()) {
@@ -270,9 +289,11 @@ bool ::gtirb_layout::layoutModule(gtirb::Context& Ctx, Module& M) {
     }
 
     // (Re)assign nonoverlapping addresses to all BIs.
-    for (auto& BI : S.get().byte_intervals()) {
-      BI.setAddress(A);
-      A += BI.getSize();
+    std::vector<std::reference_wrapper<ByteInterval>> Intervals(
+        S.get().byte_intervals_begin(), S.get().byte_intervals_end());
+    for (auto& BI : Intervals) {
+      BI.get().setAddress(A);
+      A += BI.get().getSize();
     }
   }
 

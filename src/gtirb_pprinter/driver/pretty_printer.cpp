@@ -42,6 +42,16 @@ int main(int argc, char** argv) {
       "prints to the standard output. If the IR has more "
       "than one module, files of the form FILE, FILE_2 ... "
       "FILE_n with the content of each of the modules");
+  desc.add_options()("binary,b", po::value<std::string>(),
+                     "The name of the binary output file.");
+  desc.add_options()("compiler-args,c",
+                     po::value<std::vector<std::string>>()->multitoken(),
+                     "Additional arguments to pass to the compiler. Only used "
+                     "for binary printing.");
+  desc.add_options()("library-paths,L",
+                     po::value<std::vector<std::string>>()->multitoken(),
+                     "Library paths to be passed to the linker. Only used "
+                     "for binary printing.");
   desc.add_options()("module,m", po::value<int>()->default_value(0),
                      "The index of the module to be printed if printing to the "
                      "standard output.");
@@ -49,6 +59,8 @@ int main(int argc, char** argv) {
                      "The format of the target binary object.");
   desc.add_options()("syntax,s", po::value<std::string>(),
                      "The syntax of the assembly file to generate.");
+  desc.add_options()("layout,l", "Layout code and data in memory to "
+                                 "avoid overlap");
   desc.add_options()("debug,d", "Turn on debugging (will break assembly)");
 
   desc.add_options()("keep-symbol",
@@ -98,7 +110,7 @@ int main(int argc, char** argv) {
       return 1;
     }
   } catch (std::exception& e) {
-    std::cerr << "Error: " << e.what() << "\nTry '" << argv[0]
+    std::cerr << "ERROR: " << e.what() << "\nTry '" << argv[0]
               << " --help' for more information.\n";
     return 1;
   }
@@ -126,24 +138,24 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
 
-  // Layout the modules so that evereything has nonoverlapping addresses if
-  // needed.
-  for (auto& M : ir->modules()) {
-    if (!M.getAddress()) {
-      // FIXME: There could be other kinds of invalid layouts than one in which
-      // an interval has no address; for example, one where sections overlap...
-      LOG_INFO << "Module " << M.getUUID()
-               << " has invalid layout; laying out module automatically..."
+  // Layout IR in memory without overlap.
+  if (vm.count("layout") || gtirb_layout::layoutRequired(*ir)) {
+    for (auto& M : ir->modules()) {
+      LOG_INFO << "Applying new layout to module " << M.getUUID() << "..."
                << std::endl;
       gtirb_layout::layoutModule(ctx, M);
-    } else if (std::any_of(M.symbols_begin(), M.symbols_end(),
-                           [](const gtirb::Symbol& Sym) {
-                             return !Sym.hasReferent() && Sym.getAddress();
-                           })) {
-      LOG_INFO << "Module " << M.getUUID()
-               << " has integral symbols; attempting to assign referents..."
-               << std::endl;
-      gtirb_layout::fixIntegralSymbols(ctx, M);
+    }
+  } else {
+    for (auto& M : ir->modules()) {
+      if (std::any_of(M.symbols_begin(), M.symbols_end(),
+                      [](const gtirb::Symbol& Sym) {
+                        return !Sym.hasReferent() && Sym.getAddress();
+                      })) {
+        LOG_INFO << "Module " << M.getUUID()
+                 << " has integral symbols; attempting to assign referents..."
+                 << std::endl;
+        gtirb_layout::fixIntegralSymbols(ctx, M);
+      }
     }
   }
 
@@ -224,7 +236,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  // Do we write it to a file?
+  // Write ASM to a file.
   if (vm.count("asm") != 0) {
     const auto asmPath = fs::path(vm["asm"].as<std::string>());
     if (!asmPath.has_filename()) {
@@ -246,8 +258,22 @@ int main(int argc, char** argv) {
       }
       ++i;
     }
-    // or to the standard output
-  } else {
+  }
+  // Link directly to a binary.
+  if (vm.count("binary") != 0) {
+    gtirb_bprint::ElfBinaryPrinter binaryPrinter(true);
+    const auto binaryPath = fs::path(vm["binary"].as<std::string>());
+    std::vector<std::string> extraCompilerArgs;
+    if (vm.count("compiler-args") != 0)
+      extraCompilerArgs = vm["compiler-args"].as<std::vector<std::string>>();
+    std::vector<std::string> libraryPaths;
+    if (vm.count("library-paths") != 0)
+      libraryPaths = vm["library-paths"].as<std::vector<std::string>>();
+    binaryPrinter.link(binaryPath.string(), extraCompilerArgs, libraryPaths, pp,
+                       ctx, *ir);
+  }
+  // Write ASM to the standard output if no other action was taken.
+  if ((vm.count("asm") == 0) && (vm.count("binary") == 0)) {
     gtirb::Module* module = nullptr;
     int i = 0;
     for (gtirb::Module& m : ir->modules()) {
