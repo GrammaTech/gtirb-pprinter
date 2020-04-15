@@ -289,9 +289,11 @@ bool ::gtirb_layout::layoutModule(gtirb::Context& Ctx, Module& M) {
     }
 
     // (Re)assign nonoverlapping addresses to all BIs.
-    for (auto& BI : S.get().byte_intervals()) {
-      BI.setAddress(A);
-      A += BI.getSize();
+    std::vector<std::reference_wrapper<ByteInterval>> Intervals(
+        S.get().byte_intervals_begin(), S.get().byte_intervals_end());
+    for (auto& BI : Intervals) {
+      BI.get().setAddress(A);
+      A += BI.get().getSize();
     }
   }
 
