@@ -3,7 +3,7 @@ from pathlib import Path
 import subprocess
 import sys
 
-two_modules_gtirb = Path("tests", "two_modules.gtirb")
+ex1_gtirb = Path("tests", "ex1.gtirb")
 
 
 class TestBinaryGeneration(unittest.TestCase):
@@ -12,15 +12,15 @@ class TestBinaryGeneration(unittest.TestCase):
             [
                 "gtirb-binary-printer",
                 "--ir",
-                str(two_modules_gtirb),
-                "-b",
-                "/tmp/two_modules",
+                str(ex1_gtirb),
+                "--binary",
+                "/tmp/ex1",
                 "--compiler-args",
                 "-no-pie",
             ]
         ).decode(sys.stdout.encoding)
         self.assertTrue("Calling compiler" in output)
-        output_bin = subprocess.check_output("/tmp/two_modules").decode(
+        output_bin = subprocess.check_output("/tmp/ex1").decode(
             sys.stdout.encoding
         )
         self.assertTrue("!!!Hello World!!!" in output_bin)
