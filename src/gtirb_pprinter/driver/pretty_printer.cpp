@@ -63,16 +63,25 @@ int main(int argc, char** argv) {
                                  "avoid overlap");
   desc.add_options()("debug,d", "Turn on debugging (will break assembly)");
 
+  desc.add_options()("keep-function",
+                     po::value<std::vector<std::string>>()->multitoken(),
+                     "Print the given function even if they are skipped"
+                     " by default (e.g. _start).");
+  desc.add_options()("skip-function",
+                     po::value<std::vector<std::string>>()->multitoken(),
+                     "Do not print the given function.");
+  desc.add_options()("keep-all-functions",
+                     "Do not use the default list of functions to skip.");
+
   desc.add_options()("keep-symbol",
                      po::value<std::vector<std::string>>()->multitoken(),
-                     "Print the given function/symbol even if they are skipped"
-                     " by default (e.g. _start).");
+                     "Print the given symbol even if they are skipped"
+                     " by default (e.g. __TMC_END__).");
   desc.add_options()("skip-symbol",
                      po::value<std::vector<std::string>>()->multitoken(),
-                     "Do not print the given function/symbol.");
+                     "Do not print the given symbol.");
   desc.add_options()("keep-all-symbols",
-                     "Do not use the default list of functions and symbols to "
-                     "skip.");
+                     "Do not use the default list of symbols to skip.");
 
   desc.add_options()("keep-section",
                      po::value<std::vector<std::string>>()->multitoken(),
@@ -94,9 +103,9 @@ int main(int argc, char** argv) {
   desc.add_options()("keep-all-array-sections",
                      "Do not use the default list of array sections to skip.");
 
-  desc.add_options()("keep-all,k",
-                     "Combination of --keep-all-symbols, --keep-all-sections, "
-                     "and --keep-all-array-sections.");
+  desc.add_options()("keep-all,k", "Combination of --keep-all-functions, "
+                                   "--keep-all-symbols, --keep-all-sections, "
+                                   "and --keep-all-array-sections.");
 
   po::positional_options_description pd;
   pd.add("ir", -1);
@@ -187,9 +196,24 @@ int main(int argc, char** argv) {
   pp.setTarget(std::move(target));
 
   if (vm.count("keep-all") != 0) {
+    pp.functionPolicy().useDefaults(false);
     pp.symbolPolicy().useDefaults(false);
     pp.sectionPolicy().useDefaults(false);
     pp.arraySectionPolicy().useDefaults(false);
+  }
+
+  if (vm.count("keep-all-functions") != 0) {
+    pp.functionPolicy().useDefaults(false);
+  }
+  if (vm.count("keep-function") != 0) {
+    for (const auto& S : vm["keep-function"].as<std::vector<std::string>>()) {
+      pp.functionPolicy().keep(S);
+    }
+  }
+  if (vm.count("skip-function") != 0) {
+    for (const auto& S : vm["skip-function"].as<std::vector<std::string>>()) {
+      pp.functionPolicy().skip(S);
+    }
   }
 
   if (vm.count("keep-all-symbols") != 0) {

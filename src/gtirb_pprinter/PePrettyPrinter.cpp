@@ -31,11 +31,14 @@ PePrettyPrinter::PePrettyPrinter(gtirb::Context& context_,
 
 const PrintingPolicy& PePrettyPrinter::defaultPrintingPolicy() {
   static PrintingPolicy DefaultPolicy{
-      /// Sections to avoid printing.
-      {".pdata", ".reloc"},
-
       /// Functions to avoid printing.
       {},
+
+      // Symbols to avoid printing.
+      {},
+
+      /// Sections to avoid printing.
+      {".pdata", ".reloc"},
 
       /// Sections with possible data object exclusion.
       {},
