@@ -207,4 +207,63 @@ void ElfPrettyPrinter::printIntegralSymbol(std::ostream& os,
      << *sym.getAddress() << '\n';
 }
 
+void ElfPrettyPrinter::printNonZeroDataBlock(std::ostream& os,
+                                             const gtirb::DataBlock& dataObject,
+                                             uint64_t offset) {
+  auto* SymExpr = dataObject.getByteInterval()->getSymbolicExpression(
+      dataObject.getOffset());
+  if (!SymExpr) {
+    PrettyPrinterBase::printNonZeroDataBlock(os, dataObject, offset);
+    return;
+  }
+  const auto* types = module.getAuxData<gtirb::schema::Encodings>();
+
+  // Is this a ULEB128?
+  if (types) {
+    auto foundType = types->find(dataObject.getUUID());
+    if (foundType != types->end() && foundType->second == "uleb128") {
+      assert(offset == 0 && "Can't print uleb128s that overlap!");
+
+      os << syntax.tab() << elfSyntax.uleb128() << " ";
+      if (std::holds_alternative<gtirb::SymAddrConst>(*SymExpr)) {
+        printSymbolicExpression(os, &std::get<gtirb::SymAddrConst>(*SymExpr),
+                                true);
+      } else if (std::holds_alternative<gtirb::SymAddrAddr>(*SymExpr)) {
+        printSymbolicExpression(os, &std::get<gtirb::SymAddrAddr>(*SymExpr),
+                                true);
+      } else {
+        assert(!"Unknown sym expr type while printing uleb128!");
+      }
+
+      os << "\n";
+      return;
+    }
+  }
+
+  // Is this a SLEB128?
+  if (types) {
+    auto foundType = types->find(dataObject.getUUID());
+    if (foundType != types->end() && foundType->second == "sleb128") {
+      assert(offset == 0 && "Can't print uleb128s that overlap!");
+
+      os << syntax.tab() << elfSyntax.sleb128() << " ";
+      if (std::holds_alternative<gtirb::SymAddrConst>(*SymExpr)) {
+        printSymbolicExpression(os, &std::get<gtirb::SymAddrConst>(*SymExpr),
+                                true);
+      } else if (std::holds_alternative<gtirb::SymAddrAddr>(*SymExpr)) {
+        printSymbolicExpression(os, &std::get<gtirb::SymAddrAddr>(*SymExpr),
+                                true);
+      } else {
+        assert(!"Unknown sym expr type while printing sleb128!");
+      }
+
+      os << "\n";
+      return;
+    }
+  }
+
+  // Else print normally.
+  PrettyPrinterBase::printNonZeroDataBlock(os, dataObject, offset);
+}
+
 } // namespace gtirb_pprint
