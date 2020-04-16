@@ -137,7 +137,8 @@ std::error_condition PrettyPrinter::print(std::ostream& stream,
   // Configure printing policy.
   PrintingPolicy policy(factory->defaultPrintingPolicy());
   policy.debug = m_debug;
-  SymbolPolicy.apply(policy.skipFunctions);
+  FunctionPolicy.apply(policy.skipFunctions);
+  SymbolPolicy.apply(policy.skipSymbols);
   SectionPolicy.apply(policy.skipSections);
   ArraySectionPolicy.apply(policy.arraySections);
 
@@ -487,14 +488,18 @@ void PrettyPrinterBase::printBlockImpl(std::ostream& os, BlockType& block) {
     offset = programCounter - addr;
     printOverlapWarning(os, addr);
     for (const auto& sym : module.findSymbols(block)) {
-      printSymbolDefinitionRelativeToPC(os, sym, programCounter);
+      if (!shouldSkip(sym)) {
+        printSymbolDefinitionRelativeToPC(os, sym, programCounter);
+      }
     }
   } else {
     // Notmal symbol; print labels before block.
 
     offset = 0;
     for (const auto& sym : module.findSymbols(block)) {
-      printSymbolDefinition(os, sym);
+      if (!shouldSkip(sym)) {
+        printSymbolDefinition(os, sym);
+      }
     }
   }
 
@@ -754,6 +759,10 @@ bool PrettyPrinterBase::shouldSkip(const gtirb::Symbol& symbol) const {
     return false;
   }
 
+  if (policy.skipSymbols.count(symbol.getName())) {
+    return true;
+  }
+
   if (symbol.hasReferent()) {
     const auto* Referent = symbol.getReferent<gtirb::Node>();
     if (auto* CB = dyn_cast<gtirb::CodeBlock>(Referent)) {
@@ -767,12 +776,6 @@ bool PrettyPrinterBase::shouldSkip(const gtirb::Symbol& symbol) const {
       return false;
     }
   } else if (auto Addr = symbol.getAddress()) {
-    // Skip if name or containing function name should be skipped according to
-    // the policy.
-    if (policy.skipFunctions.count(symbol.getName())) {
-      return true;
-    }
-
     auto FunctionName = getContainerFunctionName(*Addr);
     return FunctionName && policy.skipFunctions.count(*FunctionName);
   } else {

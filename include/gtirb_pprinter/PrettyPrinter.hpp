@@ -151,6 +151,9 @@ public:
   std::error_condition print(std::ostream& stream, gtirb::Context& context,
                              gtirb::Module& module) const;
 
+  PolicyOptions& functionPolicy() { return FunctionPolicy; }
+  const PolicyOptions& functionPolicy() const { return FunctionPolicy; }
+
   PolicyOptions& symbolPolicy() { return SymbolPolicy; }
   const PolicyOptions& symbolPolicy() const { return SymbolPolicy; }
 
@@ -164,15 +167,18 @@ private:
   std::string m_format;
   std::string m_syntax;
   DebugStyle m_debug;
-  PolicyOptions SymbolPolicy, SectionPolicy, ArraySectionPolicy;
+  PolicyOptions FunctionPolicy, SymbolPolicy, SectionPolicy, ArraySectionPolicy;
 };
 
 struct PrintingPolicy {
+  /// Functions to avoid printing the contents and labels of.
+  std::unordered_set<std::string> skipFunctions;
+
+  /// Symbols to avoid printing the labels of.
+  std::unordered_set<std::string> skipSymbols;
+
   /// Sections to avoid printing.
   std::unordered_set<std::string> skipSections;
-
-  /// Functions to avoid printing.
-  std::unordered_set<std::string> skipFunctions;
 
   // These sections have a couple of special cases for data objects. They
   // usually contain entries that need to be ignored (the compiler will add them
