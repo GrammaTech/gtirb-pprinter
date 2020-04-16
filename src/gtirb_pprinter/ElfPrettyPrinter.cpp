@@ -164,8 +164,9 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
 
   static const std::unordered_map<std::string, std::string> TypeNameConversion =
       {
-          {"FUNC", "function"}, {"OBJECT", "object"},  {"NOTYPE", "notype"},
-          {"NONE", "notype"},   {"TLS", "tls_object"},
+          {"FUNC", "function"},  {"OBJECT", "object"},
+          {"NOTYPE", "notype"},  {"NONE", "notype"},
+          {"TLS", "tls_object"}, {"GNU_IFUNC", "gnu_indirect_function"},
       };
   auto TypeNameIt = TypeNameConversion.find(SymbolInfo.Type);
   if (TypeNameIt == TypeNameConversion.end()) {
