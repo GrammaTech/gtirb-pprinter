@@ -494,16 +494,16 @@ void PrettyPrinterBase::printBlockImpl(std::ostream& os, BlockType& block) {
     offset = programCounter - addr;
     printOverlapWarning(os, addr);
     for (const auto& sym : module.findSymbols(block)) {
-      if (!shouldSkip(sym)) {
+      if (!sym.getAtEnd() && !shouldSkip(sym)) {
         printSymbolDefinitionRelativeToPC(os, sym, programCounter);
       }
     }
   } else {
-    // Notmal symbol; print labels before block.
+    // Normal symbol; print labels before block.
 
     offset = 0;
     for (const auto& sym : module.findSymbols(block)) {
-      if (!shouldSkip(sym)) {
+      if (!sym.getAtEnd() && !shouldSkip(sym)) {
         printSymbolDefinition(os, sym);
       }
     }
@@ -531,6 +531,13 @@ void PrettyPrinterBase::printBlockImpl(std::ostream& os, BlockType& block) {
 
   // Update the program counter.
   programCounter = std::max(programCounter, addr + block.getSize());
+
+  // Print any symbols that should go at the end of this block.
+  for (const auto& sym : module.findSymbols(block)) {
+    if (sym.getAtEnd() && !shouldSkip(sym)) {
+      printSymbolDefinition(os, sym);
+    }
+  }
 }
 
 void PrettyPrinterBase::printBlock(std::ostream& os,
