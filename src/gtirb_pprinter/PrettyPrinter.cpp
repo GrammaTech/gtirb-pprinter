@@ -767,6 +767,12 @@ bool PrettyPrinterBase::shouldSkip(const gtirb::Symbol& symbol) const {
       return false;
     }
   } else if (auto Addr = symbol.getAddress()) {
+    // Skip if name or containing function name should be skipped according to
+    // the policy.
+    if (policy.skipFunctions.count(symbol.getName())) {
+      return true;
+    }
+
     auto FunctionName = getContainerFunctionName(*Addr);
     return FunctionName && policy.skipFunctions.count(*FunctionName);
   } else {
