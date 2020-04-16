@@ -47,6 +47,8 @@ public:
   const std::string& set() const { return SetDirective; }
   const std::string& hidden() const { return HiddenDirective; }
   const std::string& protected_() const { return ProtectedDirective; }
+  const std::string& uleb128() const { return ULEB128Directive; }
+  const std::string& sleb128() const { return SLEB128Directive; }
 
 private:
   const std::string CommentStyle{"#"};
@@ -73,6 +75,8 @@ private:
   const std::string SetDirective{".set"};
   const std::string HiddenDirective{".hidden"};
   const std::string ProtectedDirective{".protected"};
+  const std::string ULEB128Directive{".uleb128"};
+  const std::string SLEB128Directive{".sleb128"};
 };
 
 class ElfPrettyPrinter : public PrettyPrinterBase {
@@ -105,6 +109,9 @@ protected:
                                          gtirb::Addr pc) override;
   void printIntegralSymbol(std::ostream& os,
                            const gtirb::Symbol& symbol) override;
+  void printNonZeroDataBlock(std::ostream& os,
+                             const gtirb::DataBlock& dataObject,
+                             uint64_t offset) override;
 
   void printSymbolHeader(std::ostream& os, const gtirb::Symbol& symbol);
 };
