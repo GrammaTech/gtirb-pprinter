@@ -905,6 +905,7 @@ void registerAuxDataTypes() {
   gtirb::AuxDataContainer::registerAuxDataType<FunctionEntries>();
   gtirb::AuxDataContainer::registerAuxDataType<FunctionBlocks>();
   gtirb::AuxDataContainer::registerAuxDataType<SymbolForwarding>();
+  gtirb::AuxDataContainer::registerAuxDataType<SymbolicOperandInfoAD>();
   gtirb::AuxDataContainer::registerAuxDataType<Encodings>();
   gtirb::AuxDataContainer::registerAuxDataType<ElfSectionProperties>();
   gtirb::AuxDataContainer::registerAuxDataType<CfiDirectives>();

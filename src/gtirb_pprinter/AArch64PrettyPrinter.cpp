@@ -16,22 +16,10 @@
 //===----------------------------------------------------------------------===//
 
 #include "AArch64PrettyPrinter.hpp"
+#include "AuxDataSchema.hpp"
 
 #include <capstone/capstone.h>
 
-struct SymbolPrefixInfo {
-    uint64_t index;
-    std::string prefix;
-};
-
-namespace gtirb {
-    namespace schema {
-        struct SymbolPrefixes {
-            static constexpr const char* Name = "symbolPrefixes";
-            typedef std::map<gtirb::Addr, SymbolPrefixInfo> Type;
-        };
-    }
-}
 namespace gtirb_pprint {
 
 AArch64PrettyPrinter::AArch64PrettyPrinter(gtirb::Context& context_,
@@ -165,11 +153,11 @@ void AArch64PrettyPrinter::printOperand(std::ostream& os,
 
 void AArch64PrettyPrinter::printPrefix(std::ostream& os,
         const cs_insn& inst, uint64_t index) {
-    auto *SymbolPrefix = module.getAuxData<gtirb::schema::SymbolPrefixes>();
-    // TODO: what if multiple? diff indexes?
-    for (const auto& pair : *SymbolPrefix) {
-        if (pair.first == gtirb::Addr(inst.address) && index == pair.second.index) {
-            os << pair.second.prefix;
+    auto* symbolicOperandInfo = module.getAuxData<gtirb::schema::SymbolicOperandInfoAD>();
+    for (const auto& pair : *symbolicOperandInfo) {
+        const auto& symbolInfo = pair.second;
+        if (pair.first == gtirb::Addr(inst.address) && index == std::get<0>(symbolInfo)) {
+            os << std::get<1>(symbolInfo);
         }
     }
 }
