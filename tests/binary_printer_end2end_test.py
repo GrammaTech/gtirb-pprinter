@@ -17,6 +17,8 @@ class TestBinaryGeneration(unittest.TestCase):
                 "/tmp/two_modules",
                 "--compiler-args",
                 "-no-pie",
+                "--skip-symbol",
+                "_end",
             ]
         ).decode(sys.stdout.encoding)
         self.assertTrue("Calling compiler" in output)
