@@ -818,12 +818,6 @@ bool PrettyPrinterBase::shouldSkip(const gtirb::DataBlock& block) const {
     return true;
   }
 
-  for (const auto& sym : module.findSymbols(block)) {
-    if (policy.skipFunctions.count(sym.getName())) {
-      return true;
-    }
-  }
-
   return false;
 }
 
