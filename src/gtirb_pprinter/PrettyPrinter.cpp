@@ -582,14 +582,18 @@ void PrettyPrinterBase::printNonZeroDataBlock(
   }
 
   // If this is a string, print it as one.
-  const auto* types = module.getAuxData<gtirb::schema::Encodings>();
-  if (types) {
-    auto foundType = types->find(dataObject.getUUID());
-    if (foundType != types->end() && foundType->second == "string") {
-      os << syntax.tab();
-      printString(os, dataObject, offset);
-      os << '\n';
-      return;
+  std::optional<std::string> Type;
+  if (const auto* types = module.getAuxData<gtirb::schema::Encodings>()) {
+    if (auto foundType = types->find(dataObject.getUUID());
+        foundType != types->end()) {
+      if (foundType->second == "string") {
+        os << syntax.tab();
+        printString(os, dataObject, offset);
+        os << '\n';
+        return;
+      }
+
+      Type = foundType->second;
     }
   }
 
@@ -605,7 +609,7 @@ void PrettyPrinterBase::printNonZeroDataBlock(
         !FoundSymExprRange.empty()) {
       const auto SEE = FoundSymExprRange.front();
       auto Size = getSymbolicExpressionSize(SEE);
-      printSymbolicData(os, SEE, Size);
+      printSymbolicData(os, SEE, Size, Type);
       ByteI += Size;
       ByteIt += Size;
     } else {
@@ -674,10 +678,10 @@ void PrettyPrinterBase::printCFIDirectives(std::ostream& os,
   }
 }
 
-void PrettyPrinterBase::printSymbolicData(
+void PrettyPrinterBase::printSymbolicDataType(
     std::ostream& os,
-    const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE,
-    uint64_t Size) {
+    const gtirb::ByteInterval::ConstSymbolicExpressionElement& /* SEE */,
+    uint64_t Size, std::optional<std::string> /* Type */) {
   switch (Size) {
   case 1:
     os << syntax.byteData();
@@ -695,6 +699,13 @@ void PrettyPrinterBase::printSymbolicData(
     assert(!"Can't print symbolic expression of given size!");
     break;
   }
+}
+
+void PrettyPrinterBase::printSymbolicData(
+    std::ostream& os,
+    const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE,
+    uint64_t Size, std::optional<std::string> Type) {
+  printSymbolicDataType(os, SEE, Size, Type);
 
   os << " ";
 

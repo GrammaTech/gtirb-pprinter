@@ -210,61 +210,17 @@ void ElfPrettyPrinter::printIntegralSymbol(std::ostream& os,
      << *sym.getAddress() << '\n';
 }
 
-void ElfPrettyPrinter::printNonZeroDataBlock(std::ostream& os,
-                                             const gtirb::DataBlock& dataObject,
-                                             uint64_t offset) {
-  auto* SymExpr = dataObject.getByteInterval()->getSymbolicExpression(
-      dataObject.getOffset());
-  if (!SymExpr) {
-    PrettyPrinterBase::printNonZeroDataBlock(os, dataObject, offset);
-    return;
+void ElfPrettyPrinter::printSymbolicDataType(
+    std::ostream& os,
+    const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE,
+    uint64_t Size, std::optional<std::string> Type) {
+  if (Type && *Type == "uleb128") {
+    os << elfSyntax.uleb128();
+  } else if (Type && *Type == "sleb128") {
+    os << elfSyntax.sleb128();
+  } else {
+    PrettyPrinterBase::printSymbolicDataType(os, SEE, Size, Type);
   }
-
-  if (const auto* types = module.getAuxData<gtirb::schema::Encodings>()) {
-    if (auto foundType = types->find(dataObject.getUUID());
-        foundType != types->end()) {
-      // Is this a ULEB128?
-      if (foundType->second == "uleb128") {
-        assert(offset == 0 && "Can't print uleb128s that overlap!");
-
-        os << syntax.tab() << elfSyntax.uleb128() << " ";
-        if (std::holds_alternative<gtirb::SymAddrConst>(*SymExpr)) {
-          printSymbolicExpression(os, &std::get<gtirb::SymAddrConst>(*SymExpr),
-                                  true);
-        } else if (std::holds_alternative<gtirb::SymAddrAddr>(*SymExpr)) {
-          printSymbolicExpression(os, &std::get<gtirb::SymAddrAddr>(*SymExpr),
-                                  true);
-        } else {
-          assert(!"Unknown sym expr type while printing uleb128!");
-        }
-
-        os << "\n";
-        return;
-      }
-
-      // Is this a SLEB128?
-      if (foundType->second == "sleb128") {
-        assert(offset == 0 && "Can't print sleb128s that overlap!");
-
-        os << syntax.tab() << elfSyntax.sleb128() << " ";
-        if (std::holds_alternative<gtirb::SymAddrConst>(*SymExpr)) {
-          printSymbolicExpression(os, &std::get<gtirb::SymAddrConst>(*SymExpr),
-                                  true);
-        } else if (std::holds_alternative<gtirb::SymAddrAddr>(*SymExpr)) {
-          printSymbolicExpression(os, &std::get<gtirb::SymAddrAddr>(*SymExpr),
-                                  true);
-        } else {
-          assert(!"Unknown sym expr type while printing sleb128!");
-        }
-
-        os << "\n";
-        return;
-      }
-    }
-  }
-
-  // Else print normally.
-  PrettyPrinterBase::printNonZeroDataBlock(os, dataObject, offset);
 }
 
 } // namespace gtirb_pprint
