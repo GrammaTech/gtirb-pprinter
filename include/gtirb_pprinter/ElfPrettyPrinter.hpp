@@ -109,9 +109,10 @@ protected:
                                          gtirb::Addr pc) override;
   void printIntegralSymbol(std::ostream& os,
                            const gtirb::Symbol& symbol) override;
-  void printNonZeroDataBlock(std::ostream& os,
-                             const gtirb::DataBlock& dataObject,
-                             uint64_t offset) override;
+  void printSymbolicDataType(
+      std::ostream& os,
+      const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE,
+      uint64_t Size, std::optional<std::string> Type) override;
 
   void printSymbolHeader(std::ostream& os, const gtirb::Symbol& symbol);
 };

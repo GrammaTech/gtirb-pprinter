@@ -282,7 +282,11 @@ protected:
   virtual void printSymbolicData(
       std::ostream& os,
       const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE,
-      uint64_t Size);
+      uint64_t Size, std::optional<std::string> Type);
+  virtual void printSymbolicDataType(
+      std::ostream& os,
+      const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE,
+      uint64_t Size, std::optional<std::string> Type);
   virtual void printSymbolicExpression(std::ostream& os,
                                        const gtirb::SymAddrConst* sexpr,
                                        bool inData = false);
