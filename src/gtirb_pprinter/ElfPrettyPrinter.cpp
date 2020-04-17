@@ -54,7 +54,7 @@ const PrintingPolicy& ElfPrettyPrinter::defaultPrintingPolicy() {
        "__libc_csu_init", "_dl_relocate_static_pie"},
 
       /// Symbols to avoid printing.
-      {"_IO_stdin_used", "__data_start", "__dso_handle", "__TMC_END__", "_end",
+      {"_IO_stdin_used", "__data_start", "__dso_handle", "__TMC_END__",
        "_edata", "__bss_start"},
 
       /// Sections to avoid printing.
