@@ -42,8 +42,8 @@ RUN add-apt-repository ppa:mhier/libboost-latest && \
         protobuf-compiler=$PROTOBUF_VERSION
 
 # Install capstone
-COPY libcapstone-dev_4.0.1-1_amd64.deb ./
-RUN dpkg -i libcapstone-dev_4.0.1-1_amd64.deb
+COPY libcapstone-dev_*_amd64.deb ./
+RUN dpkg -i libcapstone-dev_*_amd64.deb
 
 # Install GTIRB
 COPY gtirb-ubuntu16-artifacts.zip ./gtirb-artifacts.zip
