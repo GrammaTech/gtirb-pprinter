@@ -55,7 +55,8 @@ const PrintingPolicy& ElfPrettyPrinter::defaultPrintingPolicy() {
 
       /// Symbols to avoid printing.
       {"_IO_stdin_used", "__data_start", "__dso_handle", "__TMC_END__",
-       "_edata", "__bss_start"},
+       "_edata", "__bss_start", "program_invocation_name",
+       "program_invocation_short_name"},
 
       /// Sections to avoid printing.
       {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
