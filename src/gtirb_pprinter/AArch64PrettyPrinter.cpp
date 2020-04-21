@@ -28,14 +28,12 @@ AArch64PrettyPrinter::AArch64PrettyPrinter(gtirb::Context& context_,
     : ElfPrettyPrinter(context_, module_, syntax_, policy_, CS_ARCH_ARM64, CS_MODE_ARM) {}
 
 void AArch64PrettyPrinter::printHeader(std::ostream& os) {
-    // TODO (azreika): add proper header
     this->printBar(os);
-    // os << ".intel_syntax noprefix\n";
+    // header
     this->printBar(os);
     os << '\n';
 
     for (int i = 0; i < 8; i++) {
-        // TODO (azreika): why is this here?
         os << syntax.nop() << '\n';
     }
 }
@@ -188,9 +186,11 @@ void AArch64PrettyPrinter::printOpRawValue(std::ostream& os, const cs_insn& inst
         char cur = *pos;
         if (cur == '[') {
             // entering an indirect memory access
+            assert(!inBlock && "nested blocks should not be possible");
             inBlock = true;
         } else if (cur == ']') {
             // exiting an indirect memory access
+            assert(inBlock && "Closing unopened memory access");
             inBlock = false;
         } else if (!inBlock && cur == ',') {
             // hit a new operand
@@ -467,6 +467,4 @@ AArch64PrettyPrinterFactory::create(gtirb::Context& gtirb_context,
 volatile bool AArch64PrettyPrinter::registered = registerPrinter(
         {"elf"}, {"aarch64"},
         std::make_shared<AArch64PrettyPrinterFactory>(), true);
-
 }
-
