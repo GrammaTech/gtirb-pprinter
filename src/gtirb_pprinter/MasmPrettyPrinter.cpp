@@ -50,13 +50,10 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
     : PePrettyPrinter(context_, module_, syntax_, policy_),
       masmSyntax(syntax_) {
 
-  const auto* BaseAddressP = module.getAuxData<gtirb::schema::BaseAddress>();
-  if (BaseAddressP) {
-    BaseAddress = *BaseAddressP;
-    if (auto It = module.findSymbols("__ImageBase"); !It.empty()) {
-      ImageBase = &*It.begin();
-      ImageBase->setReferent(module.addProxyBlock(context));
-    }
+  BaseAddress = module.getPreferredAddr();
+  if (auto It = module.findSymbols("__ImageBase"); !It.empty()) {
+    ImageBase = &*It.begin();
+    ImageBase->setReferent(module.addProxyBlock(context));
   }
 
   if (gtirb::CodeBlock* Block = module.getEntryPoint(); Block->getAddress()) {
