@@ -51,55 +51,12 @@ void ArmPrettyPrinter::setDecodeMode(std::ostream& os,
 
 void ArmPrettyPrinter::fixupInstruction(cs_insn& /*inst*/) {}
 
-void ArmPrettyPrinter::printSectionHeader(std::ostream& os,
-                                          const gtirb::Addr addr) {
-  const auto found_section = module.findSectionsAt(addr);
-  if (found_section.begin() == found_section.end())
-    return;
-  if (found_section.begin()->getAddress() != addr)
-    return;
-  std::string sectionName = found_section.begin()->getName();
-  if (policy.skipSections.count(sectionName))
-    return;
-  os << '\n';
-  printBar(os);
-  if (sectionName == syntax.textSection()) {
-    os << syntax.text() << '\n';
-  } else if (sectionName == syntax.dataSection()) {
-    os << syntax.data() << '\n';
-  } else if (sectionName == syntax.bssSection()) {
-    os << syntax.bss() << '\n';
-  } else {
-    printSectionHeaderDirective(os, *(found_section.begin()));
-    os << std::endl;
-  }
-  printBar(os);
-  os << '\n';
-}
-
-void ArmPrettyPrinter::printFunctionHeader(std::ostream& os, gtirb::Addr addr) {
-  const std::string& name =
-      syntax.formatFunctionName(this->getFunctionName(addr));
-
-  if (!name.empty()) {
-    os << syntax.comment() << " BEGIN - Function Header\n";
-    printBar(os, false);
-
-    printAlignment(os, addr);
-    os << syntax.global() << ' ' << name << '\n';
-    os << elfSyntax.type() << ' ' << name << ", #function\n";
-    os << name << ":\n";
-
-    printBar(os, false);
-    os << syntax.comment() << " END   - Function Header\n";
-  }
-}
-
-void ArmPrettyPrinter::printInstruction(std::ostream& os, const cs_insn& inst,
+void ArmPrettyPrinter::printInstruction(std::ostream& os,
+                                        const gtirb::CodeBlock& block,
+                                        const cs_insn& inst,
                                         const gtirb::Offset& offset) {
 
   gtirb::Addr ea(inst.address);
-  printSymbolDefinitionsAtAddress(os, ea);
   printComments(os, offset, inst.size);
   printCFIDirectives(os, offset);
   printEA(os, ea);
@@ -108,10 +65,12 @@ void ArmPrettyPrinter::printInstruction(std::ostream& os, const cs_insn& inst,
     opcode = opcode.substr(0, index);
 
   os << "  " << opcode << ' ';
-  printOperandList(os, inst);
+  printOperandList(os, block, inst);
 }
 
-void ArmPrettyPrinter::printOperandList(std::ostream& os, const cs_insn& inst) {
+void ArmPrettyPrinter::printOperandList(std::ostream& os,
+                                        const gtirb::CodeBlock& block,
+                                        const cs_insn& inst) {
   cs_arm& detail = inst.detail->arm;
   uint8_t opCount = detail.op_count;
   std::set<arm_insn> LdmSdm = {ARM_INS_LDM,   ARM_INS_LDMDA, ARM_INS_LDMDB,
@@ -131,14 +90,15 @@ void ArmPrettyPrinter::printOperandList(std::ostream& os, const cs_insn& inst) {
     if (i != 0) {
       os << ", ";
     }
-    printOperand(os, inst, i);
+    printOperand(os, block, inst, i);
   }
   if (RegBitVectorIndex != -1)
     os << " }";
 }
 
-void ArmPrettyPrinter::printOperand(std::ostream& os, const cs_insn& inst,
-                                    uint64_t index) {
+void ArmPrettyPrinter::printOperand(std::ostream& os,
+                                    const gtirb::CodeBlock& block,
+                                    const cs_insn& inst, uint64_t index) {
   gtirb::Addr ea(inst.address);
   const cs_arm_op& op = inst.detail->arm.operands[index];
 
@@ -151,17 +111,14 @@ void ArmPrettyPrinter::printOperand(std::ostream& os, const cs_insn& inst,
   case ARM_OP_IMM:
   case ARM_OP_PIMM:
   case ARM_OP_CIMM: {
-    auto found = module.findSymbolicExpressionsAt(ea);
-    if (!found.empty())
-      symbolic = &found.begin()->getSymbolicExpression();
-
+    symbolic = block.getByteInterval()->getSymbolicExpression(
+        ea - *block.getByteInterval()->getAddress());
     printOpImmediate(os, symbolic, inst, index);
     return;
   }
   case ARM_OP_MEM: {
-    auto found = module.findSymbolicExpressionsAt(ea);
-    if (!found.empty())
-      symbolic = &found.begin()->getSymbolicExpression();
+    symbolic = block.getByteInterval()->getSymbolicExpression(
+        ea - *block.getByteInterval()->getAddress());
     printOpIndirect(os, symbolic, inst, index);
     return;
   }
@@ -295,14 +252,20 @@ std::string ArmPrettyPrinter::getFunctionName(gtirb::Addr x) const {
 
 const PrintingPolicy& ArmPrettyPrinterFactory::defaultPrintingPolicy() const {
   static PrintingPolicy DefaultPolicy{
-      /// Sections to avoid printing.
-      {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
-       ".plt.sec", ".eh_frame_hdr"},
 
       /// Functions to avoid printing.
       {"_start", "call_weak_fn", "deregister_tm_clones", "register_tm_clones",
        "__do_global_dtors_aux", "frame_dummy", "__libc_csu_fini",
        "__libc_csu_init", "_dl_relocate_static_pie"},
+
+      /// Symbols to avoid printing.
+      {"_IO_stdin_used", "__data_start", "__dso_handle", "__TMC_END__",
+       "_edata", "__bss_start", "program_invocation_name",
+       "program_invocation_short_name"},
+
+      /// Sections to avoid printing.
+      {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
+       ".plt.sec", ".eh_frame_hdr"},
 
       /// Sections with possible data object exclusion.
       {".init_array", ".fini_array"},
