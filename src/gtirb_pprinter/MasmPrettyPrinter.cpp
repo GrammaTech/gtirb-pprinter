@@ -188,24 +188,12 @@ void MasmPrettyPrinter::printSectionFooterDirective(
 
 void MasmPrettyPrinter::printFunctionHeader(std::ostream& /* os */,
                                             gtirb::Addr /* addr */) {
-  // TODO: Use PROC/ENDP blocks
-  // const std::string& name =
-  //     syntax.formatFunctionName(this->getFunctionName(addr));
-  // if (!name.empty()) {
-  //   os << name << ' ' << masmSyntax.proc() << '\n';
-  // }
+  // TODO
 }
 
 void MasmPrettyPrinter::printFunctionFooter(std::ostream& /* os */,
                                             gtirb::Addr /* addr */) {
-  // TODO: Use PROC/ENDP blocks
-  // if (!isFunctionLastBlock(addr))
-  //   return;
-  // const std::optional<std::string>& name = getContainerFunctionName(addr);
-  // if (name && !name->empty()) {
-  //   os << syntax.formatFunctionName(*name) << ' ' << masmSyntax.endp()
-  //      << "\n\n";
-  // }
+  // TODO
 }
 
 void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
@@ -225,8 +213,11 @@ void MasmPrettyPrinter::printSymbolHeader(std::ostream& os,
                                           const gtirb::Symbol& symbol) {
   // Print public definitions
   if (Exports.count(symbol.getUUID())) {
-    if (symbol.getAddress()) {
+    if (symbol.getReferent<gtirb::DataBlock>()) {
       os << '\n' << syntax.global() << ' ' << getSymbolName(symbol) << '\n';
+    } else {
+      os << symbol.getName() << ' ' << masmSyntax.proc() << " EXPORT\n"
+         << symbol.getName() << ' ' << masmSyntax.endp() << '\n';
     }
   }
 }
@@ -247,7 +238,10 @@ void MasmPrettyPrinter::printSymbolDefinition(std::ostream& os,
   }
 
   printSymbolHeader(os, symbol);
-  PrettyPrinterBase::printSymbolDefinition(os, symbol);
+  if (symbol.getReferent<gtirb::DataBlock>() ||
+      Exports.count(symbol.getUUID()) == 0) {
+    PrettyPrinterBase::printSymbolDefinition(os, symbol);
+  }
   printSymbolFooter(os, symbol);
 }
 
