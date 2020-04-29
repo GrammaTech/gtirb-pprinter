@@ -282,7 +282,7 @@ endif()
 # ---------------------------------------------------------------------------
 # gtirb
 # ---------------------------------------------------------------------------
-find_package(gtirb 1.2.1 REQUIRED)
+find_package(gtirb 1.4.7 REQUIRED)
 
 # ---------------------------------------------------------------------------
 # Boost
@@ -413,7 +413,7 @@ set(CPACK_PACKAGE_RESOURCE_FILE_LICENSE ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt)
 set(CPACK_DEBIAN_PACKAGE_SECTION devel)
 
 set(CPACK_DEBIAN_PACKAGE_DEPENDS
-    "libstdc++6, libc6, libgcc1, gtirb (>=${gtirb_VERSION}), libboost-dev (>=1.67) | libboost1.67-dev, libcapstone-dev (>=${CSTOOL_VERSION})"
+    "libstdc++6, libc6, libgcc1, gtirb (>=${gtirb_VERSION}), libboost-dev (>=1.67) | libboost1.67-dev, libcapstone-dev (=1:4.0.1-gt1)"
 )
 
 include(CPack)

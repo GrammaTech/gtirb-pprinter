@@ -2,6 +2,7 @@ variables:
   DOCKER_REGISTRY: "docker.grammatech.com"
   LOCAL_IMAGE_NAME: '$CI_BUILD_REF_NAME-$CI_PIPELINE_ID'
   GIT_SUBMODULE_STRATEGY: recursive
+  GTIRB_DEFAULT_BRANCH: v1.4.7
 
 before_script:
   - case "$(uname -s)" in
@@ -30,10 +31,10 @@ check-format:
   stage: build
   script:
     - export COMPILER_NAME=$(echo ${COMPILER} | sed 's/clang++/clang/;s/g++/gcc/;s/\(-[0-9]\)*//g' )
-    - cp /u4/TARBALLS/debloat/pkgs/libcapstone-dev_4.0.1-1_amd64.deb ./
-    - GTIRB_BRANCH=$((grep -Eo "check_gtirb_branch\([^)]+" CMakeLists.txt || echo "v1.3.1") | sed 's/check_gtirb_branch(//')
+    - cp /u4/TARBALLS/debloat/pkgs/libcapstone-dev_4.0.1-gt1_amd64.deb ./
+    - GTIRB_BRANCH=$((grep -Eo "check_gtirb_branch\([^)]+" CMakeLists.txt || echo "$GTIRB_DEFAULT_BRANCH") | sed 's/check_gtirb_branch(//')
     - "echo \"GTIRB_BRANCH is: $GTIRB_BRANCH\""
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=tar-arch --output "gtirb-arch-artifacts.zip"
+    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=package-arch --output "gtirb-arch-artifacts.zip"
     - unzip -l gtirb-arch-artifacts.zip
     - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-ubuntu16 --output "gtirb-ubuntu16-artifacts.zip"
     - unzip -l gtirb-ubuntu16-artifacts.zip
@@ -49,7 +50,7 @@ check-format:
       - 'gtirb_pprinter*.zip'
   script:
     # Install gtirb
-    - GTIRB_BRANCH=$((grep -Eo "check_gtirb_branch\([^)]+" CMakeLists.txt || echo "master") | sed 's/check_gtirb_branch(//')
+    - GTIRB_BRANCH=$((grep -Eo "check_gtirb_branch\([^)]+" CMakeLists.txt || echo "$GTIRB_DEFAULT_BRANCH") | sed 's/check_gtirb_branch(//')
     - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=build-windows-msvc-${BUILD_TYPE,,} --output "gtirb-artifacts.zip"
     - unzip gtirb-artifacts.zip
     - unzip GTIRB-*-win64.zip
@@ -247,7 +248,7 @@ cleanup-arch-clang:
   artifacts:
     name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
     paths:
-      - ./gtirb_pprinter-*-Linux.${EXTENSION}
+      - ./gtirb*.${EXTENSION}
   script:
     - export COMPILER_NAME=$(echo ${COMPILER} | sed 's/clang++/clang/;s/g++/gcc/;s/\(-[0-9]\)*//g' )
     - export CONTAINER_FILE=$(mktemp -d)/cidfile
@@ -255,12 +256,12 @@ cleanup-arch-clang:
     - docker cp $(cat ${CONTAINER_FILE}):/gt/gtirb-pprinter/build ./build-artifacts
     - docker container rm -f $(cat ${CONTAINER_FILE})
     - rm -rf $(dirname $CONTAINER_FILE)
-    - mv ./build-artifacts/gtirb_pprinter-*-Linux.${EXTENSION} ./
+    - mv ./build-artifacts/gtirb*pprinter-*.${EXTENSION} ./
     - rm -rf ./build-artifacts/
-    - cp /u4/TARBALLS/debloat/pkgs/libcapstone-dev_4.0.1-1_amd64.deb ./
-    - GTIRB_BRANCH=$((grep -Eo "check_gtirb_branch\([^)]+" CMakeLists.txt || echo "v1.3.1") | sed 's/check_gtirb_branch(//')
+    - cp /u4/TARBALLS/debloat/pkgs/libcapstone-dev_4.0.1-gt1_amd64.deb ./
+    - GTIRB_BRANCH=$((grep -Eo "check_gtirb_branch\([^)]+" CMakeLists.txt || echo "$GTIRB_DEFAULT_BRANCH") | sed 's/check_gtirb_branch(//')
     - "echo \"GTIRB_BRANCH is: $GTIRB_BRANCH\""
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=tar-arch --output "gtirb-arch-artifacts.zip"
+    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=package-arch --output "gtirb-arch-artifacts.zip"
     - unzip -l gtirb-arch-artifacts.zip
     - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-ubuntu16 --output "gtirb-ubuntu16-artifacts.zip"
     - unzip -l gtirb-ubuntu16-artifacts.zip
@@ -282,9 +283,9 @@ debian-installer-ubuntu18:
     EXTENSION: 'deb'
   <<: *linux-installer
 
-tar-arch:
+package-arch:
   variables:
     OS: 'arch'
     COMPILER: 'g++'
-    EXTENSION: 'tar.gz'
+    EXTENSION: 'pkg.tar.xz'
   <<: *linux-installer

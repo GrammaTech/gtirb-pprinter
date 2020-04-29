@@ -33,7 +33,11 @@ set(${PROJECT_NAME}_SRC
 
 add_library(${PROJECT_NAME} ${${PROJECT_NAME}_H} ${${PROJECT_NAME}_SRC})
 
-set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "debloat")
+set_target_properties(
+  ${PROJECT_NAME}
+  PROPERTIES VERSION ${GTIRB_PPRINTER_VERSION}
+             SOVERSION ${GTIRB_PPRINTER_MAJOR_VERSION}
+             FOLDER "debloat")
 
 target_link_libraries(${PROJECT_NAME} ${SYSLIBS} ${Boost_LIBRARIES} gtirb
                       ${CAPSTONE})
