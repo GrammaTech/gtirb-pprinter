@@ -260,7 +260,7 @@ protected:
   virtual void printBlockContents(std::ostream& os,
                                   const gtirb::DataBlock& block,
                                   uint64_t offset);
-  virtual void setDecodeMode(std::ostream& os, const gtirb::CodeBlock& x);                              
+  virtual void setDecodeMode(std::ostream& os, const gtirb::CodeBlock& x);
   virtual void printNonZeroDataBlock(std::ostream& os,
                                      const gtirb::DataBlock& dataObject,
                                      uint64_t offset);
