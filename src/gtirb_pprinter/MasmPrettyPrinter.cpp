@@ -197,12 +197,23 @@ void MasmPrettyPrinter::printFunctionFooter(std::ostream& /* os */,
 }
 
 void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
+  cs_x86& Detail = inst.detail->x86;
 
   // Change GAS-specific MOVABS opcode to equivalent MOV opcode.
   if (inst.id == X86_INS_MOVABS) {
     std::string_view mnemonic(inst.mnemonic);
     if (mnemonic.size() > 3) {
       inst.mnemonic[3] = '\0';
+    }
+  }
+
+  // PBLENDVB/BLENDVPS have an implicit third argument (XMM0) required by MASM
+  if (inst.id == X86_INS_PBLENDVB || inst.id == X86_INS_BLENDVPS) {
+    if (Detail.op_count == 2) {
+      Detail.op_count = 3;
+      cs_x86_op& Op = Detail.operands[2];
+      Op.type = X86_OP_REG;
+      Op.reg = X86_REG_XMM0;
     }
   }
 
