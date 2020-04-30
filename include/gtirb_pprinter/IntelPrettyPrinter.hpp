@@ -19,7 +19,7 @@
 
 namespace gtirb_pprint {
 
-class IntelSyntax : public ElfSyntax {
+class DEBLOAT_PRETTYPRINTER_EXPORT_API IntelSyntax : public ElfSyntax {
 public:
   const std::string& offset() const { return OffsetDirective; }
 
@@ -27,7 +27,8 @@ private:
   const std::string OffsetDirective{"OFFSET"};
 };
 
-class IntelPrettyPrinter : public ElfPrettyPrinter {
+class DEBLOAT_PRETTYPRINTER_EXPORT_API IntelPrettyPrinter
+    : public ElfPrettyPrinter {
 public:
   IntelPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
                      const IntelSyntax& syntax, const PrintingPolicy& policy);
@@ -49,7 +50,8 @@ private:
   static volatile bool registered;
 };
 
-class IntelPrettyPrinterFactory : public PrettyPrinterFactory {
+class DEBLOAT_PRETTYPRINTER_EXPORT_API IntelPrettyPrinterFactory
+    : public PrettyPrinterFactory {
 public:
   const PrintingPolicy& defaultPrintingPolicy() const override;
   std::unique_ptr<PrettyPrinterBase>

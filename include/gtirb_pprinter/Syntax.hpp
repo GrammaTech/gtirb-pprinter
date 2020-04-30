@@ -15,12 +15,13 @@
 #ifndef GTIRB_PP_SYNTAX_H
 #define GTIRB_PP_SYNTAX_H
 
+#include "Export.hpp"
 #include <optional>
 #include <string>
 
 namespace gtirb_pprint {
 
-class Syntax {
+class DEBLOAT_PRETTYPRINTER_EXPORT_API Syntax {
 public:
   virtual ~Syntax() = default;
 

@@ -23,7 +23,7 @@
 
 /// \brief Binary-print GTIRB representations.
 namespace gtirb_bprint {
-class BinaryPrinter {
+class DEBLOAT_PRETTYPRINTER_EXPORT_API BinaryPrinter {
 public:
   /// Construct a BinaryPrinter with the default configuration.
   BinaryPrinter() {}
