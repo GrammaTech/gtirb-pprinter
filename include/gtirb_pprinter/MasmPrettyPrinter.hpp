@@ -19,7 +19,7 @@
 
 namespace gtirb_pprint {
 
-class MasmSyntax : public Syntax {
+class DEBLOAT_PRETTYPRINTER_EXPORT_API MasmSyntax : public Syntax {
 public:
   // Styles
   const std::string& comment() const override { return CommentStyle; }
@@ -88,7 +88,8 @@ private:
   const std::string EndDirective{"END"};
 };
 
-class MasmPrettyPrinter : public PePrettyPrinter {
+class DEBLOAT_PRETTYPRINTER_EXPORT_API MasmPrettyPrinter
+    : public PePrettyPrinter {
 public:
   MasmPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
                     const MasmSyntax& syntax, const PrintingPolicy& policy);
@@ -172,7 +173,8 @@ private:
   static volatile bool registered;
 };
 
-class MasmPrettyPrinterFactory : public PrettyPrinterFactory {
+class DEBLOAT_PRETTYPRINTER_EXPORT_API MasmPrettyPrinterFactory
+    : public PrettyPrinterFactory {
 public:
   const PrintingPolicy& defaultPrintingPolicy() const override;
   std::unique_ptr<PrettyPrinterBase>

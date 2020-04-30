@@ -19,7 +19,7 @@
 
 namespace gtirb_pprint {
 
-class ElfSyntax : public Syntax {
+class DEBLOAT_PRETTYPRINTER_EXPORT_API ElfSyntax : public Syntax {
 public:
   const std::string& comment() const override { return CommentStyle; }
 
@@ -79,7 +79,8 @@ private:
   const std::string SLEB128Directive{".sleb128"};
 };
 
-class ElfPrettyPrinter : public PrettyPrinterBase {
+class DEBLOAT_PRETTYPRINTER_EXPORT_API ElfPrettyPrinter
+    : public PrettyPrinterBase {
 public:
   ElfPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
                    const ElfSyntax& syntax, const PrintingPolicy& policy);

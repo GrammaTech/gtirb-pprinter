@@ -24,7 +24,7 @@
 
 /// \brief ElfBinary-print GTIRB representations.
 namespace gtirb_bprint {
-class ElfBinaryPrinter : public BinaryPrinter {
+class DEBLOAT_PRETTYPRINTER_EXPORT_API ElfBinaryPrinter : public BinaryPrinter {
 private:
   std::string compiler = "gcc";
   bool debug = false;

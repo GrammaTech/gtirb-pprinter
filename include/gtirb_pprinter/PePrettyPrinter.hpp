@@ -32,7 +32,8 @@ enum SECTION_CHARACTERISTICS {
   IMAGE_SCN_MEM_WRITE = 0x80000000,
 };
 
-class PePrettyPrinter : public PrettyPrinterBase {
+class DEBLOAT_PRETTYPRINTER_EXPORT_API PePrettyPrinter
+    : public PrettyPrinterBase {
 public:
   PePrettyPrinter(gtirb::Context& context, gtirb::Module& module,
                   const Syntax& syntax, const PrintingPolicy& policy);
