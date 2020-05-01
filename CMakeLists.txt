@@ -347,10 +347,11 @@ add_subdirectory(src)
 # ---------------------------------------------------------------------------
 export(TARGETS gtirb_pprinter gtirb_layout
        FILE "${CMAKE_CURRENT_BINARY_DIR}/gtirb_pprinterTargets.cmake")
+configure_file("${CMAKE_CURRENT_LIST_DIR}/gtirb_pprinterConfig.cmake.in"
+               "${CMAKE_CURRENT_BINARY_DIR}/gtirb_pprinterConfig.cmake" @ONLY)
 file(
-  WRITE "${CMAKE_CURRENT_BINARY_DIR}/gtirb_pprinterConfig.cmake"
+  APPEND "${CMAKE_CURRENT_BINARY_DIR}/gtirb_pprinterConfig.cmake"
   "
-            include(\"\$\{CMAKE_CURRENT_LIST_DIR\}/gtirb_pprinterTargets.cmake\")
             set_property(
                 TARGET gtirb_pprinter
                 APPEND PROPERTY
