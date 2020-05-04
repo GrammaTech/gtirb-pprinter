@@ -56,7 +56,8 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
     ImageBase->setReferent(module.addProxyBlock(context));
   }
 
-  if (gtirb::CodeBlock* Block = module.getEntryPoint(); Block->getAddress()) {
+  if (gtirb::CodeBlock* Block = module.getEntryPoint();
+      Block && Block->getAddress()) {
     auto* EntryPoint =
         gtirb::Symbol::Create(context, *(Block->getAddress()), "__EntryPoint");
     EntryPoint->setReferent<gtirb::CodeBlock>(Block);
