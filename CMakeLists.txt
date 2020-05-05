@@ -231,7 +231,7 @@ endif()
 # ---------------------------------------------------------------------------
 # gtirb
 # ---------------------------------------------------------------------------
-find_package(gtirb 1.4.7 REQUIRED)
+find_package(gtirb 1.5.1 REQUIRED)
 
 # ---------------------------------------------------------------------------
 # Boost
@@ -331,10 +331,16 @@ write_basic_package_version_file(
   COMPATIBILITY AnyNewerVersion)
 
 # Copy the config files to the install location
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/export/gtirb_pprinterConfig.cmake
-              ${version_file} DESTINATION lib/gtirb_pprinter)
+install(
+  FILES ${CMAKE_CURRENT_BINARY_DIR}/export/gtirb_pprinterConfig.cmake
+        ${version_file}
+  DESTINATION lib/gtirb_pprinter
+  COMPONENT cmake_config)
 
-install(EXPORT gtirb_pprinterTargets DESTINATION lib/gtirb_pprinter)
+install(
+  EXPORT gtirb_pprinterTargets
+  DESTINATION lib/gtirb_pprinter
+  COMPONENT cmake_target)
 
 # ---------------------------------------------------------------------------
 # Tests
@@ -354,8 +360,9 @@ endif()
 # ---------------------------------------------------------------------------
 # Package generation with cpack
 # ---------------------------------------------------------------------------
-set(CMAKE_PROJECT_HOMEPAGE_URL https://github.com/GrammaTech/gtirb-pprinter)
+set(CPACK_PROJECT_CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/cpack-config.cmake)
 
+set(CMAKE_PROJECT_HOMEPAGE_URL https://github.com/GrammaTech/gtirb-pprinter)
 set(CPACK_PACKAGE_VERSION_MAJOR ${GTIRB_PPRINTER_MAJOR_VERSION})
 set(CPACK_PACKAGE_VERSION_MINOR ${GTIRB_PPRINTER_MINOR_VERSION})
 set(CPACK_PACKAGE_VERSION_PATCH ${GTIRB_PPRINTER_PATCH_VERSION})
@@ -372,5 +379,7 @@ set(CPACK_DEBIAN_PACKAGE_SECTION devel)
 set(CPACK_DEBIAN_PACKAGE_DEPENDS
     "libstdc++6, libc6, libgcc1, gtirb (>=${gtirb_VERSION}), libboost-dev (>=1.67) | libboost1.67-dev, libcapstone-dev (=1:4.0.1-gt1)"
 )
+
+set(CPACK_GTIRB_VERSION "${gtirb_VERSION}")
 
 include(CPack)

@@ -256,7 +256,7 @@ cleanup-arch-clang:
     - docker cp $(cat ${CONTAINER_FILE}):/gt/gtirb-pprinter/build ./build-artifacts
     - docker container rm -f $(cat ${CONTAINER_FILE})
     - rm -rf $(dirname $CONTAINER_FILE)
-    - mv ./build-artifacts/gtirb*pprinter-*.${EXTENSION} ./
+    - mv ./build-artifacts/*.${EXTENSION} ./
     - rm -rf ./build-artifacts/
     - cp /u4/TARBALLS/debloat/pkgs/libcapstone-dev_4.0.1-gt1_amd64.deb ./
     - GTIRB_BRANCH=$((grep -Eo "check_gtirb_branch\([^)]+" CMakeLists.txt || echo "$GTIRB_DEFAULT_BRANCH") | sed 's/check_gtirb_branch(//')

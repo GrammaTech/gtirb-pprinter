@@ -13,7 +13,10 @@ target_link_libraries(
   gtirb_pprinter
   gtirb_layout)
 
-install(TARGETS ${PRETTY_PRINTER} DESTINATION bin)
+install(
+  TARGETS ${PRETTY_PRINTER}
+  DESTINATION bin
+  COMPONENT pprinter_driver)
 
 if(NOT BUILD_SHARED_LIBS)
   target_link_libraries(${PRETTY_PRINTER} -static-libstdc++)
