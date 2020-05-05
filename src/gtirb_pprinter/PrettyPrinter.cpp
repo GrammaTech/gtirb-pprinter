@@ -405,7 +405,6 @@ void PrettyPrinterBase::printInstruction(std::ostream& os,
       printEA(os, ea);
       os << "  " << syntax.nop();
     }
-    os << '\n';
     return;
   }
 
