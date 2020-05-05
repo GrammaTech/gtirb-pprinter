@@ -33,7 +33,12 @@ RUN make -j
 
 # Package generation
 ARG CPACK_GENERATOR=""
-RUN if [ ! -z "${CPACK_GENERATOR}" ] ; then cd /gt/gtirb-pprinter/build && cpack -G "${CPACK_GENERATOR}"; fi
+RUN if [ ! -z "${CPACK_GENERATOR}" ] ; then \
+      cd /gt/gtirb-pprinter/build && \
+      cpack -G "${CPACK_GENERATOR}" -D CPACK_GTIRB_DEBIAN_PACKAGE=lib && \
+      cpack -G "${CPACK_GENERATOR}" -D CPACK_GTIRB_DEBIAN_PACKAGE=dev && \
+      cpack -G "${CPACK_GENERATOR}" -D CPACK_GTIRB_DEBIAN_PACKAGE=driver ; \
+    fi
 
 WORKDIR /gt/gtirb-pprinter/
 ENV PATH=/gt/gtirb-pprinter/build/bin:$PATH

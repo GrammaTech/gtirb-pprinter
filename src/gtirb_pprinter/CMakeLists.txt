@@ -63,8 +63,11 @@ install(
   DESTINATION include
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib)
-install(FILES ${${PROJECT_NAME}_H} DESTINATION include/gtirb_pprinter)
+  ARCHIVE DESTINATION lib COMPONENT pprinter_library)
+install(
+  FILES ${${PROJECT_NAME}_H}
+  DESTINATION include/gtirb_pprinter
+  COMPONENT pprinter_headers)
 
 # subdirectories
 add_subdirectory(driver)

@@ -46,8 +46,11 @@ install(
   DESTINATION include
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib)
-install(FILES ${${PROJECT_NAME}_H} DESTINATION include/gtirb_layout)
+  ARCHIVE DESTINATION lib COMPONENT layout_library)
+install(
+  FILES ${${PROJECT_NAME}_H}
+  DESTINATION include/gtirb_layout
+  COMPONENT layout_headers)
 
 # subdirectories
 add_subdirectory(driver)

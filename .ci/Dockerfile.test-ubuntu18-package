@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:18.04 AS test-base
 
 # Use bash for more convenient variable substitution syntax
 SHELL ["/bin/bash", "-c"]
@@ -22,17 +22,23 @@ RUN cp *.deb /gt/apt-repo/
 RUN cd /gt/apt-repo && dpkg-scanpackages . /dev/null > Packages
 RUN echo $'\ndeb [trusted=yes] file:/gt/apt-repo ./\n' >> /etc/apt/sources.list
 
-# install pprinter
-RUN apt-get update && apt-get install -y --allow-unauthenticated gtirb_pprinter
 
-# build the c++ test
+FROM test-base AS test-dev
+RUN apt-get update && apt-get install -y --allow-unauthenticated libgtirb-pprinter-dev
+WORKDIR /test/
 COPY .ci/test-install.cpp test-install.cpp
-RUN g++ test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs
-
-# run the c++ test
+RUN g++-7 test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs
 RUN ./test-install
 
-# run the python tests, which will test if the pprinter binaries have been
-# installed
-COPY . /gt/gtirb-pprinter/
-RUN cd /gt/gtirb-pprinter && python3 -m unittest discover tests "*_test.py"
+
+FROM test-base AS test-lib
+RUN apt-get update && apt-get install -y --allow-unauthenticated libgtirb-pprinter
+COPY --from=test-dev /test/test-install /test/test-install
+WORKDIR /test/
+RUN ./test-install
+
+
+FROM test-base AS test-driver
+RUN apt-get update && apt-get install -y --allow-unauthenticated gtirb-pprinter
+RUN gtirb-pprinter --version
+RUN gtirb-layout --version
