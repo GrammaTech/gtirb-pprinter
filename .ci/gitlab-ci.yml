@@ -130,14 +130,14 @@ build-arch-clang:
     COMPILER: 'clang++'
   <<: *build
 
-build-windows-debug:
+build-windows-msvc-debug:
   variables:
     BUILD_TYPE: 'Debug'
   tags:
     - gtirb-pprinter-windows
   <<: *windows-build
 
-build-windows-release:
+build-windows-msvc-release:
   variables:
     BUILD_TYPE: 'Release'
   tags:
