@@ -265,7 +265,6 @@ void PrettyPrinterBase::printBlockContents(std::ostream& os,
     fixupInstruction(insn[i]);
     printInstruction(os, x, insn[i], blockOffset);
     blockOffset.Displacement += insn[i].size;
-    os << '\n';
   }
   // print any CFI directives located at the end of the block
   // e.g. '.cfi_endproc' is usually attached to the end of the block
@@ -406,6 +405,7 @@ void PrettyPrinterBase::printInstruction(std::ostream& os,
       printEA(os, ea);
       os << "  " << syntax.nop();
     }
+    os << '\n';
     return;
   }
 
@@ -421,6 +421,7 @@ void PrettyPrinterBase::printInstruction(std::ostream& os,
   std::string opcode = ascii_str_tolower(inst.mnemonic);
   os << "  " << opcode << ' ';
   printOperandList(os, block, inst);
+  os << '\n';
 }
 
 void PrettyPrinterBase::printEA(std::ostream& os, gtirb::Addr ea) {
