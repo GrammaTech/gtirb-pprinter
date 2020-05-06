@@ -24,6 +24,13 @@ set(GTIRB_PPRINTER_VERSION
     "${GTIRB_PPRINTER_MAJOR_VERSION}.${GTIRB_PPRINTER_MINOR_VERSION}.${GTIRB_PPRINTER_PATCH_VERSION}"
     CACHE STRING "version of gtirb-pprinter" FORCE)
 
+execute_process(
+  COMMAND git log --pretty=format:%h -n 1
+  OUTPUT_VARIABLE GTIRB_PPRINTER_BUILD_REVISION
+  ERROR_QUIET)
+
+string(TIMESTAMP GTIRB_PPRINTER_BUILD_DATE "%Y-%m-%d")
+
 # includes
 include(CheckFunctionExists)
 include(CheckCXXSourceCompiles)
