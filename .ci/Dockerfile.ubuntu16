@@ -47,7 +47,7 @@ RUN dpkg -i libcapstone-dev_*_amd64.deb
 
 # Install GTIRB
 COPY gtirb-ubuntu16-artifacts.zip ./gtirb-artifacts.zip
-RUN unzip -o gtirb-artifacts.zip && dpkg -i GTIRB*.deb
+RUN unzip -o gtirb-artifacts.zip && dpkg -i libgtirb.deb && dpkg -i libgtirb-dev.deb
 
 # Build gtirb-pprinter
 COPY . /gt/gtirb-pprinter/
