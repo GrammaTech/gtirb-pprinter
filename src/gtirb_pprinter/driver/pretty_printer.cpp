@@ -1,4 +1,5 @@
 #include "Logger.h"
+#include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <fstream>
@@ -7,27 +8,21 @@
 #include <gtirb_pprinter/PrettyPrinter.hpp>
 #include <iomanip>
 #include <iostream>
-#ifdef USE_STD_FILESYSTEM_LIB
-#include <filesystem>
-namespace fs = std::filesystem;
-#else
-#include <experimental/filesystem>
-namespace fs = std::experimental::filesystem;
-#endif // USE_STD_FILESYSTEM_LIB
 
+namespace fs = boost::filesystem;
 namespace po = boost::program_options;
 
 static fs::path getAsmFileName(const fs::path& InitialPath, int Index) {
   if (Index == 0)
     return InitialPath;
-  std::string Filename = InitialPath.filename().generic_string();
-  // If the name does not have an extension, we add the number at the end.
-  size_t LastDot = Filename.rfind('.');
-  if (LastDot == std::string::npos)
-    Filename.append(std::to_string(Index));
-  // Otherwise, we add the number before the extension.
-  Filename.insert(LastDot, std::to_string(Index));
-  return fs::path(InitialPath).replace_filename(Filename);
+
+  // Add the number to the end of the stem of the filename.
+  std::string Filename = InitialPath.stem().generic_string();
+  Filename.append(std::to_string(Index));
+  Filename.append(InitialPath.extension().generic_string());
+  fs::path FinalPath = InitialPath.parent_path();
+  FinalPath /= Filename;
+  return FinalPath;
 }
 
 int main(int argc, char** argv) {
@@ -271,7 +266,7 @@ int main(int argc, char** argv) {
     int i = 0;
     for (gtirb::Module& m : ir->modules()) {
       fs::path name = getAsmFileName(asmPath, i);
-      std::ofstream ofs(name);
+      std::ofstream ofs(name.generic_string());
       if (ofs) {
         pp.print(ofs, ctx, m);
         LOG_INFO << "Module " << i << "'s assembly written to: " << name
