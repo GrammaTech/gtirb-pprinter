@@ -78,67 +78,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   endif()
 endif()
 
-# Detect how to use <experimental/filesystem> for non-msvc compilers.  On the
-# latest version of MSVC, the experimental filesystem library is deprecated.
-set(USE_STD_FILESYSTEM_LIB_DEFAULT OFF)
-if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
-  set(USE_STD_FILESYSTEM_LIB_DEFAULT ON)
-endif()
-
-option(
-  USE_STD_FILESYSTEM_LIB
-  "Use the standard filesystem library instead of the experimental filesystem library"
-  ${USE_STD_FILESYSTEM_LIB_DEFAULT})
-
-if(USE_STD_FILESYSTEM_LIB)
-  add_definitions(-DUSE_STD_FILESYSTEM_LIB)
-else()
-  set(EXPERIMENTAL_LIB
-      ""
-      CACHE
-        STRING
-        "The library to link with in order to use <experimental/filesystem>.")
-
-  if(NOT EXPERIMENTAL_LIB)
-    set(EXFS_CODE
-        "
-    #include <experimental/filesystem>
-    int main() {
-      std::experimental::filesystem::path p{\"an/example/path\"};
-      return std::experimental::filesystem::exists(p);
-    }
-    ")
-
-    check_cxx_source_compiles("${EXFS_CODE}" EXFS_LINK_NONE)
-
-    if(NOT EXFS_LINK_NONE)
-      foreach(EXFS_LIB stdc++fs c++experimental c++fs)
-        set(OLD_CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES})
-        list(APPEND CMAKE_REQUIRED_LIBRARIES ${EXFS_LIB})
-        check_cxx_source_compiles("${EXFS_CODE}" EXFS_LINK_${EXFS_LIB}_OK)
-        set(CMAKE_REQUIRED_LIBRARIES ${OLD_CMAKE_REQUIRED_LIBRARIES})
-
-        if(EXFS_LINK_${EXFS_LIB}_OK)
-          if(EXPERIMENTAL_LIB)
-            message(
-              FATAL_ERROR
-                "multiple candidates for library to link for <experimental/filesystem>: ${EXPERIMENTAL_LIB} and ${EXFS_LIB}. Try giving the correct one explicitly with -DEXPERIMENTAL_LIB."
-            )
-          endif()
-          set(EXPERIMENTAL_LIB ${EXFS_LIB})
-        endif()
-      endforeach()
-
-      if(NOT EXPERIMENTAL_LIB)
-        message(
-          FATAL_ERROR
-            "could not find library to link for <experimental/filesystem>. Try giving it explicitly with -DEXPERIMENTAL_LIB."
-        )
-      endif()
-    endif()
-  endif()
-endif()
-
 # If we're using libc++, we need to manually include libc++abi (unlike with
 # using libstdc++, which automatically does this)
 include(CheckCXXSourceCompiles)
@@ -287,6 +226,13 @@ find_package(gtirb 1.4.7 REQUIRED)
 # ---------------------------------------------------------------------------
 # Boost
 # ---------------------------------------------------------------------------
+#
+# Note: we would like to use std::filsystem. However, currently, std::filesystem
+# is not provided in clang 6 or gcc 7, both of which are the default installed
+# versions for Ubuntu 18. Instead in that context, one can use the
+# "experimental" version fo filesystem. But we've decided that it's simpler to
+# just use boost::filesystem instead until we (eventually) drop support for
+# Ubuntu 18.
 set(BOOST_COMPONENTS filesystem program_options system)
 find_package(Boost 1.67 REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 

@@ -27,6 +27,7 @@
 #pragma warning(push)
 #pragma warning(disable : 4456) // variable shadowing warning
 #endif                          // __GNUC__
+#include <boost/filesystem.hpp>
 #include <boost/process/search_path.hpp>
 #include <boost/process/system.hpp>
 #ifdef __GNUC__
@@ -38,14 +39,8 @@
 #include <regex>
 #include <string>
 #include <vector>
-#ifdef USE_STD_FILESYSTEM_LIB
-#include <filesystem>
-namespace fs = std::filesystem;
-#else
-#include <experimental/filesystem>
-namespace fs = std::experimental::filesystem;
-#endif // USE_STD_FILESYSTEM_LIB
 
+namespace fs = boost::filesystem;
 namespace bp = boost::process;
 
 namespace gtirb_bprint {
