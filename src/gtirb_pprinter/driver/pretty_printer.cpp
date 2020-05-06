@@ -128,7 +128,15 @@ int main(int argc, char** argv) {
   }
   po::notify(vm);
 
-  gtirb::Context ctx;
+  class ContextForgetter {
+    gtirb::Context ctx;
+  public:
+    ~ContextForgetter() { ctx.ForgetAllocations(); }
+    operator gtirb::Context& () { return ctx; }
+    operator const gtirb::Context& () const { return ctx; }
+  };
+
+  ContextForgetter ctx;
   gtirb::IR* ir;
 
   if (vm.count("ir") != 0) {
