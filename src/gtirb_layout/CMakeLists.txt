@@ -41,12 +41,13 @@ target_compile_options(${PROJECT_NAME} PRIVATE -D${PROJECT_NAME}_EXPORTS)
 # Copy headers into build directory
 install(
   TARGETS ${PROJECT_NAME}
+  COMPONENT layout_library
   EXPORT gtirb_pprinterTargets
   INCLUDES
   DESTINATION include
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib COMPONENT layout_library)
+  ARCHIVE DESTINATION lib)
 install(
   FILES ${${PROJECT_NAME}_H}
   DESTINATION include/gtirb_layout
