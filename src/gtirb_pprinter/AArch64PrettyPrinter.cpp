@@ -96,6 +96,7 @@ void AArch64PrettyPrinter::printOperand(std::ostream& os,
     gtirb::Addr ea(inst.address);
     const cs_arm64_op& op = inst.detail->arm64.operands[index];
     const gtirb::SymbolicExpression* symbolic = nullptr;
+    bool finalOp = (index + 1 == inst.detail->arm64.op_count);
 
     switch (op.type) {
         case ARM64_OP_REG:
@@ -108,7 +109,7 @@ void AArch64PrettyPrinter::printOperand(std::ostream& os,
             }
             return;
         case ARM64_OP_IMM:
-            {
+            if (finalOp) {
                 auto pos = module.findSymbolicExpressionsAt(ea);
                 if (!pos.empty()) {
                     symbolic = &pos.begin()->getSymbolicExpression();
@@ -117,7 +118,7 @@ void AArch64PrettyPrinter::printOperand(std::ostream& os,
             printOpImmediate(os, symbolic, inst, index);
             return;
         case ARM64_OP_MEM:
-            {
+            if (finalOp) {
                 auto pos = module.findSymbolicExpressionsAt(ea);
                 if (!pos.empty()) {
                     symbolic = &pos.begin()->getSymbolicExpression();
