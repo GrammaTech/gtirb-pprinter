@@ -39,6 +39,7 @@ RUN ./test-install
 
 
 FROM test-base AS test-driver
+COPY tests/two_modules.gtirb ./
 RUN apt-get update && apt-get install -y --allow-unauthenticated gtirb-pprinter
-RUN gtirb-pprinter --version
-RUN gtirb-layout --version
+RUN gtirb-pprinter two_modules.gtirb
+RUN gtirb-layout two_modules.gtirb --out output
