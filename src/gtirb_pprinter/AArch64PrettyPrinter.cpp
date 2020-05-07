@@ -16,22 +16,10 @@
 //===----------------------------------------------------------------------===//
 
 #include "AArch64PrettyPrinter.hpp"
+#include "AuxDataSchema.hpp"
 
 #include <capstone/capstone.h>
 
-struct SymbolPrefixInfo {
-    uint64_t index;
-    std::string prefix;
-};
-
-namespace gtirb {
-    namespace schema {
-        struct SymbolPrefixes {
-            static constexpr const char* Name = "symbolPrefixes";
-            typedef std::map<gtirb::Addr, SymbolPrefixInfo> Type;
-        };
-    }
-}
 namespace gtirb_pprint {
 
 AArch64PrettyPrinter::AArch64PrettyPrinter(gtirb::Context& context_,
@@ -40,14 +28,12 @@ AArch64PrettyPrinter::AArch64PrettyPrinter(gtirb::Context& context_,
     : ElfPrettyPrinter(context_, module_, syntax_, policy_, CS_ARCH_ARM64, CS_MODE_ARM) {}
 
 void AArch64PrettyPrinter::printHeader(std::ostream& os) {
-    // TODO (azreika): add proper header
     this->printBar(os);
-    // os << ".intel_syntax noprefix\n";
+    // header
     this->printBar(os);
     os << '\n';
 
     for (int i = 0; i < 8; i++) {
-        // TODO (azreika): why is this here?
         os << syntax.nop() << '\n';
     }
 }
@@ -110,6 +96,7 @@ void AArch64PrettyPrinter::printOperand(std::ostream& os,
     gtirb::Addr ea(inst.address);
     const cs_arm64_op& op = inst.detail->arm64.operands[index];
     const gtirb::SymbolicExpression* symbolic = nullptr;
+    bool finalOp = (index + 1 == inst.detail->arm64.op_count);
 
     switch (op.type) {
         case ARM64_OP_REG:
@@ -122,7 +109,7 @@ void AArch64PrettyPrinter::printOperand(std::ostream& os,
             }
             return;
         case ARM64_OP_IMM:
-            {
+            if (finalOp) {
                 auto pos = module.findSymbolicExpressionsAt(ea);
                 if (!pos.empty()) {
                     symbolic = &pos.begin()->getSymbolicExpression();
@@ -131,7 +118,7 @@ void AArch64PrettyPrinter::printOperand(std::ostream& os,
             printOpImmediate(os, symbolic, inst, index);
             return;
         case ARM64_OP_MEM:
-            {
+            if (finalOp) {
                 auto pos = module.findSymbolicExpressionsAt(ea);
                 if (!pos.empty()) {
                     symbolic = &pos.begin()->getSymbolicExpression();
@@ -165,11 +152,11 @@ void AArch64PrettyPrinter::printOperand(std::ostream& os,
 
 void AArch64PrettyPrinter::printPrefix(std::ostream& os,
         const cs_insn& inst, uint64_t index) {
-    auto *SymbolPrefix = module.getAuxData<gtirb::schema::SymbolPrefixes>();
-    // TODO: what if multiple? diff indexes?
-    for (const auto& pair : *SymbolPrefix) {
-        if (pair.first == gtirb::Addr(inst.address) && index == pair.second.index) {
-            os << pair.second.prefix;
+    auto* symbolicOperandInfo = module.getAuxData<gtirb::schema::SymbolicOperandInfoAD>();
+    for (const auto& pair : *symbolicOperandInfo) {
+        const auto& symbolInfo = pair.second;
+        if (pair.first == gtirb::Addr(inst.address) && index == std::get<0>(symbolInfo)) {
+            os << std::get<1>(symbolInfo);
         }
     }
 }
@@ -200,9 +187,11 @@ void AArch64PrettyPrinter::printOpRawValue(std::ostream& os, const cs_insn& inst
         char cur = *pos;
         if (cur == '[') {
             // entering an indirect memory access
+            assert(!inBlock && "nested blocks should not be possible");
             inBlock = true;
         } else if (cur == ']') {
             // exiting an indirect memory access
+            assert(inBlock && "Closing unopened memory access");
             inBlock = false;
         } else if (!inBlock && cur == ',') {
             // hit a new operand
@@ -479,6 +468,4 @@ AArch64PrettyPrinterFactory::create(gtirb::Context& gtirb_context,
 volatile bool AArch64PrettyPrinter::registered = registerPrinter(
         {"elf"}, {"aarch64"},
         std::make_shared<AArch64PrettyPrinterFactory>(), true);
-
 }
-

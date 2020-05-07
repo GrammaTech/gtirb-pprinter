@@ -473,7 +473,7 @@ void PrettyPrinterBase::printInstruction(std::ostream& os, const cs_insn& inst,
   // special cases
 
   // TODO: look into this line
-  if (inst.id == X86_INS_NOP) {
+  if (inst.id == X86_INS_NOP || inst.id == ARM64_INS_NOP) {
     os << "  " << syntax.nop();
     for (uint64_t i = 1; i < inst.size; ++i) {
       ea += 1;
@@ -595,7 +595,7 @@ void PrettyPrinterBase::printNonZeroDataBlock(
     }
   }
   for (auto byte : dataObject.bytes<uint8_t>()) {
-    os << syntax.tab() << "#";
+    os << syntax.tab();
     printByte(os, static_cast<std::byte>(static_cast<unsigned char>(byte)));
   }
 }
@@ -905,6 +905,7 @@ void registerAuxDataTypes() {
   gtirb::AuxDataContainer::registerAuxDataType<FunctionEntries>();
   gtirb::AuxDataContainer::registerAuxDataType<FunctionBlocks>();
   gtirb::AuxDataContainer::registerAuxDataType<SymbolForwarding>();
+  gtirb::AuxDataContainer::registerAuxDataType<SymbolicOperandInfoAD>();
   gtirb::AuxDataContainer::registerAuxDataType<Encodings>();
   gtirb::AuxDataContainer::registerAuxDataType<ElfSectionProperties>();
   gtirb::AuxDataContainer::registerAuxDataType<CfiDirectives>();
