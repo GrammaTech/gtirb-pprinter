@@ -6,6 +6,7 @@
 #include <gtirb_layout/gtirb_layout.hpp>
 #include <gtirb_pprinter/ElfBinaryPrinter.hpp>
 #include <gtirb_pprinter/PrettyPrinter.hpp>
+#include <gtirb_pprinter/version.h>
 #include <iomanip>
 #include <iostream>
 
@@ -30,7 +31,8 @@ int main(int argc, char** argv) {
 
   po::options_description desc("Allowed options");
   desc.add_options()("help,h", "Produce help message.");
-  desc.add_options()("ir,i", po::value<std::string>(), "gtirb file to print.");
+  desc.add_options()("version", "Print version info and exit.");
+  desc.add_options()("ir,i", po::value<std::string>(), "GTIRB file to print.");
   desc.add_options()(
       "asm,a", po::value<std::string>(),
       "The name of the assembly output file. If none is given, gtirb-pprinter "
@@ -112,6 +114,12 @@ int main(int argc, char** argv) {
     if (vm.count("help") != 0) {
       std::cout << desc << "\n";
       return 1;
+    }
+    if (vm.count("version") != 0) {
+      std::cout << GTIRB_PPRINTER_VERSION_STRING << " ("
+                << GTIRB_PPRINTER_BUILD_REVISION << " "
+                << GTIRB_PPRINTER_BUILD_DATE << ")\n";
+      return 0;
     }
   } catch (std::exception& e) {
     std::cerr << "ERROR: " << e.what() << "\nTry '" << argv[0]
