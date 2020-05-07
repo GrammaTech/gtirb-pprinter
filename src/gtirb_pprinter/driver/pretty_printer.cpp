@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
 
   po::options_description desc("Allowed options");
   desc.add_options()("help,h", "Produce help message.");
-  desc.add_options()("version,V", "Print version info and exit.");
+  desc.add_options()("version", "Print version info and exit.");
   desc.add_options()("ir,i", po::value<std::string>(), "GTIRB file to print.");
   desc.add_options()(
       "asm,a", po::value<std::string>(),
