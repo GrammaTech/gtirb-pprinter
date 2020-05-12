@@ -145,6 +145,10 @@ int main(int argc, char** argv) {
   } else {
     ir = gtirb::IR::load(ctx, std::cin);
   }
+  if (!ir) {
+    LOG_ERROR << "Failed to load the IR";
+    return EXIT_FAILURE;
+  }
   if (ir->modules().empty()) {
     LOG_ERROR << "IR has no modules";
     return EXIT_FAILURE;
