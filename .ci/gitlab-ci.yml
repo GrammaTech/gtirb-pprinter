@@ -2,7 +2,6 @@ variables:
   DOCKER_REGISTRY: "docker.grammatech.com"
   LOCAL_IMAGE_NAME: '$CI_BUILD_REF_NAME-$CI_PIPELINE_ID'
   GIT_SUBMODULE_STRATEGY: recursive
-  GTIRB_DEFAULT_BRANCH: v1.6.0
 
 before_script:
   - case "$(uname -s)" in
