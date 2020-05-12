@@ -50,6 +50,8 @@ protected:
     void printOpBarrier(std::ostream& os, const arm64_barrier_op barrier);
 
     void printPrefix(std::ostream& os, const cs_insn& inst, uint64_t index);
+    void printShift(std::ostream& os, const arm64_shifter type, unsigned int value);
+    void printExtender(std::ostream& os, const arm64_extender& ext, const arm64_shifter shiftType, uint64_t shiftValue);
 
 private:
     static volatile bool registered;

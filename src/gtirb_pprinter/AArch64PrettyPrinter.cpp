@@ -55,42 +55,6 @@ void AArch64PrettyPrinter::printOperandList(std::ostream& os,
     }
 }
 
-void printExtender(std::ostream& os, const arm64_extender& ext, const arm64_shifter shiftType, uint64_t shiftValue) {
-    switch (ext) {
-        case ARM64_EXT_UXTB:
-            os << "uxtb";
-            break;
-        case ARM64_EXT_UXTH:
-            os << "uxth";
-            break;
-        case ARM64_EXT_UXTW:
-            os << "uxtw";
-            break;
-        case ARM64_EXT_UXTX:
-            os << "uxtx";
-            break;
-        case ARM64_EXT_SXTB:
-            os << "sxtb";
-            break;
-        case ARM64_EXT_SXTH:
-            os << "sxth";
-            break;
-        case ARM64_EXT_SXTW:
-            os << "sxtw";
-            break;
-        case ARM64_EXT_SXTX:
-            os << "sxtx";
-            break;
-        default:
-            assert(false && "unexpected case");
-    }
-    if (shiftType != ARM64_SFT_INVALID) {
-        assert(shiftType == ARM64_SFT_LSL && "unexpected shift type in extender");
-        os << " #" << shiftValue;
-    }
-
-}
-
 void AArch64PrettyPrinter::printOperand(std::ostream& os,
         const cs_insn& inst, uint64_t index) {
     gtirb::Addr ea(inst.address);
@@ -161,18 +125,88 @@ void AArch64PrettyPrinter::printPrefix(std::ostream& os,
     }
 }
 
-std::optional<std::string> AArch64PrettyPrinter::getForwardedSymbolName(const gtirb::Symbol* symbol, bool /* inData */) const {
-    const auto* symbolForwarding =
-        module.getAuxData<gtirb::schema::SymbolForwarding>();
+void AArch64PrettyPrinter::printOpRegdirect(std::ostream& os,
+        const cs_insn& /* inst */, unsigned int reg) {
+    os << getRegisterName(reg);
+}
 
-    if (symbolForwarding) {
-        auto found = symbolForwarding->find(symbol->getUUID());
-        if (found != symbolForwarding->end()) {
-            gtirb::Node* destSymbol = gtirb::Node::getByUUID(context, found->second);
-            return cast<gtirb::Symbol>(destSymbol)->getName();
+void AArch64PrettyPrinter::printOpImmediate(std::ostream& os,
+        const gtirb::SymbolicExpression* symbolic,
+        const cs_insn& inst, uint64_t index) {
+    const cs_arm64_op& op = inst.detail->arm64.operands[index];
+    assert(op.type == ARM64_OP_IMM &&
+            "printOpImmediate called without an immediate operand");
+
+    bool is_jump = cs_insn_group(this->csHandle, &inst, ARM64_GRP_JUMP);
+
+    if (const gtirb::SymAddrConst* s = this->getSymbolicImmediate(symbolic)) {
+        if (!is_jump) {
+            os << ' ';
+        }
+        printPrefix(os, inst, index);
+        this->printSymbolicExpression(os, s, !is_jump);
+    } else {
+        os << "#" << op.imm;
+        if (op.shift.type != ARM64_SFT_INVALID && op.shift.value != 0) {
+            os << ",";
+            printShift(os, op.shift.type, op.shift.value);
         }
     }
-    return {};
+}
+
+void AArch64PrettyPrinter::printOpIndirect(std::ostream& os,
+        const gtirb::SymbolicExpression* symbolic,
+        const cs_insn& inst, uint64_t index) {
+    const cs_arm64& detail = inst.detail->arm64;
+    const cs_arm64_op& op = detail.operands[index];
+    assert(op.type == ARM64_OP_MEM &&
+            "printOpIndirect called without a memory operand");
+
+    bool first = true;
+
+    os << "[";
+
+    // base register
+    if (op.mem.base != ARM64_REG_INVALID) {
+        first = false;
+        os << getRegisterName(op.mem.base);
+    }
+
+    // displacement (constant)
+    if (op.mem.disp != 0) {
+        if (!first) {
+            os << ",";
+        }
+        if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
+            printPrefix(os, inst, index);
+            printSymbolicExpression(os, s, false);
+        } else {
+            os << "#" << op.mem.disp;
+        }
+        first = false;
+    }
+
+    // index register
+    if (op.mem.index != ARM64_REG_INVALID) {
+        if (!first) {
+            os << ",";
+        }
+        first = false;
+        os << getRegisterName(op.mem.index);
+    }
+
+    // add shift
+    if (op.shift.type != ARM64_SFT_INVALID && op.shift.value != 0) {
+        os << ",";
+        assert(!first && "unexpected shift operator");
+        printShift(os, op.shift.type, op.shift.value);
+    }
+
+    os << "]";
+
+    if (detail.writeback && index + 1 == detail.op_count) {
+        os << "!";
+    }
 }
 
 void AArch64PrettyPrinter::printOpRawValue(std::ostream& os, const cs_insn& inst, uint64_t index) {
@@ -223,11 +257,6 @@ void AArch64PrettyPrinter::printOpRawValue(std::ostream& os, const cs_insn& inst
     for (const char* cur = operandStart; cur < operandEnd; cur++) {
         os << *cur;
     }
-}
-
-void AArch64PrettyPrinter::printOpRegdirect(std::ostream& os,
-        const cs_insn& /* inst */, unsigned int reg) {
-    os << getRegisterName(reg);
 }
 
 void AArch64PrettyPrinter::printOpBarrier(std::ostream& os, const arm64_barrier_op barrier) {
@@ -338,7 +367,7 @@ void AArch64PrettyPrinter::printOpPrefetch(std::ostream& os, const arm64_prefetc
     }
 }
 
-void printShift(std::ostream& os, const arm64_shifter type, unsigned int value) {
+void AArch64PrettyPrinter::printShift(std::ostream& os, const arm64_shifter type, unsigned int value) {
     switch (type) {
         case ARM64_SFT_LSL:
             os << "lsl";
@@ -361,83 +390,54 @@ void printShift(std::ostream& os, const arm64_shifter type, unsigned int value) 
     os << " #" << value;
 }
 
-void AArch64PrettyPrinter::printOpImmediate(std::ostream& os,
-        const gtirb::SymbolicExpression* symbolic,
-        const cs_insn& inst, uint64_t index) {
-    const cs_arm64_op& op = inst.detail->arm64.operands[index];
-    assert(op.type == ARM64_OP_IMM &&
-            "printOpImmediate called without an immediate operand");
-
-    bool is_jump = cs_insn_group(this->csHandle, &inst, ARM64_GRP_JUMP);
-
-    if (const gtirb::SymAddrConst* s = this->getSymbolicImmediate(symbolic)) {
-        if (!is_jump) {
-            os << ' ';
-        }
-        printPrefix(os, inst, index);
-        this->printSymbolicExpression(os, s, !is_jump);
-    } else {
-        os << "#" << op.imm;
-        if (op.shift.type != ARM64_SFT_INVALID && op.shift.value != 0) {
-            os << ",";
-            printShift(os, op.shift.type, op.shift.value);
-        }
+void AArch64PrettyPrinter::printExtender(std::ostream& os, const arm64_extender& ext, const arm64_shifter shiftType, uint64_t shiftValue) {
+    switch (ext) {
+        case ARM64_EXT_UXTB:
+            os << "uxtb";
+            break;
+        case ARM64_EXT_UXTH:
+            os << "uxth";
+            break;
+        case ARM64_EXT_UXTW:
+            os << "uxtw";
+            break;
+        case ARM64_EXT_UXTX:
+            os << "uxtx";
+            break;
+        case ARM64_EXT_SXTB:
+            os << "sxtb";
+            break;
+        case ARM64_EXT_SXTH:
+            os << "sxth";
+            break;
+        case ARM64_EXT_SXTW:
+            os << "sxtw";
+            break;
+        case ARM64_EXT_SXTX:
+            os << "sxtx";
+            break;
+        default:
+            assert(false && "unexpected case");
     }
+    if (shiftType != ARM64_SFT_INVALID) {
+        assert(shiftType == ARM64_SFT_LSL && "unexpected shift type in extender");
+        os << " #" << shiftValue;
+    }
+
 }
 
-void AArch64PrettyPrinter::printOpIndirect(std::ostream& os,
-        const gtirb::SymbolicExpression* symbolic,
-        const cs_insn& inst, uint64_t index) {
-    const cs_arm64& detail = inst.detail->arm64;
-    const cs_arm64_op& op = detail.operands[index];
-    assert(op.type == ARM64_OP_MEM &&
-            "printOpIndirect called without a memory operand");
+std::optional<std::string> AArch64PrettyPrinter::getForwardedSymbolName(const gtirb::Symbol* symbol, bool /* inData */) const {
+    const auto* symbolForwarding =
+        module.getAuxData<gtirb::schema::SymbolForwarding>();
 
-    bool first = true;
-
-    os << "[";
-
-    // base register
-    if (op.mem.base != ARM64_REG_INVALID) {
-        first = false;
-        os << getRegisterName(op.mem.base);
-    }
-
-    // displacement (constant)
-    if (op.mem.disp != 0) {
-        if (!first) {
-            os << ",";
+    if (symbolForwarding) {
+        auto found = symbolForwarding->find(symbol->getUUID());
+        if (found != symbolForwarding->end()) {
+            gtirb::Node* destSymbol = gtirb::Node::getByUUID(context, found->second);
+            return cast<gtirb::Symbol>(destSymbol)->getName();
         }
-        if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
-            printPrefix(os, inst, index);
-            printSymbolicExpression(os, s, false);
-        } else {
-            os << "#" << op.mem.disp;
-        }
-        first = false;
     }
-
-    // index register
-    if (op.mem.index != ARM64_REG_INVALID) {
-        if (!first) {
-            os << ",";
-        }
-        first = false;
-        os << getRegisterName(op.mem.index);
-    }
-
-    // add shift
-    if (op.shift.type != ARM64_SFT_INVALID && op.shift.value != 0) {
-        os << ",";
-        assert(!first && "unexpected shift operator");
-        printShift(os, op.shift.type, op.shift.value);
-    }
-
-    os << "]";
-
-    if (detail.writeback && index + 1 == detail.op_count) {
-        os << "!";
-    }
+    return {};
 }
 
 const PrintingPolicy& AArch64PrettyPrinterFactory::defaultPrintingPolicy() const {
