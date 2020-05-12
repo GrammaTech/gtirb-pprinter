@@ -357,8 +357,6 @@ protected:
   bool isFunctionEntry(const gtirb::Addr x) const;
   bool isFunctionLastBlock(const gtirb::Addr x) const;
 
-  bool isSectionSkipped(const std::string& name);
-
   csh csHandle;
 
   bool debug;
