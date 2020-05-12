@@ -135,7 +135,6 @@ build-arch-clang:
 build-windows-msvc-debug:
   variables:
     BUILD_TYPE: 'Debug'
-    GTIRB_BUILD_TYPE: 'Debug'
   tags:
     - gtirb-pprinter-windows
   <<: *windows-build
