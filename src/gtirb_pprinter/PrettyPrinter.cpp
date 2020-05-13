@@ -314,6 +314,9 @@ void PrettyPrinterBase::printBar(std::ostream& os, bool heavy) {
 void PrettyPrinterBase::printSymbolReference(std::ostream& os,
                                              const gtirb::Symbol* symbol,
                                              bool inData) const {
+  if (!symbol)
+    return;
+
   std::optional<std::string> forwardedName =
       getForwardedSymbolName(symbol, inData);
   if (forwardedName) {
@@ -956,12 +959,13 @@ PrettyPrinterBase::getForwardedSymbolName(const gtirb::Symbol* symbol,
   const auto* symbolForwarding =
       module.getAuxData<gtirb::schema::SymbolForwarding>();
 
-  if (symbolForwarding) {
+  if (symbol && symbolForwarding) {
     auto found = symbolForwarding->find(symbol->getUUID());
     if (found != symbolForwarding->end()) {
-      gtirb::Node* destSymbol = gtirb::Node::getByUUID(context, found->second);
-      return getSymbolName(*cast<gtirb::Symbol>(destSymbol)) +
-             getForwardedSymbolEnding(symbol, inData);
+      if (gtirb::Node* destSymbol =
+              gtirb::Node::getByUUID(context, found->second))
+        return getSymbolName(*cast<gtirb::Symbol>(destSymbol)) +
+               getForwardedSymbolEnding(symbol, inData);
     }
   }
   return {};
@@ -970,7 +974,7 @@ PrettyPrinterBase::getForwardedSymbolName(const gtirb::Symbol* symbol,
 std::string
 PrettyPrinterBase::getForwardedSymbolEnding(const gtirb::Symbol* symbol,
                                             bool inData) const {
-  if (symbol->getAddress()) {
+  if (symbol && symbol->getAddress()) {
     gtirb::Addr addr = *symbol->getAddress();
     const auto container_sections = module.findSectionsOn(addr);
     if (container_sections.begin() == container_sections.end())
