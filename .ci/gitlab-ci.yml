@@ -47,7 +47,7 @@ check-format:
   artifacts:
     name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
     paths:
-      - 'gtirb_pprinter*.zip'
+      - 'gtirb_pprinter-*-win64'
   script:
     # Install gtirb
     - GTIRB_BRANCH=$(sed -e '/find_package(gtirb /!d' -e 's/[^.0-9]//g' CMakeLists.txt)
@@ -66,12 +66,11 @@ check-format:
     - cmd.exe /C "C:\\PROGRA~1\\CMake\\bin\\cpack.exe -G \"ZIP\""
     - ZIP_FILE=(gtirb_pprinter*win64.zip)
     - BASE_DIRECTORY="${ZIP_FILE%.*}"
-    - mkdir -p $BASE_DIRECTORY/bin
+    - unzip $ZIP_FILE
     - cp /cygdrive/c/Boost/lib/boost_*-vc141-mt$(echo $BUILD_TYPE | sed 's/Debug/-gd/;s/RelWithDebInfo//')-x64-1_67.dll $BASE_DIRECTORY/bin/
-    - GTIRB_DLL=$GTIRB_DIR/../../bin/gtirb$(echo $BUILD_TYPE | sed 's/Debug/d/;s/RelWithDebInfo//').dll
-    - cp $GTIRB_DLL $BASE_DIRECTORY/bin/$(basename $GTIRB_DLL)
-    - zip -u $ZIP_FILE $BASE_DIRECTORY/bin/*.dll
-    - cp $ZIP_FILE ../
+    - cp $GTIRB_DIR/../../bin/gtirb$(echo $BUILD_TYPE | sed 's/Debug/d/;s/RelWithDebInfo//').{dll,pdb} $BASE_DIRECTORY/bin/
+    - cp bin/*.pdb $BASE_DIRECTORY/bin
+    - cp -r $BASE_DIRECTORY ../
 
 .test-and-tag-template: &test-and-tag
   stage: test-and-tag
