@@ -949,13 +949,13 @@ PrettyPrinterBase::getForwardedSymbolName(const gtirb::Symbol* symbol,
   if (symbol && symbolForwarding) {
     auto found = symbolForwarding->find(symbol->getUUID());
     if (found != symbolForwarding->end()) {
-      if (gtirb::Node* destSymbol =
-              gtirb::Node::getByUUID(context, found->second))
-        return getSymbolName(*cast<gtirb::Symbol>(destSymbol)) +
+      if (auto* destSymbol = dyn_cast<gtirb::Symbol>(
+              gtirb::Node::getByUUID(context, found->second)))
+        return getSymbolName(*destSymbol) +
                getForwardedSymbolEnding(symbol, inData);
     }
   }
-  return {};
+  return std::nullopt;
 }
 
 std::string
