@@ -138,7 +138,7 @@ int main(int argc, char** argv) {
   };
 
   ContextForgetter ctx;
-  gtirb::IR* ir;
+  gtirb::IR* ir = nullptr;
 
   if (vm.count("ir") != 0) {
     fs::path irPath = vm["ir"].as<std::string>();
@@ -146,13 +146,14 @@ int main(int argc, char** argv) {
       LOG_INFO << std::setw(24) << std::left << "Reading IR: " << irPath
                << std::endl;
       std::ifstream in(irPath.string(), std::ios::in | std::ios::binary);
-      ir = gtirb::IR::load(ctx, in);
+      if (gtirb::ErrorOr<gtirb::IR*> iOrE = gtirb::IR::load(ctx, in))
+        ir = *iOrE;
     } else {
       LOG_ERROR << "IR not found: \"" << irPath << "\".";
       return EXIT_FAILURE;
     }
-  } else {
-    ir = gtirb::IR::load(ctx, std::cin);
+  } else if (gtirb::ErrorOr<gtirb::IR*> iOrE = gtirb::IR::load(ctx, std::cin)) {
+    ir = *iOrE;
   }
   if (!ir) {
     LOG_ERROR << "Failed to load the IR";
