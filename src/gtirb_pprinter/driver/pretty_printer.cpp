@@ -142,25 +142,25 @@ int main(int argc, char** argv) {
 
   if (vm.count("ir") != 0) {
     fs::path irPath = vm["ir"].as<std::string>();
-    if (fs::exists(irPath)) {
-      LOG_INFO << std::setw(24) << std::left << "Reading IR: " << irPath
-               << std::endl;
-      std::ifstream in(irPath.string(), std::ios::in | std::ios::binary);
+    LOG_INFO << std::setw(24) << std::left << "Reading GTIRB file: " << irPath
+             << std::endl;
+    std::ifstream in(irPath.string(), std::ios::in | std::ios::binary);
+    if (in) {
       if (gtirb::ErrorOr<gtirb::IR*> iOrE = gtirb::IR::load(ctx, in))
         ir = *iOrE;
     } else {
-      LOG_ERROR << "IR not found: \"" << irPath << "\".";
+      LOG_ERROR << "GTIRB file could not be opened: \"" << irPath << "\".\n";
       return EXIT_FAILURE;
     }
   } else if (gtirb::ErrorOr<gtirb::IR*> iOrE = gtirb::IR::load(ctx, std::cin)) {
     ir = *iOrE;
   }
   if (!ir) {
-    LOG_ERROR << "Failed to load the IR";
+    LOG_ERROR << "Failed to load the GTIRB data from the file.\n";
     return EXIT_FAILURE;
   }
   if (ir->modules().empty()) {
-    LOG_ERROR << "IR has no modules";
+    LOG_ERROR << "GTIRB file contains no modules.\n";
     return EXIT_FAILURE;
   }
 
@@ -197,8 +197,8 @@ int main(int argc, char** argv) {
                          : gtirb_pprint::getDefaultSyntax(format).value_or("");
   auto target = std::make_tuple(format, syntax);
   if (gtirb_pprint::getRegisteredTargets().count(target) == 0) {
-    LOG_ERROR << "Unsupported combination: format '" << format
-              << "' and syntax '" << syntax << "'\n";
+    LOG_ERROR << "Unsupported combination: format \"" << format
+              << "\" and syntax \"" << syntax << "\".\n";
     std::string::size_type width = 0;
     for (const auto& [f, s] : gtirb_pprint::getRegisteredTargets())
       width = std::max({width, f.size(), s.size()});
@@ -281,8 +281,7 @@ int main(int argc, char** argv) {
   if (vm.count("asm") != 0) {
     const auto asmPath = fs::path(vm["asm"].as<std::string>());
     if (!asmPath.has_filename()) {
-      LOG_ERROR << "The given path " << asmPath << " has no filename"
-                << std::endl;
+      LOG_ERROR << "The given path \"" << asmPath << "\" has no filename.\n";
       return EXIT_FAILURE;
     }
     int i = 0;
@@ -294,8 +293,8 @@ int main(int argc, char** argv) {
         LOG_INFO << "Module " << i << "'s assembly written to: " << name
                  << "\n";
       } else {
-        LOG_ERROR << "Could not output assembly output file: " << asmPath
-                  << "\n";
+        LOG_ERROR << "Could not output assembly output file: \"" << asmPath
+                  << "\".\n";
       }
       ++i;
     }
@@ -325,8 +324,8 @@ int main(int argc, char** argv) {
       ++i;
     }
     if (!module) {
-      LOG_ERROR << "The ir has " << i << " modules, module with index "
-                << vm["module"].as<int>() << " cannot be printed" << std::endl;
+      LOG_ERROR << "The IR has " << i << " modules, module with index "
+                << vm["module"].as<int>() << " cannot be printed.\n";
       return EXIT_FAILURE;
     }
     pp.print(std::cout, ctx, *module);
