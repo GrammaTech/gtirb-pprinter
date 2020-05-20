@@ -235,7 +235,8 @@ void MasmPrettyPrinter::printSymbolFooter(std::ostream& os,
                                           const gtirb::Symbol& symbol) {
   // Print name for data block
   if (symbol.getReferent<gtirb::DataBlock>()) {
-    os << 'N' << getSymbolName(symbol).substr(2);
+    if (const std::string& str = getSymbolName(symbol); str.size() >= 2)
+      os << 'N' << str.substr(2);
   }
 }
 
@@ -386,8 +387,9 @@ void MasmPrettyPrinter::printOpIndirect(
     printSymbolicExpression(os, s, false);
   } else if (const auto* rel = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
     if (std::optional<gtirb::Addr> Addr = rel->Sym1->getAddress(); Addr) {
-      os << "+(" << masmSyntax.imagerel() << ' ' << 'N'
-         << getSymbolName(*rel->Sym1).substr(2) << ")";
+      if (const std::string& str = getSymbolName(*rel->Sym1); str.size() >= 2)
+        os << "+(" << masmSyntax.imagerel() << ' ' << 'N' << str.substr(2)
+           << ")";
     }
   } else {
     printAddend(os, op.mem.disp, first);
