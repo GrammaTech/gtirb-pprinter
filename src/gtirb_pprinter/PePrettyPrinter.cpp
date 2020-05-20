@@ -23,9 +23,11 @@ PePrettyPrinter::PePrettyPrinter(gtirb::Context& context_,
                                  const PrintingPolicy& policy_)
     : PrettyPrinterBase(context_, module_, syntax_, policy_) {
 
-  const auto* directories = module.getAuxData<gtirb::schema::DataDirectories>();
-  for (auto const& entry : *directories) {
-    dataDirectories.push_back(entry);
+  if (const auto* directories =
+          module.getAuxData<gtirb::schema::DataDirectories>()) {
+    for (auto const& entry : *directories) {
+      dataDirectories.push_back(entry);
+    }
   }
 }
 
