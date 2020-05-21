@@ -175,9 +175,10 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
   auto TypeNameIt = TypeNameConversion.find(SymbolInfo.Type);
   if (TypeNameIt == TypeNameConversion.end()) {
     assert(!"unknown type in elfSymbolInfo!");
+  } else {
+    const auto& TypeName = unique ? "gnu_unique_object" : TypeNameIt->second;
+    os << elfSyntax.type() << ' ' << name << ", @" << TypeName << "\n";
   }
-  const auto& TypeName = unique ? "gnu_unique_object" : TypeNameIt->second;
-  os << elfSyntax.type() << ' ' << name << ", @" << TypeName << "\n";
 
   printBar(os, false);
 }
