@@ -13,6 +13,16 @@ See the Code Requirements in
 [gtirb/CONTRIBUTING](https://github.com/GrammaTech/gtirb/blob/master/CONTRIBUTING.md#code-requirements).
 
 
+## Licensing
+
+We ask that all contributors complete our Contributor License
+Agreement (CLA), which can be found at
+[GrammaTech-CLA-gtirb-pprinter.pdf](./GrammaTech-CLA-gtirb-pprinter.pdfGTIRB.pdf),
+and email the completed form to `CLA@GrammaTech.com`.  Under this
+agreement contributors retain the copyright to their work but grants
+GrammaTech unlimited license to the work.
+
+
 ## Testing Development
 
 - All code you care about should be tested.
