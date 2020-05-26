@@ -100,7 +100,9 @@ public:
       c.clear();
     }
     c.insert(Skip.begin(), Skip.end());
-    c.erase(Keep.begin(), Keep.end());
+    for (const std::string& s : Keep) {
+      c.erase(s);
+    }
   }
 
 private:
