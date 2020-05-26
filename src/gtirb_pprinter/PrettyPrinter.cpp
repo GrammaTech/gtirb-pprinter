@@ -370,9 +370,19 @@ void PrettyPrinterBase::fixupInstruction(cs_insn& inst) {
   }
 
   // Comisd loads 64 bits from memory not 128
-  if (inst.id == X86_INS_COMISD && detail.op_count == 2 &&
-      detail.operands[1].type == X86_OP_MEM && detail.operands[1].size == 16) {
-    detail.operands[1].size = 8;
+  if (inst.id == X86_INS_COMISD || inst.id == X86_INS_VCOMISD) {
+    if (detail.op_count == 2 && detail.operands[1].type == X86_OP_MEM &&
+        detail.operands[1].size == 16) {
+      detail.operands[1].size = 8;
+    }
+  }
+
+  // Comiss loads 32 bits from memory not 64
+  if (inst.id == X86_INS_COMISS || inst.id == X86_INS_VCOMISS) {
+    if (detail.op_count == 2 && detail.operands[1].type == X86_OP_MEM &&
+        detail.operands[1].size == 8) {
+      detail.operands[1].size = 4;
+    }
   }
 
   // FXSAVE operands should not have a size annotation
@@ -384,6 +394,15 @@ void PrettyPrinterBase::fixupInstruction(cs_insn& inst) {
   // https://github.com/aquynh/capstone/issues/1603
   if (inst.id == X86_INS_RDRAND) {
     strcpy(inst.mnemonic, "rdrand");
+  }
+
+  // PUNPCKL* memory operands are 32 bits
+  if (inst.id == X86_INS_PUNPCKLWD || inst.id == X86_INS_PUNPCKLBW ||
+      inst.id == X86_INS_PUNPCKLDQ) {
+    if (detail.op_count == 2 && detail.operands[1].type == X86_OP_MEM &&
+        detail.operands[1].size == 8) {
+      detail.operands[1].size = 4;
+    }
   }
 }
 
