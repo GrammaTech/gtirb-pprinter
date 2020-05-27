@@ -132,6 +132,39 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
       }
     }
   }
+  // add pie or no pie depending on the binary type
+  for (gtirb::Module& M : ir.modules()) {
+    if (const auto* BinType = M.getAuxData<gtirb::schema::BinaryType>()) {
+      // if DYN, pie. if EXEC, no-pie. if both, pie overrides no-pie. If none,
+      // do not specify either argument.
+
+      bool pie = false;
+      bool noPie = false;
+
+      for (const auto& BinTypeStr : *BinType) {
+        if (BinTypeStr == "DYN") {
+          pie = true;
+          noPie = false;
+        } else if (BinTypeStr == "EXEC") {
+          if (!pie) {
+            noPie = true;
+            pie = false;
+          }
+        } else {
+          assert(!"Unknown binary type!");
+        }
+      }
+
+      if (pie) {
+        args.push_back("-pie");
+      }
+      if (noPie) {
+        args.push_back("-no-pie");
+      }
+
+      break;
+    }
+  }
 
   if (debug) {
     std::cout << "Compiler arguments: ";

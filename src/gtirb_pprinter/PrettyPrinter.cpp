@@ -1066,6 +1066,7 @@ void registerAuxDataTypes() {
   gtirb::AuxDataContainer::registerAuxDataType<LibraryPaths>();
   gtirb::AuxDataContainer::registerAuxDataType<ElfSymbolInfo>();
   gtirb::AuxDataContainer::registerAuxDataType<SymbolicExpressionSizes>();
+  gtirb::AuxDataContainer::registerAuxDataType<BinaryType>();
 }
 
 } // namespace gtirb_pprint
