@@ -100,6 +100,12 @@ struct SymbolicExpressionSizes {
   typedef std::map<gtirb::Offset, uint64_t> Type;
 };
 
+/// \brief Auxiliary data describing a binary's type.
+struct BinaryType {
+  static constexpr const char* Name = "binaryType";
+  typedef std::vector<std::string> Type;
+};
+
 } // namespace schema
 } // namespace gtirb
 
