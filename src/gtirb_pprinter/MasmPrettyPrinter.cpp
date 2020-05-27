@@ -411,6 +411,13 @@ void MasmPrettyPrinter::printSymbolicExpression(std::ostream& os,
     return;
   }
 
+  if (sexpr->Scale > 1) {
+    os << "(";
+    PrettyPrinterBase::printSymbolicExpression(os, sexpr, inData);
+    os << ")/" << sexpr->Scale;
+    return;
+  }
+
   PrettyPrinterBase::printSymbolicExpression(os, sexpr, inData);
 }
 
