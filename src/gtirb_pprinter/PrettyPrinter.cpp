@@ -999,6 +999,7 @@ void PrettyPrinterBase::printSection(std::ostream& os,
   if (shouldSkip(section)) {
     return;
   }
+  programCounter = gtirb::Addr{0};
 
   printSectionHeader(os, section);
 
