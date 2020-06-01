@@ -309,8 +309,10 @@ int main(int argc, char** argv) {
     std::vector<std::string> libraryPaths;
     if (vm.count("library-paths") != 0)
       libraryPaths = vm["library-paths"].as<std::vector<std::string>>();
-    binaryPrinter.link(binaryPath.string(), extraCompilerArgs, libraryPaths, pp,
-                       ctx, *ir);
+    if (binaryPrinter.link(binaryPath.string(), extraCompilerArgs, libraryPaths,
+                           pp, ctx, *ir)) {
+      return EXIT_FAILURE;
+    }
   }
   // Write ASM to the standard output if no other action was taken.
   if ((vm.count("asm") == 0) && (vm.count("binary") == 0)) {
