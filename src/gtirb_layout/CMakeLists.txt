@@ -20,8 +20,8 @@ set_target_properties(
              SOVERSION ${GTIRB_PPRINTER_MAJOR_VERSION}
              FOLDER "debloat")
 
-target_link_libraries(${PROJECT_NAME} ${SYSLIBS} ${Boost_LIBRARIES} gtirb
-                      ${CAPSTONE})
+target_link_libraries(${PROJECT_NAME} PUBLIC ${SYSLIBS} ${Boost_LIBRARIES}
+                                             gtirb ${CAPSTONE})
 
 # interface
 target_include_directories(
@@ -37,6 +37,8 @@ target_include_directories(
 
 # compile options
 target_compile_options(${PROJECT_NAME} PRIVATE -D${PROJECT_NAME}_EXPORTS)
+
+install_linux_debug_info(${PROJECT_NAME} layout-debug-file)
 
 # Copy headers into build directory
 install(

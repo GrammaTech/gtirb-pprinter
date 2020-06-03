@@ -38,7 +38,7 @@ check-format:
     - unzip -l gtirb-ubuntu16-artifacts.zip
     - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-ubuntu18 --output "gtirb-ubuntu18-artifacts.zip"
     - unzip -l gtirb-ubuntu18-artifacts.zip
-    - docker build -f .ci/Dockerfile.$OS -t ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER_NAME} --build-arg CXX_COMPILER=${COMPILER} --build-arg CPACK_GENERATOR=${CPACK_GENERATOR} .
+    - docker build -f .ci/Dockerfile.$OS -t ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER_NAME} --build-arg CXX_COMPILER=${COMPILER} --build-arg BUILD_TYPE=$BUILD_TYPE --build-arg CPACK_GENERATOR=${CPACK_GENERATOR} .
 
 .windows-build-template: &windows-build
   stage: build
@@ -92,12 +92,14 @@ build-ubuntu16-gcc:
     OS: 'ubuntu16'
     COMPILER: 'g++-7'
     CPACK_GENERATOR: 'DEB'
+    BUILD_TYPE: 'RelWithDebInfo'
   <<: *build
 
 build-ubuntu16-clang:
   variables:
     OS: 'ubuntu16'
     COMPILER: 'clang++-8'
+    BUILD_TYPE: 'RelWithDebInfo'
   <<: *build
 
 build-ubuntu18-gcc:
@@ -105,25 +107,28 @@ build-ubuntu18-gcc:
     OS: 'ubuntu18'
     COMPILER: 'g++-7'
     CPACK_GENERATOR: 'DEB'
+    BUILD_TYPE: 'RelWithDebInfo'
   <<: *build
 
 build-ubuntu18-clang:
   variables:
     OS: 'ubuntu18'
     COMPILER: 'clang++'
+    BUILD_TYPE: 'RelWithDebInfo'
   <<: *build
 
 build-arch-gcc:
   variables:
     OS: 'arch'
     COMPILER: 'g++'
-    CPACK_GENERATOR: 'TGZ'
+    BUILD_TYPE: 'RelWithDebInfo'
   <<: *build
 
 build-arch-clang:
   variables:
     OS: 'arch'
     COMPILER: 'clang++'
+    BUILD_TYPE: 'RelWithDebInfo'
   <<: *build
 
 build-windows-msvc-debug:
