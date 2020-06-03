@@ -50,16 +50,14 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
     : PePrettyPrinter(context_, module_, syntax_, policy_),
       masmSyntax(syntax_) {
 
-  const auto* BaseAddressP = module.getAuxData<gtirb::schema::BaseAddress>();
-  if (BaseAddressP) {
-    BaseAddress = *BaseAddressP;
-    if (auto It = module.findSymbols("__ImageBase"); !It.empty()) {
-      ImageBase = &*It.begin();
-      ImageBase->setReferent(module.addProxyBlock(context));
-    }
+  BaseAddress = module.getPreferredAddr();
+  if (auto It = module.findSymbols("__ImageBase"); !It.empty()) {
+    ImageBase = &*It.begin();
+    ImageBase->setReferent(module.addProxyBlock(context));
   }
 
-  if (gtirb::CodeBlock* Block = module.getEntryPoint(); Block->getAddress()) {
+  if (gtirb::CodeBlock* Block = module.getEntryPoint();
+      Block && Block->getAddress()) {
     auto* EntryPoint =
         gtirb::Symbol::Create(context, *(Block->getAddress()), "__EntryPoint");
     EntryPoint->setReferent<gtirb::CodeBlock>(Block);
@@ -188,33 +186,32 @@ void MasmPrettyPrinter::printSectionFooterDirective(
 
 void MasmPrettyPrinter::printFunctionHeader(std::ostream& /* os */,
                                             gtirb::Addr /* addr */) {
-  // TODO: Use PROC/ENDP blocks
-  // const std::string& name =
-  //     syntax.formatFunctionName(this->getFunctionName(addr));
-  // if (!name.empty()) {
-  //   os << name << ' ' << masmSyntax.proc() << '\n';
-  // }
+  // TODO
 }
 
 void MasmPrettyPrinter::printFunctionFooter(std::ostream& /* os */,
                                             gtirb::Addr /* addr */) {
-  // TODO: Use PROC/ENDP blocks
-  // if (!isFunctionLastBlock(addr))
-  //   return;
-  // const std::optional<std::string>& name = getContainerFunctionName(addr);
-  // if (name && !name->empty()) {
-  //   os << syntax.formatFunctionName(*name) << ' ' << masmSyntax.endp()
-  //      << "\n\n";
-  // }
+  // TODO
 }
 
 void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
+  cs_x86& Detail = inst.detail->x86;
 
   // Change GAS-specific MOVABS opcode to equivalent MOV opcode.
   if (inst.id == X86_INS_MOVABS) {
     std::string_view mnemonic(inst.mnemonic);
     if (mnemonic.size() > 3) {
       inst.mnemonic[3] = '\0';
+    }
+  }
+
+  // PBLENDVB/BLENDVPS have an implicit third argument (XMM0) required by MASM
+  if (inst.id == X86_INS_PBLENDVB || inst.id == X86_INS_BLENDVPS) {
+    if (Detail.op_count == 2) {
+      Detail.op_count = 3;
+      cs_x86_op& Op = Detail.operands[2];
+      Op.type = X86_OP_REG;
+      Op.reg = X86_REG_XMM0;
     }
   }
 
@@ -225,8 +222,11 @@ void MasmPrettyPrinter::printSymbolHeader(std::ostream& os,
                                           const gtirb::Symbol& symbol) {
   // Print public definitions
   if (Exports.count(symbol.getUUID())) {
-    if (symbol.getAddress()) {
+    if (symbol.getReferent<gtirb::DataBlock>()) {
       os << '\n' << syntax.global() << ' ' << getSymbolName(symbol) << '\n';
+    } else {
+      os << symbol.getName() << ' ' << masmSyntax.proc() << " EXPORT\n"
+         << symbol.getName() << ' ' << masmSyntax.endp() << '\n';
     }
   }
 }
@@ -235,7 +235,8 @@ void MasmPrettyPrinter::printSymbolFooter(std::ostream& os,
                                           const gtirb::Symbol& symbol) {
   // Print name for data block
   if (symbol.getReferent<gtirb::DataBlock>()) {
-    os << 'N' << getSymbolName(symbol).substr(2);
+    if (const std::string& str = getSymbolName(symbol); str.size() >= 2)
+      os << 'N' << str.substr(2);
   }
 }
 
@@ -247,7 +248,10 @@ void MasmPrettyPrinter::printSymbolDefinition(std::ostream& os,
   }
 
   printSymbolHeader(os, symbol);
-  PrettyPrinterBase::printSymbolDefinition(os, symbol);
+  if (symbol.getReferent<gtirb::DataBlock>() ||
+      Exports.count(symbol.getUUID()) == 0) {
+    PrettyPrinterBase::printSymbolDefinition(os, symbol);
+  }
   printSymbolFooter(os, symbol);
 }
 
@@ -383,8 +387,9 @@ void MasmPrettyPrinter::printOpIndirect(
     printSymbolicExpression(os, s, false);
   } else if (const auto* rel = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
     if (std::optional<gtirb::Addr> Addr = rel->Sym1->getAddress(); Addr) {
-      os << "+(" << masmSyntax.imagerel() << ' ' << 'N'
-         << getSymbolName(*rel->Sym1).substr(2) << ")";
+      if (const std::string& str = getSymbolName(*rel->Sym1); str.size() >= 2)
+        os << "+(" << masmSyntax.imagerel() << ' ' << 'N' << str.substr(2)
+           << ")";
     }
   } else {
     printAddend(os, op.mem.disp, first);

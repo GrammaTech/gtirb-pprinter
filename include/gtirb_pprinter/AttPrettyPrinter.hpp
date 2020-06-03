@@ -19,7 +19,8 @@
 
 namespace gtirb_pprint {
 
-class AttPrettyPrinter : public ElfPrettyPrinter {
+class DEBLOAT_PRETTYPRINTER_EXPORT_API AttPrettyPrinter
+    : public ElfPrettyPrinter {
 public:
   AttPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
                    const ElfSyntax& syntax, const PrintingPolicy& policy);
@@ -41,7 +42,8 @@ private:
   static volatile bool registered;
 };
 
-class AttPrettyPrinterFactory : public PrettyPrinterFactory {
+class DEBLOAT_PRETTYPRINTER_EXPORT_API AttPrettyPrinterFactory
+    : public PrettyPrinterFactory {
 public:
   const PrintingPolicy& defaultPrintingPolicy() const override;
   std::unique_ptr<PrettyPrinterBase>

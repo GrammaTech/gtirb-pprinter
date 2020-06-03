@@ -1,4 +1,5 @@
 #include "Logger.h"
+#include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <fstream>
@@ -7,14 +8,7 @@
 #include <iomanip>
 #include <iostream>
 
-#ifdef USE_STD_FILESYSTEM_LIB
-#include <filesystem>
-namespace fs = std::filesystem;
-#else
-#include <experimental/filesystem>
-namespace fs = std::experimental::filesystem;
-#endif // USE_STD_FILESYSTEM_LIB
-
+namespace fs = boost::filesystem;
 namespace po = boost::program_options;
 
 int main(int argc, char** argv) {
@@ -49,21 +43,27 @@ int main(int argc, char** argv) {
   }
 
   gtirb::Context ctx;
-  gtirb::IR* ir;
+  gtirb::IR* ir = nullptr;
 
   auto irString = vm["in"].as<std::string>();
   if (irString == "-") {
-    ir = gtirb::IR::load(ctx, std::cin);
+    if (gtirb::ErrorOr<gtirb::IR*> iOrE = gtirb::IR::load(ctx, std::cin))
+      ir = *iOrE;
   } else {
     fs::path irPath = irString;
     if (fs::exists(irPath)) {
       LOG_INFO << "Reading GTIRB file: " << irPath << std::endl;
       std::ifstream in(irPath.string(), std::ios::in | std::ios::binary);
-      ir = gtirb::IR::load(ctx, in);
+      if (gtirb::ErrorOr<gtirb::IR*> iOrE = gtirb::IR::load(ctx, in))
+        ir = *iOrE;
     } else {
       LOG_ERROR << "GTIRB file not found: " << irPath << std::endl;
       return EXIT_FAILURE;
     }
+  }
+  if (!ir) {
+    LOG_ERROR << "Failed to load the IR";
+    return EXIT_FAILURE;
   }
 
   if (vm.count("remove") == 0) {

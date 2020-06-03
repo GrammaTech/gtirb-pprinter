@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu:16.04 AS test-base
 
 # Use bash for more convenient variable substitution syntax
 SHELL ["/bin/bash", "-c"]
@@ -30,17 +30,30 @@ RUN mkdir -p /gt/apt-repo/ && cp *.deb /gt/apt-repo
 RUN cd /gt/apt-repo && dpkg-scanpackages . /dev/null > Packages
 RUN echo $'\ndeb file:/gt/apt-repo ./\n' >> /etc/apt/sources.list
 
-# install pprinter
-RUN apt-get update && apt-get install -y --allow-unauthenticated gtirb_pprinter
 
-# build the c++ test
+# Test libgtirb-pprinter dev by building a simple
+# gtirb-pprinter-dependent program, then running it.
+FROM test-base AS test-dev
+RUN apt-get update && apt-get install -y --allow-unauthenticated libgtirb-pprinter-dev
+WORKDIR /test/
 COPY .ci/test-install.cpp test-install.cpp
 RUN g++-7 test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs
-
-# run the c++ test
 RUN ./test-install
 
-# run the python tests, which will test if the pprinter binaries have been
-# installed
-COPY . /gt/gtirb-pprinter/
-RUN cd /gt/gtirb-pprinter && python3 -m unittest discover tests "*_test.py"
+
+# Test libgtirb-pprinter by copying the program built in the last stage and
+# running it.
+FROM test-base AS test-lib
+RUN apt-get update && apt-get install -y --allow-unauthenticated libgtirb-pprinter
+COPY --from=test-dev /test/test-install /test/test-install
+WORKDIR /test/
+RUN ./test-install
+
+
+# Test gtirb-pprinter by running gtirb-pprinter and gtirb-layout on some example
+# GTIRB
+FROM test-base AS test-driver
+COPY tests/two_modules.gtirb ./
+RUN apt-get update && apt-get install -y --allow-unauthenticated gtirb-pprinter
+RUN gtirb-pprinter two_modules.gtirb
+RUN gtirb-layout two_modules.gtirb --out output

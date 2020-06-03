@@ -287,7 +287,6 @@ void PrettyPrinterBase::printBlockContents(std::ostream& os,
     fixupInstruction(insn[i]);
     printInstruction(os, x, insn[i], blockOffset);
     blockOffset.Displacement += insn[i].size;
-    os << '\n';
   }
   // print any CFI directives located at the end of the block
   // e.g. '.cfi_endproc' is usually attached to the end of the block
@@ -340,6 +339,9 @@ void PrettyPrinterBase::printBar(std::ostream& os, bool heavy) {
 void PrettyPrinterBase::printSymbolReference(std::ostream& os,
                                              const gtirb::Symbol* symbol,
                                              bool inData) const {
+  if (!symbol)
+    return;
+
   std::optional<std::string> forwardedName =
       getForwardedSymbolName(symbol, inData);
   if (forwardedName) {
@@ -393,9 +395,19 @@ void PrettyPrinterBase::fixupInstruction(cs_insn& inst) {
   }
 
   // Comisd loads 64 bits from memory not 128
-  if (inst.id == X86_INS_COMISD && detail.op_count == 2 &&
-      detail.operands[1].type == X86_OP_MEM && detail.operands[1].size == 16) {
-    detail.operands[1].size = 8;
+  if (inst.id == X86_INS_COMISD || inst.id == X86_INS_VCOMISD) {
+    if (detail.op_count == 2 && detail.operands[1].type == X86_OP_MEM &&
+        detail.operands[1].size == 16) {
+      detail.operands[1].size = 8;
+    }
+  }
+
+  // Comiss loads 32 bits from memory not 64
+  if (inst.id == X86_INS_COMISS || inst.id == X86_INS_VCOMISS) {
+    if (detail.op_count == 2 && detail.operands[1].type == X86_OP_MEM &&
+        detail.operands[1].size == 8) {
+      detail.operands[1].size = 4;
+    }
   }
 
   // FXSAVE operands should not have a size annotation
@@ -407,6 +419,15 @@ void PrettyPrinterBase::fixupInstruction(cs_insn& inst) {
   // https://github.com/aquynh/capstone/issues/1603
   if (inst.id == X86_INS_RDRAND) {
     strcpy(inst.mnemonic, "rdrand");
+  }
+
+  // PUNPCKL* memory operands are 32 bits
+  if (inst.id == X86_INS_PUNPCKLWD || inst.id == X86_INS_PUNPCKLBW ||
+      inst.id == X86_INS_PUNPCKLDQ) {
+    if (detail.op_count == 2 && detail.operands[1].type == X86_OP_MEM &&
+        detail.operands[1].size == 8) {
+      detail.operands[1].size = 4;
+    }
   }
 }
 
@@ -431,6 +452,7 @@ void PrettyPrinterBase::printInstruction(std::ostream& os,
       printEA(os, ea);
       os << "  " << syntax.nop();
     }
+    os << '\n';
     return;
   }
 
@@ -446,6 +468,7 @@ void PrettyPrinterBase::printInstruction(std::ostream& os,
   std::string opcode = ascii_str_tolower(inst.mnemonic);
   os << "  " << opcode << ' ';
   printOperandList(os, block, inst);
+  os << '\n';
 }
 
 void PrettyPrinterBase::printEA(std::ostream& os, gtirb::Addr ea) {
@@ -967,21 +990,22 @@ PrettyPrinterBase::getForwardedSymbolName(const gtirb::Symbol* symbol,
   const auto* symbolForwarding =
       module.getAuxData<gtirb::schema::SymbolForwarding>();
 
-  if (symbolForwarding) {
+  if (symbol && symbolForwarding) {
     auto found = symbolForwarding->find(symbol->getUUID());
     if (found != symbolForwarding->end()) {
-      gtirb::Node* destSymbol = gtirb::Node::getByUUID(context, found->second);
-      return getSymbolName(*cast<gtirb::Symbol>(destSymbol)) +
-             getForwardedSymbolEnding(symbol, inData);
+      if (auto* destSymbol =
+              nodeFromUUID<gtirb::Symbol>(context, found->second))
+        return getSymbolName(*destSymbol) +
+               getForwardedSymbolEnding(symbol, inData);
     }
   }
-  return {};
+  return std::nullopt;
 }
 
 std::string
 PrettyPrinterBase::getForwardedSymbolEnding(const gtirb::Symbol* symbol,
                                             bool inData) const {
-  if (symbol->getAddress()) {
+  if (symbol && symbol->getAddress()) {
     gtirb::Addr addr = *symbol->getAddress();
     const auto container_sections = module.findSectionsOn(addr);
     if (container_sections.begin() == container_sections.end())
@@ -1006,6 +1030,7 @@ void PrettyPrinterBase::printSection(std::ostream& os,
   if (shouldSkip(section)) {
     return;
   }
+  programCounter = gtirb::Addr{0};
 
   printSectionHeader(os, section);
 
@@ -1073,11 +1098,11 @@ void registerAuxDataTypes() {
   gtirb::AuxDataContainer::registerAuxDataType<Libraries>();
   gtirb::AuxDataContainer::registerAuxDataType<LibraryPaths>();
   gtirb::AuxDataContainer::registerAuxDataType<DataDirectories>();
-  gtirb::AuxDataContainer::registerAuxDataType<BaseAddress>();
   gtirb::AuxDataContainer::registerAuxDataType<PeImportedSymbols>();
   gtirb::AuxDataContainer::registerAuxDataType<PeExportedSymbols>();
   gtirb::AuxDataContainer::registerAuxDataType<ElfSymbolInfo>();
   gtirb::AuxDataContainer::registerAuxDataType<SymbolicExpressionSizes>();
+  gtirb::AuxDataContainer::registerAuxDataType<BinaryType>();
 }
 
 } // namespace gtirb_pprint

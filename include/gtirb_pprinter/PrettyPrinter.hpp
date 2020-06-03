@@ -63,34 +63,40 @@ using string_range = boost::any_range<std::string, boost::forward_traversal_tag,
 ///                   named format and syntax parameters
 ///
 /// \return \c true.
-bool registerPrinter(std::initializer_list<std::string> formats,
-                     std::initializer_list<std::string> isas,
-                     std::initializer_list<std::string> syntaxes,
-                     std::shared_ptr<PrettyPrinterFactory> f,
-                     bool isDefault = false);
+DEBLOAT_PRETTYPRINTER_EXPORT_API bool
+registerPrinter(std::initializer_list<std::string> formats,
+                std::initializer_list<std::string> isas,
+                std::initializer_list<std::string> syntaxes,
+                std::shared_ptr<PrettyPrinterFactory> f,
+                bool isDefault = false);
 
 /// Return the current set of syntaxes with registered factories.
+DEBLOAT_PRETTYPRINTER_EXPORT_API
 std::set<std::tuple<std::string, std::string, std::string>>
 getRegisteredTargets();
 
 /// Return the file format of a GTIRB module.
-std::string getModuleFileFormat(const gtirb::Module& module);
+DEBLOAT_PRETTYPRINTER_EXPORT_API std::string
+getModuleFileFormat(const gtirb::Module& module);
 
 /// Return the ISA of a GTIRB module.
-std::string getModuleISA(const gtirb::Module& module);
+DEBLOAT_PRETTYPRINTER_EXPORT_API std::string
+getModuleISA(const gtirb::Module& module);
 
 /// Set the default syntax for a file format and isa.
+DEBLOAT_PRETTYPRINTER_EXPORT_API void
+setDefaultSyntax(const std::string& format, const std::string& syntax);
 void setDefaultSyntax(const std::string& format, const std::string& isa,
                       const std::string& syntax);
 
-/// Return the default syntax for a file format and isa.
-std::optional<std::string> getDefaultSyntax(const std::string& format,
-                                            const std::string& isa);
+/// Return the default syntax for a file format.
+DEBLOAT_PRETTYPRINTER_EXPORT_API std::optional<std::string>
+getDefaultSyntax(const std::string& format, const std::string& isa);
 
 /// A set of options to give to PrettyPrinterBase's policy in one category.
 /// Essentially, contains whether or not a set of strings to skip is cleared,
 /// and what strings are added/removed from the set to skip.
-class PolicyOptions {
+class DEBLOAT_PRETTYPRINTER_EXPORT_API PolicyOptions {
 public:
   void skip(const std::string& s) { Skip.insert(s); }
 
@@ -114,7 +120,7 @@ private:
 /// The primary interface for pretty-printing GTIRB objects. The typical flow
 /// is to create a PrettyPrinter, configure it (e.g., set the output syntax,
 /// enable/disable debugging messages, etc.), then print one or more IR objects.
-class PrettyPrinter {
+class DEBLOAT_PRETTYPRINTER_EXPORT_API PrettyPrinter {
 public:
   /// Construct a PrettyPrinter with the default configuration.
   PrettyPrinter() = default;
@@ -180,7 +186,7 @@ private:
   PolicyOptions FunctionPolicy, SymbolPolicy, SectionPolicy, ArraySectionPolicy;
 };
 
-struct PrintingPolicy {
+struct DEBLOAT_PRETTYPRINTER_EXPORT_API PrintingPolicy {
   /// Functions to avoid printing the contents and labels of.
   std::unordered_set<std::string> skipFunctions;
 
@@ -200,7 +206,7 @@ struct PrintingPolicy {
 
 /// Abstract factory - encloses default printing configuration and a method for
 /// building the target pretty printer.
-class PrettyPrinterFactory {
+class DEBLOAT_PRETTYPRINTER_EXPORT_API PrettyPrinterFactory {
 public:
   virtual ~PrettyPrinterFactory() = default;
 
@@ -215,7 +221,7 @@ public:
 
 /// The pretty-printer interface. There is only one exposed function, \link
 /// print().
-class PrettyPrinterBase {
+class DEBLOAT_PRETTYPRINTER_EXPORT_API PrettyPrinterBase {
 public:
   PrettyPrinterBase(gtirb::Context& context, gtirb::Module& module,
                     const Syntax& syntax, const PrintingPolicy& policy);
@@ -363,8 +369,6 @@ protected:
   bool isFunctionEntry(const gtirb::Addr x) const;
   bool isFunctionLastBlock(const gtirb::Addr x) const;
 
-  bool isSectionSkipped(const std::string& name);
-
   csh csHandle;
 
   bool debug;
@@ -399,7 +403,7 @@ private:
 };
 
 /// !brief Register AuxData types used by the pretty printer.
-void registerAuxDataTypes();
+DEBLOAT_PRETTYPRINTER_EXPORT_API void registerAuxDataTypes();
 
 } // namespace gtirb_pprint
 

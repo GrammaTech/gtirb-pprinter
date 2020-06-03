@@ -2,7 +2,6 @@ variables:
   DOCKER_REGISTRY: "docker.grammatech.com"
   LOCAL_IMAGE_NAME: '$CI_BUILD_REF_NAME-$CI_PIPELINE_ID'
   GIT_SUBMODULE_STRATEGY: recursive
-  GTIRB_DEFAULT_BRANCH: v1.4.7
 
 before_script:
   - case "$(uname -s)" in
@@ -32,7 +31,8 @@ check-format:
   script:
     - export COMPILER_NAME=$(echo ${COMPILER} | sed 's/clang++/clang/;s/g++/gcc/;s/\(-[0-9]\)*//g' )
     - cp /u4/TARBALLS/debloat/pkgs/libcapstone-dev_4.0.1-gt1_amd64.deb ./
-    - GTIRB_BRANCH=$((grep -Eo "check_gtirb_branch\([^)]+" CMakeLists.txt || echo "$GTIRB_DEFAULT_BRANCH") | sed 's/check_gtirb_branch(//')
+    - GTIRB_BRANCH=$(sed -e '/find_package(gtirb /!d' -e 's/[^.0-9]//g' CMakeLists.txt)
+    - GTIRB_BRANCH=$((grep -Eo "check_gtirb_branch\([^)]+" CMakeLists.txt | sed 's/check_gtirb_branch(//') || echo v${GTIRB_BRANCH:?})
     - "echo \"GTIRB_BRANCH is: $GTIRB_BRANCH\""
     - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=package-arch --output "gtirb-arch-artifacts.zip"
     - unzip -l gtirb-arch-artifacts.zip
@@ -47,29 +47,30 @@ check-format:
   artifacts:
     name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
     paths:
-      - 'gtirb_pprinter*.zip'
+      - 'gtirb_pprinter-*-win64'
   script:
     # Install gtirb
-    - GTIRB_BRANCH=$((grep -Eo "check_gtirb_branch\([^)]+" CMakeLists.txt || echo "$GTIRB_DEFAULT_BRANCH") | sed 's/check_gtirb_branch(//')
+    - GTIRB_BRANCH=$(sed -e '/find_package(gtirb /!d' -e 's/[^.0-9]//g' CMakeLists.txt)
+    - GTIRB_BRANCH=$((grep -Eo "check_gtirb_branch\([^)]+" CMakeLists.txt | sed 's/check_gtirb_branch(//') || echo v${GTIRB_BRANCH:?})
+    - "echo \"GTIRB_BRANCH is: $GTIRB_BRANCH\""
     - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=build-windows-msvc-${BUILD_TYPE,,} --output "gtirb-artifacts.zip"
     - unzip gtirb-artifacts.zip
-    - unzip GTIRB-*-win64.zip
     # Build gtirb-pprinter
     - GTIRB_DIR=$(cygpath -m $(realpath $(find ./ -type d -name GTIRB-*-win64)/lib/gtirb))
     - mkdir build
     - cd build
-    - cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && C:\\PROGRA~1\\CMake\\bin\\cmake.exe -G \"Ninja\" -DBOOST_ROOT=\"C:\\Boost\" -DCMAKE_CXX_FLAGS=\"/DBOOST_ALL_DYN_LINK\" -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=1 -DCAPSTONE=\"C:\\capstone-${BUILD_TYPE}\\lib\\capstone.lib\" -DCAPSTONE_INCLUDE_DIRS=\"C:\\capstone-${BUILD_TYPE}\\include\" -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_PROGRAM_PATH=\"C:\\capstone-${BUILD_TYPE}\\bin\" -Dgtirb_DIR=$GTIRB_DIR .."
+    - LIB_BUILD_TYPE=$(echo $BUILD_TYPE | sed 's/Debug/Debug/;s/RelWithDebInfo/Release/')
+    - cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && C:\\PROGRA~1\\CMake\\bin\\cmake.exe -G \"Ninja\" -DBOOST_ROOT=\"C:\\Boost\" -DCMAKE_CXX_FLAGS=\"/DBOOST_ALL_DYN_LINK\" -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=1 -DCAPSTONE=\"C:\\capstone-${LIB_BUILD_TYPE}\\lib\\capstone.lib\" -DCAPSTONE_INCLUDE_DIRS=\"C:\\capstone-${LIB_BUILD_TYPE}\\include\" -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_PROGRAM_PATH=\"C:\\capstone-${LIB_BUILD_TYPE}\\bin\" -Dgtirb_DIR=$GTIRB_DIR .."
     - cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && ninja"
     # Build ZIP package, and include DLLs needed to run exes.
     - cmd.exe /C "C:\\PROGRA~1\\CMake\\bin\\cpack.exe -G \"ZIP\""
     - ZIP_FILE=(gtirb_pprinter*win64.zip)
     - BASE_DIRECTORY="${ZIP_FILE%.*}"
-    - mkdir -p $BASE_DIRECTORY/bin
-    - cp /cygdrive/c/Boost/lib/boost_*-vc141-mt$(echo $BUILD_TYPE | sed 's/Debug/-gd/;s/Release//')-x64-1_67.dll $BASE_DIRECTORY/bin/
-    - GTIRB_DLL=$GTIRB_DIR/../../bin/gtirb$(echo $BUILD_TYPE | sed 's/Debug/d/;s/Release//').dll
-    - cp $GTIRB_DLL $BASE_DIRECTORY/bin/$(basename $GTIRB_DLL)
-    - zip -u $ZIP_FILE $BASE_DIRECTORY/bin/*.dll
-    - cp $ZIP_FILE ../
+    - unzip $ZIP_FILE
+    - cp /cygdrive/c/Boost/lib/boost_*-vc141-mt$(echo $BUILD_TYPE | sed 's/Debug/-gd/;s/RelWithDebInfo//')-x64-1_67.dll $BASE_DIRECTORY/bin/
+    - cp $GTIRB_DIR/../../bin/gtirb$(echo $BUILD_TYPE | sed 's/Debug/d/;s/RelWithDebInfo//').{dll,pdb} $BASE_DIRECTORY/bin/
+    - cp bin/*.pdb $BASE_DIRECTORY/bin
+    - cp -r $BASE_DIRECTORY ../
 
 .test-and-tag-template: &test-and-tag
   stage: test-and-tag
@@ -130,16 +131,16 @@ build-arch-clang:
     COMPILER: 'clang++'
   <<: *build
 
-build-windows-debug:
+build-windows-msvc-debug:
   variables:
     BUILD_TYPE: 'Debug'
   tags:
     - gtirb-pprinter-windows
   <<: *windows-build
 
-build-windows-release:
+build-windows-msvc-relwithdebinfo:
   variables:
-    BUILD_TYPE: 'Release'
+    BUILD_TYPE: 'RelWithDebInfo'
   tags:
     - gtirb-pprinter-windows
   <<: *windows-build
@@ -248,7 +249,7 @@ cleanup-arch-clang:
   artifacts:
     name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
     paths:
-      - ./gtirb*.${EXTENSION}
+      - ./*gtirb-pprinter*.${EXTENSION}
   script:
     - export COMPILER_NAME=$(echo ${COMPILER} | sed 's/clang++/clang/;s/g++/gcc/;s/\(-[0-9]\)*//g' )
     - export CONTAINER_FILE=$(mktemp -d)/cidfile
@@ -256,10 +257,11 @@ cleanup-arch-clang:
     - docker cp $(cat ${CONTAINER_FILE}):/gt/gtirb-pprinter/build ./build-artifacts
     - docker container rm -f $(cat ${CONTAINER_FILE})
     - rm -rf $(dirname $CONTAINER_FILE)
-    - mv ./build-artifacts/gtirb*pprinter-*.${EXTENSION} ./
+    - mv ./build-artifacts/*.${EXTENSION} ./
     - rm -rf ./build-artifacts/
     - cp /u4/TARBALLS/debloat/pkgs/libcapstone-dev_4.0.1-gt1_amd64.deb ./
-    - GTIRB_BRANCH=$((grep -Eo "check_gtirb_branch\([^)]+" CMakeLists.txt || echo "$GTIRB_DEFAULT_BRANCH") | sed 's/check_gtirb_branch(//')
+    - GTIRB_BRANCH=$(sed -e '/find_package(gtirb /!d' -e 's/[^.0-9]//g' CMakeLists.txt)
+    - GTIRB_BRANCH=$((grep -Eo "check_gtirb_branch\([^)]+" CMakeLists.txt | sed 's/check_gtirb_branch(//') || echo v${GTIRB_BRANCH:?})
     - "echo \"GTIRB_BRANCH is: $GTIRB_BRANCH\""
     - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=package-arch --output "gtirb-arch-artifacts.zip"
     - unzip -l gtirb-arch-artifacts.zip

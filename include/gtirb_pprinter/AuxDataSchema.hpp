@@ -74,12 +74,6 @@ struct DataDirectories {
   typedef std::vector<std::tuple<std::string, uint64_t, uint64_t>> Type;
 };
 
-/// \brief Auxiliary data for the base address of an executable module.
-struct BaseAddress {
-  static constexpr const char* Name = "baseAddress";
-  typedef gtirb::Addr Type;
-};
-
 /// \brief Auxiliary data for the UUIDs of imported symbols in a PE file.
 struct PeImportedSymbols {
   static constexpr const char* Name = "peImportedSymbols";
@@ -104,6 +98,12 @@ struct ElfSymbolInfo {
 struct SymbolicExpressionSizes {
   static constexpr const char* Name = "symbolicExpressionSizes";
   typedef std::map<gtirb::Offset, uint64_t> Type;
+};
+
+/// \brief Auxiliary data describing a binary's type.
+struct BinaryType {
+  static constexpr const char* Name = "binaryType";
+  typedef std::vector<std::string> Type;
 };
 
 } // namespace schema

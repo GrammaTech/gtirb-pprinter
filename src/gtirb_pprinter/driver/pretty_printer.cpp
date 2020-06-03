@@ -1,33 +1,29 @@
 #include "Logger.h"
+#include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <fstream>
 #include <gtirb_layout/gtirb_layout.hpp>
 #include <gtirb_pprinter/ElfBinaryPrinter.hpp>
 #include <gtirb_pprinter/PrettyPrinter.hpp>
+#include <gtirb_pprinter/version.h>
 #include <iomanip>
 #include <iostream>
-#ifdef USE_STD_FILESYSTEM_LIB
-#include <filesystem>
-namespace fs = std::filesystem;
-#else
-#include <experimental/filesystem>
-namespace fs = std::experimental::filesystem;
-#endif // USE_STD_FILESYSTEM_LIB
 
+namespace fs = boost::filesystem;
 namespace po = boost::program_options;
 
 static fs::path getAsmFileName(const fs::path& InitialPath, int Index) {
   if (Index == 0)
     return InitialPath;
-  std::string Filename = InitialPath.filename().generic_string();
-  // If the name does not have an extension, we add the number at the end.
-  size_t LastDot = Filename.rfind('.');
-  if (LastDot == std::string::npos)
-    Filename.append(std::to_string(Index));
-  // Otherwise, we add the number before the extension.
-  Filename.insert(LastDot, std::to_string(Index));
-  return fs::path(InitialPath).replace_filename(Filename);
+
+  // Add the number to the end of the stem of the filename.
+  std::string Filename = InitialPath.stem().generic_string();
+  Filename.append(std::to_string(Index));
+  Filename.append(InitialPath.extension().generic_string());
+  fs::path FinalPath = InitialPath.parent_path();
+  FinalPath /= Filename;
+  return FinalPath;
 }
 
 int main(int argc, char** argv) {
@@ -35,7 +31,8 @@ int main(int argc, char** argv) {
 
   po::options_description desc("Allowed options");
   desc.add_options()("help,h", "Produce help message.");
-  desc.add_options()("ir,i", po::value<std::string>(), "gtirb file to print.");
+  desc.add_options()("version", "Print version info and exit.");
+  desc.add_options()("ir,i", po::value<std::string>(), "GTIRB file to print.");
   desc.add_options()(
       "asm,a", po::value<std::string>(),
       "The name of the assembly output file. If none is given, gtirb-pprinter "
@@ -120,6 +117,12 @@ int main(int argc, char** argv) {
       std::cout << desc << "\n";
       return 1;
     }
+    if (vm.count("version") != 0) {
+      std::cout << GTIRB_PPRINTER_VERSION_STRING << " ("
+                << GTIRB_PPRINTER_BUILD_REVISION << " "
+                << GTIRB_PPRINTER_BUILD_DATE << ")\n";
+      return 0;
+    }
   } catch (std::exception& e) {
     std::cerr << "ERROR: " << e.what() << "\nTry '" << argv[0]
               << " --help' for more information.\n";
@@ -127,25 +130,39 @@ int main(int argc, char** argv) {
   }
   po::notify(vm);
 
-  gtirb::Context ctx;
-  gtirb::IR* ir;
+  class ContextForgetter {
+    gtirb::Context ctx;
+
+  public:
+    ~ContextForgetter() { ctx.ForgetAllocations(); }
+    operator gtirb::Context&() { return ctx; }
+    operator const gtirb::Context&() const { return ctx; }
+  };
+
+  ContextForgetter ctx;
+  gtirb::IR* ir = nullptr;
 
   if (vm.count("ir") != 0) {
     fs::path irPath = vm["ir"].as<std::string>();
-    if (fs::exists(irPath)) {
-      LOG_INFO << std::setw(24) << std::left << "Reading IR: " << irPath
-               << std::endl;
-      std::ifstream in(irPath.string(), std::ios::in | std::ios::binary);
-      ir = gtirb::IR::load(ctx, in);
+    LOG_INFO << std::setw(24) << std::left << "Reading GTIRB file: " << irPath
+             << std::endl;
+    std::ifstream in(irPath.string(), std::ios::in | std::ios::binary);
+    if (in) {
+      if (gtirb::ErrorOr<gtirb::IR*> iOrE = gtirb::IR::load(ctx, in))
+        ir = *iOrE;
     } else {
-      LOG_ERROR << "IR not found: \"" << irPath << "\".";
+      LOG_ERROR << "GTIRB file could not be opened: \"" << irPath << "\".\n";
       return EXIT_FAILURE;
     }
-  } else {
-    ir = gtirb::IR::load(ctx, std::cin);
+  } else if (gtirb::ErrorOr<gtirb::IR*> iOrE = gtirb::IR::load(ctx, std::cin)) {
+    ir = *iOrE;
+  }
+  if (!ir) {
+    LOG_ERROR << "Failed to load the GTIRB data from the file.\n";
+    return EXIT_FAILURE;
   }
   if (ir->modules().empty()) {
-    LOG_ERROR << "IR has no modules";
+    LOG_ERROR << "GTIRB file contains no modules.\n";
     return EXIT_FAILURE;
   }
 
@@ -186,8 +203,8 @@ int main(int argc, char** argv) {
           : gtirb_pprint::getDefaultSyntax(format, isa).value_or("");
   auto target = std::make_tuple(format, isa, syntax);
   if (gtirb_pprint::getRegisteredTargets().count(target) == 0) {
-    LOG_ERROR << "Unsupported combination: format '" << format << "' ISA '"
-              << isa << "', and syntax '" << syntax << "'\n";
+    LOG_ERROR << "Unsupported combination: format \"" << format << "\" ISA \""
+              << isa << "\" and syntax \"" << syntax << "\".\n";
     std::string::size_type width = 0;
     for (const auto& [f, i, s] : gtirb_pprint::getRegisteredTargets())
       width = std::max({width, f.size(), i.size(), s.size()});
@@ -272,21 +289,20 @@ int main(int argc, char** argv) {
   if (vm.count("asm") != 0) {
     const auto asmPath = fs::path(vm["asm"].as<std::string>());
     if (!asmPath.has_filename()) {
-      LOG_ERROR << "The given path " << asmPath << " has no filename"
-                << std::endl;
+      LOG_ERROR << "The given path \"" << asmPath << "\" has no filename.\n";
       return EXIT_FAILURE;
     }
     int i = 0;
     for (gtirb::Module& m : ir->modules()) {
       fs::path name = getAsmFileName(asmPath, i);
-      std::ofstream ofs(name);
+      std::ofstream ofs(name.generic_string());
       if (ofs) {
         pp.print(ofs, ctx, m);
         LOG_INFO << "Module " << i << "'s assembly written to: " << name
                  << "\n";
       } else {
-        LOG_ERROR << "Could not output assembly output file: " << asmPath
-                  << "\n";
+        LOG_ERROR << "Could not output assembly output file: \"" << asmPath
+                  << "\".\n";
       }
       ++i;
     }
@@ -301,8 +317,10 @@ int main(int argc, char** argv) {
     std::vector<std::string> libraryPaths;
     if (vm.count("library-paths") != 0)
       libraryPaths = vm["library-paths"].as<std::vector<std::string>>();
-    binaryPrinter.link(binaryPath.string(), extraCompilerArgs, libraryPaths, pp,
-                       ctx, *ir);
+    if (binaryPrinter.link(binaryPath.string(), extraCompilerArgs, libraryPaths,
+                           pp, ctx, *ir)) {
+      return EXIT_FAILURE;
+    }
   }
   // Write ASM to the standard output if no other action was taken.
   if ((vm.count("asm") == 0) && (vm.count("binary") == 0)) {
@@ -316,8 +334,8 @@ int main(int argc, char** argv) {
       ++i;
     }
     if (!module) {
-      LOG_ERROR << "The ir has " << i << " modules, module with index "
-                << vm["module"].as<int>() << " cannot be printed" << std::endl;
+      LOG_ERROR << "The IR has " << i << " modules, module with index "
+                << vm["module"].as<int>() << " cannot be printed.\n";
       return EXIT_FAILURE;
     }
     pp.print(std::cout, ctx, *module);

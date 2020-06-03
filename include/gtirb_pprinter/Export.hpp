@@ -41,10 +41,10 @@
 /// @endcond
 
 #if defined(_MSC_VER) || __has_declspec_attribute(dllexport)
-#if defined DEBLOAT_debloatPrettyPrinter_EXPORTS
-#define DEBLOAT_PRETTYPRINTER_EXPORT_API _declspec(dllexport)
+#if defined DEBLOAT_gtirb_pprinter_EXPORTS
+#define DEBLOAT_PRETTYPRINTER_EXPORT_API __declspec(dllexport)
 #else
-#define DEBLOAT_PRETTYPRINTER_EXPORT_API _declspec(dllimport)
+#define DEBLOAT_PRETTYPRINTER_EXPORT_API __declspec(dllimport)
 #endif
 #elif defined(__GNUC__) || __has_attribute(visibility)
 #define DEBLOAT_PRETTYPRINTER_EXPORT_API __attribute__((visibility("default")))

@@ -27,6 +27,7 @@
 #pragma warning(push)
 #pragma warning(disable : 4456) // variable shadowing warning
 #endif                          // __GNUC__
+#include <boost/filesystem.hpp>
 #include <boost/process/search_path.hpp>
 #include <boost/process/system.hpp>
 #ifdef __GNUC__
@@ -38,14 +39,8 @@
 #include <regex>
 #include <string>
 #include <vector>
-#ifdef USE_STD_FILESYSTEM_LIB
-#include <filesystem>
-namespace fs = std::filesystem;
-#else
-#include <experimental/filesystem>
-namespace fs = std::experimental::filesystem;
-#endif // USE_STD_FILESYSTEM_LIB
 
+namespace fs = boost::filesystem;
 namespace bp = boost::process;
 
 namespace gtirb_bprint {
@@ -135,6 +130,39 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
         args.push_back("-L" + libraryPath);
         args.push_back("-Wl,-rpath," + libraryPath);
       }
+    }
+  }
+  // add pie or no pie depending on the binary type
+  for (gtirb::Module& M : ir.modules()) {
+    if (const auto* BinType = M.getAuxData<gtirb::schema::BinaryType>()) {
+      // if DYN, pie. if EXEC, no-pie. if both, pie overrides no-pie. If none,
+      // do not specify either argument.
+
+      bool pie = false;
+      bool noPie = false;
+
+      for (const auto& BinTypeStr : *BinType) {
+        if (BinTypeStr == "DYN") {
+          pie = true;
+          noPie = false;
+        } else if (BinTypeStr == "EXEC") {
+          if (!pie) {
+            noPie = true;
+            pie = false;
+          }
+        } else {
+          assert(!"Unknown binary type!");
+        }
+      }
+
+      if (pie) {
+        args.push_back("-pie");
+      }
+      if (noPie) {
+        args.push_back("-no-pie");
+      }
+
+      break;
     }
   }
 

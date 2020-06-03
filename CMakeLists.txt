@@ -6,7 +6,7 @@
 cmake_minimum_required(VERSION 3.9.0)
 
 project(gtirb_pprinter)
-set(PACKAGE_BRANCH master)
+set(PACKAGE_BRANCH windows-support)
 
 # get version information
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" ver)
@@ -23,6 +23,16 @@ set(GTIRB_PPRINTER_PATCH_VERSION ${CMAKE_MATCH_1})
 set(GTIRB_PPRINTER_VERSION
     "${GTIRB_PPRINTER_MAJOR_VERSION}.${GTIRB_PPRINTER_MINOR_VERSION}.${GTIRB_PPRINTER_PATCH_VERSION}"
     CACHE STRING "version of gtirb-pprinter" FORCE)
+
+execute_process(
+  COMMAND git log --pretty=format:%h -n 1
+  OUTPUT_VARIABLE GTIRB_PPRINTER_BUILD_REVISION
+  ERROR_QUIET)
+if(GTIRB_PPRINTER_BUILD_REVISION STREQUAL "")
+  set(GTIRB_PPRINTER_BUILD_REVISION "UNKNOWN")
+endif()
+
+string(TIMESTAMP GTIRB_PPRINTER_BUILD_DATE "%Y-%m-%d")
 
 # includes
 include(CheckFunctionExists)
@@ -75,67 +85,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "7.0.0")
     message(FATAL_ERROR "gcc 7 or later is required to build gtirb")
-  endif()
-endif()
-
-# Detect how to use <experimental/filesystem> for non-msvc compilers.  On the
-# latest version of MSVC, the experimental filesystem library is deprecated.
-set(USE_STD_FILESYSTEM_LIB_DEFAULT OFF)
-if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
-  set(USE_STD_FILESYSTEM_LIB_DEFAULT ON)
-endif()
-
-option(
-  USE_STD_FILESYSTEM_LIB
-  "Use the standard filesystem library instead of the experimental filesystem library"
-  ${USE_STD_FILESYSTEM_LIB_DEFAULT})
-
-if(USE_STD_FILESYSTEM_LIB)
-  add_definitions(-DUSE_STD_FILESYSTEM_LIB)
-else()
-  set(EXPERIMENTAL_LIB
-      ""
-      CACHE
-        STRING
-        "The library to link with in order to use <experimental/filesystem>.")
-
-  if(NOT EXPERIMENTAL_LIB)
-    set(EXFS_CODE
-        "
-    #include <experimental/filesystem>
-    int main() {
-      std::experimental::filesystem::path p{\"an/example/path\"};
-      return std::experimental::filesystem::exists(p);
-    }
-    ")
-
-    check_cxx_source_compiles("${EXFS_CODE}" EXFS_LINK_NONE)
-
-    if(NOT EXFS_LINK_NONE)
-      foreach(EXFS_LIB stdc++fs c++experimental c++fs)
-        set(OLD_CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES})
-        list(APPEND CMAKE_REQUIRED_LIBRARIES ${EXFS_LIB})
-        check_cxx_source_compiles("${EXFS_CODE}" EXFS_LINK_${EXFS_LIB}_OK)
-        set(CMAKE_REQUIRED_LIBRARIES ${OLD_CMAKE_REQUIRED_LIBRARIES})
-
-        if(EXFS_LINK_${EXFS_LIB}_OK)
-          if(EXPERIMENTAL_LIB)
-            message(
-              FATAL_ERROR
-                "multiple candidates for library to link for <experimental/filesystem>: ${EXPERIMENTAL_LIB} and ${EXFS_LIB}. Try giving the correct one explicitly with -DEXPERIMENTAL_LIB."
-            )
-          endif()
-          set(EXPERIMENTAL_LIB ${EXFS_LIB})
-        endif()
-      endforeach()
-
-      if(NOT EXPERIMENTAL_LIB)
-        message(
-          FATAL_ERROR
-            "could not find library to link for <experimental/filesystem>. Try giving it explicitly with -DEXPERIMENTAL_LIB."
-        )
-      endif()
-    endif()
   endif()
 endif()
 
@@ -282,11 +231,18 @@ endif()
 # ---------------------------------------------------------------------------
 # gtirb
 # ---------------------------------------------------------------------------
-find_package(gtirb 1.4.7 REQUIRED)
+find_package(gtirb 1.8.4 REQUIRED)
 
 # ---------------------------------------------------------------------------
 # Boost
 # ---------------------------------------------------------------------------
+#
+# Note: we would like to use std::filsystem. However, currently, std::filesystem
+# is not provided in clang 6 or gcc 7, both of which are the default installed
+# versions for Ubuntu 18. Instead in that context, one can use the
+# "experimental" version fo filesystem. But we've decided that it's simpler to
+# just use boost::filesystem instead until we (eventually) drop support for
+# Ubuntu 18.
 set(BOOST_COMPONENTS filesystem program_options system)
 find_package(Boost 1.67 REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
@@ -347,10 +303,11 @@ add_subdirectory(src)
 # ---------------------------------------------------------------------------
 export(TARGETS gtirb_pprinter gtirb_layout
        FILE "${CMAKE_CURRENT_BINARY_DIR}/gtirb_pprinterTargets.cmake")
+configure_file("${CMAKE_CURRENT_LIST_DIR}/gtirb_pprinterConfig.cmake.in"
+               "${CMAKE_CURRENT_BINARY_DIR}/gtirb_pprinterConfig.cmake" @ONLY)
 file(
-  WRITE "${CMAKE_CURRENT_BINARY_DIR}/gtirb_pprinterConfig.cmake"
+  APPEND "${CMAKE_CURRENT_BINARY_DIR}/gtirb_pprinterConfig.cmake"
   "
-            include(\"\$\{CMAKE_CURRENT_LIST_DIR\}/gtirb_pprinterTargets.cmake\")
             set_property(
                 TARGET gtirb_pprinter
                 APPEND PROPERTY
@@ -374,10 +331,16 @@ write_basic_package_version_file(
   COMPATIBILITY AnyNewerVersion)
 
 # Copy the config files to the install location
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/export/gtirb_pprinterConfig.cmake
-              ${version_file} DESTINATION lib/gtirb_pprinter)
+install(
+  FILES ${CMAKE_CURRENT_BINARY_DIR}/export/gtirb_pprinterConfig.cmake
+        ${version_file}
+  DESTINATION lib/gtirb_pprinter
+  COMPONENT cmake_config)
 
-install(EXPORT gtirb_pprinterTargets DESTINATION lib/gtirb_pprinter)
+install(
+  EXPORT gtirb_pprinterTargets
+  DESTINATION lib/gtirb_pprinter
+  COMPONENT cmake_target)
 
 # ---------------------------------------------------------------------------
 # Tests
@@ -397,8 +360,9 @@ endif()
 # ---------------------------------------------------------------------------
 # Package generation with cpack
 # ---------------------------------------------------------------------------
-set(CMAKE_PROJECT_HOMEPAGE_URL https://github.com/GrammaTech/gtirb-pprinter)
+set(CPACK_PROJECT_CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/cpack-config.cmake)
 
+set(CMAKE_PROJECT_HOMEPAGE_URL https://github.com/GrammaTech/gtirb-pprinter)
 set(CPACK_PACKAGE_VERSION_MAJOR ${GTIRB_PPRINTER_MAJOR_VERSION})
 set(CPACK_PACKAGE_VERSION_MINOR ${GTIRB_PPRINTER_MINOR_VERSION})
 set(CPACK_PACKAGE_VERSION_PATCH ${GTIRB_PPRINTER_PATCH_VERSION})
@@ -413,7 +377,16 @@ set(CPACK_PACKAGE_RESOURCE_FILE_LICENSE ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt)
 set(CPACK_DEBIAN_PACKAGE_SECTION devel)
 
 set(CPACK_DEBIAN_PACKAGE_DEPENDS
-    "libstdc++6, libc6, libgcc1, gtirb (>=${gtirb_VERSION}), libboost-dev (>=1.67) | libboost1.67-dev, libcapstone-dev (=1:4.0.1-gt1)"
+    "libstdc++6, libc6, libgcc1, libgtirb-dev (>=${gtirb_VERSION}), libboost-dev (>=1.67) | libboost1.67-dev, libcapstone-dev (=1:4.0.1-gt1)"
 )
+
+set(CPACK_GTIRB_VERSION "${gtirb_VERSION}")
+set(CPACK_GTIRB_PPRINTER_VERSION "${GTIRB_PPRINTER_VERSION}")
+
+string(REGEX MATCH "([^\.]+)\.([^\.]+)\.([^\.]+)" GTIRB_VERSION_MATCH
+             ${gtirb_VERSION})
+set(GTIRB_MAJOR_VERSION ${CMAKE_MATCH_1})
+math(EXPR NEXT_GTIRB_MAJOR_VERSION "${GTIRB_MAJOR_VERSION}+1")
+set(CPACK_GTIRB_VERSION_UPPER_BOUND "${NEXT_GTIRB_MAJOR_VERSION}.0.0")
 
 include(CPack)
