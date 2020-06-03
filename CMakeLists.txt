@@ -296,6 +296,31 @@ include_directories(${CAPSTONE_INCLUDE_DIRS})
 # ---------------------------------------------------------------------------
 # Source files
 # ---------------------------------------------------------------------------
+function(install_linux_debug_info TARGET COMPONENT_NAME)
+  if(UNIX
+     AND NOT CYGWIN
+     AND ("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo"
+          OR "${CMAKE_BUILD_TYPE}" STREQUAL "Debug"))
+    string(
+      RANDOM
+      LENGTH 32
+      ALPHABET "abcdef0123456789" BUILD_ID)
+    string(SUBSTRING "${BUILD_ID}" 0 2 BUILD_ID_PREFIX)
+    string(SUBSTRING "${BUILD_ID}" 2 32 BUILD_ID_SUFFIX)
+    target_link_libraries(${TARGET} PRIVATE "-Wl,--build-id=0x${BUILD_ID}")
+    add_custom_command(
+      TARGET ${TARGET}
+      POST_BUILD
+      COMMAND objcopy --only-keep-debug $<TARGET_FILE:${TARGET}>
+              ${CMAKE_BINARY_DIR}/bin/${BUILD_ID_SUFFIX}.debug
+      COMMAND objcopy --strip-debug $<TARGET_FILE:${TARGET}>)
+    install(
+      FILES "${CMAKE_BINARY_DIR}/bin/${BUILD_ID_SUFFIX}.debug"
+      COMPONENT "${COMPONENT_NAME}"
+      DESTINATION "lib/debug/.build-id/${BUILD_ID_PREFIX}")
+  endif()
+endfunction()
+
 add_subdirectory(src)
 
 # ---------------------------------------------------------------------------
