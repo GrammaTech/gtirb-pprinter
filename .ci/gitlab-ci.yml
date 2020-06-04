@@ -33,6 +33,7 @@ check-format:
     - cp /u4/TARBALLS/debloat/pkgs/libcapstone-dev_4.0.1-gt1_amd64.deb ./
     - GTIRB_BRANCH=$(sed -e '/find_package(gtirb /!d' -e 's/[^.0-9]//g' CMakeLists.txt)
     - GTIRB_BRANCH=$((grep -Eo "check_gtirb_branch\([^)]+" CMakeLists.txt | sed 's/check_gtirb_branch(//') || echo v${GTIRB_BRANCH:?})
+    - if [ $OS == "arch" ]; then GTIRB_BRANCH=master; fi
     - "echo \"GTIRB_BRANCH is: $GTIRB_BRANCH\""
     - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=package-arch --output "gtirb-arch-artifacts.zip"
     - unzip -l gtirb-arch-artifacts.zip
@@ -262,6 +263,7 @@ cleanup-arch-clang:
     - cp /u4/TARBALLS/debloat/pkgs/libcapstone-dev_4.0.1-gt1_amd64.deb ./
     - GTIRB_BRANCH=$(sed -e '/find_package(gtirb /!d' -e 's/[^.0-9]//g' CMakeLists.txt)
     - GTIRB_BRANCH=$((grep -Eo "check_gtirb_branch\([^)]+" CMakeLists.txt | sed 's/check_gtirb_branch(//') || echo v${GTIRB_BRANCH:?})
+    - if [ $OS == "arch" ]; then GTIRB_BRANCH=master; fi
     - "echo \"GTIRB_BRANCH is: $GTIRB_BRANCH\""
     - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=package-arch --output "gtirb-arch-artifacts.zip"
     - unzip -l gtirb-arch-artifacts.zip
