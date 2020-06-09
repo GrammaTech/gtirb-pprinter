@@ -605,12 +605,6 @@ void PrettyPrinterBase::printBlockContents(std::ostream& os,
     return;
   }
 
-  printComments(os, gtirb::Offset(dataObject.getUUID(), offset),
-                dataObject.getSize() - offset);
-  if (this->debug)
-    os << std::hex << static_cast<uint64_t>(*dataObject.getAddress() + offset)
-       << std::dec << ':';
-
   const auto* foundSymbolic =
       dataObject.getByteInterval()->getSymbolicExpression(
           dataObject.getOffset() + offset);
@@ -628,6 +622,7 @@ void PrettyPrinterBase::printNonZeroDataBlock(
   if (dataObject.getSize() - offset == 0) {
     return;
   }
+  gtirb::Offset CurrOffset = gtirb::Offset(dataObject.getUUID(), offset);
 
   // If this is a string, print it as one.
   std::optional<std::string> Type;
@@ -635,7 +630,8 @@ void PrettyPrinterBase::printNonZeroDataBlock(
     if (auto foundType = types->find(dataObject.getUUID());
         foundType != types->end()) {
       if (foundType->second == "string") {
-        os << syntax.tab();
+        printComments(os, CurrOffset, dataObject.getSize() - offset);
+        printEA(os, *dataObject.getAddress() + offset);
         printString(os, dataObject, offset);
         os << '\n';
         return;
@@ -648,8 +644,32 @@ void PrettyPrinterBase::printNonZeroDataBlock(
   // Otherwise, print each byte and/or symbolic expression in order.
   auto ByteRange = dataObject.bytes<uint8_t>();
   uint64_t ByteI = dataObject.getOffset() + offset;
+
+  // print comments at the right location efficiently (with a single iterator).
+  bool HasComments = false;
+  std::map<gtirb::Offset, std::string>::const_iterator CommentsIt;
+  std::map<gtirb::Offset, std::string>::const_iterator CommentsEnd;
+  if (this->debug) {
+    if (const auto* comments = module.getAuxData<gtirb::schema::Comments>()) {
+      HasComments = true;
+      CommentsIt = comments->lower_bound(CurrOffset);
+      CommentsEnd = comments->end();
+    }
+  }
+  auto printCommentsBetween = [&](uint64_t Size) {
+    gtirb::Offset EndOffset = CurrOffset;
+    EndOffset.Displacement += Size;
+    for (; CommentsIt != CommentsEnd && CommentsIt->first < EndOffset;
+         ++CommentsIt) {
+      os << syntax.comment();
+      if (CommentsIt->first.Displacement > CurrOffset.Displacement)
+        os << "+" << CommentsIt->first.Displacement - CurrOffset.Displacement
+           << ":";
+      os << " " << CommentsIt->second << '\n';
+    }
+  };
+
   for (auto ByteIt = ByteRange.begin() + offset; ByteIt != ByteRange.end();) {
-    os << syntax.tab();
 
     if (auto FoundSymExprRange =
             dataObject.getByteInterval()->findSymbolicExpressionsAtOffset(
@@ -657,14 +677,25 @@ void PrettyPrinterBase::printNonZeroDataBlock(
         !FoundSymExprRange.empty()) {
       const auto SEE = FoundSymExprRange.front();
       auto Size = getSymbolicExpressionSize(SEE);
+      if (HasComments) {
+        printCommentsBetween(Size);
+      }
+      printEA(os, *dataObject.getAddress() + CurrOffset.Displacement);
       printSymbolicData(os, SEE, Size, Type);
       ByteI += Size;
       ByteIt += Size;
+      CurrOffset.Displacement += Size;
     } else {
+      if (HasComments) {
+        printCommentsBetween(1);
+      }
+
+      printEA(os, *dataObject.getAddress() + CurrOffset.Displacement);
       printByte(os,
                 static_cast<std::byte>(static_cast<unsigned char>(*ByteIt)));
       ByteI++;
       ByteIt++;
+      CurrOffset.Displacement++;
     }
   }
 }
@@ -673,7 +704,9 @@ void PrettyPrinterBase::printZeroDataBlock(std::ostream& os,
                                            const gtirb::DataBlock& dataObject,
                                            uint64_t offset) {
   if (auto size = dataObject.getSize() - offset) {
-    os << syntax.tab();
+    printComments(os, gtirb::Offset(dataObject.getUUID(), offset),
+                  dataObject.getSize() - offset);
+    printEA(os, *dataObject.getAddress() + offset);
     os << ".zero " << size << '\n';
   }
 }
@@ -777,9 +810,17 @@ void PrettyPrinterBase::printSymbolicExpression(
 void PrettyPrinterBase::printSymbolicExpression(std::ostream& os,
                                                 const gtirb::SymAddrAddr* sexpr,
                                                 bool inData) {
+  if (sexpr->Scale > 1) {
+    os << "(";
+  }
+
   printSymbolReference(os, sexpr->Sym1, inData);
   os << '-';
   printSymbolReference(os, sexpr->Sym2, inData);
+
+  if (sexpr->Scale > 1) {
+    os << ")/" << sexpr->Scale;
+  }
 }
 
 void PrettyPrinterBase::printString(std::ostream& os, const gtirb::DataBlock& x,
