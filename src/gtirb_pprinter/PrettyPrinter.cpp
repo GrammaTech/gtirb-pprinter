@@ -779,9 +779,17 @@ void PrettyPrinterBase::printSymbolicExpression(
 void PrettyPrinterBase::printSymbolicExpression(std::ostream& os,
                                                 const gtirb::SymAddrAddr* sexpr,
                                                 bool inData) {
+  if (sexpr->Scale > 1) {
+    os << "(";
+  }
+
   printSymbolReference(os, sexpr->Sym1, inData);
   os << '-';
   printSymbolReference(os, sexpr->Sym2, inData);
+
+  if (sexpr->Scale > 1) {
+    os << ")/" << sexpr->Scale;
+  }
 }
 
 void PrettyPrinterBase::printString(std::ostream& os, const gtirb::DataBlock& x,
