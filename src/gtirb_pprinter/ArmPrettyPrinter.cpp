@@ -66,6 +66,7 @@ void ArmPrettyPrinter::printInstruction(std::ostream& os,
 
   os << "  " << opcode << ' ';
   printOperandList(os, block, inst);
+  os << '\n';
 }
 
 void ArmPrettyPrinter::printOperandList(std::ostream& os,

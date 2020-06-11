@@ -274,6 +274,11 @@ void PrettyPrinterBase::printBlockContents(std::ostream& os,
   cs_option(this->csHandle, CS_OPT_DETAIL, CS_OPT_ON);
   setDecodeMode(os, x);
 
+  // FIXME: CodeBlocks are off by one.
+  if (x.getDecodeMode()) {
+    --offset;
+  }
+
   size_t count = cs_disasm(this->csHandle, x.rawBytes<uint8_t>() + offset,
                            x.getSize() - offset,
                            static_cast<uint64_t>(addr) + offset, 0, &insn);

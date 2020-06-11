@@ -19,7 +19,15 @@
 
 namespace gtirb_pprint {
 
-class ArmSyntax : public ElfSyntax {};
+class ArmSyntax : public ElfSyntax {
+public:
+  const std::string& attributePrefix() const override {
+    return AttributePrefix;
+  }
+
+private:
+  const std::string AttributePrefix{"%"};
+};
 
 class ArmPrettyPrinter : public ElfPrettyPrinter {
 public:

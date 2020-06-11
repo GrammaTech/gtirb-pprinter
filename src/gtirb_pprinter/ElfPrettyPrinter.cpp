@@ -94,9 +94,9 @@ void ElfPrettyPrinter::printSectionProperties(std::ostream& os,
     os << "x";
   os << "\"";
   if (type == SHT_PROGBITS)
-    os << ",@progbits";
+    os << "," << elfSyntax.attributePrefix() << "progbits";
   if (type == SHT_NOBITS)
-    os << ",@nobits";
+    os << "," << elfSyntax.attributePrefix() << "nobits";
 }
 
 void ElfPrettyPrinter::printSectionFooterDirective(
@@ -177,7 +177,8 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
     assert(!"unknown type in elfSymbolInfo!");
   } else {
     const auto& TypeName = unique ? "gnu_unique_object" : TypeNameIt->second;
-    os << elfSyntax.type() << ' ' << name << ", @" << TypeName << "\n";
+    os << elfSyntax.type() << ' ' << name << ", " << elfSyntax.attributePrefix()
+       << TypeName << "\n";
   }
 
   printBar(os, false);
