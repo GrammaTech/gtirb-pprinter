@@ -876,7 +876,8 @@ bool PrettyPrinterBase::shouldSkip(const gtirb::CodeBlock& block) const {
     return false;
   }
 
-  if (shouldSkip(*block.getByteInterval()->getSection())) {
+  if (policy.skipSections.count(
+          block.getByteInterval()->getSection()->getName())) {
     return true;
   }
 
@@ -889,7 +890,8 @@ bool PrettyPrinterBase::shouldSkip(const gtirb::DataBlock& block) const {
     return false;
   }
 
-  if (shouldSkip(*block.getByteInterval()->getSection())) {
+  if (policy.skipSections.count(
+          block.getByteInterval()->getSection()->getName())) {
     return true;
   }
 
