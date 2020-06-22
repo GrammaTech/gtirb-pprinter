@@ -7,7 +7,7 @@ SHELL ["/bin/bash", "-c"]
 
 # install common packages
 RUN apt-get -y update && apt-get -y install build-essential binutils cmake \
-    clang curl doxygen git graphviz make python3 software-properties-common \
+    clang clang-format curl doxygen git graphviz make python3 python3-pip software-properties-common \
     unzip wget
 
 # Install boost & protobuf
@@ -19,29 +19,13 @@ RUN add-apt-repository ppa:mhier/libboost-latest && \
 COPY libcapstone-dev_*_amd64.deb ./
 RUN dpkg -i libcapstone-dev_*_amd64.deb
 
-# Install GTIRB
-COPY gtirb-ubuntu18-artifacts.zip ./gtirb-artifacts.zip
-RUN unzip -o gtirb-artifacts.zip && dpkg -i libgtirb.deb && dpkg -i libgtirb-dev.deb
+# Install pre-commit
+RUN pip3 install "virtualenv<20.0.0"
+RUN pip3 install pre-commit
 
-# Build gtirb-pprinter
-COPY . /gt/gtirb-pprinter/
-RUN mkdir -p /gt/gtirb-pprinter/build
-WORKDIR /gt/gtirb-pprinter/build
-ARG BUILD_TYPE="RelWithDebInfo"
-ARG CXX_COMPILER="g++"
-RUN cmake ../ -DCMAKE_CXX_COMPILER=$CXX_COMPILER -DCMAKE_BUILD_TYPE=$BUILD_TYPE
-RUN make -j
-
-# Package generation
-ARG CPACK_GENERATOR=""
-RUN if [ ! -z "${CPACK_GENERATOR}" ] ; then \
-      cd /gt/gtirb-pprinter/build && \
-      cpack -G "${CPACK_GENERATOR}" -D CPACK_GTIRB_DEBIAN_PACKAGE=lib && \
-      cpack -G "${CPACK_GENERATOR}" -D CPACK_GTIRB_DEBIAN_PACKAGE=lib-dbg && \
-      cpack -G "${CPACK_GENERATOR}" -D CPACK_GTIRB_DEBIAN_PACKAGE=dev && \
-      cpack -G "${CPACK_GENERATOR}" -D CPACK_GTIRB_DEBIAN_PACKAGE=driver && \
-      cpack -G "${CPACK_GENERATOR}" -D CPACK_GTIRB_DEBIAN_PACKAGE=driver-dbg ; \
-    fi
-
-WORKDIR /gt/gtirb-pprinter/
-ENV PATH=/gt/gtirb-pprinter/build/bin:$PATH
+# Run pre-commit once so the hooks are installed
+COPY . /gt/gtirb-pprinter
+WORKDIR /gt/gtirb-pprinter
+RUN pre-commit run --all-files
+WORKDIR /
+RUN rm -rf /gt/gtirb-pprinter
