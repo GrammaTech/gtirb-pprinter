@@ -3,31 +3,3 @@ FROM archlinux/base
 RUN pacman -Syu --noconfirm autoconf automake boost capstone clang cmake \
     doxygen fakeroot gcc git libtool make mcpp pkg-config protobuf python3 \
     unzip wget zlib graphviz
-
-# Install GTIRB
-COPY gtirb-arch-artifacts.zip ./gtirb-artifacts.zip
-RUN unzip gtirb-artifacts.zip && \
-    pacman --noconfirm -U gtirb-git*.pkg.tar.xz && \
-    rm gtirb-git*.pkg.tar.xz
-
-# Build gtirb-pprinter
-COPY . /gt/gtirb-pprinter/
-RUN mkdir -p /gt/gtirb-pprinter/build
-WORKDIR /gt/gtirb-pprinter/build
-ARG BUILD_TYPE="RelWithDebInfo"
-ARG CXX_COMPILER="g++"
-RUN cmake ../ -DCMAKE_CXX_COMPILER=$CXX_COMPILER -DBUILD_TYPE=$BUILD_TYPE
-RUN make -j
-
-# Run makepkg.
-RUN sed -i "s/^\(OPT_LONG=(\)/\1'asroot' /;s/EUID == 0/1 == 0/" /usr/bin/makepkg
-RUN mkdir /tmp/aur
-RUN cp /gt/gtirb-pprinter/.ci/PKGBUILD /tmp/aur
-WORKDIR /tmp/aur
-RUN sed -i 's|git://github.com/grammatech/gtirb-pprinter.git|git+file:///gt/gtirb-pprinter|' PKGBUILD
-RUN makepkg
-RUN pacman --noconfirm -U *.pkg.tar.xz
-RUN cp *.pkg.tar.xz /gt/gtirb-pprinter/build/
-
-WORKDIR /gt/gtirb-pprinter/
-ENV PATH=/gt/gtirb/build/bin:$PATH
