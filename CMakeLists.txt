@@ -298,6 +298,8 @@ include_directories(${CAPSTONE_INCLUDE_DIRS})
 # ---------------------------------------------------------------------------
 
 if(GTIRB_PPRINTER_ENABLE_TESTS)
+  enable_testing()
+
   # Pull in Google Test
   # https://github.com/google/googletest/blob/master/googletest#incorporating-
   # into-an-existing-cmake-project
@@ -413,8 +415,6 @@ install(
 # ---------------------------------------------------------------------------
 
 if(GTIRB_PPRINTER_ENABLE_TESTS)
-  enable_testing()
-
   find_program(PYTHON "python3")
 
   add_test(
