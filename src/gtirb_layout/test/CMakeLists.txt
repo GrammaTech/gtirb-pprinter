@@ -1,6 +1,5 @@
 set(PROJECT_NAME TestGtirbLayout)
 
-enable_testing()
 include_directories(${GTEST_INCLUDE_DIRS})
 
 set(${PROJECT_NAME}_H)
