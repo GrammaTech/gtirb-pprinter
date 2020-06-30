@@ -14,8 +14,9 @@ RUN unzip gtirb-artifacts.zip && \
 COPY . /gt/gtirb-pprinter/
 RUN mkdir -p /gt/gtirb-pprinter/build
 WORKDIR /gt/gtirb-pprinter/build
+ARG BUILD_TYPE="RelWithDebInfo"
 ARG CXX_COMPILER="g++"
-RUN cmake ../ -DCMAKE_CXX_COMPILER=$CXX_COMPILER
+RUN cmake ../ -DCMAKE_CXX_COMPILER=$CXX_COMPILER -DBUILD_TYPE=$BUILD_TYPE
 RUN make -j
 
 # Run makepkg.

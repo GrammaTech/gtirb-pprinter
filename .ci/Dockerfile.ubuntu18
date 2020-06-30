@@ -27,8 +27,9 @@ RUN unzip -o gtirb-artifacts.zip && dpkg -i libgtirb.deb && dpkg -i libgtirb-dev
 COPY . /gt/gtirb-pprinter/
 RUN mkdir -p /gt/gtirb-pprinter/build
 WORKDIR /gt/gtirb-pprinter/build
+ARG BUILD_TYPE="RelWithDebInfo"
 ARG CXX_COMPILER="g++"
-RUN cmake ../ -DCMAKE_CXX_COMPILER=$CXX_COMPILER
+RUN cmake ../ -DCMAKE_CXX_COMPILER=$CXX_COMPILER -DCMAKE_BUILD_TYPE=$BUILD_TYPE
 RUN make -j
 
 # Package generation
@@ -36,8 +37,10 @@ ARG CPACK_GENERATOR=""
 RUN if [ ! -z "${CPACK_GENERATOR}" ] ; then \
       cd /gt/gtirb-pprinter/build && \
       cpack -G "${CPACK_GENERATOR}" -D CPACK_GTIRB_DEBIAN_PACKAGE=lib && \
+      cpack -G "${CPACK_GENERATOR}" -D CPACK_GTIRB_DEBIAN_PACKAGE=lib-dbg && \
       cpack -G "${CPACK_GENERATOR}" -D CPACK_GTIRB_DEBIAN_PACKAGE=dev && \
-      cpack -G "${CPACK_GENERATOR}" -D CPACK_GTIRB_DEBIAN_PACKAGE=driver ; \
+      cpack -G "${CPACK_GENERATOR}" -D CPACK_GTIRB_DEBIAN_PACKAGE=driver && \
+      cpack -G "${CPACK_GENERATOR}" -D CPACK_GTIRB_DEBIAN_PACKAGE=driver-dbg ; \
     fi
 
 WORKDIR /gt/gtirb-pprinter/

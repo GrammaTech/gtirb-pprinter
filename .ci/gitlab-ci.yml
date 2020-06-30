@@ -38,7 +38,7 @@ check-format:
     - unzip -l gtirb-ubuntu16-artifacts.zip
     - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-ubuntu18 --output "gtirb-ubuntu18-artifacts.zip"
     - unzip -l gtirb-ubuntu18-artifacts.zip
-    - docker build -f .ci/Dockerfile.$OS -t ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER_NAME} --build-arg CXX_COMPILER=${COMPILER} --build-arg CPACK_GENERATOR=${CPACK_GENERATOR} .
+    - docker build -f .ci/Dockerfile.$OS -t ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER_NAME}-${BUILD_TYPE,,} --build-arg CXX_COMPILER=${COMPILER} --build-arg BUILD_TYPE=$BUILD_TYPE --build-arg CPACK_GENERATOR=${CPACK_GENERATOR} .
 
 .windows-build-template: &windows-build
   stage: build
@@ -76,28 +76,23 @@ check-format:
       else
           PUSH_TAG=$CI_COMMIT_REF_SLUG;
       fi
-    - docker run ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} /bin/bash -c "cd build/ && ctest -V"
-    - docker tag ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} ${DOCKER_REGISTRY}/${CI_PROJECT_PATH}/${OS}-${COMPILER}:${PUSH_TAG}
+    - docker run ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER}-${BUILD_TYPE,,} /bin/bash -c "cd build/ && ctest -V"
+    - docker tag ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER}-${BUILD_TYPE,,} ${DOCKER_REGISTRY}/${CI_PROJECT_PATH}/${OS}-${COMPILER}-${BUILD_TYPE,,}:${PUSH_TAG}
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
-    - docker push ${DOCKER_REGISTRY}/${CI_PROJECT_PATH}/${OS}-${COMPILER}:${PUSH_TAG}
+    - docker push ${DOCKER_REGISTRY}/${CI_PROJECT_PATH}/${OS}-${COMPILER}-${BUILD_TYPE,,}:${PUSH_TAG}
 
 .cleanup-template: &cleanup
   stage: cleanup
   when: always
   script:
-    - docker rmi -f ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER}
+    - docker rmi -f ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER}-${BUILD_TYPE,,}
 
 build-ubuntu16-gcc:
   variables:
     OS: 'ubuntu16'
     COMPILER: 'g++-7'
     CPACK_GENERATOR: 'DEB'
-  <<: *build
-
-build-ubuntu16-clang:
-  variables:
-    OS: 'ubuntu16'
-    COMPILER: 'clang++-8'
+    BUILD_TYPE: 'RelWithDebInfo'
   <<: *build
 
 build-ubuntu18-gcc:
@@ -105,25 +100,28 @@ build-ubuntu18-gcc:
     OS: 'ubuntu18'
     COMPILER: 'g++-7'
     CPACK_GENERATOR: 'DEB'
-  <<: *build
-
-build-ubuntu18-clang:
-  variables:
-    OS: 'ubuntu18'
-    COMPILER: 'clang++'
+    BUILD_TYPE: 'RelWithDebInfo'
   <<: *build
 
 build-arch-gcc:
   variables:
     OS: 'arch'
     COMPILER: 'g++'
-    CPACK_GENERATOR: 'TGZ'
+    BUILD_TYPE: 'RelWithDebInfo'
   <<: *build
 
-build-arch-clang:
+build-arch-gcc-debug:
+  variables:
+    OS: 'arch'
+    COMPILER: 'g++'
+    BUILD_TYPE: 'Debug'
+  <<: *build
+
+build-arch-clang-debug:
   variables:
     OS: 'arch'
     COMPILER: 'clang++'
+    BUILD_TYPE: 'Debug'
   <<: *build
 
 build-windows-msvc-debug:
@@ -144,83 +142,82 @@ test-and-tag-ubuntu16-gcc:
   variables:
     OS: 'ubuntu16'
     COMPILER: 'gcc'
-  <<: *test-and-tag
-
-test-and-tag-ubuntu16-clang:
-  variables:
-    OS: 'ubuntu16'
-    COMPILER: 'clang'
+    BUILD_TYPE: 'RelWithDebInfo'
   <<: *test-and-tag
 
 test-and-tag-ubuntu18-gcc:
   variables:
     OS: 'ubuntu18'
     COMPILER: 'gcc'
-  <<: *test-and-tag
-
-test-and-tag-ubuntu18-clang:
-  variables:
-    OS: 'ubuntu18'
-    COMPILER: 'clang'
+    BUILD_TYPE: 'RelWithDebInfo'
   <<: *test-and-tag
 
 test-and-tag-arch-gcc:
-   variables:
-     OS: 'arch'
-     COMPILER: 'gcc'
-   <<: *test-and-tag
+  variables:
+    OS: 'arch'
+    COMPILER: 'gcc'
+    BUILD_TYPE: 'RelWithDebInfo'
+  <<: *test-and-tag
 
-test-and-tag-arch-clang:
-   variables:
-     OS: 'arch'
-     COMPILER: 'clang'
-   <<: *test-and-tag
+test-and-tag-arch-gcc-debug:
+  variables:
+    OS: 'arch'
+    COMPILER: 'gcc'
+    BUILD_TYPE: 'Debug'
+  <<: *test-and-tag
+
+test-and-tag-arch-clang-debug:
+  variables:
+    OS: 'arch'
+    COMPILER: 'clang'
+    BUILD_TYPE: 'Debug'
+  <<: *test-and-tag
 
 test-make-install:
   stage: test-and-tag
   variables:
     OS: 'ubuntu18'
     COMPILER: 'gcc'
+    BUILD_TYPE: 'RelWithDebInfo'
     INSTALLER: 'make install'
   script:
-    - export LOCAL_IMAGE=$(echo ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} |  tr A-Z a-z)
+    - export LOCAL_IMAGE=$(echo ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER}-${BUILD_TYPE,,} |  tr A-Z a-z)
     - docker build --rm -f .ci/Dockerfile.test-install -t ${LOCAL_IMAGE_NAME}-${CI_JOB_NAME} --build-arg IMAGE=$LOCAL_IMAGE --build-arg INSTALLER="$INSTALLER" .
 
 cleanup-ubuntu16-gcc:
   variables:
     OS: 'ubuntu16'
     COMPILER: 'gcc'
-  <<: *cleanup
-
-cleanup-ubuntu16-clang:
-  variables:
-    OS: 'ubuntu16'
-    COMPILER: 'clang'
+    BUILD_TYPE: 'RelWithDebInfo'
   <<: *cleanup
 
 cleanup-ubuntu18-gcc:
   variables:
     OS: 'ubuntu18'
     COMPILER: 'gcc'
-  <<: *cleanup
-
-cleanup-ubuntu18-clang:
-  variables:
-    OS: 'ubuntu18'
-    COMPILER: 'clang'
+    BUILD_TYPE: 'RelWithDebInfo'
   <<: *cleanup
 
 cleanup-arch-gcc:
-   variables:
-     OS: 'arch'
-     COMPILER: 'gcc'
-   <<: *cleanup
+  variables:
+    OS: 'arch'
+    COMPILER: 'gcc'
+    BUILD_TYPE: 'RelWithDebInfo'
+  <<: *cleanup
+
+cleanup-arch-gcc-debug:
+  variables:
+    OS: 'arch'
+    COMPILER: 'gcc'
+    BUILD_TYPE: 'Debug'
+  <<: *cleanup
 
 cleanup-arch-clang:
-   variables:
-     OS: 'arch'
-     COMPILER: 'clang'
-   <<: *cleanup
+  variables:
+    OS: 'arch'
+    COMPILER: 'clang'
+    BUILD_TYPE: 'Debug'
+  <<: *cleanup
 
 # pages:
 #   stage: cleanup-ubuntu16-gcc
@@ -248,7 +245,7 @@ cleanup-arch-clang:
   script:
     - export COMPILER_NAME=$(echo ${COMPILER} | sed 's/clang++/clang/;s/g++/gcc/;s/\(-[0-9]\)*//g' )
     - export CONTAINER_FILE=$(mktemp -d)/cidfile
-    - docker create --cidfile=${CONTAINER_FILE} ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER_NAME}
+    - docker create --cidfile=${CONTAINER_FILE} ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER_NAME}-${BUILD_TYPE,,}
     - docker cp $(cat ${CONTAINER_FILE}):/gt/gtirb-pprinter/build ./build-artifacts
     - docker container rm -f $(cat ${CONTAINER_FILE})
     - rm -rf $(dirname $CONTAINER_FILE)
@@ -268,6 +265,7 @@ debian-installer-ubuntu16:
     OS: 'ubuntu16'
     COMPILER: 'g++-7'
     EXTENSION: 'deb'
+    BUILD_TYPE: 'RelWithDebInfo'
   <<: *linux-installer
 
 debian-installer-ubuntu18:
@@ -275,6 +273,7 @@ debian-installer-ubuntu18:
     OS: 'ubuntu18'
     COMPILER: 'g++-7'
     EXTENSION: 'deb'
+    BUILD_TYPE: 'RelWithDebInfo'
   <<: *linux-installer
 
 package-arch:
@@ -282,4 +281,5 @@ package-arch:
     OS: 'arch'
     COMPILER: 'g++'
     EXTENSION: 'pkg.tar.xz'
+    BUILD_TYPE: 'RelWithDebInfo'
   <<: *linux-installer
