@@ -2,16 +2,55 @@
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <fcntl.h>
 #include <fstream>
 #include <gtirb_layout/gtirb_layout.hpp>
 #include <gtirb_pprinter/ElfBinaryPrinter.hpp>
 #include <gtirb_pprinter/PrettyPrinter.hpp>
 #include <gtirb_pprinter/version.h>
+#if defined(_MSC_VER)
+#include <io.h>
+#endif
 #include <iomanip>
 #include <iostream>
+#if defined(__unix__)
+#include <unistd.h>
+#endif
 
 namespace fs = boost::filesystem;
 namespace po = boost::program_options;
+
+static bool isStreamATerminal(FILE* stream) {
+#if defined(_MSC_VER)
+  return _isatty(_fileno(stream));
+#else
+  return isatty(fileno(stream));
+#endif
+}
+
+static void setStdStreamToBinary(FILE* stream) {
+  // Check to see if we're running a tty vs a pipe. If a tty, then we
+  // want to warn the user if we're going to open in binary mode.
+  if (isStreamATerminal(stream)) {
+    std::string stream_str = stream == stdout ? "stdout" : "stdin";
+    std::cerr << "Refusing to set " << stream << " to binary mode when "
+              << stream << " is a terminal\n";
+  } else {
+#if defined(_MSC_VER)
+    _setmode(_fileno(stream), _O_BINARY);
+#else
+    if (stream == stdout) {
+      stdout = freopen(NULL, "wb", stdout);
+      assert(stdout && "Failed to reopen stdout");
+    } else if (stream == stdin) {
+      stdin = freopen(NULL, "rb", stdin);
+      assert(stdin && "Failed to reopen stdin");
+    } else {
+      std::cerr << "Refusing to set non-stdout/stdin stream to binary mode\n";
+    }
+#endif
+  }
+}
 
 static fs::path getAsmFileName(const fs::path& InitialPath, int Index) {
   if (Index == 0)
@@ -27,6 +66,7 @@ static fs::path getAsmFileName(const fs::path& InitialPath, int Index) {
 }
 
 int main(int argc, char** argv) {
+  gtirb_layout::registerAuxDataTypes();
   gtirb_pprint::registerAuxDataTypes();
 
   po::options_description desc("Allowed options");
@@ -154,8 +194,11 @@ int main(int argc, char** argv) {
       LOG_ERROR << "GTIRB file could not be opened: \"" << irPath << "\".\n";
       return EXIT_FAILURE;
     }
-  } else if (gtirb::ErrorOr<gtirb::IR*> iOrE = gtirb::IR::load(ctx, std::cin)) {
-    ir = *iOrE;
+  } else {
+    setStdStreamToBinary(stdin);
+    if (gtirb::ErrorOr<gtirb::IR*> iOrE = gtirb::IR::load(ctx, std::cin)) {
+      ir = *iOrE;
+    }
   }
   if (!ir) {
     LOG_ERROR << "Failed to load the GTIRB data from the file.\n";

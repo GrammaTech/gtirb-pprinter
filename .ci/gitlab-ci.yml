@@ -1,44 +1,47 @@
 variables:
   DOCKER_REGISTRY: "docker.grammatech.com"
-  LOCAL_IMAGE_NAME: '$CI_BUILD_REF_NAME-$CI_PIPELINE_ID'
   GIT_SUBMODULE_STRATEGY: recursive
   GTIRB_BRANCH: "master"
 
-before_script:
-  - case "$(uname -s)" in
-        CYGWIN*) systeminfo;;
-        *) docker info;;
-    esac
+default:
+  tags: [gtirb-pprinter-docker-executor]
 
 stages:
   - check-format
   - build
   - test-and-tag
+  - build-packages
+  - test-packages-setup
+  - test-packages1
+  - test-packages2
   - deploy
   - cleanup
 
 check-format:
   stage: check-format
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
   script:
-    - docker build --rm -f .ci/Dockerfile.formatter .
-
-# The two build templates below ultimately call the build script for the
-# appropriate platform & task (the .ci/build-*.sh scripts).
-# For windows builds, this is done directly. For linux builds, the build script
-# is called in the Dockerfile.
+    - pre-commit run --all-files
 
 .build-template: &build
   stage: build
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
+    paths:
+      - 'build'
   script:
-    - export COMPILER_NAME=$(echo ${COMPILER} | sed 's/clang++/clang/;s/g++/gcc/;s/\(-[0-9]\)*//g' )
-    - cp /u4/TARBALLS/debloat/pkgs/libcapstone-dev_4.0.1-gt1_amd64.deb ./
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=package-arch --output "gtirb-arch-artifacts.zip"
-    - unzip -l gtirb-arch-artifacts.zip
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-ubuntu16 --output "gtirb-ubuntu16-artifacts.zip"
-    - unzip -l gtirb-ubuntu16-artifacts.zip
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-ubuntu18 --output "gtirb-ubuntu18-artifacts.zip"
-    - unzip -l gtirb-ubuntu18-artifacts.zip
-    - docker build -f .ci/Dockerfile.$OS -t ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER_NAME}-${BUILD_TYPE,,} --build-arg CXX_COMPILER=${COMPILER} --build-arg BUILD_TYPE=$BUILD_TYPE --build-arg CPACK_GENERATOR=${CPACK_GENERATOR} .
+    - case $OS in
+       ubuntu16) JOB_NAME='debian-installer-ubuntu16' ;;
+       ubuntu18) JOB_NAME='debian-installer-ubuntu18' ;;
+       arch) JOB_NAME='package-arch' ;;
+       esac
+    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=${JOB_NAME} --output "gtirb-$OS-artifacts.zip"
+    - unzip gtirb-$OS-artifacts.zip
+    - '[ $OS != "arch" ] || pacman --noconfirm -U gtirb-git*.pkg.tar.xz'
+    - '[[ ! "$OS" =~ ubuntu1[68] ]] || dpkg -i libgtirb.deb libgtirb-dev.deb'
+    - mkdir build && cd build
+    - cmake ../ -DCMAKE_CXX_COMPILER=$COMPILER -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+    - make -j
 
 .windows-build-template: &windows-build
   stage: build
@@ -47,6 +50,7 @@ check-format:
     paths:
       - 'gtirb_pprinter-*-win64'
   script:
+    - systeminfo
     # Install gtirb
     - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=build-windows-msvc-${BUILD_TYPE,,} --output "gtirb-artifacts.zip"
     - unzip gtirb-artifacts.zip
@@ -70,40 +74,35 @@ check-format:
 .test-and-tag-template: &test-and-tag
   stage: test-and-tag
   script:
-    - if [ "$CI_COMMIT_REF_SLUG" = "master" ];
-      then
-          PUSH_TAG=latest;
-      else
-          PUSH_TAG=$CI_COMMIT_REF_SLUG;
-      fi
-    - docker run ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER}-${BUILD_TYPE,,} /bin/bash -c "cd build/ && ctest -V"
-    - docker tag ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER}-${BUILD_TYPE,,} ${DOCKER_REGISTRY}/${CI_PROJECT_PATH}/${OS}-${COMPILER}-${BUILD_TYPE,,}:${PUSH_TAG}
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
-    - docker push ${DOCKER_REGISTRY}/${CI_PROJECT_PATH}/${OS}-${COMPILER}-${BUILD_TYPE,,}:${PUSH_TAG}
-
-.cleanup-template: &cleanup
-  stage: cleanup
-  when: always
-  script:
-    - docker rmi -f ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER}-${BUILD_TYPE,,}
+    - case $OS in
+       ubuntu16) JOB_NAME='debian-installer-ubuntu16' ;;
+       ubuntu18) JOB_NAME='debian-installer-ubuntu18' ;;
+       arch) JOB_NAME='package-arch' ;;
+       esac
+    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=${JOB_NAME} --output "gtirb-$OS-artifacts.zip"
+    - unzip gtirb-$OS-artifacts.zip
+    - '[ $OS != "arch" ] || pacman --noconfirm -U gtirb-git*.pkg.tar.xz'
+    - '[[ ! "$OS" =~ ubuntu1[68] ]] || dpkg -i libgtirb.deb'
+    - cd build && PATH=$(pwd)/bin:$PATH ctest -V
 
 build-ubuntu16-gcc:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
   variables:
     OS: 'ubuntu16'
     COMPILER: 'g++-7'
-    CPACK_GENERATOR: 'DEB'
     BUILD_TYPE: 'RelWithDebInfo'
   <<: *build
 
 build-ubuntu18-gcc:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
   variables:
     OS: 'ubuntu18'
     COMPILER: 'g++-7'
-    CPACK_GENERATOR: 'DEB'
     BUILD_TYPE: 'RelWithDebInfo'
   <<: *build
 
 build-arch-gcc:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/arch
   variables:
     OS: 'arch'
     COMPILER: 'g++'
@@ -111,6 +110,7 @@ build-arch-gcc:
   <<: *build
 
 build-arch-gcc-debug:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/arch
   variables:
     OS: 'arch'
     COMPILER: 'g++'
@@ -118,6 +118,7 @@ build-arch-gcc-debug:
   <<: *build
 
 build-arch-clang-debug:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/arch
   variables:
     OS: 'arch'
     COMPILER: 'clang++'
@@ -143,6 +144,8 @@ test-and-tag-ubuntu16-gcc:
     OS: 'ubuntu16'
     COMPILER: 'gcc'
     BUILD_TYPE: 'RelWithDebInfo'
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
+  needs: ['build-ubuntu16-gcc']
   <<: *test-and-tag
 
 test-and-tag-ubuntu18-gcc:
@@ -150,6 +153,8 @@ test-and-tag-ubuntu18-gcc:
     OS: 'ubuntu18'
     COMPILER: 'gcc'
     BUILD_TYPE: 'RelWithDebInfo'
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
+  needs: ['build-ubuntu18-gcc']
   <<: *test-and-tag
 
 test-and-tag-arch-gcc:
@@ -157,6 +162,8 @@ test-and-tag-arch-gcc:
     OS: 'arch'
     COMPILER: 'gcc'
     BUILD_TYPE: 'RelWithDebInfo'
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/arch
+  needs: ['build-arch-gcc']
   <<: *test-and-tag
 
 test-and-tag-arch-gcc-debug:
@@ -164,6 +171,8 @@ test-and-tag-arch-gcc-debug:
     OS: 'arch'
     COMPILER: 'gcc'
     BUILD_TYPE: 'Debug'
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/arch
+  needs: ['build-arch-gcc-debug']
   <<: *test-and-tag
 
 test-and-tag-arch-clang-debug:
@@ -171,115 +180,241 @@ test-and-tag-arch-clang-debug:
     OS: 'arch'
     COMPILER: 'clang'
     BUILD_TYPE: 'Debug'
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/arch
+  needs: ['build-arch-clang-debug']
   <<: *test-and-tag
 
 test-make-install:
   stage: test-and-tag
-  variables:
-    OS: 'ubuntu18'
-    COMPILER: 'gcc'
-    BUILD_TYPE: 'RelWithDebInfo'
-    INSTALLER: 'make install'
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
+  needs: ['build-ubuntu18-gcc']
   script:
-    - export LOCAL_IMAGE=$(echo ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER}-${BUILD_TYPE,,} |  tr A-Z a-z)
-    - docker build --rm -f .ci/Dockerfile.test-install -t ${LOCAL_IMAGE_NAME}-${CI_JOB_NAME} --build-arg IMAGE=$LOCAL_IMAGE --build-arg INSTALLER="$INSTALLER" .
+    - export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-ubuntu18 --output "gtirb-ubuntu18-artifacts.zip"
+    - unzip gtirb-ubuntu18-artifacts.zip
+    - dpkg -i libgtirb.deb libgtirb-dev.deb
+    - cd build && make install && cd ..
+    - rm -rf build
+    - cp .ci/test-install.cpp test-install.cpp
+    - g++ test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs
+    - ./test-install
+    - python3 -m unittest discover tests "*_test.py"
 
-cleanup-ubuntu16-gcc:
+.build-ubuntu-packages-template: &build-ubuntu-packages
+  stage: build-packages
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
+    paths:
+      - build
+  script:
+    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-$OS --output "gtirb-$OS-artifacts.zip"
+    - unzip gtirb-$OS-artifacts.zip
+    - dpkg -i libgtirb.deb libgtirb-dev.deb
+    - cd build
+    - cpack -G "DEB" -D CPACK_GTIRB_DEBIAN_PACKAGE=lib
+    - cpack -G "DEB" -D CPACK_GTIRB_DEBIAN_PACKAGE=lib-dbg
+    - cpack -G "DEB" -D CPACK_GTIRB_DEBIAN_PACKAGE=dev
+    - cpack -G "DEB" -D CPACK_GTIRB_DEBIAN_PACKAGE=driver
+    - cpack -G "DEB" -D CPACK_GTIRB_DEBIAN_PACKAGE=driver-dbg
+
+build-ubuntu16-packages:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
+  needs: [build-ubuntu16-gcc]
   variables:
-    OS: 'ubuntu16'
-    COMPILER: 'gcc'
-    BUILD_TYPE: 'RelWithDebInfo'
-  <<: *cleanup
+    OS: ubuntu16
+  <<: *build-ubuntu-packages
 
-cleanup-ubuntu18-gcc:
+build-ubuntu18-packages:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
+  needs: [build-ubuntu18-gcc]
   variables:
-    OS: 'ubuntu18'
-    COMPILER: 'gcc'
-    BUILD_TYPE: 'RelWithDebInfo'
-  <<: *cleanup
+    OS: ubuntu18
+  <<: *build-ubuntu-packages
 
-cleanup-arch-gcc:
+build-arch-package:
+  stage: build-packages
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/arch
+  needs: [build-arch-gcc]
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
+    paths:
+      - build
+  script:
+    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=package-arch --output "gtirb-arch-artifacts.zip"
+    - unzip gtirb-arch-artifacts.zip
+    - pacman --noconfirm -U gtirb-git*.pkg.tar.xz
+    - cd build
+    - sed -i "s/^\(OPT_LONG=(\)/\1'asroot' /;s/EUID == 0/1 == 0/" /usr/bin/makepkg
+    - mkdir /tmp/aur
+    - cp ../.ci/PKGBUILD /tmp/aur
+    - cd /tmp/aur
+    - sed -i "s|git://github.com/grammatech/gtirb-pprinter.git|git+file://${CI_PROJECT_DIR}|" PKGBUILD
+    - makepkg
+    - pacman --noconfirm -U *.pkg.tar.xz
+    - cp *.pkg.tar.xz $CI_PROJECT_DIR/build/
+
+.setup-test-apt-repo: &setup-test-apt-repo
+  stage: test-packages-setup
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
+    paths:
+      - apt-repo
+  script:
+    - mkdir apt-repo
+    - cp build/*.deb apt-repo
+    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-$OS --output "gtirb-$OS-artifacts.zip"
+    - unzip gtirb-$OS-artifacts.zip -d apt-repo
+    - cd apt-repo && dpkg-scanpackages . /dev/null > Packages
+
+.test-ubuntu-libgtirb-pprinter-dev: &test-ubuntu-libgtirb-pprinter-dev
+  stage: test-packages1
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
+    paths:
+      - test-install
+  script:
+    - if [ $(lsb_release -sc) == "bionic" ]; then TRUSTED="[trusted=yes]"; fi
+    - echo -e "\ndeb $TRUSTED file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
+    - apt-get update -y && apt-get install -y --allow-unauthenticated libgtirb-pprinter-dev
+    - g++-7 .ci/test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs
+    - ./test-install
+
+.test-ubuntu-gtirb-pprinter: &test-ubuntu-gtirb-pprinter
+  stage: test-packages1
+  script:
+    - if [ $(lsb_release -sc) == "bionic" ]; then TRUSTED="[trusted=yes]"; fi
+    - echo -e "\ndeb $TRUSTED file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
+    - apt-get update -y && apt-get install -y --allow-unauthenticated gtirb-pprinter
+    - gtirb-pprinter tests/two_modules.gtirb
+    - gtirb-layout tests/two_modules.gtirb --out output
+
+.test-ubuntu-libgtirb-pprinter-dbg: &test-ubuntu-libgtirb-pprinter-dbg
+  stage: test-packages1
+  script:
+    - if [ $(lsb_release -sc) == "bionic" ]; then TRUSTED="[trusted=yes]"; fi
+    - echo -e "\ndeb $TRUSTED file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
+    - apt-get update -y && apt-get install -y --allow-unauthenticated libgtirb-pprinter-dbg
+    - '[ -f /usr/lib/debug/.build-id/$(readelf -n /usr/lib/libgtirb_pprinter.so | grep ''Build ID: '' | cut -d'':'' -f2 | sed -E ''s/ ([a-f0-9]{2,})([a-f0-9]{30,})/\1\/\2/g'').debug ]'
+
+.test-ubuntu-gtirb-pprinter-dbg: &test-ubuntu-gtirb-pprinter-dbg
+  stage: test-packages1
+  script:
+    - if [ $(lsb_release -sc) == "bionic" ]; then TRUSTED="[trusted=yes]"; fi
+    - echo -e "\ndeb $TRUSTED file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
+    - apt-get update -y && apt-get install -y --allow-unauthenticated gtirb-pprinter-dbg
+    - '[ -f /usr/lib/debug/.build-id/$(readelf -n /usr/bin/gtirb-pprinter | grep ''Build ID: '' | cut -d'':'' -f2 | sed -E ''s/ ([a-f0-9]{2,})([a-f0-9]{30,})/\1\/\2/g'').debug ]'
+
+.test-ubuntu-libgtirb-pprinter: &test-ubuntu-libgtirb-pprinter
+  stage: test-packages2
+  script:
+    - if [ $(lsb_release -sc) == "bionic" ]; then TRUSTED="[trusted=yes]"; fi
+    - echo -e "\ndeb $TRUSTED file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
+    - apt-get update -y && apt-get install -y --allow-unauthenticated libgtirb-pprinter
+    - ./test-install
+
+setup-ubuntu16-repo:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
+  needs: ['build-ubuntu16-packages']
   variables:
-    OS: 'arch'
-    COMPILER: 'gcc'
-    BUILD_TYPE: 'RelWithDebInfo'
-  <<: *cleanup
+    OS: ubuntu16
+  <<: *setup-test-apt-repo
 
-cleanup-arch-gcc-debug:
+test-ubuntu16-libgtirb-pprinter-dev:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
+  needs: ['setup-ubuntu16-repo']
+  <<: *test-ubuntu-libgtirb-pprinter-dev
+
+test-ubuntu16-gtirb-pprinter:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
+  needs: ['setup-ubuntu16-repo']
+  <<: *test-ubuntu-gtirb-pprinter
+
+test-ubuntu16-libgtirb-pprinter-dbg:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
+  needs: ['setup-ubuntu16-repo']
+  <<: *test-ubuntu-libgtirb-pprinter-dbg
+
+test-ubuntu16-gtirb-pprinter-dbg:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
+  needs: ['setup-ubuntu16-repo']
+  <<: *test-ubuntu-gtirb-pprinter-dbg
+
+test-ubuntu16-libgtirb-pprinter:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
+  needs: ['setup-ubuntu16-repo', 'test-ubuntu16-libgtirb-pprinter-dev']
+  <<: *test-ubuntu-libgtirb-pprinter
+
+setup-ubuntu18-repo:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
+  needs: ['build-ubuntu18-packages']
   variables:
-    OS: 'arch'
-    COMPILER: 'gcc'
-    BUILD_TYPE: 'Debug'
-  <<: *cleanup
+    OS: ubuntu18
+  <<: *setup-test-apt-repo
 
-cleanup-arch-clang:
-  variables:
-    OS: 'arch'
-    COMPILER: 'clang'
-    BUILD_TYPE: 'Debug'
-  <<: *cleanup
+test-ubuntu18-libgtirb-pprinter-dev:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
+  needs: ['setup-ubuntu18-repo']
+  <<: *test-ubuntu-libgtirb-pprinter-dev
 
-# pages:
-#   stage: cleanup-ubuntu16-gcc
-#   variables:
-#     OS: 'ubuntu16'
-#     COMPILER: 'gcc'
-#   script:
-#     - export CONTAINER_FILE=${LOCAL_IMAGE_NAME}-${OS}-${COMPILER}.container
-#     - mkdir -p $(dirname ${CONTAINER_FILE})
-#     - docker run --cidfile=${CONTAINER_FILE} ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER} /bin/bash -c "mkdir -p doc/html; doxygen Doxyfile; cp -R doc/html /public";
-#     - docker cp $(cat ${CONTAINER_FILE}):/public ./
-#     - docker rmi -f ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER}
-#   artifacts:
-#     paths:
-#       - public
-#   only:
-#     - master
+test-ubuntu18-gtirb-pprinter:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
+  needs: ['setup-ubuntu18-repo']
+  <<: *test-ubuntu-gtirb-pprinter
 
-.linux-installer-template: &linux-installer
+test-ubuntu18-libgtirb-pprinter-dbg:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
+  needs: ['setup-ubuntu18-repo']
+  <<: *test-ubuntu-libgtirb-pprinter-dbg
+
+test-ubuntu18-gtirb-pprinter-dbg:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
+  needs: ['setup-ubuntu18-repo']
+  <<: *test-ubuntu-gtirb-pprinter-dbg
+
+test-ubuntu18-libgtirb-pprinter:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
+  needs: ['setup-ubuntu18-repo', 'test-ubuntu18-libgtirb-pprinter-dev']
+  <<: *test-ubuntu-libgtirb-pprinter
+
+test-arch-package:
+  stage: test-packages1
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/arch
+  needs: ['build-arch-package']
+  script:
+    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=package-arch --output "gtirb-arch-artifacts.zip"
+    - unzip gtirb-arch-artifacts.zip
+    - pacman --noconfirm -U gtirb-git*.pkg.tar.xz
+    - pacman --noconfirm -U build/*.pkg.tar.xz
+    - g++ .ci/test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs
+    - ./test-install
+    - python3 -m unittest discover tests "*_test.py"
+
+.deploy-debian-installer: &deploy-debian-installer
   stage: deploy
   artifacts:
     name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
     paths:
-      - ./*gtirb-pprinter*.${EXTENSION}
+      - '*gtirb-pprinter*.deb'
   script:
-    - export COMPILER_NAME=$(echo ${COMPILER} | sed 's/clang++/clang/;s/g++/gcc/;s/\(-[0-9]\)*//g' )
-    - export CONTAINER_FILE=$(mktemp -d)/cidfile
-    - docker create --cidfile=${CONTAINER_FILE} ${LOCAL_IMAGE_NAME}-${OS}-${COMPILER_NAME}-${BUILD_TYPE,,}
-    - docker cp $(cat ${CONTAINER_FILE}):/gt/gtirb-pprinter/build ./build-artifacts
-    - docker container rm -f $(cat ${CONTAINER_FILE})
-    - rm -rf $(dirname $CONTAINER_FILE)
-    - mv ./build-artifacts/*.${EXTENSION} ./
-    - rm -rf ./build-artifacts/
-    - cp /u4/TARBALLS/debloat/pkgs/libcapstone-dev_4.0.1-gt1_amd64.deb ./
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=package-arch --output "gtirb-arch-artifacts.zip"
-    - unzip -l gtirb-arch-artifacts.zip
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-ubuntu16 --output "gtirb-ubuntu16-artifacts.zip"
-    - unzip -l gtirb-ubuntu16-artifacts.zip
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-ubuntu18 --output "gtirb-ubuntu18-artifacts.zip"
-    - unzip -l gtirb-ubuntu18-artifacts.zip
-    - if [ -f .ci/Dockerfile.test-${OS}-package ]; then docker build -f .ci/Dockerfile.test-${OS}-package .; fi
+    - cp build/*.deb ./
 
 debian-installer-ubuntu16:
-  variables:
-    OS: 'ubuntu16'
-    COMPILER: 'g++-7'
-    EXTENSION: 'deb'
-    BUILD_TYPE: 'RelWithDebInfo'
-  <<: *linux-installer
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
+  needs: ['build-ubuntu16-packages']
+  <<: *deploy-debian-installer
 
 debian-installer-ubuntu18:
-  variables:
-    OS: 'ubuntu18'
-    COMPILER: 'g++-7'
-    EXTENSION: 'deb'
-    BUILD_TYPE: 'RelWithDebInfo'
-  <<: *linux-installer
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
+  needs: ['build-ubuntu18-packages']
+  <<: *deploy-debian-installer
 
 package-arch:
-  variables:
-    OS: 'arch'
-    COMPILER: 'g++'
-    EXTENSION: 'pkg.tar.xz'
-    BUILD_TYPE: 'RelWithDebInfo'
-  <<: *linux-installer
+  stage: deploy
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/arch
+  needs: ['build-arch-package', 'test-arch-package']
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
+    paths:
+      - '*gtirb-pprinter*.pkg.tar.xz'
+  script:
+    - cp build/*.pkg.tar.xz ./

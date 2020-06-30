@@ -12,6 +12,8 @@ namespace fs = boost::filesystem;
 namespace po = boost::program_options;
 
 int main(int argc, char** argv) {
+  gtirb_layout::registerAuxDataTypes();
+
   po::options_description desc("gtirb-layout - layout code and data in memory "
                                "without overlap.\n\n"
                                "Allowed options");

@@ -19,161 +19,110 @@
 using namespace gtirb;
 using namespace gtirb_layout;
 
-struct Edge {
-  CfgNode* Source;
-  CfgNode* Target;
-  EdgeType Type;
-  bool Conditional, Direct;
-};
-
-static CFG* getCFG(CfgNode* B) {
-  if (auto* CB = dyn_cast<CodeBlock>(B)) {
-    return &CB->getByteInterval()->getSection()->getModule()->getIR()->getCFG();
-  } else if (auto* PB = dyn_cast<ProxyBlock>(B)) {
-    return &PB->getModule()->getIR()->getCFG();
-  } else {
-    assert(!"getCFG received an unknown node kind!");
-    return nullptr;
-  }
+void ::gtirb_layout::registerAuxDataTypes() {
+  using namespace gtirb::schema;
+  gtirb::AuxDataContainer::registerAuxDataType<Alignment>();
 }
 
-static CFG::vertex_descriptor blockToCFGIndex(CFG& Cfg, CfgNode* B) {
-  auto Pair = boost::vertices(Cfg);
-  for (auto V : boost::make_iterator_range(Pair.first, Pair.second)) {
-    if (Cfg[V] == B) {
-      return V;
-    }
-  }
-
-  assert(!"blockToCFGIndex failed!");
-  return 0;
+/// Return the CFG containing the given block.
+///
+/// \param CB  CodeBlock to get the CFG for.
+///
+/// \return the CFG containing the given block or \c nullptr if the CFG does
+/// not exist.
+static CFG* getCFG(CodeBlock* CB) {
+  if (auto* BI = CB->getByteInterval())
+    if (auto* S = BI->getSection())
+      if (auto* M = S->getModule())
+        if (auto* Ir = M->getIR())
+          return &Ir->getCFG();
+  return nullptr;
 }
 
-struct GetEdge {
-  CFG* Cfg;
-  GetEdge(CFG* Cfg_) : Cfg{Cfg_} {}
-  Edge operator()(const CFG::edge_descriptor& E) const {
-    return Edge{
-        (*Cfg)[boost::source(E, *Cfg)],
-        (*Cfg)[boost::target(E, *Cfg)],
-        std::get<EdgeType>(*(*Cfg)[E]),
-        std::get<ConditionalEdge>(*(*Cfg)[E]) == ConditionalEdge::OnTrue,
-        std::get<DirectEdge>(*(*Cfg)[E]) == DirectEdge::IsDirect,
-    };
-  }
-};
+/// Find the ByteInterval, if any, that falls through to the given interval.
+///
+/// Assumes that at most one fallthrough edge from another byte interval to
+/// the given interval exists, that the source of that edge is the last block
+/// in its byte interval, and that the target of that edge is the first block
+/// in the given byte interval. Also assumes that both byte intervals are in
+/// the same section. Some of these assumptions are checked by assertion.
+///
+/// \param TargetBI  ByteInterval to find the predecessor for.
+///
+/// \return a ByteInterval that contains the source of a fallthrough edge that
+/// targets the given ByteInterval, or \c nullptr if no such source could be
+/// found.
+static ByteInterval* getPredecessorByteInterval(ByteInterval& TargetBI) {
+  if (!TargetBI.code_blocks().empty()) {
+    CodeBlock& Target = TargetBI.code_blocks().front();
+    if (CFG* Cfg = getCFG(&Target)) {
+      auto U = *getVertex(&Target, *Cfg);
+      for (auto E : boost::make_iterator_range(in_edges(U, *Cfg))) {
+        if (EdgeLabel Label = (*Cfg)[E];
+            Label && std::get<EdgeType>(*Label) == EdgeType::Fallthrough) {
+          CodeBlock* Source = dyn_cast<CodeBlock>((*Cfg)[source(E, *Cfg)]);
 
-static boost::iterator_range<
-    boost::transform_iterator<GetEdge, CFG::out_edge_iterator>>
-getOutgoingEdges(CfgNode* B) {
-  CFG* Cfg = getCFG(B);
-  auto Pair = boost::out_edges(blockToCFGIndex(*Cfg, B), *Cfg);
-  return boost::make_iterator_range(
-      boost::make_transform_iterator(Pair.first, GetEdge(Cfg)),
-      boost::make_transform_iterator(Pair.second, GetEdge(Cfg)));
-}
+          // FIXME: These are not really safe assumptions; user-provided IR may
+          // violate them. We should report an error to the caller rather than
+          // failing an assertion if they're violated.
 
-static bool findAndMergeBIs(Section& S) {
-  for (auto& SourceBI : S.byte_intervals()) {
-    // Get the last code block in this interval.
-    if (SourceBI.code_blocks().empty()) {
-      continue;
-    }
-    auto* Source = &SourceBI.code_blocks().back();
+          assert(Source && "Code block has fallthrough edge from proxy block!");
 
-    // If two code blocks have a fallthrough edge, they need to be merged.
-    for (const auto& E : getOutgoingEdges(&*SourceBI.code_blocks_begin())) {
-      if (E.Type != EdgeType::Fallthrough) {
-        continue;
-      }
-
-      if (auto* Target = dyn_cast<CodeBlock>(E.Target)) {
-        auto& TargetBI = *Target->getByteInterval();
-        auto BaseOffset = SourceBI.getSize();
-
-        // If they're already merged into one BI...
-        if (&SourceBI == &TargetBI) {
-          continue;
+          ByteInterval* SourceBI = Source->getByteInterval();
+          assert(SourceBI && SourceBI->getSection() == TargetBI.getSection() &&
+                 "Block has fallthrough edge from a block in another section!");
+          assert(Source == &SourceBI->code_blocks().back() &&
+                 "fallthrough edge exists, but source is not at end of "
+                 "interval!");
+          return SourceBI;
         }
-
-        // Check that they're both from the same section.
-        if (&S != TargetBI.getSection()) {
-          assert(!"Block has fallthrough edge into a block in another "
-                  "section!");
-          return false;
-        }
-
-        // Check that, when merged, the two code blocks will be adjacent.
-        if (Source->getOffset() + Source->getSize() != SourceBI.getSize()) {
-          assert(!"fallthrough edge exists, but source is not at end of "
-                  "interval!");
-          return false;
-        }
-
-        if (Target->getOffset() != 0) {
-          assert(!"fallthrough edge exists, but target is not at start of "
-                  "interval!");
-          return false;
-        }
-
-        // They can be merged. Merge them now.
-        SourceBI.setSize(SourceBI.getSize() + TargetBI.getSize());
-
-        std::vector<gtirb::CodeBlock*> CodeBlocks;
-        for (auto& B : TargetBI.code_blocks()) {
-          CodeBlocks.push_back(&B);
-        }
-        for (auto* B : CodeBlocks) {
-          SourceBI.addBlock(BaseOffset + B->getOffset(), B);
-        }
-
-        std::vector<gtirb::DataBlock*> DataBlocks;
-        for (auto& B : TargetBI.data_blocks()) {
-          DataBlocks.push_back(&B);
-        }
-        for (auto* B : DataBlocks) {
-          SourceBI.addBlock(BaseOffset + B->getOffset(), B);
-        }
-
-        for (auto SEE : TargetBI.symbolic_expressions()) {
-          SourceBI.addSymbolicExpression(BaseOffset + SEE.getOffset(),
-                                         SEE.getSymbolicExpression());
-        }
-        SourceBI.insertBytes<uint8_t>(
-            SourceBI.bytes_begin<uint8_t>() + BaseOffset,
-            TargetBI.bytes_begin<uint8_t>(), TargetBI.bytes_end<uint8_t>());
-        S.removeByteInterval(&TargetBI);
-
-        // We invalidated the BI iterator back there, so time to recurse.
-        // Hopefully this tail calls.
-        return findAndMergeBIs(S);
-      } else {
-        assert(!"Code block has fallthrough edge into proxy block!");
-        return false;
       }
     }
   }
-
-  return true;
+  return nullptr;
 }
 
-// NOTE: Only checks for missing addresses, not overlapping addresses.
-bool ::gtirb_layout::layoutRequired(IR& ir) {
-  for (auto& M : ir.modules()) {
+bool ::gtirb_layout::layoutRequired(Module& M) {
+  // If the module has no sections, we don't care that it has no address.
+  if (!M.sections().empty()) {
     if (!M.getAddress()) {
+      // The pretty-printer requires that every section must have an address.
       return true;
     }
-    for (auto& S : M.sections()) {
-      if (!S.getAddress()) {
-        return true;
-      }
-      for (auto& BI : S.byte_intervals()) {
-        if (!BI.getAddress()) {
+
+    for (auto SecIt = M.sections_begin(); SecIt != M.sections_end(); ++SecIt) {
+      if (auto Next = std::next(SecIt); Next != M.sections_end()) {
+        // There is a section following this one. Because the module has an
+        // address, we know all of the sections have addresses.
+        if (addressRange(*Next)->lower() < addressRange(*SecIt)->upper()) {
+          // Sections overlap.
           return true;
         }
       }
+
+      // Because the section has an address, we know it has at least one byte
+      // interval and each of its byte intervals has an address.
+      for (auto BiIt = SecIt->byte_intervals_begin(), Next = std::next(BiIt);
+           Next != SecIt->byte_intervals_end(); ++BiIt, ++Next) {
+        if (addressRange(*Next)->lower() < addressRange(*BiIt)->upper()) {
+          // Byte intervals overlap.
+          return true;
+        }
+      }
+      // FIXME: Should we also check that blocks are aligned according to the
+      // "alignment" AuxData?
+      // FIXME: Should we also check that CodeBlocks with a fallthrough edge
+      // are in different ByteIntervals or are adjacent in the same
+      // ByteInterval?
     }
   }
+  return false;
+}
+
+bool ::gtirb_layout::layoutRequired(IR& Ir) {
+  for (auto& M : Ir.modules())
+    if (layoutRequired(M))
+      return true;
   return false;
 }
 
@@ -273,27 +222,154 @@ void ::gtirb_layout::fixIntegralSymbols(gtirb::Context& Ctx, gtirb::Module& M) {
   }
 }
 
+/// Compute the largest power of two (up to 16) that an address can be
+/// considered aligned to.
+///
+/// \param A  address to get alignment from.
+///
+/// \return the largest power of 2 that the address is aligned to, or \c nullopt
+/// if there is no address or it is unaligned to any power of two between 2 and
+/// 16.
+static std::optional<uint64_t> defaultAlignment(std::optional<Addr> A) {
+  if (A) {
+    uint64_t x{*A};
+    if ((x & 0xf) == 0) {
+      return 16;
+    }
+    if ((x & 0x7) == 0) {
+      return 8;
+    }
+    if ((x & 0x3) == 0) {
+      return 4;
+    }
+    if ((x & 0x1) == 0) {
+      return 2;
+    }
+  }
+  return std::nullopt;
+}
+
+/// Collect the required alignments for blocks in a module.
+///
+/// Uses the module's "alignment" AuxData, if present. For any ByteIntervals
+/// with addresses that do not contain blocks with user-defined alignment, the
+/// blocks in that ByteInterval will be assumed to be aligned to the largest
+/// power of two that is consistent with their current alignment.
+///
+/// \param Ctx  used to look up the UUIDs in the "alignment" AuxData.
+/// \param M    module to gather alignments for.
+///
+/// \return An alignment table for blocks in the module.
+static gtirb::schema::Alignment::Type getAlignments(const Context& Ctx,
+                                                    const Module& M) {
+  using namespace gtirb::schema;
+
+  Alignment::Type Alignments;
+
+  // Start with the user-specified alignment, if possible.
+
+  std::set<UUID> UserAligned;
+  if (const auto* AuxData = M.getAuxData<Alignment>()) {
+    for (const auto& Pair : *AuxData) {
+      if (const auto* N = Node::getByUUID(Ctx, std::get<const UUID>(Pair))) {
+        if (const auto* CB = dyn_cast<CodeBlock>(N)) {
+          UserAligned.insert(CB->getByteInterval()->getUUID());
+        } else if (const auto* DB = dyn_cast<DataBlock>(N)) {
+          UserAligned.insert(DB->getByteInterval()->getUUID());
+        }
+        // Aligning other node types (e.g., Section) is not currently supported.
+      }
+    }
+    Alignments.insert(AuxData->begin(), AuxData->end());
+  }
+
+  // Compute default alignment for blocks in byte intervals that were not
+  // aligned by the user.
+
+  for (const ByteInterval& BI : M.byte_intervals()) {
+    if (BI.getAddress() && !UserAligned.count(BI.getUUID())) {
+      for (const CodeBlock& Block : BI.code_blocks()) {
+        if (auto Align = defaultAlignment(Block.getAddress())) {
+          Alignments.emplace(Block.getUUID(), *Align);
+        }
+      }
+      for (const DataBlock& Block : BI.data_blocks()) {
+        if (auto Align = defaultAlignment(Block.getAddress())) {
+          Alignments.emplace(Block.getUUID(), *Align);
+        }
+      }
+    }
+  }
+
+  return Alignments;
+}
+
+/// Sort the ByteIntervals in a Section so that the sources of fallthrough edges
+/// are returned before the targets of those edges.
+///
+/// If the CFG is well-behaved (each interval has at most one incoming and at
+/// most one outgoing fallthrough edge and there are no cycles of fallthrough
+/// edges) the sources and targets will be adjacent in the returned list. This
+/// implementation does not confirm that the CFG is well-behaved.
+///
+/// \param S  Section containing the ByteIntervals to sort
+///
+/// \return a vector containing the sorted pointers to the byte intervals.
+static std::vector<ByteInterval*> toposort(Section& S) {
+  std::vector<ByteInterval*> Sorted;
+  std::set<ByteInterval*> Visited;
+  for (ByteInterval& BI : S.byte_intervals()) {
+    std::vector<ByteInterval*> Pending;
+    ByteInterval* Pred = &BI;
+    while (Pred && !Visited.count(Pred)) {
+      Visited.insert(Pred);
+      Pending.push_back(Pred);
+      Pred = getPredecessorByteInterval(*Pred);
+    }
+    Sorted.insert(Sorted.end(), Pending.rbegin(), Pending.rend());
+  }
+  return Sorted;
+}
+
 bool ::gtirb_layout::layoutModule(gtirb::Context& Ctx, Module& M) {
+  using namespace gtirb::schema;
+
   // Fix symbols with integral referents that point to known objects.
   fixIntegralSymbols(Ctx, M);
 
+  // Get the desired ByteInterval alignments.
+
+  Alignment::Type Alignments = getAlignments(Ctx, M);
+
   // Store a list of sections and then iterate over them, because
   // setting the address of a BI invalidates parent iterators.
-  Addr A = Addr{0};
+  uint64_t A = 0;
   std::vector<std::reference_wrapper<Section>> Sections(M.sections_begin(),
                                                         M.sections_end());
   for (auto& S : Sections) {
-    // Merge together BIs with code blocks with fallthrough edges.
-    if (!findAndMergeBIs(S)) {
-      return false;
-    }
-
-    // (Re)assign nonoverlapping addresses to all BIs.
-    std::vector<std::reference_wrapper<ByteInterval>> Intervals(
-        S.get().byte_intervals_begin(), S.get().byte_intervals_end());
-    for (auto& BI : Intervals) {
-      BI.get().setAddress(A);
-      A += BI.get().getSize();
+    for (ByteInterval* BI : toposort(S)) {
+      // If this interval contains any blocks with requested alignment, update
+      // the address to maintain the alignment of the first of them.
+      for (auto& Block : BI->blocks()) {
+        if (auto It = Alignments.find(Block.getUUID());
+            It != Alignments.end()) {
+          uint64_t Mask = It->second - 1;
+          uint64_t OffsetAddr = 0;
+          if (auto* CB = dyn_cast<CodeBlock>(&Block)) {
+            OffsetAddr = A + CB->getOffset();
+          } else if (auto* DB = dyn_cast<DataBlock>(&Block)) {
+            OffsetAddr = A + DB->getOffset();
+          } else {
+            assert(!"Unexpected block type: neither CodeBlock nor DataBlock");
+          }
+          if (OffsetAddr & Mask) {
+            A += Mask - (OffsetAddr & Mask) + 1;
+          }
+          break;
+        }
+      }
+      BI->setAddress(Addr(A));
+      A += BI->getSize();
     }
   }
 
