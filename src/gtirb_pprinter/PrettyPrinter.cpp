@@ -31,39 +31,45 @@ template <class T> T* nodeFromUUID(gtirb::Context& C, gtirb::UUID id) {
   return dyn_cast_or_null<T>(gtirb::Node::getByUUID(C, id));
 }
 
-static std::map<std::tuple<std::string, std::string>,
+static std::map<std::tuple<std::string, std::string, std::string>,
                 std::shared_ptr<::gtirb_pprint::PrettyPrinterFactory>>&
 getFactories() {
-  static std::map<std::tuple<std::string, std::string>,
+  static std::map<std::tuple<std::string, std::string, std::string>,
                   std::shared_ptr<::gtirb_pprint::PrettyPrinterFactory>>
       factories;
   return factories;
 }
 
-static std::map<std::string, std::string>& getSyntaxes() {
-  static std::map<std::string, std::string> defaults;
+static std::map<std::pair<std::string, std::string>, std::string>&
+getSyntaxes() {
+  static std::map<std::pair<std::string, std::string>, std::string> defaults;
   return defaults;
 }
 
 namespace gtirb_pprint {
 
 bool registerPrinter(std::initializer_list<std::string> formats,
+                     std::initializer_list<std::string> isas,
                      std::initializer_list<std::string> syntaxes,
                      std::shared_ptr<PrettyPrinterFactory> f, bool isDefault) {
   assert(formats.size() > 0 && "No formats to register!");
+  assert(isas.size() > 0 && "No ISAs to register!");
   assert(syntaxes.size() > 0 && "No syntaxes to register!");
   for (const std::string& format : formats) {
-    for (const std::string& syntax : syntaxes) {
-      getFactories()[std::make_tuple(format, syntax)] = std::move(f);
-      if (isDefault)
-        setDefaultSyntax(format, syntax);
+    for (const std::string& isa : isas) {
+      for (const std::string& syntax : syntaxes) {
+        getFactories()[std::make_tuple(format, isa, syntax)] = std::move(f);
+        if (isDefault)
+          setDefaultSyntax(format, isa, syntax);
+      }
     }
   }
   return true;
 }
 
-std::set<std::tuple<std::string, std::string>> getRegisteredTargets() {
-  std::set<std::tuple<std::string, std::string>> targets;
+std::set<std::tuple<std::string, std::string, std::string>>
+getRegisteredTargets() {
+  std::set<std::tuple<std::string, std::string, std::string>> targets;
   for (const auto& entry : getFactories())
     targets.insert(entry.first);
   return targets;
@@ -92,27 +98,43 @@ std::string getModuleFileFormat(const gtirb::Module& module) {
   return "undefined";
 }
 
-void setDefaultSyntax(const std::string& format, const std::string& syntax) {
-  getSyntaxes()[format] = syntax;
+std::string getModuleISA(const gtirb::Module& module) {
+  switch (module.getISA()) {
+  case gtirb::ISA::ARM64:
+    return "arm64";
+  case gtirb::ISA::X64:
+    return "x64";
+  default:
+    return "undefined";
+  }
 }
 
-std::optional<std::string> getDefaultSyntax(const std::string& format) {
-  std::map<std::string, std::string> defaults = getSyntaxes();
-  auto it = defaults.find(format);
+void setDefaultSyntax(const std::string& format, const std::string& isa,
+                      const std::string& syntax) {
+  getSyntaxes()[std::pair(format, isa)] = syntax;
+}
+
+std::optional<std::string> getDefaultSyntax(const std::string& format,
+                                            const std::string& isa) {
+  std::map<std::pair<std::string, std::string>, std::string> defaults =
+      getSyntaxes();
+  auto it = defaults.find(std::pair(format, isa));
   return it != defaults.end() ? std::make_optional(it->second) : std::nullopt;
 }
 
 void PrettyPrinter::setTarget(
-    const std::tuple<std::string, std::string>& target) {
+    const std::tuple<std::string, std::string, std::string>& target) {
   assert(getFactories().find(target) != getFactories().end());
-  const auto& [format, syntax] = target;
+  const auto& [format, isa, syntax] = target;
   m_format = format;
+  m_isa = isa;
   m_syntax = syntax;
 }
 
-void PrettyPrinter::setFormat(const std::string& format) {
-  const std::string& syntax = getDefaultSyntax(format).value_or("");
-  setTarget(std::make_tuple(format, syntax));
+void PrettyPrinter::setFormat(const std::string& format,
+                              const std::string& isa) {
+  const std::string& syntax = getDefaultSyntax(format, isa).value_or("");
+  setTarget(std::make_tuple(format, isa, syntax));
 }
 
 void PrettyPrinter::setDebug(bool do_debug) {
@@ -125,11 +147,12 @@ std::error_condition PrettyPrinter::print(std::ostream& stream,
                                           gtirb::Context& context,
                                           gtirb::Module& module) const {
   // Find pretty printer factory.
-  auto target = std::make_tuple(m_format, m_syntax);
+  auto target = std::make_tuple(m_format, m_isa, m_syntax);
   if (m_format.empty()) {
     const std::string& format = gtirb_pprint::getModuleFileFormat(module);
-    const std::string& syntax = getDefaultSyntax(format).value_or("");
-    target = std::make_tuple(format, syntax);
+    const std::string& isa = gtirb_pprint::getModuleISA(module);
+    const std::string& syntax = getDefaultSyntax(format, isa).value_or("");
+    target = std::make_tuple(format, isa, syntax);
   }
   const std::shared_ptr<PrettyPrinterFactory> factory =
       getFactories().at(target);

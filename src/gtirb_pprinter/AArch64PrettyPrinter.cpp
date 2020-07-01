@@ -494,6 +494,6 @@ AArch64PrettyPrinterFactory::create(gtirb::Context& gtirb_context,
 }
 
 volatile bool AArch64PrettyPrinter::registered =
-    registerPrinter({"elf"}, {"aarch64"},
+    registerPrinter({"elf"}, {"arm64"}, {"arm64"},
                     std::make_shared<AArch64PrettyPrinterFactory>(), true);
 } // namespace gtirb_pprint

@@ -52,7 +52,7 @@ using string_range = boost::any_range<std::string, boost::forward_traversal_tag,
 /// used to load a default \link PrintingPolicy and create a pretty printer for
 /// the formats and syntaxes named in the initialization lists.
 ///
-/// For example, \code registerPrinter({"foo"}, {"bar"}, theFactory);
+/// For example, \code registerPrinter({"elf"}, {"x64"}, {"intel"}, theFactory);
 /// \endcode
 ///
 /// \param formats    the (non-empty) formats produced by the factory
@@ -64,25 +64,32 @@ using string_range = boost::any_range<std::string, boost::forward_traversal_tag,
 /// \return \c true.
 DEBLOAT_PRETTYPRINTER_EXPORT_API bool
 registerPrinter(std::initializer_list<std::string> formats,
+                std::initializer_list<std::string> isas,
                 std::initializer_list<std::string> syntaxes,
                 std::shared_ptr<PrettyPrinterFactory> f,
                 bool isDefault = false);
 
 /// Return the current set of syntaxes with registered factories.
-DEBLOAT_PRETTYPRINTER_EXPORT_API std::set<std::tuple<std::string, std::string>>
+DEBLOAT_PRETTYPRINTER_EXPORT_API
+std::set<std::tuple<std::string, std::string, std::string>>
 getRegisteredTargets();
 
 /// Return the file format of a GTIRB module.
 DEBLOAT_PRETTYPRINTER_EXPORT_API std::string
 getModuleFileFormat(const gtirb::Module& module);
 
+/// Return the ISA of a GTIRB module.
+DEBLOAT_PRETTYPRINTER_EXPORT_API std::string
+getModuleISA(const gtirb::Module& module);
+
 /// Set the default syntax for a file format.
 DEBLOAT_PRETTYPRINTER_EXPORT_API void
-setDefaultSyntax(const std::string& format, const std::string& syntax);
+setDefaultSyntax(const std::string& format, const std::string& isa,
+                 const std::string& syntax);
 
 /// Return the default syntax for a file format.
 DEBLOAT_PRETTYPRINTER_EXPORT_API std::optional<std::string>
-getDefaultSyntax(const std::string& format);
+getDefaultSyntax(const std::string& format, const std::string& isa);
 
 /// A set of options to give to PrettyPrinterBase's policy in one category.
 /// Essentially, contains whether or not a set of strings to skip is cleared,
@@ -127,12 +134,13 @@ public:
   /// responsibility to ensure that the target name has been registered.
   ///
   /// \param target compound indentifier of target format and syntax
-  void setTarget(const std::tuple<std::string, std::string>& target);
+  void
+  setTarget(const std::tuple<std::string, std::string, std::string>& target);
 
   /// Set the file format for which to pretty print.
   ///
   /// \param format indentifier of target format
-  void setFormat(const std::string& format);
+  void setFormat(const std::string& format, const std::string& isa);
 
   /// Enable or disable debugging messages inside the pretty-printed code.
   ///
@@ -172,6 +180,7 @@ public:
 
 private:
   std::string m_format;
+  std::string m_isa;
   std::string m_syntax;
   DebugStyle m_debug;
   PolicyOptions FunctionPolicy, SymbolPolicy, SectionPolicy, ArraySectionPolicy;
