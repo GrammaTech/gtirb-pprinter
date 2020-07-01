@@ -38,7 +38,7 @@ protected:
 
   void printHeader(std::ostream& os) override;
   void printOpRegdirect(std::ostream& os, const cs_insn& inst,
-                        const cs_x86_op& op) override;
+                        unsigned int reg) override;
   void printOpImmediate(std::ostream& os,
                         const gtirb::SymbolicExpression* symbolic,
                         const cs_insn& inst, uint64_t index) override;

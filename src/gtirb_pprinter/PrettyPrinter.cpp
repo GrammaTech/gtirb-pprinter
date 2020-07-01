@@ -151,13 +151,13 @@ std::error_condition PrettyPrinter::print(std::ostream& stream,
 PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
                                      gtirb::Module& module_,
                                      const Syntax& syntax_,
-                                     const PrintingPolicy& policy_)
+                                     const PrintingPolicy& policy_,
+                                     cs_arch arch, cs_mode mode)
     : syntax(syntax_), policy(policy_),
       debug(policy.debug == DebugMessages ? true : false), context(context_),
       module(module_), functionEntry(), functionLastBlock() {
   // Set up Capstone.
-  [[maybe_unused]] cs_err err =
-      cs_open(CS_ARCH_X86, CS_MODE_64, &this->csHandle);
+  [[maybe_unused]] cs_err err = cs_open(arch, mode, &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
 
   // Set up cache for fast lookup of functions by address.
@@ -288,9 +288,9 @@ void PrettyPrinterBase::printSectionHeader(std::ostream& os,
     printSectionProperties(os, section);
     os << std::endl;
   }
-  if (policy.arraySections.count(sectionName))
-    os << syntax.align() << " 8\n";
-  else
+  if (policy.arraySections.count(sectionName)) {
+    // os << syntax.align() << " 8\n";
+  } else
     printAlignment(os, *section.getAddress());
   printBar(os);
   os << '\n';
@@ -419,7 +419,7 @@ void PrettyPrinterBase::printInstruction(std::ostream& os,
   ////////////////////////////////////////////////////////////////////
   // special cases
 
-  if (inst.id == X86_INS_NOP) {
+  if (inst.id == X86_INS_NOP || inst.id == ARM64_INS_NOP) {
     os << "  " << syntax.nop();
     for (uint64_t i = 1; i < inst.size; ++i) {
       ea += 1;
@@ -473,7 +473,7 @@ void PrettyPrinterBase::printOperand(std::ostream& os,
 
   switch (op.type) {
   case X86_OP_REG:
-    printOpRegdirect(os, inst, op);
+    printOpRegdirect(os, inst, op.reg);
     return;
   case X86_OP_IMM:
     symbolic = block.getByteInterval()->getSymbolicExpression(
@@ -1103,6 +1103,7 @@ void registerAuxDataTypes() {
   gtirb::AuxDataContainer::registerAuxDataType<FunctionEntries>();
   gtirb::AuxDataContainer::registerAuxDataType<FunctionBlocks>();
   gtirb::AuxDataContainer::registerAuxDataType<SymbolForwarding>();
+  gtirb::AuxDataContainer::registerAuxDataType<SymbolicOperandInfoAD>();
   gtirb::AuxDataContainer::registerAuxDataType<Encodings>();
   gtirb::AuxDataContainer::registerAuxDataType<ElfSectionProperties>();
   gtirb::AuxDataContainer::registerAuxDataType<CfiDirectives>();

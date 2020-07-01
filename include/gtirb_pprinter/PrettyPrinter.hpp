@@ -215,7 +215,8 @@ public:
 class DEBLOAT_PRETTYPRINTER_EXPORT_API PrettyPrinterBase {
 public:
   PrettyPrinterBase(gtirb::Context& context, gtirb::Module& module,
-                    const Syntax& syntax, const PrintingPolicy& policy);
+                    const Syntax& syntax, const PrintingPolicy& policy,
+                    cs_arch arch, cs_mode mode);
   virtual ~PrettyPrinterBase();
 
   virtual std::ostream& print(std::ostream& out);
@@ -315,7 +316,7 @@ protected:
   virtual void printOperand(std::ostream& os, const gtirb::CodeBlock& block,
                             const cs_insn& inst, uint64_t index);
   virtual void printOpRegdirect(std::ostream& os, const cs_insn& inst,
-                                const cs_x86_op& op) = 0;
+                                unsigned int reg) = 0;
   virtual void printOpImmediate(std::ostream& os,
                                 const gtirb::SymbolicExpression* symbolic,
                                 const cs_insn& inst, uint64_t index) = 0;
@@ -370,6 +371,8 @@ protected:
   virtual std::string getSymbolName(const gtirb::Symbol& symbol) const;
   virtual std::optional<std::string>
   getForwardedSymbolName(const gtirb::Symbol* symbol, bool inData) const;
+  std::string getForwardedSymbolEnding(const gtirb::Symbol* symbol,
+                                       bool inData) const;
 
   bool isAmbiguousSymbol(const std::string& ea) const;
 

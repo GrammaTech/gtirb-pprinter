@@ -10,6 +10,7 @@ set(${PROJECT_NAME}_H
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Export.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/PrettyPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Syntax.hpp
+    ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/AArch64PrettyPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/AttPrettyPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ElfBinaryPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ElfPrettyPrinter.hpp
@@ -19,6 +20,7 @@ set(${PROJECT_NAME}_H
 
 # sources
 set(${PROJECT_NAME}_SRC
+    AArch64PrettyPrinter.cpp
     AttPrettyPrinter.cpp
     ElfBinaryPrinter.cpp
     ElfPrettyPrinter.cpp

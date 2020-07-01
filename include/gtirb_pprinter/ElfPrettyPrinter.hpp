@@ -83,7 +83,8 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API ElfPrettyPrinter
     : public PrettyPrinterBase {
 public:
   ElfPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
-                   const ElfSyntax& syntax, const PrintingPolicy& policy);
+                   const ElfSyntax& syntax, const PrintingPolicy& policy,
+                   cs_arch arch = CS_ARCH_X86, cs_mode mode = CS_MODE_64);
 
   static const PrintingPolicy& defaultPrintingPolicy();
 
