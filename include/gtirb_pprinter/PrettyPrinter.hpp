@@ -224,8 +224,7 @@ public:
 class DEBLOAT_PRETTYPRINTER_EXPORT_API PrettyPrinterBase {
 public:
   PrettyPrinterBase(gtirb::Context& context, gtirb::Module& module,
-                    const Syntax& syntax, const PrintingPolicy& policy,
-                    cs_arch arch, cs_mode mode);
+                    const Syntax& syntax, const PrintingPolicy& policy);
   virtual ~PrettyPrinterBase();
 
   virtual std::ostream& print(std::ostream& out);
