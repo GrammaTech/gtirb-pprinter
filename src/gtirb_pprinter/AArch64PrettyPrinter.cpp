@@ -15,6 +15,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <iostream>
+
 #include "AArch64PrettyPrinter.hpp"
 #include "AuxDataSchema.hpp"
 
@@ -45,6 +47,7 @@ std::string AArch64PrettyPrinter::getRegisterName(unsigned int reg) const {
 }
 
 void AArch64PrettyPrinter::printOperandList(std::ostream& os,
+                                            const gtirb::CodeBlock& block,
                                             const cs_insn& inst) {
   cs_arm64& detail = inst.detail->arm64;
   uint8_t opCount = detail.op_count;
@@ -53,12 +56,14 @@ void AArch64PrettyPrinter::printOperandList(std::ostream& os,
     if (i != 0) {
       os << ',';
     }
-    printOperand(os, inst, i);
+    printOperand(os, block, inst, i);
   }
 }
 
-void AArch64PrettyPrinter::printOperand(std::ostream& os, const cs_insn& inst,
-                                        uint64_t index) {
+// TODO: Use block parameter instead of module.findSymbolicExpressionsAt
+void AArch64PrettyPrinter::printOperand(std::ostream& os,
+                                        const gtirb::CodeBlock& /* block */,
+                                        const cs_insn& inst, uint64_t index) {
   gtirb::Addr ea(inst.address);
   const cs_arm64_op& op = inst.detail->arm64.operands[index];
   const gtirb::SymbolicExpression* symbolic = nullptr;
@@ -462,6 +467,11 @@ AArch64PrettyPrinterFactory::defaultPrintingPolicy() const {
       /// Sections to avoid printing.
       {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
        ".plt.sec", ".eh_frame_hdr"},
+
+      /// Symbols to avoid printing.
+      {"_IO_stdin_used", "__data_start", "__dso_handle", "__TMC_END__",
+       "_edata", "__bss_start", "program_invocation_name",
+       "program_invocation_short_name"},
 
       /// Functions to avoid printing.
       {"_start", "deregister_tm_clones", "register_tm_clones",

@@ -31,9 +31,10 @@ protected:
   std::string getRegisterName(unsigned int reg) const override;
 
   void printHeader(std::ostream& os) override;
-  void printOperandList(std::ostream& os, const cs_insn& inst) override;
-  void printOperand(std::ostream& os, const cs_insn& inst,
-                    uint64_t index) override;
+  void printOperandList(std::ostream& os, const gtirb::CodeBlock& block,
+                        const cs_insn& inst) override;
+  void printOperand(std::ostream& os, const gtirb::CodeBlock& block,
+                    const cs_insn& inst, uint64_t index);
   void printOpRegdirect(std::ostream& os, const cs_insn& inst,
                         unsigned int reg) override;
   void printOpImmediate(std::ostream& os,
