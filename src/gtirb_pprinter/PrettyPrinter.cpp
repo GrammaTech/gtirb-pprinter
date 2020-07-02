@@ -211,6 +211,21 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
       functionLastBlock.insert(lastAddr);
     }
   }
+
+  // TODO:
+  // Alias all labels at skipped function blocks;jgetContainerFunctionName gives
+  // only one label, which may not be in the list of skipped functions.
+  for (const std::string& Name : policy.skipFunctions) {
+    for (const auto& Symbol : module.findSymbols(Name)) {
+      if (const gtirb::CodeBlock* CB = Symbol.getReferent<gtirb::CodeBlock>()) {
+        if (CB->getAddress()) {
+          for (const auto& Other : module.findSymbols(*CB->getAddress())) {
+            policy.skipFunctions.insert(Other.getName());
+          }
+        }
+      }
+    }
+  }
 }
 
 PrettyPrinterBase::~PrettyPrinterBase() { cs_close(&this->csHandle); }
