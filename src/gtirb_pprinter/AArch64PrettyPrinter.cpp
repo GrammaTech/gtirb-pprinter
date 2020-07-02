@@ -38,7 +38,7 @@ AArch64PrettyPrinter::AArch64PrettyPrinter(gtirb::Context& context_,
 
 void AArch64PrettyPrinter::printHeader(std::ostream& os) {
   this->printBar(os);
-  // header
+  os << ".arch armv8-a\n";
   this->printBar(os);
   os << '\n';
 
@@ -469,19 +469,19 @@ AArch64PrettyPrinter::getForwardedSymbolName(const gtirb::Symbol* symbol,
 const PrintingPolicy&
 AArch64PrettyPrinterFactory::defaultPrintingPolicy() const {
   static PrintingPolicy DefaultPolicy{
-      /// Sections to avoid printing.
-      {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
-       ".plt.sec", ".eh_frame_hdr"},
+      /// Functions to avoid printing.
+      {"_start", "deregister_tm_clones", "register_tm_clones",
+       "__do_global_dtors_aux", "frame_dummy", "__libc_csu_fini",
+       "__libc_csu_init", "_dl_relocate_static_pie", "call_weak_fn"},
 
       /// Symbols to avoid printing.
       {"_IO_stdin_used", "__data_start", "__dso_handle", "__TMC_END__",
        "_edata", "__bss_start", "program_invocation_name",
        "program_invocation_short_name"},
 
-      /// Functions to avoid printing.
-      {"_start", "deregister_tm_clones", "register_tm_clones",
-       "__do_global_dtors_aux", "frame_dummy", "__libc_csu_fini",
-       "__libc_csu_init", "_dl_relocate_static_pie", "call_weak_fn"},
+      /// Sections to avoid printing.
+      {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
+       ".plt.sec", ".eh_frame_hdr"},
 
       /// Sections with possible data object exclusion.
       {".init_array", ".fini_array"},
