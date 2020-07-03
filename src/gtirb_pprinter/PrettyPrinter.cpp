@@ -1018,11 +1018,24 @@ std::string
 PrettyPrinterBase::getForwardedSymbolEnding(const gtirb::Symbol* symbol,
                                             bool inData) const {
   if (symbol && symbol->getAddress()) {
-    gtirb::Addr addr = *symbol->getAddress();
-    const auto container_sections = module.findSectionsOn(addr);
-    if (container_sections.begin() == container_sections.end())
-      return std::string{};
-    std::string section_name = container_sections.begin()->getName();
+    const gtirb::Section* ContainerSection;
+    if (symbol->hasReferent()) {
+      if (const auto* CB = symbol->getReferent<gtirb::CodeBlock>()) {
+        ContainerSection = CB->getByteInterval()->getSection();
+      } else if (const auto* DB = symbol->getReferent<gtirb::DataBlock>()) {
+        ContainerSection = DB->getByteInterval()->getSection();
+      } else {
+        assert(!"Unknown tpye in symbol referent!");
+      }
+    } else {
+      gtirb::Addr addr = *symbol->getAddress();
+      const auto container_sections = module.findSectionsOn(addr);
+      if (container_sections.begin() == container_sections.end())
+        return std::string{};
+      ContainerSection = &container_sections.front();
+    }
+
+    std::string section_name = ContainerSection->getName();
     if (!inData && (section_name == ".plt" || section_name == ".plt.got"))
       return std::string{"@PLT"};
     if (section_name == ".got" || section_name == ".got.plt")
