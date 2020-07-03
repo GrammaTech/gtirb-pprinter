@@ -1030,7 +1030,7 @@ PrettyPrinterBase::getForwardedSymbolEnding(const gtirb::Symbol* symbol,
     } else {
       gtirb::Addr addr = *symbol->getAddress();
       const auto container_sections = module.findSectionsOn(addr);
-      if (container_sections.begin() == container_sections.end())
+      if (container_sections.empty())
         return std::string{};
       ContainerSection = &container_sections.front();
     }
