@@ -1026,7 +1026,7 @@ PrettyPrinterBase::getForwardedSymbolEnding(const gtirb::Symbol* symbol,
         ContainerSection = DB->getByteInterval()->getSection();
       } else {
         // If we're here, then the symbol's referent cannot be a ProxyBlock,
-        // as they neve rhave an address, which we check for the prescnece of
+        // as they never have an address, which we check for the presence of
         // above.
         assert(!"Unknown type in symbol referent!");
       }
