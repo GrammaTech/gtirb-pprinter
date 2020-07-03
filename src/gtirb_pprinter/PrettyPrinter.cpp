@@ -1025,7 +1025,7 @@ PrettyPrinterBase::getForwardedSymbolEnding(const gtirb::Symbol* symbol,
       } else if (const auto* DB = symbol->getReferent<gtirb::DataBlock>()) {
         ContainerSection = DB->getByteInterval()->getSection();
       } else {
-        assert(!"Unknown tpye in symbol referent!");
+        assert(!"Unknown type in symbol referent!");
       }
     } else {
       gtirb::Addr addr = *symbol->getAddress();
