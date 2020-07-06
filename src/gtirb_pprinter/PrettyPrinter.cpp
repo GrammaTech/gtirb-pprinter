@@ -1029,6 +1029,7 @@ PrettyPrinterBase::getForwardedSymbolEnding(const gtirb::Symbol* symbol,
         // as they never have an address, which we check for the presence of
         // above.
         assert(!"Unknown type in symbol referent!");
+        return std::string{};
       }
     } else {
       gtirb::Addr addr = *symbol->getAddress();
