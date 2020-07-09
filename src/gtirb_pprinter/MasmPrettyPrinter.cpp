@@ -475,7 +475,7 @@ MasmPrettyPrinterFactory::create(gtirb::Context& context, gtirb::Module& module,
   return std::make_unique<MasmPrettyPrinter>(context, module, syntax, policy);
 }
 
-volatile bool MasmPrettyPrinter::registered = registerPrinter(
+volatile bool MasmPrettyPrinterAnchorSource = registerPrinter(
     {"pe"}, {"masm"}, std::make_shared<MasmPrettyPrinterFactory>(), true);
 
 } // namespace gtirb_pprint

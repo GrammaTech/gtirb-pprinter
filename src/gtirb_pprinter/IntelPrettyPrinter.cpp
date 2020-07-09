@@ -115,7 +115,7 @@ IntelPrettyPrinterFactory::create(gtirb::Context& gtirb_context,
                                               policy);
 }
 
-volatile bool IntelPrettyPrinter::registered = registerPrinter(
+volatile bool IntelPrettyPrinterAnchorSource = registerPrinter(
     {"elf"}, {"intel"}, std::make_shared<IntelPrettyPrinterFactory>(), true);
 
 } // namespace gtirb_pprint

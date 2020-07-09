@@ -133,7 +133,7 @@ AttPrettyPrinterFactory::create(gtirb::Context& gtirb_context,
                                             policy);
 }
 
-volatile bool AttPrettyPrinter::registered = registerPrinter(
+volatile bool AttPrettyPrinterAnchorSource = registerPrinter(
     {"elf"}, {"att"}, std::make_shared<AttPrettyPrinterFactory>());
 
 } // namespace gtirb_pprint
