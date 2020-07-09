@@ -379,8 +379,7 @@ void PrettyPrinterBase::fixupInstruction(cs_insn& inst) {
 
   // Comiss loads 32 bits from memory not 64
   if (inst.id == X86_INS_COMISS || inst.id == X86_INS_VCOMISS) {
-    if (detail.op_count == 2 && detail.operands[1].type == X86_OP_MEM &&
-        detail.operands[1].size == 8) {
+    if (detail.op_count == 2 && detail.operands[1].type == X86_OP_MEM) {
       detail.operands[1].size = 4;
     }
   }
