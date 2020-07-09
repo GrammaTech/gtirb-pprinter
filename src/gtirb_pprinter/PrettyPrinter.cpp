@@ -15,6 +15,7 @@
 #include "PrettyPrinter.hpp"
 
 #include "AuxDataSchema.hpp"
+#include "ForceLinking.hpp"
 #include "string_utils.hpp"
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/lexical_cast.hpp>
