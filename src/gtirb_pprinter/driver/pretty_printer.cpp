@@ -68,6 +68,7 @@ static fs::path getAsmFileName(const fs::path& InitialPath, int Index) {
 int main(int argc, char** argv) {
   gtirb_layout::registerAuxDataTypes();
   gtirb_pprint::registerAuxDataTypes();
+  gtirb_pprint::registerPrettyPrinters();
 
   po::options_description desc("Allowed options");
   desc.add_options()("help,h", "Produce help message.");

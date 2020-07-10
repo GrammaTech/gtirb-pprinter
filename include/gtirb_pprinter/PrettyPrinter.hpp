@@ -393,6 +393,9 @@ private:
 /// !brief Register AuxData types used by the pretty printer.
 DEBLOAT_PRETTYPRINTER_EXPORT_API void registerAuxDataTypes();
 
+/// !brief Register the available pretty printers.
+DEBLOAT_PRETTYPRINTER_EXPORT_API void registerPrettyPrinters();
+
 } // namespace gtirb_pprint
 
 #endif /* GTIRB_PP_PRETTY_PRINTER_H */
