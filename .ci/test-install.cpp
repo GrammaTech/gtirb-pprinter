@@ -2,6 +2,7 @@
 #include <iostream>
 
 int main() {
+  gtirb_pprint::registerPrettyPrinters();
   auto defaultSyntax = gtirb_pprint::getDefaultSyntax("elf");
   if (!defaultSyntax) {
     return 1;
