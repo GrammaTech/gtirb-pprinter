@@ -43,4 +43,3 @@ void registerPrettyPrinters() {
                   std::make_shared<AttPrettyPrinterFactory>());
 }
 } // namespace gtirb_pprint
-
