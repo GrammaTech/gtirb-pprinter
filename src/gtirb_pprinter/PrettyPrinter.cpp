@@ -1131,9 +1131,10 @@ void registerAuxDataTypes() {
 }
 
 void registerPrettyPrinters() {
-  registerPrinter({"elf"}, {"intel"}, std::make_shared<IntelPrettyPrinterFactory>(), true);
-  registerPrinter({"elf"}, {"att"}, std::make_shared<AttPrettyPrinterFactory>());
-
+  registerPrinter({"elf"}, {"intel"},
+                  std::make_shared<IntelPrettyPrinterFactory>(), true);
+  registerPrinter({"elf"}, {"att"},
+                  std::make_shared<AttPrettyPrinterFactory>());
 }
 
 } // namespace gtirb_pprint
