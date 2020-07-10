@@ -26,6 +26,7 @@ set(${PROJECT_NAME}_SRC
     ElfPrettyPrinter.cpp
     IntelPrettyPrinter.cpp
     PrettyPrinter.cpp
+    Registration.cpp
     string_utils.cpp
     Syntax.cpp
     MasmPrettyPrinter.cpp

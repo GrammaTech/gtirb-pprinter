@@ -14,10 +14,7 @@
 //===----------------------------------------------------------------------===//
 #include "PrettyPrinter.hpp"
 
-#include "AttPrettyPrinter.hpp"
 #include "AuxDataSchema.hpp"
-#include "IntelPrettyPrinter.hpp"
-#include "MasmPrettyPrinter.hpp"
 #include "string_utils.hpp"
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/lexical_cast.hpp>
@@ -1108,34 +1105,4 @@ uint64_t PrettyPrinterBase::getSymbolicExpressionSize(
   assert(!"Size of symbolic expression could not be determined!");
   return 0;
 }
-
-void registerAuxDataTypes() {
-  using namespace gtirb::schema;
-  gtirb::AuxDataContainer::registerAuxDataType<Comments>();
-  gtirb::AuxDataContainer::registerAuxDataType<FunctionEntries>();
-  gtirb::AuxDataContainer::registerAuxDataType<FunctionBlocks>();
-  gtirb::AuxDataContainer::registerAuxDataType<SymbolForwarding>();
-  gtirb::AuxDataContainer::registerAuxDataType<Encodings>();
-  gtirb::AuxDataContainer::registerAuxDataType<ElfSectionProperties>();
-  gtirb::AuxDataContainer::registerAuxDataType<PeSectionProperties>();
-  gtirb::AuxDataContainer::registerAuxDataType<CfiDirectives>();
-  gtirb::AuxDataContainer::registerAuxDataType<Libraries>();
-  gtirb::AuxDataContainer::registerAuxDataType<LibraryPaths>();
-  gtirb::AuxDataContainer::registerAuxDataType<DataDirectories>();
-  gtirb::AuxDataContainer::registerAuxDataType<PeImportedSymbols>();
-  gtirb::AuxDataContainer::registerAuxDataType<PeExportedSymbols>();
-  gtirb::AuxDataContainer::registerAuxDataType<ElfSymbolInfo>();
-  gtirb::AuxDataContainer::registerAuxDataType<SymbolicExpressionSizes>();
-  gtirb::AuxDataContainer::registerAuxDataType<BinaryType>();
-}
-
-void registerPrettyPrinters() {
-  registerPrinter({"elf"}, {"intel"},
-                  std::make_shared<IntelPrettyPrinterFactory>(), true);
-  registerPrinter({"elf"}, {"att"},
-                  std::make_shared<AttPrettyPrinterFactory>());
-  registerPrinter({"pe"}, {"masm"},
-                  std::make_shared<MasmPrettyPrinterFactory>(), true);
-}
-
 } // namespace gtirb_pprint
