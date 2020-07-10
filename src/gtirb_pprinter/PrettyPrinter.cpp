@@ -16,7 +16,6 @@
 
 #include "AttPrettyPrinter.hpp"
 #include "AuxDataSchema.hpp"
-#include "ForceLinking.hpp"
 #include "IntelPrettyPrinter.hpp"
 #include "MasmPrettyPrinter.hpp"
 #include "string_utils.hpp"
