@@ -14,8 +14,9 @@
 //===----------------------------------------------------------------------===//
 #include "PrettyPrinter.hpp"
 
+#include "AttPrettyPrinter.hpp"
 #include "AuxDataSchema.hpp"
-#include "ForceLinking.hpp"
+#include "IntelPrettyPrinter.hpp"
 #include "string_utils.hpp"
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/lexical_cast.hpp>
@@ -1128,6 +1129,12 @@ void registerAuxDataTypes() {
   gtirb::AuxDataContainer::registerAuxDataType<ElfSymbolInfo>();
   gtirb::AuxDataContainer::registerAuxDataType<SymbolicExpressionSizes>();
   gtirb::AuxDataContainer::registerAuxDataType<BinaryType>();
+}
+
+void registerPrettyPrinters() {
+  registerPrinter({"elf"}, {"intel"}, std::make_shared<IntelPrettyPrinterFactory>(), true);
+  registerPrinter({"elf"}, {"att"}, std::make_shared<AttPrettyPrinterFactory>());
+
 }
 
 } // namespace gtirb_pprint
