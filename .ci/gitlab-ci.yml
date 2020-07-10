@@ -18,7 +18,7 @@ stages:
 
 check-format:
   stage: check-format
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18:kwarrick
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
   script:
     - pre-commit run --all-files
 
@@ -111,7 +111,7 @@ build-arch-gcc:
     - cd /tmp/aur/src/gtirb-pprinter/build && ctest -V
 
 build-ubuntu16-gcc:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16:kwarrick
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
   variables:
     OS: 'ubuntu16'
     COMPILER: 'g++-7'
@@ -119,7 +119,7 @@ build-ubuntu16-gcc:
   <<: *build
 
 build-ubuntu18-gcc:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18:kwarrick
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
   variables:
     OS: 'ubuntu18'
     COMPILER: 'g++-7'
@@ -161,7 +161,7 @@ test-and-tag-ubuntu16-gcc:
     OS: 'ubuntu16'
     COMPILER: 'gcc'
     BUILD_TYPE: 'RelWithDebInfo'
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16:kwarrick
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
   needs: ['build-ubuntu16-gcc']
   <<: *test-and-tag
 
@@ -170,7 +170,7 @@ test-and-tag-ubuntu18-gcc:
     OS: 'ubuntu18'
     COMPILER: 'gcc'
     BUILD_TYPE: 'RelWithDebInfo'
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18:kwarrick
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
   needs: ['build-ubuntu18-gcc']
   <<: *test-and-tag
 
@@ -194,7 +194,7 @@ test-and-tag-arch-clang-debug:
 
 test-make-install:
   stage: test-and-tag
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18:kwarrick
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
   needs: ['build-ubuntu18-gcc']
   script:
     - export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
@@ -226,14 +226,14 @@ test-make-install:
     - cpack -G "DEB" -D CPACK_GTIRB_DEBIAN_PACKAGE=driver-dbg
 
 build-ubuntu16-packages:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16:kwarrick
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
   needs: [build-ubuntu16-gcc]
   variables:
     OS: ubuntu16
   <<: *build-ubuntu-packages
 
 build-ubuntu18-packages:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18:kwarrick
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
   needs: [build-ubuntu18-gcc]
   variables:
     OS: ubuntu18
@@ -299,66 +299,66 @@ build-ubuntu18-packages:
     - ./test-install
 
 setup-ubuntu16-repo:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16:kwarrick
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
   needs: ['build-ubuntu16-packages']
   variables:
     OS: ubuntu16
   <<: *setup-test-apt-repo
 
 test-ubuntu16-libgtirb-pprinter-dev:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16:kwarrick
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
   needs: ['setup-ubuntu16-repo']
   <<: *test-ubuntu-libgtirb-pprinter-dev
 
 test-ubuntu16-gtirb-pprinter:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16:kwarrick
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
   needs: ['setup-ubuntu16-repo']
   <<: *test-ubuntu-gtirb-pprinter
 
 test-ubuntu16-libgtirb-pprinter-dbg:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16:kwarrick
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
   needs: ['setup-ubuntu16-repo']
   <<: *test-ubuntu-libgtirb-pprinter-dbg
 
 test-ubuntu16-gtirb-pprinter-dbg:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16:kwarrick
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
   needs: ['setup-ubuntu16-repo']
   <<: *test-ubuntu-gtirb-pprinter-dbg
 
 test-ubuntu16-libgtirb-pprinter:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16:kwarrick
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
   needs: ['setup-ubuntu16-repo', 'test-ubuntu16-libgtirb-pprinter-dev']
   <<: *test-ubuntu-libgtirb-pprinter
 
 setup-ubuntu18-repo:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18:kwarrick
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
   needs: ['build-ubuntu18-packages']
   variables:
     OS: ubuntu18
   <<: *setup-test-apt-repo
 
 test-ubuntu18-libgtirb-pprinter-dev:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18:kwarrick
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
   needs: ['setup-ubuntu18-repo']
   <<: *test-ubuntu-libgtirb-pprinter-dev
 
 test-ubuntu18-gtirb-pprinter:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18:kwarrick
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
   needs: ['setup-ubuntu18-repo']
   <<: *test-ubuntu-gtirb-pprinter
 
 test-ubuntu18-libgtirb-pprinter-dbg:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18:kwarrick
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
   needs: ['setup-ubuntu18-repo']
   <<: *test-ubuntu-libgtirb-pprinter-dbg
 
 test-ubuntu18-gtirb-pprinter-dbg:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18:kwarrick
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
   needs: ['setup-ubuntu18-repo']
   <<: *test-ubuntu-gtirb-pprinter-dbg
 
 test-ubuntu18-libgtirb-pprinter:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18:kwarrick
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
   needs: ['setup-ubuntu18-repo', 'test-ubuntu18-libgtirb-pprinter-dev']
   <<: *test-ubuntu-libgtirb-pprinter
 
@@ -385,12 +385,12 @@ test-arch-package:
     - cp build/*.deb ./
 
 debian-installer-ubuntu16:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16:kwarrick
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
   needs: ['build-ubuntu16-packages']
   <<: *deploy-debian-installer
 
 debian-installer-ubuntu18:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18:kwarrick
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
   needs: ['build-ubuntu18-packages']
   <<: *deploy-debian-installer
 
