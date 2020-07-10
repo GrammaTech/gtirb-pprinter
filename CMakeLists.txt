@@ -273,7 +273,8 @@ else()
 endif()
 
 if(CAPSTONE)
-  find_program(CSTOOL "cstool")
+  get_filename_component(CAPSTONE_DIR ${CAPSTONE} DIRECTORY)
+  find_program(CSTOOL "cstool" HINTS ${CAPSTONE_DIR})
   execute_process(COMMAND "${CSTOOL}" "-v" OUTPUT_VARIABLE CSTOOL_VERSION)
   string(REGEX MATCH "v([0-9]+\.[0-9]+\.[0-9]+)" CSTOOL_VERSION
                "${CSTOOL_VERSION}")
@@ -289,9 +290,9 @@ if(NOT CAPSTONE OR "${CSTOOL_VERSION}" VERSION_LESS "4.0.1")
       "       http://www.capstone-engine.org/\n"
       " - If Capstone is installed, make sure the installation location is in your PATH,\n"
       "   and it is at least version 4.0.1.\n")
+elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
+  include_directories(SYSTEM ${CAPSTONE}/../include)
 endif()
-
-include_directories(${CAPSTONE_INCLUDE_DIRS})
 
 # ---------------------------------------------------------------------------
 # Google Test
