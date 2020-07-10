@@ -8,7 +8,6 @@ set(${PROJECT_NAME}_H
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/AuxDataSchema.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/BinaryPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Export.hpp
-    ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ForceLinking.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/PrettyPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Syntax.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/AttPrettyPrinter.hpp
