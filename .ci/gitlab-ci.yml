@@ -58,7 +58,7 @@ check-format:
     - mkdir build
     - cd build
     - LIB_BUILD_TYPE=$(echo $BUILD_TYPE | sed 's/Debug/Debug/;s/RelWithDebInfo/Release/')
-    - cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && C:\\PROGRA~1\\CMake\\bin\\cmake.exe -G \"Ninja\" -DBOOST_ROOT=\"C:\\Boost\" -DCMAKE_CXX_FLAGS=\"/DBOOST_ALL_DYN_LINK\" -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=1 -DCAPSTONE=\"C:\\capstone-${LIB_BUILD_TYPE}\\lib\\capstone.lib\" -DCAPSTONE_INCLUDE_DIRS=\"C:\\capstone-${LIB_BUILD_TYPE}\\include\" -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_PROGRAM_PATH=\"C:\\capstone-${LIB_BUILD_TYPE}\\bin\" -Dgtirb_DIR=$GTIRB_DIR .."
+    - cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && C:\\PROGRA~1\\CMake\\bin\\cmake.exe -G \"Ninja\" -DBOOST_ROOT=\"C:\\Boost\" -DCMAKE_CXX_FLAGS=\"/DBOOST_ALL_DYN_LINK\" -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=1 -DCMAKE_LIBRARY_PATH=\"C:\\capstone-${LIB_BUILD_TYPE}\\lib\" -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -Dgtirb_DIR=$GTIRB_DIR .."
     - cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && ninja"
     # Build ZIP package, and include DLLs needed to run exes.
     - cmd.exe /C "C:\\PROGRA~1\\CMake\\bin\\cpack.exe -G \"ZIP\""
