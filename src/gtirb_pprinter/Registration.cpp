@@ -13,6 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "ArmPrettyPrinter.hpp"
 #include "AttPrettyPrinter.hpp"
 #include "AuxDataSchema.hpp"
 #include "IntelPrettyPrinter.hpp"
