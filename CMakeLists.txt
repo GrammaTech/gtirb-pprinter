@@ -294,23 +294,24 @@ if(NOT CAPSTONE OR "${CSTOOL_VERSION}" VERSION_LESS "4.0.1")
 elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
   # CMake's IF EXISTS functionality requires a full path rather than a relative
   # path, so get the full path in case we need it.
-  get_filename_component(CAPSTONE_INCLUDE_DIR ${CAPSTONE_DIR}/../include
+  get_filename_component(CAPSTONE_INCLUDE_DIR1 ${CAPSTONE_DIR}/include ABSOLUTE)
+  get_filename_component(CAPSTONE_INCLUDE_DIR2 ${CAPSTONE_DIR}/../include
                          ABSOLUTE)
-  if(EXISTS ${CAPSTONE_DIR}/include})
+  if(EXISTS ${CAPSTONE_INCLUDE_DIR1})
     # cmake-format: off
     # root/
     #   include/
     #   library.a
     # cmake-format: on
-    include_directories(SYSTEM ${CAPSTONE_DIR}/include)
-  elseif(EXISTS ${CAPSTONE_INCLUDE_DIR})
+    include_directories(SYSTEM ${CAPSTONE_INCLUDE_DIR1})
+  elseif(EXISTS ${CAPSTONE_INCLUDE_DIR2})
     # cmake-format: off
     # root/
     #   include/
     #   lib/
     #     library.a
     # cmake-format: on
-    include_directories(SYSTEM ${CAPSTONE_INCLUDE_DIR})
+    include_directories(SYSTEM ${CAPSTONE_INCLUDE_DIR2})
   endif()
 endif()
 
