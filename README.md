@@ -38,6 +38,10 @@ Use the following options to configure cmake:
 - gtirb-pprinter can make use of GTIRB in static library form (instead of
   shared library form, the default) if you use the flag
   `-DGTIRB_PPRINTER_BUILD_SHARED_LIBS=OFF`.
+- You can configure CMake to use a custom location for Capstone by specifying
+  `-DCMAKE_LIBRARY_PATH=<path-to-capstone>`.
+- You can use vcpkg on Windows to provide some dependencies by passing
+  `-DCMAKE_TOOLCHAIN_FILE=<path-to-vcpkg\scripts\buildsystems\vcpkg.cmake>`.
 
 Once the dependencies are installed, you can configure and build as follows:
 

@@ -15,7 +15,59 @@
 #include "ElfPrettyPrinter.hpp"
 
 #include "AuxDataSchema.hpp"
-#include <elf.h>
+#define SHT_NULL 0
+#define SHT_PROGBITS 1
+#define SHT_SYMTAB 2
+#define SHT_STRTAB 3
+#define SHT_RELA 4
+#define SHT_HASH 5
+#define SHT_DYNAMIC 6
+#define SHT_NOTE 7
+#define SHT_NOBITS 8
+#define SHT_REL 9
+#define SHT_SHLIB 10
+#define SHT_DYNSYM 11
+#define SHT_INIT_ARRAY 14
+#define SHT_FINI_ARRAY 15
+#define SHT_PREINIT_ARRAY 16
+#define SHT_GROUP 17
+#define SHT_SYMTAB_SHNDX 18
+#define SHT_NUM 19
+#define SHT_LOOS 0x60000000
+#define SHT_GNU_ATTRIBUTES 0x6ffffff5
+#define SHT_GNU_HASH 0x6ffffff6
+#define SHT_GNU_LIBLIST 0x6ffffff7
+#define SHT_CHECKSUM 0x6ffffff8
+#define SHT_LOSUNW 0x6ffffffa
+#define SHT_SUNW_move 0x6ffffffa
+#define SHT_SUNW_COMDAT 0x6ffffffb
+#define SHT_SUNW_syminfo 0x6ffffffc
+#define SHT_GNU_verdef 0x6ffffffd
+#define SHT_GNU_verneed 0x6ffffffe
+#define SHT_GNU_versym 0x6fffffff
+#define SHT_HISUNW 0x6fffffff
+#define SHT_HIOS 0x6fffffff
+#define SHT_LOPROC 0x70000000
+#define SHT_HIPROC 0x7fffffff
+#define SHT_LOUSER 0x80000000
+#define SHT_HIUSER 0x8fffffff
+
+#define SHF_WRITE (1 << 0)
+#define SHF_ALLOC (1 << 1)
+#define SHF_EXECINSTR (1 << 2)
+#define SHF_MERGE (1 << 4)
+#define SHF_STRINGS (1 << 5)
+#define SHF_INFO_LINK (1 << 6)
+#define SHF_LINK_ORDER (1 << 7)
+#define SHF_OS_NONCONFORMING (1 << 8)
+
+#define SHF_GROUP (1 << 9)
+#define SHF_TLS (1 << 10)
+#define SHF_COMPRESSED (1 << 11)
+#define SHF_MASKOS 0x0ff00000
+#define SHF_MASKPROC 0xf0000000
+#define SHF_ORDERED (1 << 30)
+#define SHF_EXCLUDE (1U << 31)
 
 namespace gtirb_pprint {
 
