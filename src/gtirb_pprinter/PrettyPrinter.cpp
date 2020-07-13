@@ -402,8 +402,7 @@ void PrettyPrinterBase::fixupInstruction(cs_insn& inst) {
 
   // Comiss loads 32 bits from memory not 64
   if (inst.id == X86_INS_COMISS || inst.id == X86_INS_VCOMISS) {
-    if (detail.op_count == 2 && detail.operands[1].type == X86_OP_MEM &&
-        detail.operands[1].size == 8) {
+    if (detail.op_count == 2 && detail.operands[1].type == X86_OP_MEM) {
       detail.operands[1].size = 4;
     }
   }
@@ -1130,25 +1129,4 @@ uint64_t PrettyPrinterBase::getSymbolicExpressionSize(
   assert(!"Size of symbolic expression could not be determined!");
   return 0;
 }
-
-void registerAuxDataTypes() {
-  using namespace gtirb::schema;
-  gtirb::AuxDataContainer::registerAuxDataType<Comments>();
-  gtirb::AuxDataContainer::registerAuxDataType<FunctionEntries>();
-  gtirb::AuxDataContainer::registerAuxDataType<FunctionBlocks>();
-  gtirb::AuxDataContainer::registerAuxDataType<SymbolForwarding>();
-  gtirb::AuxDataContainer::registerAuxDataType<Encodings>();
-  gtirb::AuxDataContainer::registerAuxDataType<ElfSectionProperties>();
-  gtirb::AuxDataContainer::registerAuxDataType<PeSectionProperties>();
-  gtirb::AuxDataContainer::registerAuxDataType<CfiDirectives>();
-  gtirb::AuxDataContainer::registerAuxDataType<Libraries>();
-  gtirb::AuxDataContainer::registerAuxDataType<LibraryPaths>();
-  gtirb::AuxDataContainer::registerAuxDataType<DataDirectories>();
-  gtirb::AuxDataContainer::registerAuxDataType<PeImportedSymbols>();
-  gtirb::AuxDataContainer::registerAuxDataType<PeExportedSymbols>();
-  gtirb::AuxDataContainer::registerAuxDataType<ElfSymbolInfo>();
-  gtirb::AuxDataContainer::registerAuxDataType<SymbolicExpressionSizes>();
-  gtirb::AuxDataContainer::registerAuxDataType<BinaryType>();
-}
-
 } // namespace gtirb_pprint

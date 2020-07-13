@@ -3,6 +3,7 @@
 
 int main() {
   auto defaultSyntax = gtirb_pprint::getDefaultSyntax("elf", "x64");
+  gtirb_pprint::registerPrettyPrinters();
   if (!defaultSyntax) {
     return 1;
   }

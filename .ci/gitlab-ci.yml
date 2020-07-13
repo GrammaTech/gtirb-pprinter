@@ -84,6 +84,32 @@ check-format:
     - '[[ ! "$OS" =~ ubuntu1[68] ]] || dpkg -i libgtirb.deb'
     - cd build && PATH=$(pwd)/bin:$PATH ctest -V
 
+build-arch-gcc:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/arch
+  variables:
+    OS: 'arch'
+    COMPILER: 'g++'
+    BUILD_TYPE: 'RelWithDebInfo'
+  stage: build
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
+    paths:
+      - 'build'
+  script:
+    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=package-arch --output "gtirb-arch-artifacts.zip"
+    - unzip gtirb-arch-artifacts.zip
+    - pacman --noconfirm -U gtirb-git*.pkg.tar.xz
+    - sed -i "s/^\(OPT_LONG=(\)/\1'asroot' /;s/EUID == 0/1 == 0/" /usr/bin/makepkg
+    - mkdir /tmp/aur
+    - cp .ci/PKGBUILD /tmp/aur
+    - cd /tmp/aur
+    - sed -i "s|git://github.com/grammatech/gtirb-pprinter.git|git+file://${CI_PROJECT_DIR}|" PKGBUILD
+    - makepkg
+    - pacman --noconfirm -U *.pkg.tar.xz
+    - cp -r /tmp/aur/src/gtirb-pprinter/build $CI_PROJECT_DIR
+    - cp *.pkg.tar.xz $CI_PROJECT_DIR/build/
+    - cd /tmp/aur/src/gtirb-pprinter/build && ctest -V
+
 build-ubuntu16-gcc:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
   variables:
@@ -97,14 +123,6 @@ build-ubuntu18-gcc:
   variables:
     OS: 'ubuntu18'
     COMPILER: 'g++-7'
-    BUILD_TYPE: 'RelWithDebInfo'
-  <<: *build
-
-build-arch-gcc:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/arch
-  variables:
-    OS: 'arch'
-    COMPILER: 'g++'
     BUILD_TYPE: 'RelWithDebInfo'
   <<: *build
 
@@ -154,15 +172,6 @@ test-and-tag-ubuntu18-gcc:
     BUILD_TYPE: 'RelWithDebInfo'
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
   needs: ['build-ubuntu18-gcc']
-  <<: *test-and-tag
-
-test-and-tag-arch-gcc:
-  variables:
-    OS: 'arch'
-    COMPILER: 'gcc'
-    BUILD_TYPE: 'RelWithDebInfo'
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/arch
-  needs: ['build-arch-gcc']
   <<: *test-and-tag
 
 test-and-tag-arch-gcc-debug:
@@ -229,28 +238,6 @@ build-ubuntu18-packages:
   variables:
     OS: ubuntu18
   <<: *build-ubuntu-packages
-
-build-arch-package:
-  stage: build-packages
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/arch
-  needs: [build-arch-gcc]
-  artifacts:
-    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
-    paths:
-      - build
-  script:
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=package-arch --output "gtirb-arch-artifacts.zip"
-    - unzip gtirb-arch-artifacts.zip
-    - pacman --noconfirm -U gtirb-git*.pkg.tar.xz
-    - cd build
-    - sed -i "s/^\(OPT_LONG=(\)/\1'asroot' /;s/EUID == 0/1 == 0/" /usr/bin/makepkg
-    - mkdir /tmp/aur
-    - cp ../.ci/PKGBUILD /tmp/aur
-    - cd /tmp/aur
-    - sed -i "s|git://github.com/grammatech/gtirb-pprinter.git|git+file://${CI_PROJECT_DIR}|" PKGBUILD
-    - makepkg
-    - pacman --noconfirm -U *.pkg.tar.xz
-    - cp *.pkg.tar.xz $CI_PROJECT_DIR/build/
 
 .setup-test-apt-repo: &setup-test-apt-repo
   stage: test-packages-setup
@@ -378,7 +365,7 @@ test-ubuntu18-libgtirb-pprinter:
 test-arch-package:
   stage: test-packages1
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/arch
-  needs: ['build-arch-package']
+  needs: ['build-arch-gcc']
   script:
     - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=package-arch --output "gtirb-arch-artifacts.zip"
     - unzip gtirb-arch-artifacts.zip
@@ -410,7 +397,7 @@ debian-installer-ubuntu18:
 package-arch:
   stage: deploy
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/arch
-  needs: ['build-arch-package', 'test-arch-package']
+  needs: ['build-arch-gcc', 'test-arch-package']
   artifacts:
     name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
     paths:

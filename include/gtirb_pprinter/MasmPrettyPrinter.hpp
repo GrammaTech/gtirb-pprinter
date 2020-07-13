@@ -169,8 +169,6 @@ private:
       // Add libraries for multithreaded, dynamically linked, debug runtime.
       {"msvcp(\\d+)d\\.dll", {"msvcprtd.lib"}},
   };
-
-  static volatile bool registered;
 };
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API MasmPrettyPrinterFactory

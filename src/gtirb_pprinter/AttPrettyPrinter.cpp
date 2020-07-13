@@ -133,8 +133,4 @@ AttPrettyPrinterFactory::create(gtirb::Context& gtirb_context,
   return std::make_unique<AttPrettyPrinter>(gtirb_context, module, syntax,
                                             policy);
 }
-
-volatile bool AttPrettyPrinter::registered = registerPrinter(
-    {"elf"}, {"x64"}, {"att"}, std::make_shared<AttPrettyPrinterFactory>());
-
 } // namespace gtirb_pprint

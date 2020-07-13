@@ -45,9 +45,6 @@ protected:
   void printOpIndirect(std::ostream& os,
                        const gtirb::SymbolicExpression* symbolic,
                        const cs_insn& inst, uint64_t index) override;
-
-private:
-  static volatile bool registered;
 };
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API IntelPrettyPrinterFactory
