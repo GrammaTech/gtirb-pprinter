@@ -69,7 +69,6 @@ private:
   const std::string BssDirective{".bss"};
 
   const std::string SectionDirective{".section"};
-
   const std::string GlobalDirective{".globl"};
   const std::string AlignDirective{".align"};
 

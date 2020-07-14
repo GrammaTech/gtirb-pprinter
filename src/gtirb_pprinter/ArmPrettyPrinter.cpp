@@ -1,6 +1,6 @@
-//===- ArmPrettyPrinter.cpp -----------------------------------*- C++ -*-===//
+//===- ArmPrettyPrinter.cpp -------------------------------------*- C++ -*-===//
 //
-//  Copyright (C) 2019 GrammaTech, Inc.
+//  Copyright (C) 2020 GrammaTech, Inc.
 //
 //  This code is licensed under the MIT license. See the LICENSE file in the
 //  project root for license terms.
@@ -221,6 +221,7 @@ void ArmPrettyPrinter::printOpIndirect(
       os << "RRX";
       break;
     case ARM_SFT_INVALID:
+      std::cerr << "Invalid ARM shift operation.\n";
       exit(1);
     }
     os << " " << op.shift.value;
@@ -282,9 +283,4 @@ ArmPrettyPrinterFactory::create(gtirb::Context& gtirb_context,
   return std::make_unique<ArmPrettyPrinter>(gtirb_context, module, syntax,
                                             policy);
 }
-
-volatile bool ArmPrettyPrinter::registered =
-    registerPrinter({"elf"}, {"arm"}, {"arm"},
-                    std::make_shared<ArmPrettyPrinterFactory>(), true);
-
 } // namespace gtirb_pprint
