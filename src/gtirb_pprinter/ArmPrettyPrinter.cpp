@@ -72,7 +72,7 @@ void ArmPrettyPrinter::printOperandList(std::ostream& os,
                                         const gtirb::CodeBlock& block,
                                         const cs_insn& inst) {
   cs_arm& detail = inst.detail->arm;
-  uint8_t opCount = detail.op_count;
+  int opCount = detail.op_count;
   std::set<arm_insn> LdmSdm = {ARM_INS_LDM,   ARM_INS_LDMDA, ARM_INS_LDMDB,
                                ARM_INS_LDMIB, ARM_INS_STM,   ARM_INS_STMDA,
                                ARM_INS_STMDB, ARM_INS_STMIB};
