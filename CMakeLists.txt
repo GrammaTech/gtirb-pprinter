@@ -231,7 +231,7 @@ endif()
 # ---------------------------------------------------------------------------
 # gtirb
 # ---------------------------------------------------------------------------
-find_package(gtirb 1.8.6 REQUIRED)
+find_package(gtirb 1.8.7 REQUIRED)
 
 # ---------------------------------------------------------------------------
 # Boost
@@ -273,7 +273,9 @@ else()
 endif()
 
 if(CAPSTONE)
-  find_program(CSTOOL "cstool")
+  get_filename_component(CAPSTONE_DIR ${CAPSTONE} DIRECTORY)
+  find_program(CSTOOL "cstool" HINTS ${CAPSTONE_DIR} ${CAPSTONE_DIR}/bin
+                                     ${CAPSTONE_DIR}/../bin)
   execute_process(COMMAND "${CSTOOL}" "-v" OUTPUT_VARIABLE CSTOOL_VERSION)
   string(REGEX MATCH "v([0-9]+\.[0-9]+\.[0-9]+)" CSTOOL_VERSION
                "${CSTOOL_VERSION}")
@@ -289,9 +291,29 @@ if(NOT CAPSTONE OR "${CSTOOL_VERSION}" VERSION_LESS "4.0.1")
       "       http://www.capstone-engine.org/\n"
       " - If Capstone is installed, make sure the installation location is in your PATH,\n"
       "   and it is at least version 4.0.1.\n")
+elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
+  # CMake's IF EXISTS functionality requires a full path rather than a relative
+  # path, so get the full path in case we need it.
+  get_filename_component(CAPSTONE_INCLUDE_DIR1 ${CAPSTONE_DIR}/include ABSOLUTE)
+  get_filename_component(CAPSTONE_INCLUDE_DIR2 ${CAPSTONE_DIR}/../include
+                         ABSOLUTE)
+  if(EXISTS ${CAPSTONE_INCLUDE_DIR1})
+    # cmake-format: off
+    # root/
+    #   include/
+    #   library.a
+    # cmake-format: on
+    include_directories(SYSTEM ${CAPSTONE_INCLUDE_DIR1})
+  elseif(EXISTS ${CAPSTONE_INCLUDE_DIR2})
+    # cmake-format: off
+    # root/
+    #   include/
+    #   lib/
+    #     library.a
+    # cmake-format: on
+    include_directories(SYSTEM ${CAPSTONE_INCLUDE_DIR2})
+  endif()
 endif()
-
-include_directories(${CAPSTONE_INCLUDE_DIRS})
 
 # ---------------------------------------------------------------------------
 # Google Test
@@ -443,7 +465,7 @@ set(CPACK_PACKAGE_RESOURCE_FILE_LICENSE ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt)
 set(CPACK_DEBIAN_PACKAGE_SECTION devel)
 
 set(CPACK_DEBIAN_PACKAGE_DEPENDS
-    "libstdc++6, libc6, libgcc1, libgtirb-dev (>=${gtirb_VERSION}), libboost-dev (>=1.67) | libboost1.67-dev, libcapstone-dev (=1:4.0.1-gt1)"
+    "libstdc++6, libc6, libgcc1, libgtirb-dev (>=${gtirb_VERSION}), libboost-dev (>=1.67) | libboost1.67-dev, libcapstone-dev (=1:4.0.1-gt2)"
 )
 
 set(CPACK_GTIRB_VERSION "${gtirb_VERSION}")

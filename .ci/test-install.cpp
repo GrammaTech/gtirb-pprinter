@@ -2,7 +2,8 @@
 #include <iostream>
 
 int main() {
-  auto defaultSyntax = gtirb_pprint::getDefaultSyntax("elf", "x64");
+  gtirb_pprint::registerPrettyPrinters();
+  auto defaultSyntax = gtirb_pprint::getDefaultSyntax("elf");
   if (!defaultSyntax) {
     return 1;
   }

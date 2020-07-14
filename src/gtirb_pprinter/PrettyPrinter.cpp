@@ -417,8 +417,7 @@ void PrettyPrinterBase::fixupInstruction(cs_insn& inst) {
 
   // Comiss loads 32 bits from memory not 64
   if (inst.id == X86_INS_COMISS || inst.id == X86_INS_VCOMISS) {
-    if (detail.op_count == 2 && detail.operands[1].type == X86_OP_MEM &&
-        detail.operands[1].size == 8) {
+    if (detail.op_count == 2 && detail.operands[1].type == X86_OP_MEM) {
       detail.operands[1].size = 4;
     }
   }
@@ -1056,11 +1055,28 @@ std::string
 PrettyPrinterBase::getForwardedSymbolEnding(const gtirb::Symbol* symbol,
                                             bool inData) const {
   if (symbol && symbol->getAddress()) {
-    gtirb::Addr addr = *symbol->getAddress();
-    const auto container_sections = module.findSectionsOn(addr);
-    if (container_sections.begin() == container_sections.end())
-      return std::string{};
-    std::string section_name = container_sections.begin()->getName();
+    const gtirb::Section* ContainerSection;
+    if (symbol->hasReferent()) {
+      if (const auto* CB = symbol->getReferent<gtirb::CodeBlock>()) {
+        ContainerSection = CB->getByteInterval()->getSection();
+      } else if (const auto* DB = symbol->getReferent<gtirb::DataBlock>()) {
+        ContainerSection = DB->getByteInterval()->getSection();
+      } else {
+        // If we're here, then the symbol's referent cannot be a ProxyBlock,
+        // as they never have an address, which we check for the presence of
+        // above.
+        assert(!"Unknown type in symbol referent!");
+        return std::string{};
+      }
+    } else {
+      gtirb::Addr addr = *symbol->getAddress();
+      const auto container_sections = module.findSectionsOn(addr);
+      if (container_sections.empty())
+        return std::string{};
+      ContainerSection = &container_sections.front();
+    }
+
+    std::string section_name = ContainerSection->getName();
     if (!inData && (section_name == ".plt" || section_name == ".plt.got"))
       return std::string{"@PLT"};
     if (section_name == ".got" || section_name == ".got.plt")
@@ -1134,22 +1150,4 @@ uint64_t PrettyPrinterBase::getSymbolicExpressionSize(
   assert(!"Size of symbolic expression could not be determined!");
   return 0;
 }
-
-void registerAuxDataTypes() {
-  using namespace gtirb::schema;
-  gtirb::AuxDataContainer::registerAuxDataType<Comments>();
-  gtirb::AuxDataContainer::registerAuxDataType<FunctionEntries>();
-  gtirb::AuxDataContainer::registerAuxDataType<FunctionBlocks>();
-  gtirb::AuxDataContainer::registerAuxDataType<SymbolForwarding>();
-  gtirb::AuxDataContainer::registerAuxDataType<SymbolicOperandInfoAD>();
-  gtirb::AuxDataContainer::registerAuxDataType<Encodings>();
-  gtirb::AuxDataContainer::registerAuxDataType<ElfSectionProperties>();
-  gtirb::AuxDataContainer::registerAuxDataType<CfiDirectives>();
-  gtirb::AuxDataContainer::registerAuxDataType<Libraries>();
-  gtirb::AuxDataContainer::registerAuxDataType<LibraryPaths>();
-  gtirb::AuxDataContainer::registerAuxDataType<ElfSymbolInfo>();
-  gtirb::AuxDataContainer::registerAuxDataType<SymbolicExpressionSizes>();
-  gtirb::AuxDataContainer::registerAuxDataType<BinaryType>();
-}
-
 } // namespace gtirb_pprint

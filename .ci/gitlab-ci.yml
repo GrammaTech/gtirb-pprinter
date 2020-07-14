@@ -32,14 +32,15 @@ check-format:
     - case $OS in
        ubuntu16) JOB_NAME='debian-installer-ubuntu16' ;;
        ubuntu18) JOB_NAME='debian-installer-ubuntu18' ;;
+       ubuntu20) JOB_NAME='debian-installer-ubuntu20' ;;
        arch) JOB_NAME='package-arch' ;;
        esac
     - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=${JOB_NAME} --output "gtirb-$OS-artifacts.zip"
     - unzip gtirb-$OS-artifacts.zip
     - '[ $OS != "arch" ] || pacman --noconfirm -U gtirb-git*.pkg.tar.xz'
-    - '[[ ! "$OS" =~ ubuntu1[68] ]] || dpkg -i libgtirb.deb libgtirb-dev.deb'
+    - '[[ ! "$OS" =~ ubuntu[12][680] ]] || dpkg -i libgtirb.deb libgtirb-dev.deb'
     - mkdir build && cd build
-    - cmake ../ -DCMAKE_CXX_COMPILER=$COMPILER -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+    - cmake ../ -DCMAKE_CXX_COMPILER=$COMPILER -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCPACK_DEBIAN_RELEASE="$(lsb_release -sc)"
     - make -j
 
 .windows-build-template: &windows-build
@@ -58,7 +59,7 @@ check-format:
     - mkdir build
     - cd build
     - LIB_BUILD_TYPE=$(echo $BUILD_TYPE | sed 's/Debug/Debug/;s/RelWithDebInfo/Release/')
-    - cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && C:\\PROGRA~1\\CMake\\bin\\cmake.exe -G \"Ninja\" -DBOOST_ROOT=\"C:\\Boost\" -DCMAKE_CXX_FLAGS=\"/DBOOST_ALL_DYN_LINK\" -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=1 -DCAPSTONE=\"C:\\capstone-${LIB_BUILD_TYPE}\\lib\\capstone.lib\" -DCAPSTONE_INCLUDE_DIRS=\"C:\\capstone-${LIB_BUILD_TYPE}\\include\" -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_PROGRAM_PATH=\"C:\\capstone-${LIB_BUILD_TYPE}\\bin\" -Dgtirb_DIR=$GTIRB_DIR .."
+    - cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && C:\\PROGRA~1\\CMake\\bin\\cmake.exe -G \"Ninja\" -DBOOST_ROOT=\"C:\\Boost\" -DCMAKE_CXX_FLAGS=\"/DBOOST_ALL_DYN_LINK\" -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=1 -DCMAKE_LIBRARY_PATH=\"C:\\capstone-${LIB_BUILD_TYPE}\\lib\" -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -Dgtirb_DIR=$GTIRB_DIR .."
     - cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && ninja"
     # Build ZIP package, and include DLLs needed to run exes.
     - cmd.exe /C "C:\\PROGRA~1\\CMake\\bin\\cpack.exe -G \"ZIP\""
@@ -76,13 +77,40 @@ check-format:
     - case $OS in
        ubuntu16) JOB_NAME='debian-installer-ubuntu16' ;;
        ubuntu18) JOB_NAME='debian-installer-ubuntu18' ;;
+       ubuntu20) JOB_NAME='debian-installer-ubuntu20' ;;
        arch) JOB_NAME='package-arch' ;;
        esac
     - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=${JOB_NAME} --output "gtirb-$OS-artifacts.zip"
     - unzip gtirb-$OS-artifacts.zip
     - '[ $OS != "arch" ] || pacman --noconfirm -U gtirb-git*.pkg.tar.xz'
-    - '[[ ! "$OS" =~ ubuntu1[68] ]] || dpkg -i libgtirb.deb'
+    - '[[ ! "$OS" =~ ubuntu[12][680] ]] || dpkg -i libgtirb.deb'
     - cd build && PATH=$(pwd)/bin:$PATH ctest -V
+
+build-arch-gcc:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/arch
+  variables:
+    OS: 'arch'
+    COMPILER: 'g++'
+    BUILD_TYPE: 'RelWithDebInfo'
+  stage: build
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
+    paths:
+      - 'build'
+  script:
+    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=package-arch --output "gtirb-arch-artifacts.zip"
+    - unzip gtirb-arch-artifacts.zip
+    - pacman --noconfirm -U gtirb-git*.pkg.tar.xz
+    - sed -i "s/^\(OPT_LONG=(\)/\1'asroot' /;s/EUID == 0/1 == 0/" /usr/bin/makepkg
+    - mkdir /tmp/aur
+    - cp .ci/PKGBUILD /tmp/aur
+    - cd /tmp/aur
+    - sed -i "s|git://github.com/grammatech/gtirb-pprinter.git|git+file://${CI_PROJECT_DIR}|" PKGBUILD
+    - makepkg
+    - pacman --noconfirm -U *.pkg.tar.xz
+    - cp -r /tmp/aur/src/gtirb-pprinter/build $CI_PROJECT_DIR
+    - cp *.pkg.tar.xz $CI_PROJECT_DIR/build/
+    - cd /tmp/aur/src/gtirb-pprinter/build && ctest -V
 
 build-ubuntu16-gcc:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
@@ -100,10 +128,10 @@ build-ubuntu18-gcc:
     BUILD_TYPE: 'RelWithDebInfo'
   <<: *build
 
-build-arch-gcc:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/arch
+build-ubuntu20-gcc:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
   variables:
-    OS: 'arch'
+    OS: 'ubuntu20'
     COMPILER: 'g++'
     BUILD_TYPE: 'RelWithDebInfo'
   <<: *build
@@ -156,13 +184,13 @@ test-and-tag-ubuntu18-gcc:
   needs: ['build-ubuntu18-gcc']
   <<: *test-and-tag
 
-test-and-tag-arch-gcc:
+test-and-tag-ubuntu20-gcc:
   variables:
-    OS: 'arch'
+    OS: 'ubuntu20'
     COMPILER: 'gcc'
     BUILD_TYPE: 'RelWithDebInfo'
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/arch
-  needs: ['build-arch-gcc']
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
+  needs: ['build-ubuntu20-gcc']
   <<: *test-and-tag
 
 test-and-tag-arch-gcc-debug:
@@ -230,27 +258,12 @@ build-ubuntu18-packages:
     OS: ubuntu18
   <<: *build-ubuntu-packages
 
-build-arch-package:
-  stage: build-packages
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/arch
-  needs: [build-arch-gcc]
-  artifacts:
-    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
-    paths:
-      - build
-  script:
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=package-arch --output "gtirb-arch-artifacts.zip"
-    - unzip gtirb-arch-artifacts.zip
-    - pacman --noconfirm -U gtirb-git*.pkg.tar.xz
-    - cd build
-    - sed -i "s/^\(OPT_LONG=(\)/\1'asroot' /;s/EUID == 0/1 == 0/" /usr/bin/makepkg
-    - mkdir /tmp/aur
-    - cp ../.ci/PKGBUILD /tmp/aur
-    - cd /tmp/aur
-    - sed -i "s|git://github.com/grammatech/gtirb-pprinter.git|git+file://${CI_PROJECT_DIR}|" PKGBUILD
-    - makepkg
-    - pacman --noconfirm -U *.pkg.tar.xz
-    - cp *.pkg.tar.xz $CI_PROJECT_DIR/build/
+build-ubuntu20-packages:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
+  needs: [build-ubuntu20-gcc]
+  variables:
+    OS: ubuntu20
+  <<: *build-ubuntu-packages
 
 .setup-test-apt-repo: &setup-test-apt-repo
   stage: test-packages-setup
@@ -273,15 +286,18 @@ build-arch-package:
       - test-install
   script:
     - if [ $(lsb_release -sc) == "bionic" ]; then TRUSTED="[trusted=yes]"; fi
+    - if [ $(lsb_release -sc) == "focal" ]; then TRUSTED="[trusted=yes]"; fi
     - echo -e "\ndeb $TRUSTED file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - apt-get update -y && apt-get install -y --allow-unauthenticated libgtirb-pprinter-dev
-    - g++-7 .ci/test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs
+    - if [ $(lsb_release -sc) == "xenial" ]; then CC=g++-7; else CC=g++; fi
+    - ${CC} .ci/test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs
     - ./test-install
 
 .test-ubuntu-gtirb-pprinter: &test-ubuntu-gtirb-pprinter
   stage: test-packages1
   script:
     - if [ $(lsb_release -sc) == "bionic" ]; then TRUSTED="[trusted=yes]"; fi
+    - if [ $(lsb_release -sc) == "focal" ]; then TRUSTED="[trusted=yes]"; fi
     - echo -e "\ndeb $TRUSTED file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - apt-get update -y && apt-get install -y --allow-unauthenticated gtirb-pprinter
     - gtirb-pprinter tests/two_modules.gtirb
@@ -291,6 +307,7 @@ build-arch-package:
   stage: test-packages1
   script:
     - if [ $(lsb_release -sc) == "bionic" ]; then TRUSTED="[trusted=yes]"; fi
+    - if [ $(lsb_release -sc) == "focal" ]; then TRUSTED="[trusted=yes]"; fi
     - echo -e "\ndeb $TRUSTED file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - apt-get update -y && apt-get install -y --allow-unauthenticated libgtirb-pprinter-dbg
     - '[ -f /usr/lib/debug/.build-id/$(readelf -n /usr/lib/libgtirb_pprinter.so | grep ''Build ID: '' | cut -d'':'' -f2 | sed -E ''s/ ([a-f0-9]{2,})([a-f0-9]{30,})/\1\/\2/g'').debug ]'
@@ -299,6 +316,7 @@ build-arch-package:
   stage: test-packages1
   script:
     - if [ $(lsb_release -sc) == "bionic" ]; then TRUSTED="[trusted=yes]"; fi
+    - if [ $(lsb_release -sc) == "focal" ]; then TRUSTED="[trusted=yes]"; fi
     - echo -e "\ndeb $TRUSTED file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - apt-get update -y && apt-get install -y --allow-unauthenticated gtirb-pprinter-dbg
     - '[ -f /usr/lib/debug/.build-id/$(readelf -n /usr/bin/gtirb-pprinter | grep ''Build ID: '' | cut -d'':'' -f2 | sed -E ''s/ ([a-f0-9]{2,})([a-f0-9]{30,})/\1\/\2/g'').debug ]'
@@ -307,6 +325,7 @@ build-arch-package:
   stage: test-packages2
   script:
     - if [ $(lsb_release -sc) == "bionic" ]; then TRUSTED="[trusted=yes]"; fi
+    - if [ $(lsb_release -sc) == "focal" ]; then TRUSTED="[trusted=yes]"; fi
     - echo -e "\ndeb $TRUSTED file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - apt-get update -y && apt-get install -y --allow-unauthenticated libgtirb-pprinter
     - ./test-install
@@ -375,10 +394,42 @@ test-ubuntu18-libgtirb-pprinter:
   needs: ['setup-ubuntu18-repo', 'test-ubuntu18-libgtirb-pprinter-dev']
   <<: *test-ubuntu-libgtirb-pprinter
 
+setup-ubuntu20-repo:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
+  needs: ['build-ubuntu20-packages']
+  variables:
+    OS: ubuntu20
+  <<: *setup-test-apt-repo
+
+test-ubuntu20-libgtirb-pprinter-dev:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
+  needs: ['setup-ubuntu20-repo']
+  <<: *test-ubuntu-libgtirb-pprinter-dev
+
+test-ubuntu20-gtirb-pprinter:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
+  needs: ['setup-ubuntu20-repo']
+  <<: *test-ubuntu-gtirb-pprinter
+
+test-ubuntu20-libgtirb-pprinter-dbg:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
+  needs: ['setup-ubuntu20-repo']
+  <<: *test-ubuntu-libgtirb-pprinter-dbg
+
+test-ubuntu20-gtirb-pprinter-dbg:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
+  needs: ['setup-ubuntu20-repo']
+  <<: *test-ubuntu-gtirb-pprinter-dbg
+
+test-ubuntu20-libgtirb-pprinter:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
+  needs: ['setup-ubuntu20-repo', 'test-ubuntu20-libgtirb-pprinter-dev']
+  <<: *test-ubuntu-libgtirb-pprinter
+
 test-arch-package:
   stage: test-packages1
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/arch
-  needs: ['build-arch-package']
+  needs: ['build-arch-gcc']
   script:
     - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=package-arch --output "gtirb-arch-artifacts.zip"
     - unzip gtirb-arch-artifacts.zip
@@ -407,10 +458,15 @@ debian-installer-ubuntu18:
   needs: ['build-ubuntu18-packages']
   <<: *deploy-debian-installer
 
+debian-installer-ubuntu20:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
+  needs: ['build-ubuntu20-packages']
+  <<: *deploy-debian-installer
+
 package-arch:
   stage: deploy
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/arch
-  needs: ['build-arch-package', 'test-arch-package']
+  needs: ['build-arch-gcc', 'test-arch-package']
   artifacts:
     name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
     paths:
