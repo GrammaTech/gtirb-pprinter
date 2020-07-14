@@ -49,6 +49,10 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
                                      const PrintingPolicy& policy_)
     : PePrettyPrinter(context_, module_, syntax_, policy_),
       masmSyntax(syntax_) {
+  // Setup Capstone.
+  [[maybe_unused]] cs_err err =
+      cs_open(CS_ARCH_X86, CS_MODE_64, &this->csHandle);
+  assert(err == CS_ERR_OK && "Capstone failure");
 
   BaseAddress = module.getPreferredAddr();
   if (auto It = module.findSymbols("__ImageBase"); !It.empty()) {

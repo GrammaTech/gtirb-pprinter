@@ -25,8 +25,7 @@ ArmPrettyPrinter::ArmPrettyPrinter(gtirb::Context& context_,
                                    const PrintingPolicy& policy_)
     : ElfPrettyPrinter(context_, module_, syntax_, policy_),
       armSyntax(syntax_) {
-
-  cs_close(&this->csHandle);
+  // Setup Capstone.
   [[maybe_unused]] cs_err err =
       cs_open(CS_ARCH_ARM, CS_MODE_ARM, &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
