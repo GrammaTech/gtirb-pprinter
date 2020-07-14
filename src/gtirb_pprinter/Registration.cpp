@@ -13,6 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "Arm64PrettyPrinter.hpp"
 #include "AttPrettyPrinter.hpp"
 #include "AuxDataSchema.hpp"
 #include "IntelPrettyPrinter.hpp"
@@ -37,9 +38,11 @@ void registerAuxDataTypes() {
 }
 
 void registerPrettyPrinters() {
-  registerPrinter({"elf"}, {"intel"},
+  registerPrinter({"elf"}, {"x64"}, {"intel"},
                   std::make_shared<IntelPrettyPrinterFactory>(), true);
-  registerPrinter({"elf"}, {"att"},
+  registerPrinter({"elf"}, {"x64"}, {"att"},
                   std::make_shared<AttPrettyPrinterFactory>());
+  registerPrinter({"elf"}, {"arm64"}, {"arm64"},
+                  std::make_shared<Arm64PrettyPrinterFactory>(), true);
 }
 } // namespace gtirb_pprint

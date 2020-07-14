@@ -1,4 +1,4 @@
-//===- AArch64PrettyPrinter.hpp ---------------------------------*- C++ -*-===//
+//===- Arm64PrettyPrinter.hpp -----------------------------------*- C++ -*-===//
 //
 //  Copyright (c) 2020, The Binrat Developers.
 //
@@ -22,10 +22,10 @@
 
 namespace gtirb_pprint {
 
-class AArch64PrettyPrinter : public ElfPrettyPrinter {
+class Arm64PrettyPrinter : public ElfPrettyPrinter {
 public:
-  AArch64PrettyPrinter(gtirb::Context& context, gtirb::Module& module,
-                       const ElfSyntax& syntax, const PrintingPolicy& policy);
+  Arm64PrettyPrinter(gtirb::Context& context, gtirb::Module& module,
+                     const ElfSyntax& syntax, const PrintingPolicy& policy);
 
 protected:
   std::string getRegisterName(unsigned int reg) const override;
@@ -60,7 +60,7 @@ private:
   static volatile bool registered;
 };
 
-class AArch64PrettyPrinterFactory : public PrettyPrinterFactory {
+class Arm64PrettyPrinterFactory : public PrettyPrinterFactory {
 public:
   const PrintingPolicy& defaultPrintingPolicy() const override;
 

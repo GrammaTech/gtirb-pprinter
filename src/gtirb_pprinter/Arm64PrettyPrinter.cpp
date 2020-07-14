@@ -1,4 +1,4 @@
-//===- AArch64PrettyPrinter.cpp ---------------------------------*- C++ -*-===//
+//===- Arm64PrettyPrinter.cpp -----------------------------------*- C++ -*-===//
 //
 //  Copyright (c) 2020, The Binrat Developers.
 //
@@ -17,17 +17,17 @@
 
 #include <iostream>
 
-#include "AArch64PrettyPrinter.hpp"
+#include "Arm64PrettyPrinter.hpp"
 #include "AuxDataSchema.hpp"
 
 #include <capstone/capstone.h>
 
 namespace gtirb_pprint {
 
-AArch64PrettyPrinter::AArch64PrettyPrinter(gtirb::Context& context_,
-                                           gtirb::Module& module_,
-                                           const ElfSyntax& syntax_,
-                                           const PrintingPolicy& policy_)
+Arm64PrettyPrinter::Arm64PrettyPrinter(gtirb::Context& context_,
+                                       gtirb::Module& module_,
+                                       const ElfSyntax& syntax_,
+                                       const PrintingPolicy& policy_)
     : ElfPrettyPrinter(context_, module_, syntax_, policy_) {
 
   cs_close(&this->csHandle);
@@ -36,7 +36,7 @@ AArch64PrettyPrinter::AArch64PrettyPrinter(gtirb::Context& context_,
   assert(err == CS_ERR_OK && "Capstone failure");
 }
 
-void AArch64PrettyPrinter::printHeader(std::ostream& os) {
+void Arm64PrettyPrinter::printHeader(std::ostream& os) {
   this->printBar(os);
   os << ".arch armv8-a\n";
   this->printBar(os);
@@ -47,13 +47,13 @@ void AArch64PrettyPrinter::printHeader(std::ostream& os) {
   }
 }
 
-std::string AArch64PrettyPrinter::getRegisterName(unsigned int reg) const {
+std::string Arm64PrettyPrinter::getRegisterName(unsigned int reg) const {
   return reg == ARM64_REG_INVALID ? "" : cs_reg_name(this->csHandle, reg);
 }
 
-void AArch64PrettyPrinter::printOperandList(std::ostream& os,
-                                            const gtirb::CodeBlock& block,
-                                            const cs_insn& inst) {
+void Arm64PrettyPrinter::printOperandList(std::ostream& os,
+                                          const gtirb::CodeBlock& block,
+                                          const cs_insn& inst) {
   cs_arm64& detail = inst.detail->arm64;
   uint8_t opCount = detail.op_count;
 
@@ -66,9 +66,9 @@ void AArch64PrettyPrinter::printOperandList(std::ostream& os,
 }
 
 // TODO: Use block parameter instead of module.findSymbolicExpressionsAt
-void AArch64PrettyPrinter::printOperand(std::ostream& os,
-                                        const gtirb::CodeBlock& /* block */,
-                                        const cs_insn& inst, uint64_t index) {
+void Arm64PrettyPrinter::printOperand(std::ostream& os,
+                                      const gtirb::CodeBlock& /* block */,
+                                      const cs_insn& inst, uint64_t index) {
   gtirb::Addr ea(inst.address);
   const cs_arm64_op& op = inst.detail->arm64.operands[index];
   const gtirb::SymbolicExpression* symbolic = nullptr;
@@ -126,8 +126,8 @@ void AArch64PrettyPrinter::printOperand(std::ostream& os,
   }
 }
 
-void AArch64PrettyPrinter::printPrefix(std::ostream& os, const cs_insn& inst,
-                                       uint64_t index) {
+void Arm64PrettyPrinter::printPrefix(std::ostream& os, const cs_insn& inst,
+                                     uint64_t index) {
   auto* symbolicOperandInfo =
       module.getAuxData<gtirb::schema::SymbolicOperandInfoAD>();
   for (const auto& pair : *symbolicOperandInfo) {
@@ -139,13 +139,13 @@ void AArch64PrettyPrinter::printPrefix(std::ostream& os, const cs_insn& inst,
   }
 }
 
-void AArch64PrettyPrinter::printOpRegdirect(std::ostream& os,
-                                            const cs_insn& /* inst */,
-                                            unsigned int reg) {
+void Arm64PrettyPrinter::printOpRegdirect(std::ostream& os,
+                                          const cs_insn& /* inst */,
+                                          unsigned int reg) {
   os << getRegisterName(reg);
 }
 
-void AArch64PrettyPrinter::printOpImmediate(
+void Arm64PrettyPrinter::printOpImmediate(
     std::ostream& os, const gtirb::SymbolicExpression* symbolic,
     const cs_insn& inst, uint64_t index) {
   const cs_arm64_op& op = inst.detail->arm64.operands[index];
@@ -169,7 +169,7 @@ void AArch64PrettyPrinter::printOpImmediate(
   }
 }
 
-void AArch64PrettyPrinter::printOpIndirect(
+void Arm64PrettyPrinter::printOpIndirect(
     std::ostream& os, const gtirb::SymbolicExpression* symbolic,
     const cs_insn& inst, uint64_t index) {
   const cs_arm64& detail = inst.detail->arm64;
@@ -224,9 +224,8 @@ void AArch64PrettyPrinter::printOpIndirect(
   }
 }
 
-void AArch64PrettyPrinter::printOpRawValue(std::ostream& os,
-                                           const cs_insn& inst,
-                                           uint64_t index) {
+void Arm64PrettyPrinter::printOpRawValue(std::ostream& os, const cs_insn& inst,
+                                         uint64_t index) {
   // grab the full operand string
   const char* opStr = inst.op_str;
 
@@ -277,8 +276,8 @@ void AArch64PrettyPrinter::printOpRawValue(std::ostream& os,
   }
 }
 
-void AArch64PrettyPrinter::printOpBarrier(std::ostream& os,
-                                          const arm64_barrier_op barrier) {
+void Arm64PrettyPrinter::printOpBarrier(std::ostream& os,
+                                        const arm64_barrier_op barrier) {
   switch (barrier) {
   case ARM64_BARRIER_OSHLD:
     os << "oshld";
@@ -323,8 +322,8 @@ void AArch64PrettyPrinter::printOpBarrier(std::ostream& os,
   }
 }
 
-void AArch64PrettyPrinter::printOpPrefetch(std::ostream& os,
-                                           const arm64_prefetch_op prefetch) {
+void Arm64PrettyPrinter::printOpPrefetch(std::ostream& os,
+                                         const arm64_prefetch_op prefetch) {
   switch (prefetch) {
   case ARM64_PRFM_PLDL1KEEP:
     os << "pldl1keep";
@@ -387,9 +386,8 @@ void AArch64PrettyPrinter::printOpPrefetch(std::ostream& os,
   }
 }
 
-void AArch64PrettyPrinter::printShift(std::ostream& os,
-                                      const arm64_shifter type,
-                                      unsigned int value) {
+void Arm64PrettyPrinter::printShift(std::ostream& os, const arm64_shifter type,
+                                    unsigned int value) {
   switch (type) {
   case ARM64_SFT_LSL:
     os << "lsl";
@@ -412,10 +410,10 @@ void AArch64PrettyPrinter::printShift(std::ostream& os,
   os << " #" << value;
 }
 
-void AArch64PrettyPrinter::printExtender(std::ostream& os,
-                                         const arm64_extender& ext,
-                                         const arm64_shifter shiftType,
-                                         uint64_t shiftValue) {
+void Arm64PrettyPrinter::printExtender(std::ostream& os,
+                                       const arm64_extender& ext,
+                                       const arm64_shifter shiftType,
+                                       uint64_t shiftValue) {
   switch (ext) {
   case ARM64_EXT_UXTB:
     os << "uxtb";
@@ -451,8 +449,8 @@ void AArch64PrettyPrinter::printExtender(std::ostream& os,
 }
 
 std::optional<std::string>
-AArch64PrettyPrinter::getForwardedSymbolName(const gtirb::Symbol* symbol,
-                                             bool /* inData */) const {
+Arm64PrettyPrinter::getForwardedSymbolName(const gtirb::Symbol* symbol,
+                                           bool /* inData */) const {
   const auto* symbolForwarding =
       module.getAuxData<gtirb::schema::SymbolForwarding>();
 
@@ -466,8 +464,7 @@ AArch64PrettyPrinter::getForwardedSymbolName(const gtirb::Symbol* symbol,
   return {};
 }
 
-const PrintingPolicy&
-AArch64PrettyPrinterFactory::defaultPrintingPolicy() const {
+const PrintingPolicy& Arm64PrettyPrinterFactory::defaultPrintingPolicy() const {
   static PrintingPolicy DefaultPolicy{
       /// Functions to avoid printing.
       {"_start", "deregister_tm_clones", "register_tm_clones",
@@ -490,15 +487,11 @@ AArch64PrettyPrinterFactory::defaultPrintingPolicy() const {
 }
 
 std::unique_ptr<PrettyPrinterBase>
-AArch64PrettyPrinterFactory::create(gtirb::Context& gtirb_context,
-                                    gtirb::Module& module,
-                                    const PrintingPolicy& policy) {
+Arm64PrettyPrinterFactory::create(gtirb::Context& gtirb_context,
+                                  gtirb::Module& module,
+                                  const PrintingPolicy& policy) {
   static const ElfSyntax syntax{};
-  return std::make_unique<AArch64PrettyPrinter>(gtirb_context, module, syntax,
-                                                policy);
+  return std::make_unique<Arm64PrettyPrinter>(gtirb_context, module, syntax,
+                                              policy);
 }
-
-volatile bool AArch64PrettyPrinter::registered =
-    registerPrinter({"elf"}, {"arm64"}, {"arm64"},
-                    std::make_shared<AArch64PrettyPrinterFactory>(), true);
 } // namespace gtirb_pprint
