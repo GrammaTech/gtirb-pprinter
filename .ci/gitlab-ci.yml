@@ -3,7 +3,7 @@ variables:
   GTIRB_BRANCH: "master"
 
 default:
-  tags: [gtirb-pprinter-docker-executor]
+  tags: [cluster]
 
 stages:
   - check-format
