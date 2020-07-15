@@ -29,8 +29,7 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API PeBinaryPrinter : public BinaryPrinter {
 
   void
   prepareAssemblerArguments(const std::vector<std::string>& compilands,
-                            gtirb::Context& context, gtirb::IR& ir,
-                            const std::string& outputFilename,
+                            gtirb::IR& ir, const std::string& outputFilename,
                             const std::vector<std::string>& extraCompilerArgs,
                             const std::vector<std::string>& libraryPaths,
                             std::vector<std::string>& args) const;

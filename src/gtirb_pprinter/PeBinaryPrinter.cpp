@@ -14,26 +14,12 @@
 //===----------------------------------------------------------------------===//
 #include "PeBinaryPrinter.hpp"
 #include "file_utils.hpp"
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpragmas"
-#pragma GCC diagnostic ignored "-Wunknown-warning-option"
-#pragma GCC diagnostic ignored "-Wc++11-compat"
-#pragma GCC diagnostic ignored "-Wpessimizing-move"
-#pragma GCC diagnostic ignored "-Wdeprecated-copy"
-#endif // __GNUC__
-#include <boost/process/search_path.hpp>
-#include <boost/process/system.hpp>
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif // __GNUC__
-
-namespace bp = boost::process;
+#include <iostream>
 
 namespace gtirb_bprint {
 void PeBinaryPrinter::prepareAssemblerArguments(
-    const std::vector<std::string>& compilands, gtirb::Context& context,
-    gtirb::IR& ir, const std::string& outputFilename,
+    const std::vector<std::string>& compilands, gtirb::IR& ir,
+    const std::string& outputFilename,
     const std::vector<std::string>& extraCompilerArgs,
     const std::vector<std::string>& libraryPaths,
     std::vector<std::string>& args) const {
@@ -131,7 +117,7 @@ int PeBinaryPrinter::link(const std::string& outputFilename,
 
   // Collect the arguments for invoking the assembler.
   std::vector<std::string> args;
-  prepareAssemblerArguments(tempFileNames, ctx, ir, outputFilename,
+  prepareAssemblerArguments(tempFileNames, ir, outputFilename,
                             extraCompilerArgs, userLibraryPaths, args);
 
   // Invoke the assembler.
