@@ -213,7 +213,7 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
   }
 
   // TODO:
-  // Alias all labels at skipped function blocks;jgetContainerFunctionName gives
+  // Alias all labels at skipped function blocks; getContainerFunctionName gives
   // only one label, which may not be in the list of skipped functions.
   for (const std::string& Name : policy.skipFunctions) {
     for (const auto& Symbol : module.findSymbols(Name)) {
