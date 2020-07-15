@@ -1,7 +1,9 @@
 import unittest
 from pathlib import Path
+import os
 import subprocess
 import sys
+import tempfile
 
 two_modules_gtirb = Path("tests", "two_modules.gtirb")
 
@@ -24,16 +26,17 @@ class TestPrintToStdout(unittest.TestCase):
 
 class TestPrintToFile(unittest.TestCase):
     def test_print_two_modules(self):
+        path = os.path.join(tempfile.mkdtemp(), "two_modules{}.s")
         subprocess.check_output(
             [
                 "gtirb-pprinter",
                 "--ir",
                 str(two_modules_gtirb),
                 "--asm",
-                "/tmp/two_modules.s",
+                path.format(""),
             ]
         ).decode(sys.stdout.encoding)
-        with open("/tmp/two_modules.s", "r") as f:
+        with open(path.format(""), "r") as f:
             self.assertTrue(".globl main" in f.read())
-        with open("/tmp/two_modules1.s", "r") as f:
+        with open(path.format("1"), "r") as f:
             self.assertTrue(".globl fun" in f.read())

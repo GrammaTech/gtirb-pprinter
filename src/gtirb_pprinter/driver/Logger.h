@@ -7,10 +7,10 @@
 #ifdef _DEBUG
 #define LOG_INFO std::cout << "[INFO] (" << __FILE__ << ":" << __LINE__ << ")  "
 #define LOG_ERROR                                                              \
-  std::cout << "[ERROR] (" << __FILE__ << ":" << __LINE__ << ") "
+  std::cerr << "[ERROR] (" << __FILE__ << ":" << __LINE__ << ") "
 #else
 #define LOG_INFO std::cout << "[INFO]  "
-#define LOG_ERROR std::cout << "[ERROR] "
+#define LOG_ERROR std::cerr << "[ERROR] "
 #endif
 
 #define LOG_DEBUG                                                              \

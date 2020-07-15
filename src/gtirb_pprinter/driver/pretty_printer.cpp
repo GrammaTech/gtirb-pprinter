@@ -6,6 +6,7 @@
 #include <fstream>
 #include <gtirb_layout/gtirb_layout.hpp>
 #include <gtirb_pprinter/ElfBinaryPrinter.hpp>
+#include <gtirb_pprinter/PeBinaryPrinter.hpp>
 #include <gtirb_pprinter/PrettyPrinter.hpp>
 #include <gtirb_pprinter/version.h>
 #if defined(_MSC_VER)
@@ -353,7 +354,6 @@ int main(int argc, char** argv) {
   }
   // Link directly to a binary.
   if (vm.count("binary") != 0) {
-    gtirb_bprint::ElfBinaryPrinter binaryPrinter(true);
     const auto binaryPath = fs::path(vm["binary"].as<std::string>());
     std::vector<std::string> extraCompilerArgs;
     if (vm.count("compiler-args") != 0)
@@ -361,8 +361,19 @@ int main(int argc, char** argv) {
     std::vector<std::string> libraryPaths;
     if (vm.count("library-paths") != 0)
       libraryPaths = vm["library-paths"].as<std::vector<std::string>>();
-    if (binaryPrinter.link(binaryPath.string(), extraCompilerArgs, libraryPaths,
-                           pp, ctx, *ir)) {
+
+    std::unique_ptr<gtirb_bprint::BinaryPrinter> binaryPrinter;
+    if (format == "elf")
+      binaryPrinter = std::make_unique<gtirb_bprint::ElfBinaryPrinter>(true);
+    else if (format == "pe")
+      binaryPrinter = std::make_unique<gtirb_bprint::PeBinaryPrinter>();
+    else {
+      LOG_ERROR << "'" << format
+                << "' is an unsupported binary printing format.\n";
+      return EXIT_FAILURE;
+    }
+    if (binaryPrinter->link(binaryPath.string(), extraCompilerArgs,
+                            libraryPaths, pp, ctx, *ir)) {
       return EXIT_FAILURE;
     }
   }

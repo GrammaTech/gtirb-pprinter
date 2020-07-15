@@ -8,6 +8,7 @@ set(${PROJECT_NAME}_H
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/AuxDataSchema.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/BinaryPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Export.hpp
+    ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/file_utils.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/PrettyPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Syntax.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ArmPrettyPrinter.hpp
@@ -18,20 +19,24 @@ set(${PROJECT_NAME}_H
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/string_utils.hpp
     ${CMAKE_BINARY_DIR}/include/gtirb_pprinter/version.h
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/MasmPrettyPrinter.hpp
+    ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/PeBinaryPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/PePrettyPrinter.hpp)
 
 # sources
 set(${PROJECT_NAME}_SRC
     ArmPrettyPrinter.cpp
     AttPrettyPrinter.cpp
+    BinaryPrinter.cpp
     ElfBinaryPrinter.cpp
     ElfPrettyPrinter.cpp
+    file_utils.cpp
     IntelPrettyPrinter.cpp
     PrettyPrinter.cpp
     Registration.cpp
     string_utils.cpp
     Syntax.cpp
     MasmPrettyPrinter.cpp
+    PeBinaryPrinter.cpp
     PePrettyPrinter.cpp)
 
 add_library(${PROJECT_NAME} ${${PROJECT_NAME}_H} ${${PROJECT_NAME}_SRC})

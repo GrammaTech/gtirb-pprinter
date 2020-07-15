@@ -15,33 +15,11 @@
 #include "ElfBinaryPrinter.hpp"
 
 #include "AuxDataSchema.hpp"
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpragmas"
-#pragma GCC diagnostic ignored "-Wunknown-warning-option"
-#pragma GCC diagnostic ignored "-Wshadow"
-#pragma GCC diagnostic ignored "-Wc++11-compat"
-#pragma GCC diagnostic ignored "-Wpessimizing-move"
-#pragma GCC diagnostic ignored "-Wdeprecated-copy"
-#elif defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4456) // variable shadowing warning
-#endif                          // __GNUC__
-#include <boost/filesystem.hpp>
-#include <boost/process/search_path.hpp>
-#include <boost/process/system.hpp>
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#elif defined(_MSC_VER)
-#pragma warning(pop)
-#endif // __GNUC__
+#include "file_utils.hpp"
 #include <iostream>
 #include <regex>
 #include <string>
 #include <vector>
-
-namespace fs = boost::filesystem;
-namespace bp = boost::process;
 
 namespace gtirb_bprint {
 
@@ -59,17 +37,8 @@ std::optional<std::string>
 ElfBinaryPrinter::findLibrary(const std::string& library,
                               const std::vector<std::string>& paths) const {
   for (const auto& path : paths) {
-    fs::path filePath(path);
-    filePath.append(library);
-    // check that if filePath is a symbolic link, it eventually leads to a
-    // regular file.
-    fs::path resolvedFilePath(filePath);
-    while (fs::is_symlink(resolvedFilePath)) {
-      resolvedFilePath = fs::read_symlink(resolvedFilePath);
-    }
-    if (fs::is_regular_file(resolvedFilePath)) {
-      return filePath.string();
-    }
+    if (auto fp = resolve_regular_file_path(path, library))
+      return fp;
   }
   return std::nullopt;
 }
@@ -175,71 +144,25 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
   return args;
 }
 
-/// Auxiliary class to make sure we delete the temporary assembly file at the
-/// end
-class TempFile {
-public:
-  std::string name;
-  std::ofstream fileStream;
-  TempFile() {
-#ifdef _WIN32
-    std::string tmpFileName;
-    std::FILE* f = nullptr;
-    while (!f) {
-      tmpFileName = std::tmpnam(nullptr);
-      tmpFileName += ".s";
-      f = fopen(tmpFileName.c_str(), "wx");
-    }
-    fclose(f);
-#else
-    char tmpFileName[] = "/tmp/fileXXXXXX.s";
-    close(mkstemps(tmpFileName, 2)); // Create tmp file
-#endif // _WIN32
-    name = tmpFileName;
-    fileStream.open(name);
-  };
-  ~TempFile() {
-    if (fs::exists(name))
-      fs::remove(name);
-  };
-};
-
-int ElfBinaryPrinter::link(std::string outputFilename,
+int ElfBinaryPrinter::link(const std::string& outputFilename,
                            const std::vector<std::string>& extraCompilerArgs,
                            const std::vector<std::string>& userLibraryPaths,
                            const gtirb_pprint::PrettyPrinter& pp,
                            gtirb::Context& ctx, gtirb::IR& ir) const {
   if (debug)
     std::cout << "Generating binary file" << std::endl;
-  std::vector<TempFile> tempFiles(
-      std::distance(ir.modules().begin(), ir.modules().end()));
+  std::vector<TempFile> tempFiles;
   std::vector<std::string> tempFileNames;
-  int i = 0;
-  for (gtirb::Module& module : ir.modules()) {
-    if (tempFiles[i].fileStream) {
-      if (debug)
-        std::cout << "Printing module" << module.getName()
-                  << " to temporary file " << tempFiles[i].name << std::endl;
-      pp.print(tempFiles[i].fileStream, ctx, module);
-      tempFiles[i].fileStream.close();
-      tempFileNames.push_back(tempFiles[i].name);
-    } else {
-      std::cerr << "ERROR: Could not write assembly into a temporary file.\n";
-      return -1;
-    }
-    ++i;
-  }
-
-  boost::filesystem::path compilerPath = bp::search_path(this->compiler);
-  if (compilerPath.empty()) {
-    std::cerr << "ERROR: Could not find compiler" << this->compiler;
+  if (!prepareSources(ctx, ir, pp, tempFiles, tempFileNames)) {
+    std::cerr << "ERROR: Could not write assembly into a temporary file.\n";
     return -1;
   }
-  if (debug)
-    std::cout << "Calling compiler" << std::endl;
-  return bp::system(compilerPath,
-                    buildCompilerArgs(outputFilename, tempFileNames,
-                                      extraCompilerArgs, userLibraryPaths, ir));
+
+  if (!execute(compiler,
+               buildCompilerArgs(outputFilename, tempFileNames,
+                                 extraCompilerArgs, userLibraryPaths, ir)))
+    return -1;
+  return 0;
 }
 
 } // namespace gtirb_bprint

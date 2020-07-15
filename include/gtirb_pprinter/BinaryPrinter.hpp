@@ -17,22 +17,24 @@
 
 #include "PrettyPrinter.hpp"
 #include <gtirb/gtirb.hpp>
-
 #include <string>
 #include <vector>
 
 /// \brief Binary-print GTIRB representations.
 namespace gtirb_bprint {
+class TempFile;
+
 class DEBLOAT_PRETTYPRINTER_EXPORT_API BinaryPrinter {
+protected:
+  bool prepareSources(gtirb::Context& ctx, gtirb::IR& ir,
+                      const gtirb_pprint::PrettyPrinter& pp,
+                      std::vector<TempFile>& tempFiles,
+                      std::vector<std::string>& tempFileNames) const;
+
 public:
   /// Construct a BinaryPrinter with the default configuration.
-  BinaryPrinter() {}
-  BinaryPrinter(const BinaryPrinter&) = default;
-  BinaryPrinter(BinaryPrinter&&) = default;
-  BinaryPrinter& operator=(const BinaryPrinter&) = default;
-  BinaryPrinter& operator=(BinaryPrinter&&) = default;
-
-  virtual int link(std::string output_filename,
+  virtual ~BinaryPrinter() = default;
+  virtual int link(const std::string& output_filename,
                    const std::vector<std::string>& extraCompilerArgs,
                    const std::vector<std::string>& library_paths,
                    const gtirb_pprint::PrettyPrinter& pp,
