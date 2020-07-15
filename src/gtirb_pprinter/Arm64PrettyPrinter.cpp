@@ -41,10 +41,6 @@ void Arm64PrettyPrinter::printHeader(std::ostream& os) {
   os << ".arch armv8-a\n";
   this->printBar(os);
   os << '\n';
-
-  for (int i = 0; i < 8; i++) {
-    os << syntax.nop() << '\n';
-  }
 }
 
 std::string Arm64PrettyPrinter::getRegisterName(unsigned int reg) const {
@@ -478,10 +474,10 @@ const PrintingPolicy& Arm64PrettyPrinterFactory::defaultPrintingPolicy() const {
 
       /// Sections to avoid printing.
       {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
-       ".plt.sec", ".eh_frame_hdr"},
+       ".plt.sec", ".eh_frame_hdr", ".init_array", ".fini_array"},
 
       /// Sections with possible data object exclusion.
-      {".init_array", ".fini_array"},
+      {},
   };
   return DefaultPolicy;
 }

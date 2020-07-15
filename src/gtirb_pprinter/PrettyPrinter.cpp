@@ -327,7 +327,7 @@ void PrettyPrinterBase::printSectionHeader(std::ostream& os,
     os << std::endl;
   }
   if (policy.arraySections.count(sectionName)) {
-    // os << syntax.align() << " 8\n";
+    os << syntax.align() << " 8\n";
   } else
     printAlignment(os, *section.getAddress());
   printBar(os);
