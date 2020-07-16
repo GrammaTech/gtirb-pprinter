@@ -90,12 +90,12 @@ void PeBinaryPrinter::prepareAssemblerArguments(
         args.push_back("/subsystem:console");
       else
         args.push_back("/subsystem:windows");
+    } else {
+      // We could not find an entrypoint, so assume this is a resource-only DLL
+      // with no entry point as a fallback.
+      args.push_back("/DLL");
+      args.push_back("/NOENTRY");
     }
-  } else {
-    // We could not find an entrypoint, so assume this is a resource-only DLL
-    // with no entry point as a fallback.
-    args.push_back("/DLL");
-    args.push_back("/NOENTRY");
   }
 }
 
