@@ -33,7 +33,6 @@ protected:
                       std::vector<std::string>& tempFileNames) const;
 
 public:
-  /// Construct a BinaryPrinter with the default configuration.
   virtual ~BinaryPrinter() = default;
   virtual int link(const std::string& output_filename,
                    const std::vector<std::string>& extraCompilerArgs,
