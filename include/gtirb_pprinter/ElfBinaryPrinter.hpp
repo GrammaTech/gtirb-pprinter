@@ -40,19 +40,14 @@ private:
 
 public:
   /// Construct a ElfBinaryPrinter with the default configuration.
-  ElfBinaryPrinter() {}
-  ElfBinaryPrinter(bool debugFlag) : debug(debugFlag) {}
+  explicit ElfBinaryPrinter(bool debugFlag) : debug(debugFlag) {}
+  virtual ~ElfBinaryPrinter() = default;
 
-  ElfBinaryPrinter(const ElfBinaryPrinter&) = default;
-  ElfBinaryPrinter(ElfBinaryPrinter&&) = default;
-  ElfBinaryPrinter& operator=(const ElfBinaryPrinter&) = default;
-  ElfBinaryPrinter& operator=(ElfBinaryPrinter&&) = default;
-
-  int link(std::string outputFilename,
+  int link(const std::string& outputFilename,
            const std::vector<std::string>& extraCompilerArgs,
            const std::vector<std::string>& userLibraryPaths,
            const gtirb_pprint::PrettyPrinter& pp, gtirb::Context& context,
-           gtirb::IR& ir) const;
+           gtirb::IR& ir) const override;
 };
 
 } // namespace gtirb_bprint

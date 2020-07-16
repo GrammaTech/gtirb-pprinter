@@ -1,5 +1,6 @@
 import unittest
 from pathlib import Path
+import os
 import subprocess
 import sys
 import tempfile
@@ -9,7 +10,10 @@ two_modules_gtirb = Path("tests", "two_modules.gtirb")
 
 class TestBinaryGeneration(unittest.TestCase):
     def test_generate_binary(self):
-        output = subprocess.check_output(
+        if os.name == "nt":
+            return
+
+        subprocess.check_output(
             [
                 "gtirb-pprinter",
                 "--ir",
@@ -22,7 +26,6 @@ class TestBinaryGeneration(unittest.TestCase):
                 "_end",
             ]
         ).decode(sys.stdout.encoding)
-        self.assertTrue("Calling compiler" in output)
         output_bin = subprocess.check_output("/tmp/two_modules").decode(
             sys.stdout.encoding
         )

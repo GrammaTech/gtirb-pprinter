@@ -243,15 +243,16 @@ int main(int argc, char** argv) {
   if (gtirb_pprint::getRegisteredTargets().count(target) == 0) {
     LOG_ERROR << "Unsupported combination: format \"" << format
               << "\" and syntax \"" << syntax << "\".\n";
-    std::string::size_type width = 0;
+    std::string::size_type width = std::strlen("syntax");
     for (const auto& [f, s] : gtirb_pprint::getRegisteredTargets())
       width = std::max({width, f.size(), s.size()});
     width += 2; // add "gutter" between columns
     LOG_ERROR << "Available combinations:\n";
-    LOG_ERROR << "    " << std::setw(width) << "format"
+    LOG_ERROR << std::left << std::setw(width) << "format" << std::setw(width)
               << "syntax\n";
     for (const auto& [f, s] : gtirb_pprint::getRegisteredTargets())
-      LOG_ERROR << "    " << std::setw(width) << f << s << '\n';
+      LOG_ERROR << std::left << std::setw(width) << f << std::setw(width) << s
+                << '\n';
     return EXIT_FAILURE;
   }
   pp.setTarget(std::move(target));
@@ -345,7 +346,6 @@ int main(int argc, char** argv) {
   }
   // Link directly to a binary.
   if (vm.count("binary") != 0) {
-    gtirb_bprint::ElfBinaryPrinter binaryPrinter(true);
     const auto binaryPath = fs::path(vm["binary"].as<std::string>());
     std::vector<std::string> extraCompilerArgs;
     if (vm.count("compiler-args") != 0)
@@ -353,8 +353,17 @@ int main(int argc, char** argv) {
     std::vector<std::string> libraryPaths;
     if (vm.count("library-paths") != 0)
       libraryPaths = vm["library-paths"].as<std::vector<std::string>>();
-    if (binaryPrinter.link(binaryPath.string(), extraCompilerArgs, libraryPaths,
-                           pp, ctx, *ir)) {
+
+    std::unique_ptr<gtirb_bprint::BinaryPrinter> binaryPrinter;
+    if (format == "elf")
+      binaryPrinter = std::make_unique<gtirb_bprint::ElfBinaryPrinter>(true);
+    else {
+      LOG_ERROR << "'" << format
+                << "' is an unsupported binary printing format.\n";
+      return EXIT_FAILURE;
+    }
+    if (binaryPrinter->link(binaryPath.string(), extraCompilerArgs,
+                            libraryPaths, pp, ctx, *ir)) {
       return EXIT_FAILURE;
     }
   }
