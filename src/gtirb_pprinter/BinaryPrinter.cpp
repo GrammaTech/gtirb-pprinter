@@ -16,9 +16,9 @@
 #include "file_utils.hpp"
 
 namespace gtirb_bprint {
-bool BinaryPrinter::prepareSources(
-    gtirb::Context& ctx, gtirb::IR& ir, const gtirb_pprint::PrettyPrinter& pp,
-    std::vector<TempFile>& tempFiles) const {
+bool BinaryPrinter::prepareSources(gtirb::Context& ctx, gtirb::IR& ir,
+                                   const gtirb_pprint::PrettyPrinter& pp,
+                                   std::vector<TempFile>& tempFiles) const {
   tempFiles = std::vector<TempFile>(
       std::distance(ir.modules().begin(), ir.modules().end()));
   int i = 0;
