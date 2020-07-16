@@ -104,6 +104,8 @@ std::string getModuleISA(const gtirb::Module& module) {
     return "arm";
   case gtirb::ISA::X64:
     return "x64";
+  case gtirb::ISA::IA32:
+    return "x86";
   default:
     return "undefined";
   }
