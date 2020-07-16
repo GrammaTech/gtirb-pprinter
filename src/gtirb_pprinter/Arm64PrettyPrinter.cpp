@@ -72,7 +72,7 @@ void Arm64PrettyPrinter::printOperand(std::ostream& os,
   case ARM64_OP_REG:
     printOpRegdirect(os, inst, index);
 
-    // add extender if needed
+    // Add extender if needed.
     if (op.ext != ARM64_EXT_INVALID) {
       os << ", ";
       printExtender(os, op.ext, op.shift.type, op.shift.value);
@@ -100,7 +100,7 @@ void Arm64PrettyPrinter::printOperand(std::ostream& os,
   case ARM64_OP_REG_MSR:
   case ARM64_OP_PSTATE:
   case ARM64_OP_SYS:
-    // print the operand directly
+    // Print the operand directly.
     printOpRawValue(os, inst, index);
     return;
   case ARM64_OP_PREFETCH:
@@ -173,13 +173,13 @@ void Arm64PrettyPrinter::printOpIndirect(
 
   os << "[";
 
-  // base register
+  // Base register
   if (op.mem.base != ARM64_REG_INVALID) {
     first = false;
     os << getRegisterName(op.mem.base);
   }
 
-  // displacement (constant)
+  // Displacement (constant)
   if (op.mem.disp != 0) {
     if (!first) {
       os << ",";
@@ -193,7 +193,7 @@ void Arm64PrettyPrinter::printOpIndirect(
     first = false;
   }
 
-  // index register
+  // Index register
   if (op.mem.index != ARM64_REG_INVALID) {
     if (!first) {
       os << ",";
@@ -202,7 +202,7 @@ void Arm64PrettyPrinter::printOpIndirect(
     os << getRegisterName(op.mem.index);
   }
 
-  // add shift
+  // Add shift
   if (op.shift.type != ARM64_SFT_INVALID && op.shift.value != 0) {
     os << ",";
     assert(!first && "unexpected shift operator");
@@ -218,32 +218,32 @@ void Arm64PrettyPrinter::printOpIndirect(
 
 void Arm64PrettyPrinter::printOpRawValue(std::ostream& os, const cs_insn& inst,
                                          uint64_t index) {
-  // grab the full operand string
+  // Grab the full operand string.
   const char* opStr = inst.op_str;
 
-  // flick through to the start of the operand
+  // Flick through to the start of the operand.
   unsigned int currOperand = 0;
   bool inBlock = false;
   const char* pos;
   for (pos = opStr; *pos != '\0' && currOperand != index; pos++) {
     char cur = *pos;
     if (cur == '[') {
-      // entering an indirect memory access
+      // Entering an indirect memory access.
       assert(!inBlock && "nested blocks should not be possible");
       inBlock = true;
     } else if (cur == ']') {
-      // exiting an indirect memory access
+      // Exiting an indirect memory access.
       assert(inBlock && "Closing unopened memory access");
       inBlock = false;
     } else if (!inBlock && cur == ',') {
-      // hit a new operand
+      // Hit a new operand.
       currOperand++;
     }
   }
   assert(currOperand == index && "unexpected end of operands");
   const char* operandStart = pos;
 
-  // find the end of the operand
+  // Find the end of the operand.
   while (*pos != '\0') {
     char cur = *pos;
     if (cur == '[') {
@@ -251,18 +251,18 @@ void Arm64PrettyPrinter::printOpRawValue(std::ostream& os, const cs_insn& inst,
     } else if (cur == ']') {
       inBlock = false;
     } else if (!inBlock && cur == ',') {
-      // found end of operand
+      // Found end of operand.
       break;
     }
     pos++;
   }
   const char* operandEnd = pos;
 
-  // skip leading whitespace
+  // Skip leading whitespace.
   while (isspace(*operandStart))
     operandStart++;
 
-  // print every character in the operand
+  // Print every character in the operand.
   for (const char* cur = operandStart; cur < operandEnd; cur++) {
     os << *cur;
   }
