@@ -71,11 +71,11 @@ check-format:
     - cp $GTIRB_DIR/../../bin/gtirb$(echo $BUILD_TYPE | sed 's/Debug/d/;s/RelWithDebInfo//').{dll,pdb} $BASE_DIRECTORY/bin/
     - cp bin/*.pdb $BASE_DIRECTORY/bin
     - cp -r $BASE_DIRECTORY ../
-    - |
-      if [ "$BUILD_TYPE" != 'Debug' ]; then
-        PP_BIN=$(cygpath -w $(pwd)/bin)
-        PATH="$PATH;$PP_BIN;C:\\Python38\\" cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && C:\\PROGRA~1\\CMake\\bin\\ctest.exe -V -C $BUILD_TYPE"
-      fi
+    #- |
+    #  if [ "$BUILD_TYPE" != 'Debug' ]; then
+    #    PP_BIN=$(cygpath -w $(pwd)/bin)
+    #    PATH="$PATH;$PP_BIN" cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && C:\\PROGRA~1\\CMake\\bin\\ctest.exe -V -C $BUILD_TYPE"
+    #  fi
 
 .test-and-tag-template: &test-and-tag
   stage: test-and-tag
