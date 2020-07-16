@@ -22,7 +22,12 @@ IntelPrettyPrinter::IntelPrettyPrinter(gtirb::Context& context_,
                                        const IntelSyntax& syntax_,
                                        const PrintingPolicy& policy_)
     : ElfPrettyPrinter(context_, module_, syntax_, policy_),
-      intelSyntax(syntax_) {}
+      intelSyntax(syntax_) {
+  // Set up Capstone.
+  [[maybe_unused]] cs_err err =
+      cs_open(CS_ARCH_X86, CS_MODE_64, &this->csHandle);
+  assert(err == CS_ERR_OK && "Capstone failure");
+}
 
 void IntelPrettyPrinter::printHeader(std::ostream& os) {
   this->printBar(os);

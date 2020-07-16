@@ -178,10 +178,6 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
     : syntax(syntax_), policy(policy_),
       debug(policy.debug == DebugMessages ? true : false), context(context_),
       module(module_), functionEntry(), functionLastBlock() {
-  // Set up Capstone.
-  [[maybe_unused]] cs_err err =
-      cs_open(CS_ARCH_X86, CS_MODE_64, &this->csHandle);
-  assert(err == CS_ERR_OK && "Capstone failure");
 
   // Set up cache for fast lookup of functions by address.
   if (const auto* functionEntries =

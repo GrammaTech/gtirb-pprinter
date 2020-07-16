@@ -25,6 +25,10 @@ AttPrettyPrinter::AttPrettyPrinter(gtirb::Context& context_,
                                    const ElfSyntax& syntax_,
                                    const PrintingPolicy& policy_)
     : ElfPrettyPrinter(context_, module_, syntax_, policy_) {
+  // Setup Capstone.
+  [[maybe_unused]] cs_err err =
+      cs_open(CS_ARCH_X86, CS_MODE_64, &this->csHandle);
+  assert(err == CS_ERR_OK && "Capstone failure");
   cs_option(this->csHandle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
 }
 
