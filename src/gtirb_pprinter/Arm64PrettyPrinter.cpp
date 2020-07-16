@@ -118,13 +118,14 @@ void Arm64PrettyPrinter::printOperand(std::ostream& os,
 
 void Arm64PrettyPrinter::printPrefix(std::ostream& os, const cs_insn& inst,
                                      uint64_t index) {
-  auto* symbolicOperandInfo =
-      module.getAuxData<gtirb::schema::SymbolicOperandInfoAD>();
-  for (const auto& pair : *symbolicOperandInfo) {
-    const auto& symbolInfo = pair.second;
-    if (pair.first == gtirb::Addr(inst.address) &&
-        index == std::get<0>(symbolInfo)) {
-      os << std::get<1>(symbolInfo);
+  if (auto* symbolicOperandInfo =
+          module.getAuxData<gtirb::schema::SymbolicOperandInfoAD>()) {
+    for (const auto& pair : *symbolicOperandInfo) {
+      const auto& symbolInfo = pair.second;
+      if (pair.first == gtirb::Addr(inst.address) &&
+          index == std::get<0>(symbolInfo)) {
+        os << std::get<1>(symbolInfo);
+      }
     }
   }
 }
@@ -144,9 +145,8 @@ void Arm64PrettyPrinter::printOpImmediate(
   assert(op.type == ARM64_OP_IMM &&
          "printOpImmediate called without an immediate operand");
 
-  bool is_jump = cs_insn_group(this->csHandle, &inst, ARM64_GRP_JUMP);
-
   if (const gtirb::SymAddrConst* s = this->getSymbolicImmediate(symbolic)) {
+    bool is_jump = cs_insn_group(this->csHandle, &inst, ARM64_GRP_JUMP);
     if (!is_jump) {
       os << ' ';
     }
