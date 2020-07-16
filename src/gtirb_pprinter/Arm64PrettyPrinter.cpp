@@ -132,6 +132,8 @@ void Arm64PrettyPrinter::printPrefix(std::ostream& os, const cs_insn& inst,
 
 void Arm64PrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
                                           uint64_t index) {
+  assert(index < inst.detail->arm64.op_count &&
+         "printOpRegdirect called with invalid register index");
   const cs_arm64_op& op = inst.detail->arm64.operands[index];
   assert(op.type == ARM64_OP_REG &&
          "printOpRegdirect called without a register operand");
