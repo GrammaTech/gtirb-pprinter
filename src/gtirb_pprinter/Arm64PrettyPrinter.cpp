@@ -449,8 +449,10 @@ Arm64PrettyPrinter::getForwardedSymbolName(const gtirb::Symbol* symbol,
   if (symbolForwarding) {
     auto found = symbolForwarding->find(symbol->getUUID());
     if (found != symbolForwarding->end()) {
-      gtirb::Node* destSymbol = gtirb::Node::getByUUID(context, found->second);
-      return cast<gtirb::Symbol>(destSymbol)->getName();
+      // Find the destination symbol.
+      if (gtirb::Node* N = gtirb::Node::getByUUID(context, found->second)) {
+        return cast<gtirb::Symbol>(N)->getName();
+      }
     }
   }
   return {};
