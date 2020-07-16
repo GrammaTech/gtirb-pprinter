@@ -50,7 +50,7 @@ void Arm64PrettyPrinter::printOperandList(std::ostream& os,
                                           const gtirb::CodeBlock& block,
                                           const cs_insn& inst) {
   cs_arm64& detail = inst.detail->arm64;
-  uint8_t opCount = detail.op_count;
+  int opCount = detail.op_count;
 
   for (int i = 0; i < opCount; i++) {
     if (i != 0) {
