@@ -60,9 +60,8 @@ void Arm64PrettyPrinter::printOperandList(std::ostream& os,
   }
 }
 
-// TODO: Use block parameter instead of module.findSymbolicExpressionsAt
 void Arm64PrettyPrinter::printOperand(std::ostream& os,
-                                      const gtirb::CodeBlock& /* block */,
+                                      const gtirb::CodeBlock& block,
                                       const cs_insn& inst, uint64_t index) {
   gtirb::Addr ea(inst.address);
   const cs_arm64_op& op = inst.detail->arm64.operands[index];
@@ -81,19 +80,15 @@ void Arm64PrettyPrinter::printOperand(std::ostream& os,
     return;
   case ARM64_OP_IMM:
     if (finalOp) {
-      auto pos = module.findSymbolicExpressionsAt(ea);
-      if (!pos.empty()) {
-        symbolic = &pos.begin()->getSymbolicExpression();
-      }
+      uint64_t Offset = ea - *block.getByteInterval()->getAddress();
+      symbolic = block.getByteInterval()->getSymbolicExpression(Offset);
     }
     printOpImmediate(os, symbolic, inst, index);
     return;
   case ARM64_OP_MEM:
     if (finalOp) {
-      auto pos = module.findSymbolicExpressionsAt(ea);
-      if (!pos.empty()) {
-        symbolic = &pos.begin()->getSymbolicExpression();
-      }
+      uint64_t Offset = ea - *block.getByteInterval()->getAddress();
+      symbolic = block.getByteInterval()->getSymbolicExpression(Offset);
     }
     printOpIndirect(os, symbolic, inst, index);
     return;
