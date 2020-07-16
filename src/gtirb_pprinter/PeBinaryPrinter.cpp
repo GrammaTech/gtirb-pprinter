@@ -23,12 +23,28 @@ void PeBinaryPrinter::prepareAssemblerArguments(
     const std::vector<std::string>& extraCompilerArgs,
     const std::vector<std::string>& libraryPaths,
     std::vector<std::string>& args) const {
+  // FIXME: various improvements left to be made:
+  // * gtirb-pprinter doesn't currently support x86, so support for the ml
+  // assembler is incomplete.
+  // * GTIRB does not yet provide access to the PE32 header, so there's no way
+  // to determine whether the module was an executable or a DLL, what subsystem
+  // the module was compiled for, what the stack size is, etc. We are currently
+  // treating everything as an executable unless it has no entrypoint, and are
+  // using symbols in the module to guess whether it's a console application
+  // or not.
+  // * The user can specify command line arguments, but there's no way to
+  // distinguish between options to ml64.exe per compiland or options to
+  // link.exe for the whole executable.
+
   // The command lines for ml and ml64 are different, but there are some common
   // features. The first thing are the options common to both ml and ml64,
   // followed by assembler-specific options, followed by the name of the file
   // to be assembled. For ml64 compilations, the linker arguments follow all of
   // the compliands.
   bool isML64 = compiler == "ml64";
+
+  // Disable the banner for the assembler.
+  args.push_back("/nologo");
 
   // Set one-time options like the output file name.
   args.push_back("/Fe");
@@ -49,6 +65,9 @@ void PeBinaryPrinter::prepareAssemblerArguments(
     // Start the linker arguments.
     args.push_back("/link");
 
+    // Disable the banner for the linker.
+    args.push_back("/nologo");
+
     // If the user specified additional library paths, tell the linker about
     // them now. Note, there is no way to do this for ml, as it does not accept
     // linker command line arguments.
@@ -67,17 +86,6 @@ void PeBinaryPrinter::prepareAssemblerArguments(
       // for MasmPrettyPrinter for more information.
       args.push_back("/entry:__EntryPoint");
 
-      // If there is a DLL entrypoint, set the DLL linker flag instead of
-      // trying to produce an executable. Also, if there is a DLL entrypoint,
-      // then don't assume anything special about a symbol named main or wmain.
-      // FIXME: This code doesn't work because DllMain and _DllMainCRTStartup
-      // are not exported symbols. Instead, we should be looking at the PE32
-      // header data to determine whether the original executable was a DLL and
-      // which subsystem it was compiled for.
-      bool isDLL = !Iter->findSymbols("_DllMainCRTStartup").empty();
-      if (isDLL)
-        args.push_back("/DLL");
-
       // If we found a module with an entrypoint, see if that module also
       // contains a symbol that gives us a hint as to whether it's a console
       // application or not. If there is a symbol named main or wmain, then
@@ -86,7 +94,7 @@ void PeBinaryPrinter::prepareAssemblerArguments(
       bool isConsole = !Iter->findSymbols("main").empty() ||
                        !Iter->findSymbols("wmain").empty();
 
-      if (isConsole && !isDLL)
+      if (isConsole)
         args.push_back("/subsystem:console");
       else
         args.push_back("/subsystem:windows");
@@ -99,7 +107,6 @@ void PeBinaryPrinter::prepareAssemblerArguments(
   }
 }
 
-// TODO: support switching between ml and ml64 compilers.
 PeBinaryPrinter::PeBinaryPrinter() : compiler("ml64") {}
 
 int PeBinaryPrinter::link(const std::string& outputFilename,
