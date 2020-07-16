@@ -127,16 +127,15 @@ int PeBinaryPrinter::link(const std::string& outputFilename,
                             userLibraryPaths, args);
 
   // Invoke the assembler.
-  bool toolFound;
-  if (!execute(compiler, args, &toolFound)) {
-    if (!toolFound)
-      std::cerr << "ERROR: could not find the assembler '" << compiler
-                << "' on the PATH.\n";
-    else
-      std::cerr << "ERROR: assembler returned a nonzero exit code.\n";
-    return -1;
+  if (auto ret = execute(compiler, args)) {
+    if (*ret)
+      std::cerr << "ERROR: assembler returned: " << *ret << "\n";
+    return *ret;
   }
-  return 0;
+
+  std::cerr << "ERROR: could not find the assembler '" << compiler
+            << "' on the PATH.\n";
+  return -1;
 }
 
 } // namespace gtirb_bprint

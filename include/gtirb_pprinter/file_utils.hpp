@@ -45,11 +45,11 @@ std::optional<std::string>
 resolve_regular_file_path(const std::string& path, const std::string& fileName);
 
 // Helper function to execute a process with arguments; will search for the
-// given tool on PATH automatically. If foundTool is non-null, it will be set
-// to true if the tool can be found and false otherwise. This helps to
-// distinguish between the tool failing and the tool not being found.
-bool execute(const std::string& tool, const std::vector<std::string>& args,
-             bool* foundTool = nullptr);
+// given tool on PATH automatically. If the tool cannot be found, the function
+// returns nullopt. Otherwise, the function returns the return code from
+// executing the tool.
+std::optional<int> execute(const std::string& tool,
+                           const std::vector<std::string>& args);
 
 } // namespace gtirb_bprint
 #endif /* GTIRB_FILE_UTILS_H */

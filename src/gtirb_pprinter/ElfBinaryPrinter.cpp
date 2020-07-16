@@ -158,11 +158,17 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
     return -1;
   }
 
-  if (!execute(compiler,
-               buildCompilerArgs(outputFilename, tempFiles, extraCompilerArgs,
-                                 userLibraryPaths, ir)))
-    return -1;
-  return 0;
+  if (auto ret = execute(compiler, buildCompilerArgs(outputFilename, tempFiles,
+                                                     extraCompilerArgs,
+                                                     userLibraryPaths, ir))) {
+    if (*ret)
+      std::cerr << "ERROR: assembler returned: " << *ret << "\n";
+    return *ret;
+  }
+
+  std::cerr << "ERROR: could not find the assembler '" << compiler
+            << "' on the PATH.\n";
+  return -1;
 }
 
 } // namespace gtirb_bprint

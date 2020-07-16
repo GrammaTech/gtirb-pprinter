@@ -80,16 +80,11 @@ resolve_regular_file_path(const std::string& path,
   return resolve_regular_file_path(filePath.string());
 }
 
-bool execute(const std::string& tool, const std::vector<std::string>& args,
-             bool* toolFound) {
+std::optional<int> execute(const std::string& tool,
+                           const std::vector<std::string>& args) {
   fs::path compilerPath = bp::search_path(tool);
-  bool wasToolFound = !compilerPath.empty();
-  if (toolFound)
-    *toolFound = wasToolFound;
-
-  if (!wasToolFound) {
-    return false;
-  }
-  return bp::system(compilerPath, args) == 0;
+  if (compilerPath.empty())
+    return std::nullopt;
+  return bp::system(compilerPath, args);
 }
 } // namespace gtirb_bprint
