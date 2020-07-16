@@ -24,11 +24,13 @@
 
 /// \brief PeBinary-print GTIRB representations.
 namespace gtirb_bprint {
+class TempFile;
+
 class DEBLOAT_PRETTYPRINTER_EXPORT_API PeBinaryPrinter : public BinaryPrinter {
   std::string compiler;
 
   void
-  prepareAssemblerArguments(const std::vector<std::string>& compilands,
+  prepareAssemblerArguments(const std::vector<TempFile>& compilands,
                             gtirb::IR& ir, const std::string& outputFilename,
                             const std::vector<std::string>& extraCompilerArgs,
                             const std::vector<std::string>& libraryPaths,

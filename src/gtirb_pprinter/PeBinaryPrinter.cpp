@@ -18,7 +18,7 @@
 
 namespace gtirb_bprint {
 void PeBinaryPrinter::prepareAssemblerArguments(
-    const std::vector<std::string>& compilands, gtirb::IR& ir,
+    const std::vector<TempFile>& compilands, gtirb::IR& ir,
     const std::string& outputFilename,
     const std::vector<std::string>& extraCompilerArgs,
     const std::vector<std::string>& libraryPaths,
@@ -51,13 +51,13 @@ void PeBinaryPrinter::prepareAssemblerArguments(
   args.push_back(outputFilename);
 
   // Set per-compiland options, if any.
-  for (const std::string& compiland : compilands) {
+  for (const TempFile& compiland : compilands) {
     // Copy in any user-supplied command line arguments.
     std::copy(extraCompilerArgs.begin(), extraCompilerArgs.end(),
               std::back_inserter(args));
 
     // The last thing before the next file is the file to be assembled.
-    args.push_back(compiland);
+    args.push_back(compiland.fileName());
   }
 
   // Handle the linker options for ml64.
@@ -116,16 +116,15 @@ int PeBinaryPrinter::link(const std::string& outputFilename,
                           gtirb::Context& ctx, gtirb::IR& ir) const {
   // Prepare all of the files we're going to generate assembly into.
   std::vector<TempFile> tempFiles;
-  std::vector<std::string> tempFileNames;
-  if (!prepareSources(ctx, ir, pp, tempFiles, tempFileNames)) {
+  if (!prepareSources(ctx, ir, pp, tempFiles)) {
     std::cerr << "ERROR: Could not write assembly into a temporary file.\n";
     return -1;
   }
 
   // Collect the arguments for invoking the assembler.
   std::vector<std::string> args;
-  prepareAssemblerArguments(tempFileNames, ir, outputFilename,
-                            extraCompilerArgs, userLibraryPaths, args);
+  prepareAssemblerArguments(tempFiles, ir, outputFilename, extraCompilerArgs,
+                            userLibraryPaths, args);
 
   // Invoke the assembler.
   bool toolFound;

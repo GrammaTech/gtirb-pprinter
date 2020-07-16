@@ -28,8 +28,7 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API BinaryPrinter {
 protected:
   bool prepareSources(gtirb::Context& ctx, gtirb::IR& ir,
                       const gtirb_pprint::PrettyPrinter& pp,
-                      std::vector<TempFile>& tempFiles,
-                      std::vector<std::string>& tempFileNames) const;
+                      std::vector<TempFile>& tempFiles) const;
 
 public:
   virtual ~BinaryPrinter() = default;
