@@ -35,10 +35,12 @@ void IntelPrettyPrinter::printHeader(std::ostream& os) {
   }
 }
 
-void IntelPrettyPrinter::printOpRegdirect(std::ostream& os,
-                                          const cs_insn& /*inst*/,
-                                          unsigned int reg) {
-  os << getRegisterName(reg);
+void IntelPrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
+                                          uint64_t index) {
+  const cs_x86_op& op = inst.detail->x86.operands[index];
+  assert(op.type == X86_OP_REG &&
+         "printOpRegdirect called without a register operand");
+  os << getRegisterName(op.reg);
 }
 
 void IntelPrettyPrinter::printOpImmediate(

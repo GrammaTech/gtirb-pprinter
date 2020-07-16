@@ -72,7 +72,7 @@ void Arm64PrettyPrinter::printOperand(std::ostream& os,
 
   switch (op.type) {
   case ARM64_OP_REG:
-    printOpRegdirect(os, inst, op.reg);
+    printOpRegdirect(os, inst, index);
 
     // add extender if needed
     if (op.ext != ARM64_EXT_INVALID) {
@@ -135,10 +135,12 @@ void Arm64PrettyPrinter::printPrefix(std::ostream& os, const cs_insn& inst,
   }
 }
 
-void Arm64PrettyPrinter::printOpRegdirect(std::ostream& os,
-                                          const cs_insn& /* inst */,
-                                          unsigned int reg) {
-  os << getRegisterName(reg);
+void Arm64PrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
+                                          uint64_t index) {
+  const cs_arm64_op& op = inst.detail->arm64.operands[index];
+  assert(op.type == ARM64_OP_REG &&
+         "printOpRegdirect called without a register operand");
+  os << getRegisterName(op.reg);
 }
 
 void Arm64PrettyPrinter::printOpImmediate(

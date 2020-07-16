@@ -36,7 +36,7 @@ protected:
   void printOperand(std::ostream& os, const gtirb::CodeBlock& block,
                     const cs_insn& inst, uint64_t index) override;
   void printOpRegdirect(std::ostream& os, const cs_insn& inst,
-                        unsigned int reg) override;
+                        uint64_t index) override;
   void printOpImmediate(std::ostream& os,
                         const gtirb::SymbolicExpression* symbolic,
                         const cs_insn& inst, uint64_t index) override;
@@ -55,9 +55,6 @@ protected:
                   unsigned int value);
   void printExtender(std::ostream& os, const arm64_extender& ext,
                      const arm64_shifter shiftType, uint64_t shiftValue);
-
-private:
-  static volatile bool registered;
 };
 
 class Arm64PrettyPrinterFactory : public PrettyPrinterFactory {

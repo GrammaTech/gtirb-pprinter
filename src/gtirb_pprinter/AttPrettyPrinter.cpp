@@ -36,11 +36,14 @@ std::string AttPrettyPrinter::getRegisterName(unsigned int reg) const {
 }
 
 void AttPrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
-                                        unsigned int reg) {
+                                        uint64_t index) {
+  const cs_x86_op& op = inst.detail->x86.operands[index];
+  assert(op.type == X86_OP_REG &&
+         "printOpRegdirect called without a register operand");
   if (cs_insn_group(this->csHandle, &inst, CS_GRP_CALL) ||
       cs_insn_group(this->csHandle, &inst, CS_GRP_JUMP))
     os << '*';
-  os << getRegisterName(reg);
+  os << getRegisterName(op.reg);
 }
 
 void AttPrettyPrinter::printOpImmediate(

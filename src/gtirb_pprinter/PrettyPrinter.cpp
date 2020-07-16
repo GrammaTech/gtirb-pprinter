@@ -510,7 +510,7 @@ void PrettyPrinterBase::printOperand(std::ostream& os,
 
   switch (op.type) {
   case X86_OP_REG:
-    printOpRegdirect(os, inst, op.reg);
+    printOpRegdirect(os, inst, index);
     return;
   case X86_OP_IMM:
     symbolic = block.getByteInterval()->getSymbolicExpression(
