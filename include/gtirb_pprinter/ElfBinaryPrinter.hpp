@@ -24,6 +24,8 @@
 
 /// \brief ElfBinary-print GTIRB representations.
 namespace gtirb_bprint {
+class TempFile;
+
 class DEBLOAT_PRETTYPRINTER_EXPORT_API ElfBinaryPrinter : public BinaryPrinter {
 private:
   std::string compiler = "gcc";
@@ -34,7 +36,7 @@ private:
   findLibrary(const std::string& library,
               const std::vector<std::string>& paths) const;
   std::vector<std::string> buildCompilerArgs(
-      std::string outputFilename, const std::vector<std::string>& asmPath,
+      std::string outputFilename, const std::vector<TempFile>& asmPath,
       const std::vector<std::string>& extraCompilerArgs,
       const std::vector<std::string>& userlibraryPaths, gtirb::IR& ir) const;
 

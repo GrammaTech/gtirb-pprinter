@@ -18,8 +18,7 @@
 namespace gtirb_bprint {
 bool BinaryPrinter::prepareSources(
     gtirb::Context& ctx, gtirb::IR& ir, const gtirb_pprint::PrettyPrinter& pp,
-    std::vector<TempFile>& tempFiles,
-    std::vector<std::string>& tempFileNames) const {
+    std::vector<TempFile>& tempFiles) const {
   tempFiles = std::vector<TempFile>(
       std::distance(ir.modules().begin(), ir.modules().end()));
   int i = 0;
@@ -27,7 +26,6 @@ bool BinaryPrinter::prepareSources(
     if (tempFiles[i].isOpen()) {
       pp.print(tempFiles[i], ctx, module);
       tempFiles[i].close();
-      tempFileNames.push_back(tempFiles[i].fileName());
     } else {
       return false;
     }
