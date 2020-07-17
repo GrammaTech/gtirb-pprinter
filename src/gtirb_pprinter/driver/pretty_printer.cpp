@@ -28,28 +28,26 @@ static bool isStreamATerminal(FILE* stream) {
 #endif
 }
 
-static void setStdStreamToBinary(FILE* stream) {
+static bool setStdStreamToBinary(FILE* stream) {
   // Check to see if we're running a tty vs a pipe. If a tty, then we
   // want to warn the user if we're going to open in binary mode.
-  if (isStreamATerminal(stream)) {
-    std::string stream_str = stream == stdout ? "stdout" : "stdin";
-    std::cerr << "Refusing to set " << stream << " to binary mode when "
-              << stream << " is a terminal\n";
-  } else {
+  if (isStreamATerminal(stream))
+    return false;
+
 #if defined(_MSC_VER)
-    _setmode(_fileno(stream), _O_BINARY);
+  _setmode(_fileno(stream), _O_BINARY);
 #else
-    if (stream == stdout) {
-      stdout = freopen(NULL, "wb", stdout);
-      assert(stdout && "Failed to reopen stdout");
-    } else if (stream == stdin) {
-      stdin = freopen(NULL, "rb", stdin);
-      assert(stdin && "Failed to reopen stdin");
-    } else {
-      std::cerr << "Refusing to set non-stdout/stdin stream to binary mode\n";
-    }
-#endif
+  if (stream == stdout) {
+    stdout = freopen(NULL, "wb", stdout);
+    assert(stdout && "Failed to reopen stdout");
+  } else if (stream == stdin) {
+    stdin = freopen(NULL, "rb", stdin);
+    assert(stdin && "Failed to reopen stdin");
+  } else {
+    std::cerr << "Refusing to set non-stdout/stdin stream to binary mode\n";
   }
+#endif
+  return true;
 }
 
 static fs::path getAsmFileName(const fs::path& InitialPath, int Index) {
@@ -194,7 +192,10 @@ int main(int argc, char** argv) {
       return EXIT_FAILURE;
     }
   } else {
-    setStdStreamToBinary(stdin);
+    if (!setStdStreamToBinary(stdin)) {
+      std::cout << desc << "\n";
+      return EXIT_FAILURE;
+    }
     if (gtirb::ErrorOr<gtirb::IR*> iOrE = gtirb::IR::load(ctx, std::cin)) {
       ir = *iOrE;
     }
