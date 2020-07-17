@@ -37,7 +37,7 @@ std::optional<std::string>
 ElfBinaryPrinter::findLibrary(const std::string& library,
                               const std::vector<std::string>& paths) const {
   for (const auto& path : paths) {
-    if (auto fp = resolve_regular_file_path(path, library))
+    if (std::optional<std::string> fp = resolveRegularFilePath(path, library))
       return fp;
   }
   return std::nullopt;
@@ -158,9 +158,10 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
     return -1;
   }
 
-  if (auto ret = execute(compiler, buildCompilerArgs(outputFilename, tempFiles,
-                                                     extraCompilerArgs,
-                                                     userLibraryPaths, ir))) {
+  if (std::optional<int> ret =
+          execute(compiler,
+                  buildCompilerArgs(outputFilename, tempFiles,
+                                    extraCompilerArgs, userLibraryPaths, ir))) {
     if (*ret)
       std::cerr << "ERROR: assembler returned: " << *ret << "\n";
     return *ret;

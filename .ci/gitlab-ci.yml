@@ -71,6 +71,9 @@ check-format:
     - cp $GTIRB_DIR/../../bin/gtirb$(echo $BUILD_TYPE | sed 's/Debug/d/;s/RelWithDebInfo//').{dll,pdb} $BASE_DIRECTORY/bin/
     - cp bin/*.pdb $BASE_DIRECTORY/bin
     - cp -r $BASE_DIRECTORY ../
+    # ********FIXME********** Re-enable this code once Brian is back and
+    # *********************** is able to rebuild the vagrant file so that
+    # *********************** it works. This should be done by 2020/07/27.
     #- |
     #  if [ "$BUILD_TYPE" != 'Debug' ]; then
     #    PP_BIN=$(cygpath -w $(pwd)/bin)

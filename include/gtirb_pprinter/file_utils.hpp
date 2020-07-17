@@ -24,25 +24,25 @@ namespace gtirb_bprint {
 /// Auxiliary class to make sure we delete the temporary assembly file at the
 /// end
 class TempFile {
-  std::string name;
-  std::ofstream fileStream;
+  std::string Name;
+  std::ofstream FileStream;
 
 public:
   TempFile();
   ~TempFile();
 
-  bool isOpen() const { return static_cast<bool>(fileStream); }
-  void close() { fileStream.close(); }
+  bool isOpen() const { return static_cast<bool>(FileStream); }
+  void close() { FileStream.close(); }
 
-  operator const std::ofstream&() const { return fileStream; }
-  operator std::ofstream&() { return fileStream; }
-  const std::string& fileName() const { return name; }
+  operator const std::ofstream&() const { return FileStream; }
+  operator std::ofstream&() { return FileStream; }
+  const std::string& fileName() const { return Name; }
 };
 
 // Helper functions to resolve symlinks and get a real path to a file.
-std::optional<std::string> resolve_regular_file_path(const std::string& path);
-std::optional<std::string>
-resolve_regular_file_path(const std::string& path, const std::string& fileName);
+std::optional<std::string> resolveRegularFilePath(const std::string& path);
+std::optional<std::string> resolveRegularFilePath(const std::string& path,
+                                                  const std::string& fileName);
 
 // Helper function to execute a process with arguments; will search for the
 // given tool on PATH automatically. If the tool cannot be found, the function
