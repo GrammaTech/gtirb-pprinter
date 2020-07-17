@@ -41,25 +41,25 @@ namespace gtirb_bprint {
 TempFile::TempFile() {
   // FIXME: this has TOCTOU issues.
 #ifdef _WIN32
-  std::string tmpFileName;
-  std::FILE* f = nullptr;
-  while (!f) {
-    tmpFileName = std::tmpnam(nullptr);
-    tmpFileName += ".s";
-    f = fopen(tmpFileName.c_str(), "wx");
+  std::string TmpFileName;
+  std::FILE* F = nullptr;
+  while (!F) {
+    TmpFileName = std::tmpnam(nullptr);
+    TmpFileName += ".s";
+    F = fopen(TmpFileName.c_str(), "wx");
   }
-  fclose(f);
+  fclose(F);
 #else
-  char tmpFileName[] = "/tmp/fileXXXXXX.s";
-  ::close(mkstemps(tmpFileName, 2)); // Create tmp file
+  char TmpFileName[] = "/tmp/fileXXXXXX.s";
+  ::close(mkstemps(TmpFileName, 2)); // Create tmp file
 #endif // _WIN32
-  name = tmpFileName;
-  fileStream.open(name);
+  Name = TmpFileName;
+  FileStream.open(Name);
 }
 
-TempFile::~TempFile() { fs::remove(name); }
+TempFile::~TempFile() { fs::remove(Name); }
 
-std::optional<std::string> resolve_regular_file_path(const std::string& path) {
+std::optional<std::string> resolveRegularFilePath(const std::string& path) {
   // Check that if path is a symbolic link, it eventually leads to a regular
   // file.
   fs::path resolvedFilePath(path);
@@ -72,12 +72,11 @@ std::optional<std::string> resolve_regular_file_path(const std::string& path) {
   return std::nullopt;
 }
 
-std::optional<std::string>
-resolve_regular_file_path(const std::string& path,
-                          const std::string& fileName) {
+std::optional<std::string> resolveRegularFilePath(const std::string& path,
+                                                  const std::string& fileName) {
   fs::path filePath(path);
   filePath.append(fileName);
-  return resolve_regular_file_path(filePath.string());
+  return resolveRegularFilePath(filePath.string());
 }
 
 std::optional<int> execute(const std::string& tool,
