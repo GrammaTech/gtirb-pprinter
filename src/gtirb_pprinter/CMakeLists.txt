@@ -8,6 +8,7 @@ set(${PROJECT_NAME}_H
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/AuxDataSchema.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/BinaryPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Export.hpp
+    ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/file_utils.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/PrettyPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Syntax.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Arm64PrettyPrinter.hpp
@@ -22,8 +23,10 @@ set(${PROJECT_NAME}_H
 set(${PROJECT_NAME}_SRC
     Arm64PrettyPrinter.cpp
     AttPrettyPrinter.cpp
+    BinaryPrinter.cpp
     ElfBinaryPrinter.cpp
     ElfPrettyPrinter.cpp
+    file_utils.cpp
     IntelPrettyPrinter.cpp
     PrettyPrinter.cpp
     Registration.cpp

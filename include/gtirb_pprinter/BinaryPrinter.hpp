@@ -23,16 +23,17 @@
 
 /// \brief Binary-print GTIRB representations.
 namespace gtirb_bprint {
-class DEBLOAT_PRETTYPRINTER_EXPORT_API BinaryPrinter {
-public:
-  /// Construct a BinaryPrinter with the default configuration.
-  BinaryPrinter() {}
-  BinaryPrinter(const BinaryPrinter&) = default;
-  BinaryPrinter(BinaryPrinter&&) = default;
-  BinaryPrinter& operator=(const BinaryPrinter&) = default;
-  BinaryPrinter& operator=(BinaryPrinter&&) = default;
+class TempFile;
 
-  virtual int link(std::string output_filename,
+class DEBLOAT_PRETTYPRINTER_EXPORT_API BinaryPrinter {
+protected:
+  bool prepareSources(gtirb::Context& ctx, gtirb::IR& ir,
+                      const gtirb_pprint::PrettyPrinter& pp,
+                      std::vector<TempFile>& tempFiles) const;
+
+public:
+  virtual ~BinaryPrinter() = default;
+  virtual int link(const std::string& output_filename,
                    const std::vector<std::string>& extraCompilerArgs,
                    const std::vector<std::string>& library_paths,
                    const gtirb_pprint::PrettyPrinter& pp,
