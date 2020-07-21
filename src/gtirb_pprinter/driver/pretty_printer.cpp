@@ -249,15 +249,16 @@ int main(int argc, char** argv) {
           : gtirb_pprint::getDefaultSyntax(format, isa).value_or("");
   auto target = std::make_tuple(format, isa, syntax);
   if (gtirb_pprint::getRegisteredTargets().count(target) == 0) {
-    LOG_ERROR << "Unsupported combination: format \"" << format << "\", ISA \""
-              << isa << "\", and syntax \"" << syntax << "\".\n";
+    LOG_ERROR << "Unsupported combination: format \"" << format << "\" ISA \""
+              << isa << "\" and syntax \"" << syntax << "\".\n";
     std::string::size_type width = std::strlen("syntax");
     for (const auto& [f, i, s] : gtirb_pprint::getRegisteredTargets())
       width = std::max({width, f.size(), i.size(), s.size()});
     width += 2; // add "gutter" between columns
     LOG_ERROR << "Available combinations:\n";
     LOG_ERROR << std::left << std::setw(width) << "format" << std::setw(width)
-              << "ISA" << std::setw(width) << "syntax\n";
+              << "ISA" << std::setw(width) << "syntax"
+              << "\n";
     for (const auto& [f, i, s] : gtirb_pprint::getRegisteredTargets())
       LOG_ERROR << std::left << std::setw(width) << f << std::setw(width) << i
                 << std::setw(width) << s << '\n';

@@ -11,6 +11,7 @@ set(${PROJECT_NAME}_H
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/file_utils.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/PrettyPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Syntax.hpp
+    ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Arm64PrettyPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ArmPrettyPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/AttPrettyPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ElfBinaryPrinter.hpp
@@ -25,6 +26,7 @@ set(${PROJECT_NAME}_H
 # sources
 set(${PROJECT_NAME}_SRC
     ArmPrettyPrinter.cpp
+    Arm64PrettyPrinter.cpp
     AttPrettyPrinter.cpp
     BinaryPrinter.cpp
     ElfBinaryPrinter.cpp

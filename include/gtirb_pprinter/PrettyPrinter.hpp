@@ -52,7 +52,7 @@ using string_range = boost::any_range<std::string, boost::forward_traversal_tag,
 /// used to load a default \link PrintingPolicy and create a pretty printer for
 /// the formats and syntaxes named in the initialization lists.
 ///
-/// For example, \code registerPrinter({"foo"}, {"x64"}, {"bar"}, theFactory);
+/// For example, \code registerPrinter({"elf"}, {"x64"}, {"intel"}, theFactory);
 /// \endcode
 ///
 /// \param formats    the (non-empty) formats produced by the factory
@@ -85,9 +85,8 @@ getModuleISA(const gtirb::Module& module);
 
 /// Set the default syntax for a file format and isa.
 DEBLOAT_PRETTYPRINTER_EXPORT_API void
-setDefaultSyntax(const std::string& format, const std::string& syntax);
-void setDefaultSyntax(const std::string& format, const std::string& isa,
-                      const std::string& syntax);
+setDefaultSyntax(const std::string& format, const std::string& isa,
+                 const std::string& syntax);
 
 /// Return the default syntax for a file format.
 DEBLOAT_PRETTYPRINTER_EXPORT_API std::optional<std::string>
@@ -109,7 +108,9 @@ public:
       c.clear();
     }
     c.insert(Skip.begin(), Skip.end());
-    c.erase(Keep.begin(), Keep.end());
+    for (const std::string& s : Keep) {
+      c.erase(s);
+    }
   }
 
 private:
@@ -133,13 +134,13 @@ public:
   /// Set the target for which to pretty print. It is the caller's
   /// responsibility to ensure that the target name has been registered.
   ///
-  /// \param target compound indentifier of target format, isa, and syntax
+  /// \param target compound indentifier of target format and syntax
   void
   setTarget(const std::tuple<std::string, std::string, std::string>& target);
 
   /// Set the file format for which to pretty print.
   ///
-  /// \param format indentifier of target format and isa.
+  /// \param format indentifier of target format
   void setFormat(const std::string& format, const std::string& isa);
 
   /// Enable or disable debugging messages inside the pretty-printed code.

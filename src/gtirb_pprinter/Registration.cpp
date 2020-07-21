@@ -13,6 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "Arm64PrettyPrinter.hpp"
 #include "ArmPrettyPrinter.hpp"
 #include "AttPrettyPrinter.hpp"
 #include "AuxDataSchema.hpp"
@@ -49,6 +50,8 @@ void registerPrettyPrinters() {
                   std::make_shared<AttPrettyPrinterFactory>());
   registerPrinter({"elf"}, {"arm"}, {"arm"},
                   std::make_shared<ArmPrettyPrinterFactory>(), true);
+  registerPrinter({"elf"}, {"arm64"}, {"arm64"},
+                  std::make_shared<Arm64PrettyPrinterFactory>(), true);
   registerPrinter({"pe"}, {"x64"}, {"masm"},
                   std::make_shared<MasmPrettyPrinterFactory>(), true);
 }

@@ -100,6 +100,8 @@ std::string getModuleFileFormat(const gtirb::Module& module) {
 
 std::string getModuleISA(const gtirb::Module& module) {
   switch (module.getISA()) {
+  case gtirb::ISA::ARM64:
+    return "arm64";
   case gtirb::ISA::ARM:
     return "arm";
   case gtirb::ISA::X64:
@@ -208,6 +210,21 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
       functionLastBlock.insert(lastAddr);
     }
   }
+
+  // FIXME: Make getContainerFunctionName return multiple labels, remove this.
+  // Alias all labels at skipped function blocks; getContainerFunctionName gives
+  // only one label, which may not be in the list of skipped functions.
+  for (const std::string& Name : policy.skipFunctions) {
+    for (const gtirb::Symbol& Symbol : module.findSymbols(Name)) {
+      if (const auto* Block = Symbol.getReferent<gtirb::CodeBlock>()) {
+        if (Block->getAddress()) {
+          for (const auto& Other : module.findSymbols(*Block->getAddress())) {
+            policy.skipFunctions.insert(Other.getName());
+          }
+        }
+      }
+    }
+  }
 }
 
 PrettyPrinterBase::~PrettyPrinterBase() { cs_close(&this->csHandle); }
@@ -310,9 +327,9 @@ void PrettyPrinterBase::printSectionHeader(std::ostream& os,
     printSectionProperties(os, section);
     os << std::endl;
   }
-  if (policy.arraySections.count(sectionName))
+  if (policy.arraySections.count(sectionName)) {
     os << syntax.align() << " 8\n";
-  else
+  } else
     printAlignment(os, *section.getAddress());
   printBar(os);
   os << '\n';
@@ -444,7 +461,7 @@ void PrettyPrinterBase::printInstruction(std::ostream& os,
   ////////////////////////////////////////////////////////////////////
   // special cases
 
-  if (inst.id == X86_INS_NOP) {
+  if (inst.id == X86_INS_NOP || inst.id == ARM64_INS_NOP) {
     os << "  " << syntax.nop();
     for (uint64_t i = 1; i < inst.size; ++i) {
       ea += 1;
@@ -1050,11 +1067,28 @@ std::string
 PrettyPrinterBase::getForwardedSymbolEnding(const gtirb::Symbol* symbol,
                                             bool inData) const {
   if (symbol && symbol->getAddress()) {
-    gtirb::Addr addr = *symbol->getAddress();
-    const auto container_sections = module.findSectionsOn(addr);
-    if (container_sections.begin() == container_sections.end())
-      return std::string{};
-    std::string section_name = container_sections.begin()->getName();
+    const gtirb::Section* ContainerSection;
+    if (symbol->hasReferent()) {
+      if (const auto* CB = symbol->getReferent<gtirb::CodeBlock>()) {
+        ContainerSection = CB->getByteInterval()->getSection();
+      } else if (const auto* DB = symbol->getReferent<gtirb::DataBlock>()) {
+        ContainerSection = DB->getByteInterval()->getSection();
+      } else {
+        // If we're here, then the symbol's referent cannot be a ProxyBlock,
+        // as they never have an address, which we check for the presence of
+        // above.
+        assert(!"Unknown type in symbol referent!");
+        return std::string{};
+      }
+    } else {
+      gtirb::Addr addr = *symbol->getAddress();
+      const auto container_sections = module.findSectionsOn(addr);
+      if (container_sections.empty())
+        return std::string{};
+      ContainerSection = &container_sections.front();
+    }
+
+    std::string section_name = ContainerSection->getName();
     if (!inData && (section_name == ".plt" || section_name == ".plt.got"))
       return std::string{"@PLT"};
     if (section_name == ".got" || section_name == ".got.plt")

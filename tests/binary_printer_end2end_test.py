@@ -3,6 +3,7 @@ from pathlib import Path
 import os
 import subprocess
 import sys
+import tempfile
 
 two_modules_gtirb = Path("tests", "two_modules.gtirb")
 
@@ -29,3 +30,30 @@ class TestBinaryGeneration(unittest.TestCase):
             sys.stdout.encoding
         )
         self.assertTrue("!!!Hello World!!!" in output_bin)
+
+    def test_keep_function(self):
+        tmp = tempfile.NamedTemporaryFile(suffix=".s")
+        try:
+            tmp.close()
+
+            output = subprocess.check_output(
+                [
+                    "gtirb-pprinter",
+                    "--ir",
+                    str(two_modules_gtirb),
+                    "-a",
+                    tmp.name,
+                    "--keep-function",
+                    "_start",
+                ]
+            ).decode(sys.stdout.encoding)
+            self.assertTrue("assembly written to" in output)
+            with open(tmp.name) as assembly:
+                self.assertTrue("_start:" in assembly.read().splitlines())
+        finally:
+            tmp = Path(tmp.name)
+            if tmp.exists():
+                tmp.unlink()
+            extra = tmp.parent / (tmp.stem + "1" + tmp.suffix)
+            if extra.exists():
+                extra.unlink()
