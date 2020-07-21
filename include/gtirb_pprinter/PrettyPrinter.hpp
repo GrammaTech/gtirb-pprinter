@@ -134,13 +134,13 @@ public:
   /// Set the target for which to pretty print. It is the caller's
   /// responsibility to ensure that the target name has been registered.
   ///
-  /// \param target compound indentifier of target format and syntax
+  /// \param target compound indentifier of target format, isa, and syntax
   void
   setTarget(const std::tuple<std::string, std::string, std::string>& target);
 
   /// Set the file format for which to pretty print.
   ///
-  /// \param format indentifier of target format
+  /// \param format indentifier of target format and isa
   void setFormat(const std::string& format, const std::string& isa);
 
   /// Enable or disable debugging messages inside the pretty-printed code.
