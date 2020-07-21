@@ -35,20 +35,23 @@ private:
   std::optional<std::string>
   findLibrary(const std::string& library,
               const std::vector<std::string>& paths) const;
-  std::vector<std::string> buildCompilerArgs(
-      std::string outputFilename, const std::vector<TempFile>& asmPath,
-      const std::vector<std::string>& extraCompilerArgs,
-      const std::vector<std::string>& userlibraryPaths, gtirb::IR& ir) const;
+  std::vector<std::string>
+  buildCompilerArgs(std::string outputFilename,
+                    const std::vector<TempFile>& asmPath, gtirb::IR& ir) const;
 
 public:
   /// Construct a ElfBinaryPrinter with the default configuration.
-  explicit ElfBinaryPrinter(bool debugFlag) : debug(debugFlag) {}
+  explicit ElfBinaryPrinter(const gtirb_pprint::PrettyPrinter& prettyPrinter,
+                            const std::vector<std::string>& extraCompileArgs,
+                            const std::vector<std::string>& libraryPaths,
+                            bool debugFlag)
+      : BinaryPrinter(prettyPrinter, extraCompileArgs, libraryPaths),
+        debug(debugFlag) {}
   virtual ~ElfBinaryPrinter() = default;
 
-  int link(const std::string& outputFilename,
-           const std::vector<std::string>& extraCompilerArgs,
-           const std::vector<std::string>& userLibraryPaths,
-           const gtirb_pprint::PrettyPrinter& pp, gtirb::Context& context,
+  int assemble(const std::string& outputFilename, gtirb::Context& context,
+               gtirb::Module& mod) const override;
+  int link(const std::string& outputFilename, gtirb::Context& context,
            gtirb::IR& ir) const override;
 };
 

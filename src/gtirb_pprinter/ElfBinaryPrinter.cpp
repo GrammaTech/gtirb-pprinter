@@ -43,10 +43,10 @@ ElfBinaryPrinter::findLibrary(const std::string& library,
   return std::nullopt;
 }
 
-std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
-    std::string outputFilename, const std::vector<TempFile>& asmPaths,
-    const std::vector<std::string>& extraCompilerArgs,
-    const std::vector<std::string>& userLibraryPaths, gtirb::IR& ir) const {
+std::vector<std::string>
+ElfBinaryPrinter::buildCompilerArgs(std::string outputFilename,
+                                    const std::vector<TempFile>& asmPaths,
+                                    gtirb::IR& ir) const {
   std::vector<std::string> args;
   // Start constructing the compile arguments, of the form
   // -o <output_filename> fileAXADA.s
@@ -54,10 +54,10 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
   args.emplace_back(outputFilename);
   std::transform(asmPaths.begin(), asmPaths.end(), std::back_inserter(args),
                  [](const TempFile& TF) { return TF.fileName(); });
-  args.insert(args.end(), extraCompilerArgs.begin(), extraCompilerArgs.end());
+  args.insert(args.end(), ExtraCompileArgs.begin(), ExtraCompileArgs.end());
 
   // collect all the library paths
-  std::vector<std::string> allBinaryPaths = userLibraryPaths;
+  std::vector<std::string> allBinaryPaths = LibraryPaths;
 
   for (gtirb::Module& module : ir.modules()) {
 
@@ -89,7 +89,7 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
     }
   }
   // add user library paths
-  for (const auto& libraryPath : userLibraryPaths) {
+  for (const auto& libraryPath : LibraryPaths) {
     args.push_back("-L" + libraryPath);
   }
   // add binary library paths (add them to rpath as well)
@@ -145,23 +145,41 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
   return args;
 }
 
+int ElfBinaryPrinter::assemble(const std::string& outputFilename,
+                               gtirb::Context& ctx, gtirb::Module& mod) const {
+  TempFile tempFile;
+  if (!prepareSource(ctx, mod, tempFile)) {
+    std::cerr << "ERROR: Could not write assembly into a temporary file.\n";
+    return -1;
+  }
+
+  std::vector<std::string> args{{"-o", outputFilename, "-c"}};
+  args.insert(args.end(), ExtraCompileArgs.begin(), ExtraCompileArgs.end());
+  args.push_back(tempFile.fileName());
+
+  if (std::optional<int> ret = execute(compiler, args)) {
+    if (*ret)
+      std::cerr << "ERROR: assembler returned: " << *ret << "\n";
+    return *ret;
+  }
+
+  std::cerr << "ERROR: could not find the assembler '" << compiler
+            << "' on the PATH.\n";
+  return -1;
+}
+
 int ElfBinaryPrinter::link(const std::string& outputFilename,
-                           const std::vector<std::string>& extraCompilerArgs,
-                           const std::vector<std::string>& userLibraryPaths,
-                           const gtirb_pprint::PrettyPrinter& pp,
                            gtirb::Context& ctx, gtirb::IR& ir) const {
   if (debug)
     std::cout << "Generating binary file" << std::endl;
   std::vector<TempFile> tempFiles;
-  if (!prepareSources(ctx, ir, pp, tempFiles)) {
+  if (!prepareSources(ctx, ir, tempFiles)) {
     std::cerr << "ERROR: Could not write assembly into a temporary file.\n";
     return -1;
   }
 
   if (std::optional<int> ret =
-          execute(compiler,
-                  buildCompilerArgs(outputFilename, tempFiles,
-                                    extraCompilerArgs, userLibraryPaths, ir))) {
+          execute(compiler, buildCompilerArgs(outputFilename, tempFiles, ir))) {
     if (*ret)
       std::cerr << "ERROR: assembler returned: " << *ret << "\n";
     return *ret;

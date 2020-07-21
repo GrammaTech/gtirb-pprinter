@@ -18,10 +18,8 @@
 
 namespace gtirb_bprint {
 void PeBinaryPrinter::prepareAssemblerArguments(
-    const std::vector<TempFile>& compilands, gtirb::IR& ir,
-    const std::string& outputFilename,
-    const std::vector<std::string>& extraCompilerArgs,
-    const std::vector<std::string>& libraryPaths,
+    const std::vector<TempFile>& compilands, const std::string& outputFilename,
+    const std::vector<std::string>& perCompilandExtraArgs,
     std::vector<std::string>& args) const {
   // FIXME: various improvements left to be made:
   // * gtirb-pprinter doesn't currently support x86, so support for the ml
@@ -36,13 +34,6 @@ void PeBinaryPrinter::prepareAssemblerArguments(
   // distinguish between options to ml64.exe per compiland or options to
   // link.exe for the whole executable.
 
-  // The command lines for ml and ml64 are different, but there are some common
-  // features. The first thing are the options common to both ml and ml64,
-  // followed by assembler-specific options, followed by the name of the file
-  // to be assembled. For ml64 compilations, the linker arguments follow all of
-  // the compliands.
-  bool isML64 = compiler == "ml64";
-
   // Disable the banner for the assembler.
   args.push_back("/nologo");
 
@@ -52,13 +43,26 @@ void PeBinaryPrinter::prepareAssemblerArguments(
 
   // Set per-compiland options, if any.
   for (const TempFile& compiland : compilands) {
+    // Copy in any program-supplied command line arguments.
+    std::copy(perCompilandExtraArgs.begin(), perCompilandExtraArgs.end(),
+              std::back_inserter(args));
     // Copy in any user-supplied command line arguments.
-    std::copy(extraCompilerArgs.begin(), extraCompilerArgs.end(),
+    std::copy(ExtraCompileArgs.begin(), ExtraCompileArgs.end(),
               std::back_inserter(args));
 
     // The last thing before the next file is the file to be assembled.
     args.push_back(compiland.fileName());
   }
+}
+
+void PeBinaryPrinter::prepareLinkerArguments(
+    gtirb::IR& ir, std::vector<std::string>& args) const {
+  // The command lines for ml and ml64 are different, but there are some common
+  // features. The first thing are the options common to both ml and ml64,
+  // followed by assembler-specific options, followed by the name of the file
+  // to be assembled. For ml64 compilations, the linker arguments follow all of
+  // the compliands.
+  bool isML64 = compiler == "ml64";
 
   // Handle the linker options for ml64.
   if (isML64) {
@@ -69,9 +73,9 @@ void PeBinaryPrinter::prepareAssemblerArguments(
     args.push_back("/nologo");
 
     // If the user specified additional library paths, tell the linker about
-    // them now. Note, there is no way to do this for ml, as it does not accept
-    // linker command line arguments.
-    for (const std::string& libPath : libraryPaths)
+    // them now. Note, there is no way to do this for ml, as it does not
+    // accept linker command line arguments.
+    for (const std::string& libPath : LibraryPaths)
       args.push_back("/LIBPATH:" + libPath);
 
     // If there's an entrypoint defined in any module, specify it on the
@@ -99,35 +103,63 @@ void PeBinaryPrinter::prepareAssemblerArguments(
       else
         args.push_back("/subsystem:windows");
     } else {
-      // We could not find an entrypoint, so assume this is a resource-only DLL
-      // with no entry point as a fallback.
+      // We could not find an entrypoint, so assume this is a resource-only
+      // DLL with no entry point as a fallback.
       args.push_back("/DLL");
       args.push_back("/NOENTRY");
     }
   }
 }
 
-PeBinaryPrinter::PeBinaryPrinter() : compiler("ml64") {}
+PeBinaryPrinter::PeBinaryPrinter(
+    const gtirb_pprint::PrettyPrinter& prettyPrinter,
+    const std::vector<std::string>& extraCompileArgs,
+    const std::vector<std::string>& libraryPaths)
+    : BinaryPrinter(prettyPrinter, extraCompileArgs, libraryPaths),
+      compiler("ml64") {}
 
-int PeBinaryPrinter::link(const std::string& outputFilename,
-                          const std::vector<std::string>& extraCompilerArgs,
-                          const std::vector<std::string>& userLibraryPaths,
-                          const gtirb_pprint::PrettyPrinter& pp,
-                          gtirb::Context& ctx, gtirb::IR& ir) const {
-  // Prepare all of the files we're going to generate assembly into.
-  std::vector<TempFile> tempFiles;
-  if (!prepareSources(ctx, ir, pp, tempFiles)) {
+int PeBinaryPrinter::assemble(const std::string& outputFilename,
+                              gtirb::Context& context,
+                              gtirb::Module& mod) const {
+  std::vector<TempFile> tempFiles(1);
+  if (!prepareSource(context, mod, tempFiles[0])) {
     std::cerr << "ERROR: Could not write assembly into a temporary file.\n";
     return -1;
   }
 
   // Collect the arguments for invoking the assembler.
   std::vector<std::string> args;
-  prepareAssemblerArguments(tempFiles, ir, outputFilename, extraCompilerArgs,
-                            userLibraryPaths, args);
+  prepareAssemblerArguments(tempFiles, outputFilename,
+                            {"/c", "/Fo", outputFilename}, args);
 
   // Invoke the assembler.
-  if (auto ret = execute(compiler, args)) {
+  if (std::optional<int> ret = execute(compiler, args)) {
+    if (*ret)
+      std::cerr << "ERROR: assembler returned: " << *ret << "\n";
+    return *ret;
+  }
+
+  std::cerr << "ERROR: could not find the assembler '" << compiler
+            << "' on the PATH.\n";
+  return -1;
+}
+
+int PeBinaryPrinter::link(const std::string& outputFilename,
+                          gtirb::Context& ctx, gtirb::IR& ir) const {
+  // Prepare all of the files we're going to generate assembly into.
+  std::vector<TempFile> tempFiles;
+  if (!prepareSources(ctx, ir, tempFiles)) {
+    std::cerr << "ERROR: Could not write assembly into a temporary file.\n";
+    return -1;
+  }
+
+  // Collect the arguments for invoking the assembler.
+  std::vector<std::string> args;
+  prepareAssemblerArguments(tempFiles, outputFilename, {}, args);
+  prepareLinkerArguments(ir, args);
+
+  // Invoke the assembler.
+  if (std::optional<int> ret = execute(compiler, args)) {
     if (*ret)
       std::cerr << "ERROR: assembler returned: " << *ret << "\n";
     return *ret;

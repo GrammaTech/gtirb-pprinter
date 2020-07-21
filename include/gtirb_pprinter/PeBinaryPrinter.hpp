@@ -29,19 +29,22 @@ class TempFile;
 class DEBLOAT_PRETTYPRINTER_EXPORT_API PeBinaryPrinter : public BinaryPrinter {
   std::string compiler;
 
-  void
-  prepareAssemblerArguments(const std::vector<TempFile>& compilands,
-                            gtirb::IR& ir, const std::string& outputFilename,
-                            const std::vector<std::string>& extraCompilerArgs,
-                            const std::vector<std::string>& libraryPaths,
-                            std::vector<std::string>& args) const;
+  void prepareAssemblerArguments(
+      const std::vector<TempFile>& compilands,
+      const std::string& outputFilename,
+      const std::vector<std::string>& perCompilandExtraArgs,
+      std::vector<std::string>& args) const;
+  void prepareLinkerArguments(gtirb::IR& ir,
+                              std::vector<std::string>& args) const;
 
 public:
-  PeBinaryPrinter();
-  int link(const std::string& outputFilename,
-           const std::vector<std::string>& extraCompilerArgs,
-           const std::vector<std::string>& userLibraryPaths,
-           const gtirb_pprint::PrettyPrinter& pp, gtirb::Context& context,
+  PeBinaryPrinter(const gtirb_pprint::PrettyPrinter& prettyPrinter,
+                  const std::vector<std::string>& extraCompileArgs,
+                  const std::vector<std::string>& libraryPaths);
+
+  int assemble(const std::string& outputFilename, gtirb::Context& context,
+               gtirb::Module& mod) const override;
+  int link(const std::string& outputFilename, gtirb::Context& context,
            gtirb::IR& ir) const override;
 };
 
