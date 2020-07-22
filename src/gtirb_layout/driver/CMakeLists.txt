@@ -15,6 +15,12 @@ install(
   DESTINATION bin
   COMPONENT layout_driver)
 
-if(NOT BUILD_SHARED_LIBS)
-  target_link_libraries(${BINARY_NAME} PRIVATE -static-libstdc++)
+if(GTIRB_PPRINTER_STATIC_DRIVERS)
+  if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
+    # We do not want to statically link in the STL here, as MSVC is a bit
+    # prickly about STL ABIs.
+  else()
+    target_link_libraries(${BINARY_NAME} PRIVATE -static-libstdc++
+                                                 -static-libgcc)
+  endif()
 endif()

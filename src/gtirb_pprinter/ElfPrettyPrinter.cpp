@@ -92,11 +92,7 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
                                    const ElfSyntax& syntax_,
                                    const PrintingPolicy& policy_)
     : PrettyPrinterBase(context_, module_, syntax_, policy_),
-      elfSyntax(syntax_) {
-  if (module.getAuxData<gtirb::schema::CfiDirectives>()) {
-    policy.skipSections.insert(".eh_frame");
-  }
-}
+      elfSyntax(syntax_) {}
 
 const PrintingPolicy& ElfPrettyPrinter::defaultPrintingPolicy() {
   static PrintingPolicy DefaultPolicy{
@@ -112,7 +108,7 @@ const PrintingPolicy& ElfPrettyPrinter::defaultPrintingPolicy() {
 
       /// Sections to avoid printing.
       {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
-       ".plt.sec", ".eh_frame_hdr"},
+       ".plt.sec", ".eh_frame_hdr", ".eh_frame"},
 
       /// Sections with possible data object exclusion.
       {".init_array", ".fini_array"},
