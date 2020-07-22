@@ -140,7 +140,7 @@ public:
 
   /// Set the file format for which to pretty print.
   ///
-  /// \param format indentifier of target format and isa
+  /// \param format indentifier of target format and isa.
   void setFormat(const std::string& format, const std::string& isa);
 
   /// Enable or disable debugging messages inside the pretty-printed code.
