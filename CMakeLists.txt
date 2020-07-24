@@ -2,8 +2,8 @@
 # Cmake Configuration
 #
 
-# Need 3.9 to support CXX_STANDARD=17 and protobuf
-cmake_minimum_required(VERSION 3.9.0)
+# Need 3.12 to support FindPython3
+cmake_minimum_required(VERSION 3.12)
 
 project(gtirb_pprinter)
 set(PACKAGE_BRANCH windows-support)
@@ -461,11 +461,11 @@ install(
 # ---------------------------------------------------------------------------
 
 if(GTIRB_PPRINTER_ENABLE_TESTS)
-  find_program(PYTHON "python3")
+  find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
   add_test(
     NAME python_tests
-    COMMAND ${PYTHON} -m unittest discover tests "*_test.py"
+    COMMAND Python3::Interpreter -m unittest discover tests "*_test.py"
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/")
 endif()
 

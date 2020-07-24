@@ -18,7 +18,7 @@ stages:
 
 check-format:
   stage: check-format
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
+  image: $DOCKER_REGISTRY/rewriting/gtirb/ubuntu18:aballman
   script:
     - pre-commit run --all-files --show-diff-on-failure
 
@@ -71,14 +71,11 @@ check-format:
     - cp $GTIRB_DIR/../../bin/gtirb$(echo $BUILD_TYPE | sed 's/Debug/d/;s/RelWithDebInfo//').{dll,pdb} $BASE_DIRECTORY/bin/
     - cp bin/*.pdb $BASE_DIRECTORY/bin
     - cp -r $BASE_DIRECTORY ../
-    # ********FIXME********** Re-enable this code once Brian is back and
-    # *********************** is able to rebuild the vagrant file so that
-    # *********************** it works. This should be done by 2020/07/27.
-    #- |
-    #  if [ "$BUILD_TYPE" != 'Debug' ]; then
-    #    PP_BIN=$(cygpath -w $(pwd)/bin)
-    #    PATH="$PATH;$PP_BIN" cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && C:\\PROGRA~1\\CMake\\bin\\ctest.exe -V -C $BUILD_TYPE"
-    #  fi
+    - |
+      if [ "$BUILD_TYPE" != 'Debug' ]; then
+        PP_BIN=$(cygpath -w -a $BASE_DIRECTORY/bin)
+        PATH="$PATH;$PP_BIN" cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && C:\\PROGRA~1\\CMake\\bin\\ctest.exe -V -C $BUILD_TYPE"
+      fi
 
 .test-and-tag-template: &test-and-tag
   stage: test-and-tag
@@ -122,7 +119,7 @@ build-arch-gcc:
     - cd /tmp/aur/src/gtirb-pprinter/build && ctest -V
 
 build-ubuntu16-gcc:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
+  image: $DOCKER_REGISTRY/rewriting/gtirb/ubuntu16:aballman
   variables:
     OS: 'ubuntu16'
     COMPILER: 'g++-7'
@@ -130,7 +127,7 @@ build-ubuntu16-gcc:
   <<: *build
 
 build-ubuntu18-gcc:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
+  image: $DOCKER_REGISTRY/rewriting/gtirb/ubuntu18:aballman
   variables:
     OS: 'ubuntu18'
     COMPILER: 'g++-7'
@@ -222,7 +219,7 @@ test-and-tag-ubuntu16-gcc:
     OS: 'ubuntu16'
     COMPILER: 'gcc'
     BUILD_TYPE: 'RelWithDebInfo'
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
+  image: $DOCKER_REGISTRY/rewriting/gtirb/ubuntu16:aballman
   needs: ['build-ubuntu16-gcc']
   <<: *test-and-tag
 
@@ -231,7 +228,7 @@ test-and-tag-ubuntu18-gcc:
     OS: 'ubuntu18'
     COMPILER: 'gcc'
     BUILD_TYPE: 'RelWithDebInfo'
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
+  image: $DOCKER_REGISTRY/rewriting/gtirb/ubuntu18:aballman
   needs: ['build-ubuntu18-gcc']
   <<: *test-and-tag
 
@@ -264,7 +261,7 @@ test-and-tag-arch-clang-debug:
 
 test-make-install:
   stage: test-and-tag
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
+  image: $DOCKER_REGISTRY/rewriting/gtirb/ubuntu18:aballman
   needs: ['build-ubuntu18-gcc']
   script:
     - export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
@@ -296,14 +293,14 @@ test-make-install:
     - cpack -G "DEB" -D CPACK_GTIRB_DEBIAN_PACKAGE=driver-dbg
 
 build-ubuntu16-packages:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
+  image: $DOCKER_REGISTRY/rewriting/gtirb/ubuntu16:aballman
   needs: [build-ubuntu16-gcc]
   variables:
     OS: ubuntu16
   <<: *build-ubuntu-packages
 
 build-ubuntu18-packages:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
+  image: $DOCKER_REGISTRY/rewriting/gtirb/ubuntu18:aballman
   needs: [build-ubuntu18-gcc]
   variables:
     OS: ubuntu18
@@ -382,66 +379,66 @@ build-ubuntu20-packages:
     - ./test-install
 
 setup-ubuntu16-repo:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
+  image: $DOCKER_REGISTRY/rewriting/gtirb/ubuntu16:aballman
   needs: ['build-ubuntu16-packages']
   variables:
     OS: ubuntu16
   <<: *setup-test-apt-repo
 
 test-ubuntu16-libgtirb-pprinter-dev:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
+  image: $DOCKER_REGISTRY/rewriting/gtirb/ubuntu16:aballman
   needs: ['setup-ubuntu16-repo']
   <<: *test-ubuntu-libgtirb-pprinter-dev
 
 test-ubuntu16-gtirb-pprinter:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
+  image: $DOCKER_REGISTRY/rewriting/gtirb/ubuntu16:aballman
   needs: ['setup-ubuntu16-repo']
   <<: *test-ubuntu-gtirb-pprinter
 
 test-ubuntu16-libgtirb-pprinter-dbg:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
+  image: $DOCKER_REGISTRY/rewriting/gtirb/ubuntu16:aballman
   needs: ['setup-ubuntu16-repo']
   <<: *test-ubuntu-libgtirb-pprinter-dbg
 
 test-ubuntu16-gtirb-pprinter-dbg:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
+  image: $DOCKER_REGISTRY/rewriting/gtirb/ubuntu16:aballman
   needs: ['setup-ubuntu16-repo']
   <<: *test-ubuntu-gtirb-pprinter-dbg
 
 test-ubuntu16-libgtirb-pprinter:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
+  image: $DOCKER_REGISTRY/rewriting/gtirb/ubuntu16:aballman
   needs: ['setup-ubuntu16-repo', 'test-ubuntu16-libgtirb-pprinter-dev']
   <<: *test-ubuntu-libgtirb-pprinter
 
 setup-ubuntu18-repo:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
+  image: $DOCKER_REGISTRY/rewriting/gtirb/ubuntu18:aballman
   needs: ['build-ubuntu18-packages']
   variables:
     OS: ubuntu18
   <<: *setup-test-apt-repo
 
 test-ubuntu18-libgtirb-pprinter-dev:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
+  image: $DOCKER_REGISTRY/rewriting/gtirb/ubuntu18:aballman
   needs: ['setup-ubuntu18-repo']
   <<: *test-ubuntu-libgtirb-pprinter-dev
 
 test-ubuntu18-gtirb-pprinter:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
+  image: $DOCKER_REGISTRY/rewriting/gtirb/ubuntu18:aballman
   needs: ['setup-ubuntu18-repo']
   <<: *test-ubuntu-gtirb-pprinter
 
 test-ubuntu18-libgtirb-pprinter-dbg:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
+  image: $DOCKER_REGISTRY/rewriting/gtirb/ubuntu18:aballman
   needs: ['setup-ubuntu18-repo']
   <<: *test-ubuntu-libgtirb-pprinter-dbg
 
 test-ubuntu18-gtirb-pprinter-dbg:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
+  image: $DOCKER_REGISTRY/rewriting/gtirb/ubuntu18:aballman
   needs: ['setup-ubuntu18-repo']
   <<: *test-ubuntu-gtirb-pprinter-dbg
 
 test-ubuntu18-libgtirb-pprinter:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
+  image: $DOCKER_REGISTRY/rewriting/gtirb/ubuntu18:aballman
   needs: ['setup-ubuntu18-repo', 'test-ubuntu18-libgtirb-pprinter-dev']
   <<: *test-ubuntu-libgtirb-pprinter
 
@@ -500,12 +497,12 @@ test-arch-package:
     - cp build/*.deb ./
 
 debian-installer-ubuntu16:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
+  image: $DOCKER_REGISTRY/rewriting/gtirb/ubuntu16:aballman
   needs: ['build-ubuntu16-packages']
   <<: *deploy-debian-installer
 
 debian-installer-ubuntu18:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
+  image: $DOCKER_REGISTRY/rewriting/gtirb/ubuntu18:aballman
   needs: ['build-ubuntu18-packages']
   <<: *deploy-debian-installer
 
