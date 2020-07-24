@@ -71,9 +71,10 @@ check-format:
     - cp $GTIRB_DIR/../../bin/gtirb$(echo $BUILD_TYPE | sed 's/Debug/d/;s/RelWithDebInfo//').{dll,pdb} $BASE_DIRECTORY/bin/
     - cp bin/*.pdb $BASE_DIRECTORY/bin
     - cp -r $BASE_DIRECTORY ../
+    - cp $BASE_DIRECTORY/bin/*.dll bin
     - |
       if [ "$BUILD_TYPE" != 'Debug' ]; then
-        PP_BIN=$(cygpath -w -a $BASE_DIRECTORY/bin)
+        PP_BIN=$(cygpath -w -a $(pwd)/bin)
         PATH="$PATH;$PP_BIN" cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && C:\\PROGRA~1\\CMake\\bin\\ctest.exe -V -C $BUILD_TYPE"
       fi
 
