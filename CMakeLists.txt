@@ -2,8 +2,9 @@
 # Cmake Configuration
 #
 
-# Need 3.12 to support FindPython3
-cmake_minimum_required(VERSION 3.12)
+# Need 3.12.1 to support FindPython3 and the correct cpack semantics for version
+# numbers.
+cmake_minimum_required(VERSION 3.12.1)
 
 project(gtirb_pprinter)
 set(PACKAGE_BRANCH windows-support)
