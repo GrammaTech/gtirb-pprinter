@@ -27,17 +27,28 @@ class TempFile;
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API BinaryPrinter {
 protected:
+  std::vector<std::string> ExtraCompileArgs;
+  std::vector<std::string> LibraryPaths;
+  const gtirb_pprint::PrettyPrinter& Printer;
+
+  bool prepareSource(gtirb::Context& ctx, gtirb::Module& mod,
+                     TempFile& tempFile) const;
+
   bool prepareSources(gtirb::Context& ctx, gtirb::IR& ir,
-                      const gtirb_pprint::PrettyPrinter& pp,
                       std::vector<TempFile>& tempFiles) const;
 
 public:
+  BinaryPrinter(const gtirb_pprint::PrettyPrinter& prettyPrinter,
+                const std::vector<std::string>& extraCompileArgs,
+                const std::vector<std::string>& libraryPaths)
+      : ExtraCompileArgs(extraCompileArgs), LibraryPaths(libraryPaths),
+        Printer(prettyPrinter) {}
+
   virtual ~BinaryPrinter() = default;
-  virtual int link(const std::string& output_filename,
-                   const std::vector<std::string>& extraCompilerArgs,
-                   const std::vector<std::string>& library_paths,
-                   const gtirb_pprint::PrettyPrinter& pp,
-                   gtirb::Context& context, gtirb::IR& ir) const = 0;
+  virtual int assemble(const std::string& outputFilename,
+                       gtirb::Context& context, gtirb::Module& mod) const = 0;
+  virtual int link(const std::string& outputFilename, gtirb::Context& context,
+                   gtirb::IR& ir) const = 0;
 };
 } // namespace gtirb_bprint
 

@@ -58,7 +58,7 @@ bool registerPrinter(std::initializer_list<std::string> formats,
   for (const std::string& format : formats) {
     for (const std::string& isa : isas) {
       for (const std::string& syntax : syntaxes) {
-        getFactories()[std::make_tuple(format, isa, syntax)] = std::move(f);
+        getFactories()[std::make_tuple(format, isa, syntax)] = f;
         if (isDefault)
           setDefaultSyntax(format, isa, syntax);
       }

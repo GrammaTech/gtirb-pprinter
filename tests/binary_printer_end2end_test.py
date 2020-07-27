@@ -1,6 +1,7 @@
 import unittest
 from pathlib import Path
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -30,6 +31,42 @@ class TestBinaryGeneration(unittest.TestCase):
             sys.stdout.encoding
         )
         self.assertTrue("!!!Hello World!!!" in output_bin)
+
+    def test_binaries(self):
+        if os.name == "nt":
+            return
+
+        shutil.rmtree("/tmp/two_mods", ignore_errors=True)
+        os.mkdir("/tmp/two_mods")
+        try:
+            subprocess.check_output(
+                [
+                    "gtirb-pprinter",
+                    "--ir",
+                    str(two_modules_gtirb),
+                    "--binaries",
+                    "/tmp/two_mods/foo.o",
+                    "--skip-symbol",
+                    "_end",
+                ]
+            ).decode(sys.stdout.encoding)
+
+            subprocess.check_output(
+                [
+                    "gcc",
+                    "/tmp/two_mods/foo.o",
+                    "/tmp/two_mods/foo1.o",
+                    "-o",
+                    "/tmp/two_mods/a.out",
+                ]
+            ).decode(sys.stdout.encoding)
+
+            output_bin = subprocess.check_output("/tmp/two_mods/a.out").decode(
+                sys.stdout.encoding
+            )
+            self.assertTrue("!!!Hello World!!!" in output_bin)
+        finally:
+            shutil.rmtree("/tmp/two_mods")
 
     def test_keep_function(self):
         tmp = tempfile.NamedTemporaryFile(suffix=".s")

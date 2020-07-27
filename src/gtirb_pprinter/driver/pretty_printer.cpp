@@ -63,6 +63,18 @@ static fs::path getAsmFileName(const fs::path& InitialPath, int Index) {
   return FinalPath;
 }
 
+static std::unique_ptr<gtirb_bprint::BinaryPrinter>
+getBinaryPrinter(const std::string& format,
+                 const gtirb_pprint::PrettyPrinter& pp,
+                 const std::vector<std::string>& extraCompileArgs,
+                 const std::vector<std::string>& libraryPaths) {
+  std::unique_ptr<gtirb_bprint::BinaryPrinter> binaryPrinter;
+  if (format == "elf")
+    return std::make_unique<gtirb_bprint::ElfBinaryPrinter>(
+        pp, extraCompileArgs, libraryPaths, true);
+  return nullptr;
+}
+
 int main(int argc, char** argv) {
   gtirb_layout::registerAuxDataTypes();
   gtirb_pprint::registerAuxDataTypes();
@@ -80,6 +92,11 @@ int main(int argc, char** argv) {
       "FILE_n with the content of each of the modules");
   desc.add_options()("binary,b", po::value<std::string>(),
                      "The name of the binary output file.");
+  desc.add_options()(
+      "binaries", po::value<std::string>(),
+      "The name of the assembled output. If the IR has more than one module, "
+      "files of the form FILE, FILE_2, ..., FILE_n are produced with the "
+      "assembled content of each of the modules.");
   desc.add_options()("compiler-args,c",
                      po::value<std::vector<std::string>>()->multitoken(),
                      "Additional arguments to pass to the compiler. Only used "
@@ -352,6 +369,42 @@ int main(int argc, char** argv) {
       ++i;
     }
   }
+
+  // Write out assembled object files for the given IR, but do not link into a
+  // final executable.
+  if (vm.count("binaries") != 0) {
+    const auto asmPath = fs::path(vm["binaries"].as<std::string>());
+    if (!asmPath.has_filename()) {
+      LOG_ERROR << "The given path \"" << asmPath << "\" has no filename.\n";
+      return EXIT_FAILURE;
+    }
+
+    std::vector<std::string> extraCompilerArgs;
+    if (vm.count("compiler-args") != 0)
+      extraCompilerArgs = vm["compiler-args"].as<std::vector<std::string>>();
+    std::vector<std::string> libraryPaths;
+    if (vm.count("library-paths") != 0)
+      libraryPaths = vm["library-paths"].as<std::vector<std::string>>();
+
+    std::unique_ptr<gtirb_bprint::BinaryPrinter> binaryPrinter =
+        getBinaryPrinter(format, pp, extraCompilerArgs, libraryPaths);
+    if (!binaryPrinter) {
+      LOG_ERROR << "'" << format
+                << "' is an unsupported binary printing format.\n";
+      return EXIT_FAILURE;
+    }
+
+    int i = 0;
+    for (gtirb::Module& m : ir->modules()) {
+      fs::path name = getAsmFileName(asmPath, i);
+      if (binaryPrinter->assemble(name.string(), ctx, m)) {
+        LOG_ERROR << "Unable to assemble '" << name.string() << "'.\n";
+        return EXIT_FAILURE;
+      }
+      ++i;
+    }
+  }
+
   // Link directly to a binary.
   if (vm.count("binary") != 0) {
     const auto binaryPath = fs::path(vm["binary"].as<std::string>());
@@ -362,21 +415,20 @@ int main(int argc, char** argv) {
     if (vm.count("library-paths") != 0)
       libraryPaths = vm["library-paths"].as<std::vector<std::string>>();
 
-    std::unique_ptr<gtirb_bprint::BinaryPrinter> binaryPrinter;
-    if (format == "elf")
-      binaryPrinter = std::make_unique<gtirb_bprint::ElfBinaryPrinter>(true);
-    else {
+    std::unique_ptr<gtirb_bprint::BinaryPrinter> binaryPrinter =
+        getBinaryPrinter(format, pp, extraCompilerArgs, libraryPaths);
+    if (!binaryPrinter) {
       LOG_ERROR << "'" << format
                 << "' is an unsupported binary printing format.\n";
       return EXIT_FAILURE;
     }
-    if (binaryPrinter->link(binaryPath.string(), extraCompilerArgs,
-                            libraryPaths, pp, ctx, *ir)) {
+    if (binaryPrinter->link(binaryPath.string(), ctx, *ir)) {
       return EXIT_FAILURE;
     }
   }
   // Write ASM to the standard output if no other action was taken.
-  if ((vm.count("asm") == 0) && (vm.count("binary") == 0)) {
+  if ((vm.count("asm") == 0) && (vm.count("binary") == 0) &&
+      (vm.count("binaries") == 0)) {
     gtirb::Module* module = nullptr;
     int i = 0;
     for (gtirb::Module& m : ir->modules()) {
