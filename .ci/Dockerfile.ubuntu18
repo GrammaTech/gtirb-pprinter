@@ -1,7 +1,7 @@
 FROM ubuntu:18.04
 
 ARG BOOST_VERSION=1.67
-ARG CMAKE_VERSION=3.12
+ARG CMAKE_VERSION=3.12.1
 
 # Use bash for more convenient variable substitution syntax
 SHELL ["/bin/bash", "-c"]
