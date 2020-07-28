@@ -55,14 +55,15 @@ void IntelPrettyPrinter::printOpImmediate(
   assert(op.type == X86_OP_IMM &&
          "printOpImmediate called without an immediate operand");
 
-  bool is_call = cs_insn_group(this->csHandle, &inst, CS_GRP_CALL);
-  bool is_jump = cs_insn_group(this->csHandle, &inst, CS_GRP_JUMP);
+  bool InData = !cs_insn_group(this->csHandle, &inst, CS_GRP_CALL) &&
+                !cs_insn_group(this->csHandle, &inst, CS_GRP_JUMP) &&
+                !cs_insn_group(this->csHandle, &inst, CS_GRP_BRANCH_RELATIVE);
 
   if (const gtirb::SymAddrConst* s = this->getSymbolicImmediate(symbolic)) {
     // The operand is symbolic.
-    if (!is_call && !is_jump)
+    if (InData)
       os << intelSyntax.offset() << ' ';
-    this->printSymbolicExpression(os, s, !is_call && !is_jump);
+    this->printSymbolicExpression(os, s, InData);
   } else {
     // The operand is just a number.
     os << op.imm;
