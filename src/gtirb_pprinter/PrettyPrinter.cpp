@@ -432,10 +432,12 @@ void PrettyPrinterBase::fixupInstruction(cs_insn& inst) {
     detail.operands[0].size = 0;
   }
 
-  // RDRAND should be printed with no suffix:
+  // RDRAND and RDSEED should be printed with no suffix:
   // https://github.com/aquynh/capstone/issues/1603
   if (inst.id == X86_INS_RDRAND) {
     strcpy(inst.mnemonic, "rdrand");
+  } else if (inst.id == X86_INS_RDSEED) {
+    strcpy(inst.mnemonic, "rdseed");
   }
 
   // PUNPCKL* memory operands are 32 bits
