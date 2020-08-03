@@ -55,15 +55,16 @@ void IntelPrettyPrinter::printOpImmediate(
   assert(op.type == X86_OP_IMM &&
          "printOpImmediate called without an immediate operand");
 
-  bool IsBranch = !cs_insn_group(this->csHandle, &inst, CS_GRP_CALL) &&
-                  !cs_insn_group(this->csHandle, &inst, CS_GRP_JUMP) &&
-                  !cs_insn_group(this->csHandle, &inst, CS_GRP_BRANCH_RELATIVE);
+  bool IsNotBranch =
+      !cs_insn_group(this->csHandle, &inst, CS_GRP_CALL) &&
+      !cs_insn_group(this->csHandle, &inst, CS_GRP_JUMP) &&
+      !cs_insn_group(this->csHandle, &inst, CS_GRP_BRANCH_RELATIVE);
 
   if (const gtirb::SymAddrConst* s = this->getSymbolicImmediate(symbolic)) {
     // The operand is symbolic.
-    if (IsBranch)
+    if (IsNotBranch)
       os << intelSyntax.offset() << ' ';
-    this->printSymbolicExpression(os, s, IsBranch);
+    this->printSymbolicExpression(os, s, IsNotBranch);
   } else {
     // The operand is just a number.
     os << op.imm;
