@@ -352,12 +352,12 @@ void PrettyPrinterBase::printBar(std::ostream& os, bool heavy) {
 
 void PrettyPrinterBase::printSymbolReference(std::ostream& os,
                                              const gtirb::Symbol* symbol,
-                                             bool inData) const {
+                                             bool IsBranch) const {
   if (!symbol)
     return;
 
   std::optional<std::string> forwardedName =
-      getForwardedSymbolName(symbol, inData);
+      getForwardedSymbolName(symbol, IsBranch);
   if (forwardedName) {
     os << forwardedName.value();
     return;
@@ -822,21 +822,21 @@ void PrettyPrinterBase::printSymbolicData(
 }
 
 void PrettyPrinterBase::printSymbolicExpression(
-    std::ostream& os, const gtirb::SymAddrConst* sexpr, bool inData) {
-  printSymbolReference(os, sexpr->Sym, inData);
+    std::ostream& os, const gtirb::SymAddrConst* sexpr, bool IsBranch) {
+  printSymbolReference(os, sexpr->Sym, IsBranch);
   printAddend(os, sexpr->Offset);
 }
 
 void PrettyPrinterBase::printSymbolicExpression(std::ostream& os,
                                                 const gtirb::SymAddrAddr* sexpr,
-                                                bool inData) {
+                                                bool IsBranch) {
   if (sexpr->Scale > 1) {
     os << "(";
   }
 
-  printSymbolReference(os, sexpr->Sym1, inData);
+  printSymbolReference(os, sexpr->Sym1, IsBranch);
   os << '-';
-  printSymbolReference(os, sexpr->Sym2, inData);
+  printSymbolReference(os, sexpr->Sym2, IsBranch);
 
   if (sexpr->Scale > 1) {
     os << ")/" << sexpr->Scale;
@@ -970,8 +970,8 @@ PrettyPrinterBase::getContainerSection(const gtirb::Addr addr) const {
 }
 
 std::string PrettyPrinterBase::getRegisterName(unsigned int reg) const {
-  return ascii_str_toupper(
-      reg == X86_REG_INVALID ? "" : cs_reg_name(this->csHandle, reg));
+  assert(reg != X86_REG_INVALID && "Register has no name!");
+  return ascii_str_toupper(cs_reg_name(this->csHandle, reg));
 }
 
 void PrettyPrinterBase::printAddend(std::ostream& os, int64_t number,
@@ -1049,7 +1049,7 @@ PrettyPrinterBase::getSymbolName(const gtirb::Symbol& symbol) const {
 
 std::optional<std::string>
 PrettyPrinterBase::getForwardedSymbolName(const gtirb::Symbol* symbol,
-                                          bool inData) const {
+                                          bool IsBranch) const {
   const auto* symbolForwarding =
       module.getAuxData<gtirb::schema::SymbolForwarding>();
 
@@ -1059,7 +1059,7 @@ PrettyPrinterBase::getForwardedSymbolName(const gtirb::Symbol* symbol,
       if (auto* destSymbol =
               nodeFromUUID<gtirb::Symbol>(context, found->second))
         return getSymbolName(*destSymbol) +
-               getForwardedSymbolEnding(symbol, inData);
+               getForwardedSymbolEnding(symbol, IsBranch);
     }
   }
   return std::nullopt;
@@ -1067,7 +1067,7 @@ PrettyPrinterBase::getForwardedSymbolName(const gtirb::Symbol* symbol,
 
 std::string
 PrettyPrinterBase::getForwardedSymbolEnding(const gtirb::Symbol* symbol,
-                                            bool inData) const {
+                                            bool IsBranch) const {
   if (symbol && symbol->getAddress()) {
     const gtirb::Section* ContainerSection;
     if (symbol->hasReferent()) {
@@ -1091,7 +1091,7 @@ PrettyPrinterBase::getForwardedSymbolEnding(const gtirb::Symbol* symbol,
     }
 
     std::string section_name = ContainerSection->getName();
-    if (!inData && (section_name == ".plt" || section_name == ".plt.got"))
+    if (!IsBranch && (section_name == ".plt" || section_name == ".plt.got"))
       return std::string{"@PLT"};
     if (section_name == ".got" || section_name == ".got.plt")
       return std::string{"@GOTPCREL"};
