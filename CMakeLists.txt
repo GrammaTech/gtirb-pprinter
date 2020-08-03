@@ -94,6 +94,11 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+# Determine whether or not to strip debug symbols and set the build-id. This is
+# only really needed when we are building ubuntu *-dbg packages
+option(GTIRB_PPRINTER_STRIP_DEBUG_SYMBOLS
+       "Whether or not to strip debug symbols and set the build-id." OFF)
+
 # Use C++17
 set(CMAKE_CXX_STANDARD 17)
 # Error if it's not available
@@ -384,7 +389,8 @@ function(install_linux_debug_info TARGET COMPONENT_NAME)
   if(UNIX
      AND NOT CYGWIN
      AND ("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo"
-          OR "${CMAKE_BUILD_TYPE}" STREQUAL "Debug"))
+          OR "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+     AND ${GTIRB_PPRINTER_STRIP_DEBUG_SYMBOLS})
     string(
       RANDOM
       LENGTH 32
