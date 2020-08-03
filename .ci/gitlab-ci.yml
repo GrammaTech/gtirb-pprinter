@@ -40,7 +40,7 @@ check-format:
     - '[ $OS != "arch" ] || pacman --noconfirm -U gtirb-git*.pkg.tar.xz'
     - '[[ ! "$OS" =~ ubuntu[12][680] ]] || dpkg -i libgtirb.deb libgtirb-dev.deb'
     - mkdir build && cd build
-    - cmake ../ -DCMAKE_CXX_COMPILER=$COMPILER -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCPACK_DEBIAN_RELEASE="$(lsb_release -sc)"
+    - cmake ../ -DCMAKE_CXX_COMPILER=$COMPILER -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCPACK_DEBIAN_RELEASE="$(lsb_release -sc)" -DGTIRB_PPRINTER_STRIP_DEBUG_SYMBOLS=On
     - make -j
 
 .windows-build-template: &windows-build
