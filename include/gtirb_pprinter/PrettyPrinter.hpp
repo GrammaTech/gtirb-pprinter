@@ -305,17 +305,17 @@ protected:
       uint64_t Size, std::optional<std::string> Type);
   virtual void printSymbolicExpression(std::ostream& os,
                                        const gtirb::SymAddrConst* sexpr,
-                                       bool inData = false);
+                                       bool IsBranch = false);
   virtual void printSymbolicExpression(std::ostream& os,
                                        const gtirb::SymAddrAddr* sexpr,
-                                       bool inData = false);
+                                       bool IsBranch = false);
   // print a symbol in a symbolic expression
   // if the symbol is ambiguous print a symbol with the address instead.
   // if the symbol is forwarded (e.g. a plt reference) print the forwarded
   // symbol with the adequate ending (e.g. @PLT)
   virtual void printSymbolReference(std::ostream& os,
                                     const gtirb::Symbol* symbol,
-                                    bool inData) const;
+                                    bool IsBranch) const;
   virtual void printAddend(std::ostream& os, int64_t number,
                            bool first = false);
   virtual void printString(std::ostream& os, const gtirb::DataBlock& x,
@@ -378,7 +378,7 @@ protected:
   virtual std::string getFunctionName(gtirb::Addr x) const;
   virtual std::string getSymbolName(const gtirb::Symbol& symbol) const;
   virtual std::optional<std::string>
-  getForwardedSymbolName(const gtirb::Symbol* symbol, bool inData) const;
+  getForwardedSymbolName(const gtirb::Symbol* symbol, bool IsBranch) const;
 
   bool isAmbiguousSymbol(const std::string& ea) const;
 
@@ -395,7 +395,7 @@ private:
   gtirb::Addr programCounter;
 
   std::string getForwardedSymbolEnding(const gtirb::Symbol* symbol,
-                                       bool inData) const;
+                                       bool IsBranch) const;
 
   template <typename BlockType>
   void printBlockImpl(std::ostream& os, BlockType& block);

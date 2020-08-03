@@ -444,7 +444,7 @@ void Arm64PrettyPrinter::printExtender(std::ostream& os,
 
 std::optional<std::string>
 Arm64PrettyPrinter::getForwardedSymbolName(const gtirb::Symbol* symbol,
-                                           bool /* inData */) const {
+                                           bool /* IsBranch */) const {
   if (const auto* symbolForwarding =
           module.getAuxData<gtirb::schema::SymbolForwarding>()) {
     auto found = symbolForwarding->find(symbol->getUUID());
