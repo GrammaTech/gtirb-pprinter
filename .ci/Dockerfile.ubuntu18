@@ -12,7 +12,7 @@ RUN apt-get -y update && apt-get -y install build-essential binutils clang \
     software-properties-common unzip wget
 
 # Install CMake
-RUN curl -SL https://cmake.org/files/v$CMAKE_VERSION/cmake-$CMAKE_VERSION.0-Linux-x86_64.tar.gz \
+RUN curl -SL https://cmake.org/files/v$(echo $CMAKE_VERSION | sed -r 's/\.[0-9]+$//;')/cmake-$CMAKE_VERSION-Linux-x86_64.tar.gz \
     |tar -xz --strip-components=1 -C /usr/local
 
 # Install boost & protobuf
