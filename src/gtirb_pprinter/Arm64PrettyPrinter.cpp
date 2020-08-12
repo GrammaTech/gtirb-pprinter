@@ -121,8 +121,7 @@ void Arm64PrettyPrinter::printPrefix(std::ostream& os, const cs_insn& inst,
   if (const auto* symbolicOperandInfo =
           module.getAuxData<gtirb::schema::SymbolicOperandInfoAD>()) {
     if (auto it = symbolicOperandInfo->find(gtirb::Addr(inst.address));
-        it != symbolicOperandInfo->end() && index == std::get<0>(it->second))
-    {
+        it != symbolicOperandInfo->end() && index == std::get<0>(it->second)) {
       os << std::get<1>(it->second);
     }
   }
