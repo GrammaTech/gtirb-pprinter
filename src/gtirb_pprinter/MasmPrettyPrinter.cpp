@@ -370,13 +370,6 @@ void MasmPrettyPrinter::printOpIndirect(
     os << getRegisterName(op.mem.base);
   }
 
-  if (op.mem.base == X86_REG_RIP && symbolic == nullptr) {
-    if (gtirb::Addr(inst.address + inst.size + op.mem.disp) == BaseAddress) {
-      os << "__ImageBase]";
-      return;
-    }
-  }
-
   if (op.mem.index != X86_REG_INVALID) {
     if (!first)
       os << '+';
