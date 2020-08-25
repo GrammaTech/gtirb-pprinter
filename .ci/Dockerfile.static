@@ -1,5 +1,8 @@
 FROM docker.grammatech.com/rewriting/gtirb/static
 
+# (re-)install Boost
+RUN apt-get -y update && apt-get -y install libboost-system-dev libboost-filesystem-dev libboost-program-options-dev
+
 # Install capstone
 COPY libcapstone-dev_*_amd64.deb ./
 RUN dpkg -i libcapstone-dev_*_amd64.deb
