@@ -164,8 +164,8 @@ build-static:
     # Run the regression tests.
     - PATH=$(pwd)/bin:$PATH ctest -V
 
-build-static-drivers:
-  stage: build
+static-drivers:
+  stage: deploy
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/static
   needs: ['build-static']
   artifacts:
