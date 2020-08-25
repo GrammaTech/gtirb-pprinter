@@ -145,6 +145,25 @@ build-ubuntu20-gcc:
     BUILD_TYPE: 'RelWithDebInfo'
   <<: *build
 
+build-static:
+  stage: build
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/static
+  script:
+    - git clone https://git.grammatech.com/rewriting/gtirb.git
+    - cd gtirb
+    - mkdir build && cd build
+    - cmake ../ -DCMAKE_BUILD_TYPE=RelWithDebInfo -DGTIRB_BUILD_SHARED_LIBS=OFF -DGTIRB_PY_API=OFF
+    - make -j
+    - cd ..
+    - mkdir build && cd build
+    - cmake ../ -DCMAKE_BUILD_TYPE=RelWithDebInfo -DGTIRB_PPRINTER_BUILD_SHARED_LIBS=OFF
+    - make -j
+    # Ensure that we produced a .a file instead of a .so.
+    - '[ -e lib/libgtirb_pprinter.a ]'
+    - '[ ! -e lib/libgtirb_pprinter.so ]'
+    # Run the regression tests.
+    - PATH=$(pwd)/bin:$PATH ctest -V
+
 build-arch-gcc-debug:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/arch
   variables:

@@ -1,0 +1,5 @@
+FROM docker.grammatech.com/rewriting/gtirb/static
+
+# Install capstone
+COPY libcapstone-dev_*_amd64.deb ./
+RUN dpkg -i libcapstone-dev_*_amd64.deb
