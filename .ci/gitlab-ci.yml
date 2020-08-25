@@ -164,6 +164,24 @@ build-static:
     # Run the regression tests.
     - PATH=$(pwd)/bin:$PATH ctest -V
 
+build-static-drivers:
+  stage: build
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/static
+  needs: ['build-static']
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
+    paths:
+      - build/bin
+  script:
+    - rm -rf build
+    - mkdir build && cd build
+    - cmake ../ -DCMAKE_BUILD_TYPE=Debug -DGTIRB_PPRINTER_STATIC_DRIVERS=ON
+    - make -j
+    # Run the regression tests.
+    - PATH=$(pwd)/bin:$PATH ctest -V
+    # For verification purposes, print ldd of the driver here.
+    - ldd bin/gtirb-pprinter
+
 build-arch-gcc-debug:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/arch
   variables:
