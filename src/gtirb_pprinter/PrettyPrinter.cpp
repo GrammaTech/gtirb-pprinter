@@ -550,10 +550,13 @@ void PrettyPrinterBase::printOperandList(std::ostream& os,
   // Capstone to tell us this information directly.
   bool IsBracketedAVX512Instruction =
       (inst.id == X86_INS_VMOVDQA64 || inst.id == X86_INS_VMOVDQU64 ||
-       inst.id == X86_INS_VPERMB || inst.id == X86_INS_VPERMW ||
        inst.id == X86_INS_VPERMD || inst.id == X86_INS_VPERMQ ||
        inst.id == X86_INS_VPADDB || inst.id == X86_INS_VPADDW ||
-       inst.id == X86_INS_VPADDD || inst.id == X86_INS_VPADDQ);
+       inst.id == X86_INS_VPADDD || inst.id == X86_INS_VPADDQ ||
+#if CS_API_MAJOR >= 5
+       inst.id == X86_INS_VPERMB || inst.id == X86_INS_VPERMW
+#endif
+      );
 
   for (int i = 0; i < detail.op_count; i++) {
     const cs_x86_op& Op = detail.operands[i];
