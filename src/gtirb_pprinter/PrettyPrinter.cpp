@@ -552,9 +552,9 @@ void PrettyPrinterBase::printOperandList(std::ostream& os,
       (inst.id == X86_INS_VMOVDQA64 || inst.id == X86_INS_VMOVDQU64 ||
        inst.id == X86_INS_VPERMD || inst.id == X86_INS_VPERMQ ||
        inst.id == X86_INS_VPADDB || inst.id == X86_INS_VPADDW ||
-       inst.id == X86_INS_VPADDD || inst.id == X86_INS_VPADDQ ||
+       inst.id == X86_INS_VPADDD || inst.id == X86_INS_VPADDQ
 #if CS_API_MAJOR >= 5
-       inst.id == X86_INS_VPERMB || inst.id == X86_INS_VPERMW
+       || inst.id == X86_INS_VPERMB || inst.id == X86_INS_VPERMW
 #endif
       );
 
