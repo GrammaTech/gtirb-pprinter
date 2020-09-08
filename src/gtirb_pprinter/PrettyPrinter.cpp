@@ -439,13 +439,53 @@ void PrettyPrinterBase::fixupInstruction(cs_insn& inst) {
       detail.operands[1].size = 4;
     }
   }
+
+  // Works around a bug where sometimes vpermd isn't classified as an
+  // AVX512 instruction.
+  if (inst.id == X86_INS_VPERMD || inst.id == X86_INS_VPERMQ) {
+    inst.detail->groups[inst.detail->groups_count] = X86_GRP_AVX512;
+    inst.detail->groups_count++;
+  }
+
+  // Works around a bug where avx512 instructions mangle the k registers:
+  // https://github.com/aquynh/capstone/issues/1672
+  const auto* GroupsBegin = inst.detail->groups;
+  const auto* GroupsEnd = GroupsBegin + inst.detail->groups_count;
+  if (std::find(GroupsBegin, GroupsEnd, X86_GRP_AVX512) != GroupsEnd) {
+    for (size_t I = 0; I < detail.op_count; I++) {
+      auto& Op = detail.operands[I];
+      if (Op.type == X86_OP_REG && Op.reg == X86_REG_INVALID) {
+        // Find the stuff after the ith comma or bracket.
+        // The k registers may be found inside {}s or as a normal operand.
+        // Additionally, some syntaxes may have additional commas in ()s.
+        // The next digit we find after that comma is the digit of the k reg.
+        std::string OpStr{inst.op_str};
+        size_t CommasFound = 0, ParensFound = 0;
+
+        for (size_t J = 0; J < OpStr.size(); J++) {
+          if (CommasFound == I && std::isdigit(OpStr[J])) {
+            Op.reg = static_cast<x86_reg>(X86_REG_K0 + (OpStr[J] - '0'));
+            break;
+          } else if ((OpStr[J] == ',' && ParensFound == 0) || OpStr[J] == '{') {
+            CommasFound++;
+          } else if (OpStr[J] == '(') {
+            ParensFound++;
+          } else if (OpStr[J] == ')') {
+            ParensFound--;
+          }
+        }
+
+        assert(Op.reg != X86_REG_INVALID &&
+               "fixup of AVX512 instruction failed!");
+      }
+    }
+  }
 }
 
 void PrettyPrinterBase::printInstruction(std::ostream& os,
                                          const gtirb::CodeBlock& block,
                                          const cs_insn& inst,
                                          const gtirb::Offset& offset) {
-
   gtirb::Addr ea(inst.address);
   printComments(os, offset, inst.size);
   printCFIDirectives(os, offset);
@@ -485,14 +525,40 @@ void PrettyPrinterBase::printEA(std::ostream& os, gtirb::Addr ea) {
 void PrettyPrinterBase::printOperandList(std::ostream& os,
                                          const gtirb::CodeBlock& block,
                                          const cs_insn& inst) {
-  cs_x86& detail = inst.detail->x86;
-  uint8_t opCount = detail.op_count;
+  const cs_x86& detail = inst.detail->x86;
 
-  for (int i = 0; i < opCount; i++) {
-    if (i != 0) {
-      os << ',';
+  // some instructions don't put commas between thier operands, but instead
+  // put it in between {}s. These instructions are always AVX512 instructions
+  // when you use the k registers. Not all AVX512 instructions use the k
+  // registers in this manner, however.
+  // TODO: find an exhaustive list of such instructions, or find a way for
+  // Capstone to tell us this information directly.
+  bool IsBracketedAVX512Instruction =
+      (inst.id == X86_INS_VMOVDQA64 || inst.id == X86_INS_VMOVDQU64 ||
+       inst.id == X86_INS_VPERMB || inst.id == X86_INS_VPERMW ||
+       inst.id == X86_INS_VPERMD || inst.id == X86_INS_VPERMQ ||
+       inst.id == X86_INS_VPADDB || inst.id == X86_INS_VPADDW ||
+       inst.id == X86_INS_VPADDD || inst.id == X86_INS_VPADDQ);
+
+  for (int i = 0; i < detail.op_count; i++) {
+    const cs_x86_op& Op = detail.operands[i];
+
+    if (IsBracketedAVX512Instruction && Op.type == X86_OP_REG &&
+        (Op.reg >= X86_REG_K0 && Op.reg <= X86_REG_K7)) {
+      // print AVX512 mask operand
+      os << '{';
+      printOperand(os, block, inst, i);
+      os << '}';
+      if (Op.avx_zero_opmask) {
+        os << "{z}";
+      }
+    } else {
+      // print normal operand
+      if (i != 0) {
+        os << ',';
+      }
+      printOperand(os, block, inst, i);
     }
-    printOperand(os, block, inst, i);
   }
 }
 
