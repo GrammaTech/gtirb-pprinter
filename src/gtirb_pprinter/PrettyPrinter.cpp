@@ -1075,7 +1075,8 @@ PrettyPrinterBase::getForwardedSymbolEnding(const gtirb::Symbol* symbol,
     }
 
     std::string section_name = ContainerSection->getName();
-    if (!IsNotBranch && (section_name == ".plt" || section_name == ".plt.got"))
+    if (!IsNotBranch && (section_name == ".plt" || section_name == ".plt.got" ||
+                         section_name == ".plt.sec"))
       return std::string{"@PLT"};
     if (section_name == ".got" || section_name == ".got.plt")
       return std::string{"@GOTPCREL"};
