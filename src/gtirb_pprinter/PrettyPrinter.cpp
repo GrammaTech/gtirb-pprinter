@@ -1050,14 +1050,14 @@ PrettyPrinterBase::getForwardedSymbolName(const gtirb::Symbol* symbol,
 }
 
 std::string
-PrettyPrinterBase::getForwardedSymbolEnding(const gtirb::Symbol* symbol,
+PrettyPrinterBase::getForwardedSymbolEnding(const gtirb::Symbol* Symbol,
                                             bool IsNotBranch) const {
-  if (symbol && symbol->getAddress()) {
+  if (Symbol && Symbol->getAddress()) {
     const gtirb::Section* ContainerSection;
-    if (symbol->hasReferent()) {
-      if (const auto* CB = symbol->getReferent<gtirb::CodeBlock>()) {
+    if (Symbol->hasReferent()) {
+      if (const auto* CB = Symbol->getReferent<gtirb::CodeBlock>()) {
         ContainerSection = CB->getByteInterval()->getSection();
-      } else if (const auto* DB = symbol->getReferent<gtirb::DataBlock>()) {
+      } else if (const auto* DB = Symbol->getReferent<gtirb::DataBlock>()) {
         ContainerSection = DB->getByteInterval()->getSection();
       } else {
         // If we're here, then the symbol's referent cannot be a ProxyBlock,
@@ -1067,18 +1067,20 @@ PrettyPrinterBase::getForwardedSymbolEnding(const gtirb::Symbol* symbol,
         return std::string{};
       }
     } else {
-      gtirb::Addr addr = *symbol->getAddress();
-      const auto container_sections = module.findSectionsOn(addr);
-      if (container_sections.empty())
+      gtirb::Addr addr = *Symbol->getAddress();
+      const auto ContainerSections = module.findSectionsOn(addr);
+      if (ContainerSections.empty())
         return std::string{};
-      ContainerSection = &container_sections.front();
+      ContainerSection = &ContainerSections.front();
     }
 
-    std::string section_name = ContainerSection->getName();
-    if (!IsNotBranch && (section_name == ".plt" || section_name == ".plt.got" ||
-                         section_name == ".plt.sec"))
+    std::string SectionName = ContainerSection->getName();
+    std::string PltPrefix(".plt");
+    if (!IsNotBranch &&
+        SectionName.compare(0, PltPrefix.length(), PltPrefix) == 0)
       return std::string{"@PLT"};
-    if (section_name == ".got" || section_name == ".got.plt")
+    std::string GotPrefix(".got");
+    if (SectionName.compare(0, GotPrefix.length(), GotPrefix) == 0)
       return std::string{"@GOTPCREL"};
   }
   return std::string{};
