@@ -35,7 +35,6 @@ void registerAuxDataTypes() {
   gtirb::AuxDataContainer::registerAuxDataType<CfiDirectives>();
   gtirb::AuxDataContainer::registerAuxDataType<Libraries>();
   gtirb::AuxDataContainer::registerAuxDataType<LibraryPaths>();
-  gtirb::AuxDataContainer::registerAuxDataType<DataDirectories>();
   gtirb::AuxDataContainer::registerAuxDataType<PeImportedSymbols>();
   gtirb::AuxDataContainer::registerAuxDataType<PeExportedSymbols>();
   gtirb::AuxDataContainer::registerAuxDataType<ElfSymbolInfo>();

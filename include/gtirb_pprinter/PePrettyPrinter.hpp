@@ -39,20 +39,6 @@ public:
                   const Syntax& syntax, const PrintingPolicy& policy);
 
   static const PrintingPolicy& defaultPrintingPolicy();
-
-protected:
-  bool shouldSkip(const gtirb::Section& x) const override;
-  bool shouldSkip(const gtirb::Symbol& x) const override;
-  bool shouldSkip(const gtirb::CodeBlock& x) const override;
-  bool shouldSkip(const gtirb::DataBlock& x) const override;
-
-  bool isInSkippedDataDirectory(const gtirb::Addr x) const;
-
-private:
-  // TODO: Add to policy?
-  // Names of data directories that should be output.
-  std::unordered_set<std::string> keepDataDirectories = {};
-  std::vector<std::tuple<std::string, uint64_t, uint64_t>> dataDirectories;
 };
 
 } // namespace gtirb_pprint
