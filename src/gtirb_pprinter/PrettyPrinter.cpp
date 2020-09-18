@@ -448,47 +448,6 @@ void PrettyPrinterBase::fixupInstruction(cs_insn& inst) {
       detail.operands[1].size = 4;
     }
   }
-
-  // Works around a bug where sometimes vpermd isn't classified as an
-  // AVX512 instruction.
-  if (inst.id == X86_INS_VPERMD || inst.id == X86_INS_VPERMQ) {
-    inst.detail->groups[inst.detail->groups_count] = X86_GRP_AVX512;
-    inst.detail->groups_count++;
-  }
-
-  // Works around a bug where avx512 instructions mangle the k registers:
-  // https://github.com/aquynh/capstone/issues/1672
-  const auto* GroupsBegin = inst.detail->groups;
-  const auto* GroupsEnd = GroupsBegin + inst.detail->groups_count;
-  if (std::find(GroupsBegin, GroupsEnd, X86_GRP_AVX512) != GroupsEnd) {
-    for (size_t I = 0; I < detail.op_count; I++) {
-      auto& Op = detail.operands[I];
-      if (Op.type == X86_OP_REG && Op.reg == X86_REG_INVALID) {
-        // Find the stuff after the ith comma or bracket.
-        // The k registers may be found inside {}s or as a normal operand.
-        // Additionally, some syntaxes may have additional commas in ()s.
-        // The next digit we find after that comma is the digit of the k reg.
-        std::string OpStr{inst.op_str};
-        size_t CommasFound = 0, ParensFound = 0;
-
-        for (size_t J = 0; J < OpStr.size(); J++) {
-          if (CommasFound == I && std::isdigit(OpStr[J])) {
-            Op.reg = static_cast<x86_reg>(X86_REG_K0 + (OpStr[J] - '0'));
-            break;
-          } else if ((OpStr[J] == ',' && ParensFound == 0) || OpStr[J] == '{') {
-            CommasFound++;
-          } else if (OpStr[J] == '(') {
-            ParensFound++;
-          } else if (OpStr[J] == ')') {
-            ParensFound--;
-          }
-        }
-
-        assert(Op.reg != X86_REG_INVALID &&
-               "fixup of AVX512 instruction failed!");
-      }
-    }
-  }
 }
 
 void PrettyPrinterBase::printInstruction(std::ostream& os,
