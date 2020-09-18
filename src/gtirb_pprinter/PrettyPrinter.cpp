@@ -492,15 +492,22 @@ void PrettyPrinterBase::printOperandList(std::ostream& os,
   // registers in this manner, however.
   // TODO: find an exhaustive list of such instructions, or find a way for
   // Capstone to tell us this information directly.
+  static const std::unordered_set<x86_insn> UnbracketedAVX512Instructions{
+      X86_INS_KANDNB,   X86_INS_KANDNW,   X86_INS_KANDND,   X86_INS_KANDNQ,
+      X86_INS_KMOVB,    X86_INS_KMOVW,    X86_INS_KMOVD,    X86_INS_KMOVQ,
+      X86_INS_KUNPCKBW, X86_INS_KUNPCKDQ, X86_INS_KUNPCKWD, X86_INS_KNOTB,
+      X86_INS_KNOTW,    X86_INS_KNOTD,    X86_INS_KNOTQ,    X86_INS_KORB,
+      X86_INS_KORW,     X86_INS_KORD,     X86_INS_KORQ,     X86_INS_KORTESTB,
+      X86_INS_KORTESTW, X86_INS_KORTESTD, X86_INS_KORTESTQ, X86_INS_KSHIFTLB,
+      X86_INS_KSHIFTLW, X86_INS_KSHIFTLD, X86_INS_KSHIFTLQ, X86_INS_KSHIFTRB,
+      X86_INS_KSHIFTRW, X86_INS_KSHIFTRD, X86_INS_KSHIFTRQ, X86_INS_KXNORB,
+      X86_INS_KXNORW,   X86_INS_KXNORD,   X86_INS_KXNORQ,   X86_INS_KXORB,
+      X86_INS_KXORW,    X86_INS_KXORD,    X86_INS_KXORQ,    X86_INS_KADDB,
+      X86_INS_KADDW,    X86_INS_KADDD,    X86_INS_KADDQ,    X86_INS_KTESTB,
+      X86_INS_KTESTW,   X86_INS_KTESTD,   X86_INS_KTESTQ,
+  };
   bool IsBracketedAVX512Instruction =
-      (inst.id == X86_INS_VMOVDQA64 || inst.id == X86_INS_VMOVDQU64 ||
-       inst.id == X86_INS_VPERMD || inst.id == X86_INS_VPERMQ ||
-       inst.id == X86_INS_VPADDB || inst.id == X86_INS_VPADDW ||
-       inst.id == X86_INS_VPADDD || inst.id == X86_INS_VPADDQ
-#if CS_API_MAJOR >= 5
-       || inst.id == X86_INS_VPERMB || inst.id == X86_INS_VPERMW
-#endif
-      );
+      UnbracketedAVX512Instructions.count(static_cast<x86_insn>(inst.id)) == 0;
 
   for (int i = 0; i < detail.op_count; i++) {
     const cs_x86_op& Op = detail.operands[i];
