@@ -23,7 +23,7 @@ IntelPrettyPrinter::IntelPrettyPrinter(gtirb::Context& context_,
                                        const PrintingPolicy& policy_)
     : ElfPrettyPrinter(context_, module_, syntax_, policy_),
       intelSyntax(syntax_) {
-  // Set up Capstone.
+  // Setup Capstone.
   [[maybe_unused]] cs_err err =
       cs_open(CS_ARCH_X86, CS_MODE_64, &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
@@ -83,12 +83,19 @@ void IntelPrettyPrinter::printOpIndirect(
   if (std::optional<std::string> size = syntax.getSizeName(op.size * 8))
     os << *size << " PTR ";
 
-  if (op.mem.segment != X86_REG_INVALID)
+  if (op.mem.segment != X86_REG_INVALID) {
     os << getRegisterName(op.mem.segment) << ':';
-
-  if (const auto* s = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
-    os << getSymbolName(*(s->Sym2)) << "@tpoff";
-    return;
+    if (const auto* Expr = std::get_if<gtirb::SymAddrConst>(symbolic)) {
+      if (std::optional<gtirb::Addr> Addr = Expr->Sym->getAddress(); Addr) {
+        if (std::optional<const gtirb::Section*> Section =
+                getContainerSection(Addr)) {
+          if (Section->getName() == ".tdata" || Section->getName() == ".tbss") {
+            os << getSymbolName(*Sym) << "@tpoff";
+          }
+        }
+      }
+      return;
+    }
   }
 
   os << '[';
