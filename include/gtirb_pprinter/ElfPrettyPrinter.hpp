@@ -116,6 +116,8 @@ protected:
       uint64_t Size, std::optional<std::string> Type) override;
 
   void printSymbolHeader(std::ostream& os, const gtirb::Symbol& symbol);
+
+  std::optional<std::string> getTlsSymbol(const gtirb::Symbol& S) const;
 };
 
 } // namespace gtirb_pprint

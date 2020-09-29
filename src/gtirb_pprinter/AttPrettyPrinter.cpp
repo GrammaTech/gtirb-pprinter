@@ -91,8 +91,17 @@ void AttPrettyPrinter::printOpIndirect(
   if (cs_insn_group(this->csHandle, &inst, CS_GRP_CALL) ||
       cs_insn_group(this->csHandle, &inst, CS_GRP_JUMP))
     os << '*';
-  if (has_segment)
+
+  if (has_segment) {
     os << getRegisterName(op.mem.segment) << ':';
+
+    if (const auto* Expr = std::get_if<gtirb::SymAddrConst>(symbolic)) {
+      if (std::optional<std::string> Symbol = getTlsSymbol(*(Expr->Sym))) {
+        os << *Symbol;
+        return;
+      }
+    }
+  }
 
   if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
     // Displacement is symbolic.
