@@ -274,4 +274,18 @@ void ElfPrettyPrinter::printSymbolicDataType(
   }
 }
 
+std::optional<std::string>
+ElfPrettyPrinter::getTlsSymbol(const gtirb::Symbol& S) const {
+  if (std::optional<gtirb::Addr> Addr = S.getAddress()) {
+    if (std::optional<const gtirb::Section*> Section =
+            getContainerSection(*Addr)) {
+      std::string Name = (*Section)->getName();
+      if (Name == ".tdata" || Name == ".tbss") {
+        return getSymbolName(S) + "@tpoff";
+      }
+    }
+  }
+  return std::nullopt;
+}
+
 } // namespace gtirb_pprint

@@ -87,16 +87,10 @@ void IntelPrettyPrinter::printOpIndirect(
     os << getRegisterName(op.mem.segment) << ':';
 
     if (const auto* Expr = std::get_if<gtirb::SymAddrConst>(symbolic)) {
-      if (std::optional<gtirb::Addr> Addr = Expr->Sym->getAddress(); Addr) {
-        if (std::optional<const gtirb::Section*> Section =
-                getContainerSection(*Addr)) {
-          if ((*Section)->getName() == ".tdata" ||
-              (*Section)->getName() == ".tbss") {
-            os << getSymbolName(*Expr->Sym) << "@tpoff";
-          }
-        }
+      if (std::optional<std::string> Symbol = getTlsSymbol(*(Expr->Sym))) {
+        os << *Symbol;
+        return;
       }
-      return;
     }
   }
 
