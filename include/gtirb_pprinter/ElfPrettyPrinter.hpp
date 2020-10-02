@@ -117,7 +117,8 @@ protected:
 
   void printSymbolHeader(std::ostream& os, const gtirb::Symbol& symbol);
 
-  std::optional<std::string> getTlsSymbol(const gtirb::Symbol& S) const;
+  std::optional<std::string>
+  getTlsSymbol(const gtirb::Symbol& S) const override;
 };
 
 } // namespace gtirb_pprint

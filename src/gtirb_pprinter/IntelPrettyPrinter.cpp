@@ -85,13 +85,6 @@ void IntelPrettyPrinter::printOpIndirect(
 
   if (op.mem.segment != X86_REG_INVALID) {
     os << getRegisterName(op.mem.segment) << ':';
-
-    if (const auto* Expr = std::get_if<gtirb::SymAddrConst>(symbolic)) {
-      if (std::optional<std::string> Symbol = getTlsSymbol(*(Expr->Sym))) {
-        os << *Symbol;
-        return;
-      }
-    }
   }
 
   os << '[';

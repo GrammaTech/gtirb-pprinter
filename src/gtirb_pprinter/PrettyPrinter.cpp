@@ -351,6 +351,11 @@ void PrettyPrinterBase::printSymbolReference(std::ostream& os,
   if (!symbol)
     return;
 
+  if (std::optional<std::string> Symbol = getTlsSymbol(*symbol)) {
+    os << *Symbol;
+    return;
+  }
+
   std::optional<std::string> forwardedName =
       getForwardedSymbolName(symbol, IsNotBranch);
   if (forwardedName) {
@@ -362,7 +367,7 @@ void PrettyPrinterBase::printSymbolReference(std::ostream& os,
     return;
   }
   os << getSymbolName(*symbol);
-}
+} // namespace gtirb_pprint
 
 void PrettyPrinterBase::printSymbolDefinition(std::ostream& os,
                                               const gtirb::Symbol& symbol) {
@@ -1127,6 +1132,11 @@ bool PrettyPrinterBase::isAmbiguousSymbol(const std::string& name) const {
   // Are there multiple symbols with this name?
   auto found = module.findSymbols(name);
   return distance(begin(found), end(found)) > 1;
+}
+
+std::optional<std::string>
+PrettyPrinterBase::getTlsSymbol(const gtirb::Symbol&) const {
+  return std::nullopt;
 }
 
 void PrettyPrinterBase::printSection(std::ostream& os,
