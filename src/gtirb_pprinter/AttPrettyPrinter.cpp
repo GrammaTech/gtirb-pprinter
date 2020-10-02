@@ -94,13 +94,6 @@ void AttPrettyPrinter::printOpIndirect(
 
   if (has_segment) {
     os << getRegisterName(op.mem.segment) << ':';
-
-    if (const auto* Expr = std::get_if<gtirb::SymAddrConst>(symbolic)) {
-      if (std::optional<std::string> Symbol = getTlsSymbol(*(Expr->Sym))) {
-        os << *Symbol;
-        return;
-      }
-    }
   }
 
   if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
