@@ -384,9 +384,11 @@ void MasmPrettyPrinter::printOpIndirect(
     printSymbolicExpression(os, s, false);
   } else if (const auto* rel = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
     if (std::optional<gtirb::Addr> Addr = rel->Sym1->getAddress(); Addr) {
-      if (const std::string& str = getSymbolName(*rel->Sym1); str.size() >= 2)
+      if (const std::string& str = getSymbolName(*rel->Sym1); str.size() >= 2) {
         os << "+(" << masmSyntax.imagerel() << ' ' << 'N' << str.substr(2)
            << ")";
+      }
+      printAddend(os, rel->Offset, false);
     }
   } else {
     printAddend(os, op.mem.disp, first);
