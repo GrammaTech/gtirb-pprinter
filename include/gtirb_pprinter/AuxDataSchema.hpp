@@ -114,11 +114,11 @@ struct BinaryType {
 };
 
 /// \brief Auxiliary data representing the import table of a PE file.
-struct ImportEntries
-{
-	static constexpr const char* Name = "peImportEntries";
-	// Tuples of the form {Iat_address, Ordinal, Function, Library}.
-	typedef std::vector<std::tuple<uint64_t, int64_t, std::string, std::string>> Type;
+struct ImportEntries {
+  static constexpr const char* Name = "peImportEntries";
+  // Tuples of the form {Iat_address, Ordinal, Function, Library}.
+  typedef std::vector<std::tuple<uint64_t, int64_t, std::string, std::string>>
+      Type;
 };
 
 } // namespace schema
