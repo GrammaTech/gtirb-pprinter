@@ -14,6 +14,8 @@
 //===----------------------------------------------------------------------===//
 #include "PeBinaryPrinter.hpp"
 #include "file_utils.hpp"
+#include "AuxDataSchema.hpp"
+#include "driver/Logger.h"
 #include <iostream>
 
 namespace gtirb_bprint {
@@ -54,9 +56,74 @@ void PeBinaryPrinter::prepareAssemblerArguments(
     args.push_back(compiland.fileName());
   }
 }
+// Generate import def files (temp files), and build into lib files returned
+// in importLibs to be linked.
+bool PeBinaryPrinter::prepareImportLibs(
+    gtirb::Context& ctx, gtirb::IR& ir,
+    std::vector<std::string>& importLibs) const {
+  std::map<std::string, std::vector<std::string>> importDefs;
+
+  LOG_INFO << "Preparing Imort libs...&\n";
+  for (gtirb::Module& m : ir.modules()) {
+    // for each import in the auxDataTable
+    LOG_INFO << "Module: " << m.getBinaryPath() << "\n";
+    auto* pe_imports = m.getAuxData<gtirb::schema::ImportEntries>();
+    if (!pe_imports) {
+      LOG_ERROR << "\tNo import entries!\n";
+      continue;
+    }
+    for (const auto& [addr, ordinal, fnName, libName] : *pe_imports) {
+      std::map<std::string, std::vector<std::string>>::iterator itImportDef = importDefs.find(libName);
+      if ( itImportDef == importDefs.end()) {
+        importDefs[libName] = std::vector<std::string>();
+        itImportDef = importDefs.find(libName);
+      }
+      std::stringstream ss;
+      if (ordinal != -1) {
+        ss << libName << "@" << ordinal << " @ " << ordinal << " == " << fnName << "\n";
+      } else {
+        ss << fnName << "\n";
+	  }
+	  itImportDef->second.push_back(ss.str());
+    }
+
+    for (auto& itLib : importDefs) {
+      TempFile tf(".def");
+      std::ostream& os = static_cast<std::ostream&>(tf);
+      os << "LIBRARY \"" << itLib.first << "\"\n\nEXPORTS\n";
+      for (auto& entry : itLib.second) {
+        os << entry;
+      }
+      tf.close();
+
+	  std::vector<std::string> args;
+	  std::string libTool = "lib.exe";
+	  std::string libName = replaceExtension(itLib.first, ".lib");
+      args.push_back(std::string("/DEF:") + tf.fileName());
+      args.push_back(std::string("/OUT:") + libName);
+      if (std::optional<int> ret = execute(libTool, args)) {
+        if (*ret) {
+          std::cerr << "ERROR: lib returned: " << *ret << "\n";
+          return false;
+        }
+        else
+          std::cout << "Generated " << replaceExtension(itLib.first, ".lib")
+                    << "\n";
+        importLibs.push_back(libName);
+      } else {
+        std::cerr << "ERROR: Unable to find lib.exe\n";
+        return false;
+      }
+	}
+    // sort by import name and generate a def file for each import name
+  }
+
+  return true;
+}
 
 void PeBinaryPrinter::prepareLinkerArguments(
-    gtirb::IR& ir, std::vector<std::string>& args) const {
+    gtirb::IR& ir, std::vector<std::string>& importLibs,
+		std::vector<std::string>& args) const {
   // The command lines for ml and ml64 are different, but there are some common
   // features. The first thing are the options common to both ml and ml64,
   // followed by assembler-specific options, followed by the name of the file
@@ -90,15 +157,14 @@ void PeBinaryPrinter::prepareLinkerArguments(
       // for MasmPrettyPrinter for more information.
       args.push_back("/entry:__EntryPoint");
 
-      // If we found a module with an entrypoint, see if that module also
-      // contains a symbol that gives us a hint as to whether it's a console
-      // application or not. If there is a symbol named main or wmain, then
-      // set the subsystem to console, otherwise assume it to be Windows (as
-      // opposed to a kernel driver, etc).
-      bool isConsole = !Iter->findSymbols("main").empty() ||
-                       !Iter->findSymbols("wmain").empty();
-
-      if (isConsole)
+      // If we found a module with an entrypoint, we next want to determine if
+      // this is a console or GUI app to be able to set the subsystem PE header
+      // field correctly.  If the app depends on user32.dll it's likely a GUI app.
+      // FIXME : This should be based off the original PE header, but that's not
+      // yet available.
+      bool isGUI =
+          std::find(importLibs.begin(), importLibs.end(), "user32.lib") != importLibs.end();
+      if (!isGUI)
         args.push_back("/subsystem:console");
       else
         args.push_back("/subsystem:windows");
@@ -153,10 +219,17 @@ int PeBinaryPrinter::link(const std::string& outputFilename,
     return -1;
   }
 
+  // Prepare import definition files and generate import libraries for the linker
+  std::vector<std::string> importLibs;
+  if (!prepareImportLibs(ctx, ir, importLibs)) {
+    std::cerr << "ERROR: Unable to generate import libs.";
+    return -1;
+  }
+
   // Collect the arguments for invoking the assembler.
   std::vector<std::string> args;
   prepareAssemblerArguments(tempFiles, outputFilename, {}, args);
-  prepareLinkerArguments(ir, args);
+  prepareLinkerArguments(ir, importLibs, args);
 
   // Invoke the assembler.
   if (std::optional<int> ret = execute(compiler, args)) {

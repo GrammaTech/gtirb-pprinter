@@ -28,6 +28,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/process/search_path.hpp>
 #include <boost/process/system.hpp>
+#include <iostream>
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #elif defined(_MSC_VER)
@@ -38,14 +39,14 @@ namespace fs = boost::filesystem;
 namespace bp = boost::process;
 
 namespace gtirb_bprint {
-TempFile::TempFile() {
+TempFile::TempFile(const std::string extension) {
   // FIXME: this has TOCTOU issues.
 #ifdef _WIN32
   std::string TmpFileName;
   std::FILE* F = nullptr;
   while (!F) {
     TmpFileName = std::tmpnam(nullptr);
-    TmpFileName += ".s";
+    TmpFileName += extension;
     F = fopen(TmpFileName.c_str(), "wx");
   }
   fclose(F);
@@ -57,7 +58,13 @@ TempFile::TempFile() {
   FileStream.open(Name);
 }
 
-TempFile::~TempFile() { fs::remove(Name); }
+TempFile::~TempFile() {
+//	fs::remove(Name); 
+}
+
+std::string replaceExtension(const std::string path, const std::string new_ext) {
+  return fs::path(path).stem().string() + new_ext;
+}
 
 std::optional<std::string> resolveRegularFilePath(const std::string& path) {
   // Check that if path is a symbolic link, it eventually leads to a regular
@@ -81,9 +88,15 @@ std::optional<std::string> resolveRegularFilePath(const std::string& path,
 
 std::optional<int> execute(const std::string& tool,
                            const std::vector<std::string>& args) {
-  fs::path compilerPath = bp::search_path(tool);
-  if (compilerPath.empty())
+  fs::path toolPath = bp::search_path(tool);
+  if (toolPath.empty())
     return std::nullopt;
-  return bp::system(compilerPath, args);
+
+  std::cout << "Executing: " << toolPath;
+  for (const std::string& arg : args)
+    std::cout << " " << arg;
+  std::cout << "\n";
+
+  return bp::system(toolPath, args);
 }
 } // namespace gtirb_bprint

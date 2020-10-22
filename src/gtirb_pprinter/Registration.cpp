@@ -37,6 +37,7 @@ void registerAuxDataTypes() {
   gtirb::AuxDataContainer::registerAuxDataType<LibraryPaths>();
   gtirb::AuxDataContainer::registerAuxDataType<PeImportedSymbols>();
   gtirb::AuxDataContainer::registerAuxDataType<PeExportedSymbols>();
+  gtirb::AuxDataContainer::registerAuxDataType<ImportEntries>();
   gtirb::AuxDataContainer::registerAuxDataType<ElfSymbolInfo>();
   gtirb::AuxDataContainer::registerAuxDataType<SymbolicExpressionSizes>();
   gtirb::AuxDataContainer::registerAuxDataType<BinaryType>();
