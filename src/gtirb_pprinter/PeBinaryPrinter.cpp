@@ -13,9 +13,9 @@
 //
 //===----------------------------------------------------------------------===//
 #include "PeBinaryPrinter.hpp"
-#include "file_utils.hpp"
 #include "AuxDataSchema.hpp"
 #include "driver/Logger.h"
+#include "file_utils.hpp"
 #include <iostream>
 
 namespace gtirb_bprint {
@@ -73,18 +73,20 @@ bool PeBinaryPrinter::prepareImportLibs(
       continue;
     }
     for (const auto& [addr, ordinal, fnName, libName] : *pe_imports) {
-      std::map<std::string, std::vector<std::string>>::iterator itImportDef = importDefs.find(libName);
-      if ( itImportDef == importDefs.end()) {
+      std::map<std::string, std::vector<std::string>>::iterator itImportDef =
+          importDefs.find(libName);
+      if (itImportDef == importDefs.end()) {
         importDefs[libName] = std::vector<std::string>();
         itImportDef = importDefs.find(libName);
       }
       std::stringstream ss;
       if (ordinal != -1) {
-        ss << libName << "@" << ordinal << " @ " << ordinal << " == " << fnName << "\n";
+        ss << libName << "@" << ordinal << " @ " << ordinal << " == " << fnName
+           << "\n";
       } else {
         ss << fnName << "\n";
-	  }
-	  itImportDef->second.push_back(ss.str());
+      }
+      itImportDef->second.push_back(ss.str());
     }
 
     for (auto& itLib : importDefs) {
@@ -96,17 +98,16 @@ bool PeBinaryPrinter::prepareImportLibs(
       }
       tf.close();
 
-	  std::vector<std::string> args;
-	  std::string libTool = "lib.exe";
-	  std::string libName = replaceExtension(itLib.first, ".lib");
+      std::vector<std::string> args;
+      std::string libTool = "lib.exe";
+      std::string libName = replaceExtension(itLib.first, ".lib");
       args.push_back(std::string("/DEF:") + tf.fileName());
       args.push_back(std::string("/OUT:") + libName);
       if (std::optional<int> ret = execute(libTool, args)) {
         if (*ret) {
           std::cerr << "ERROR: lib returned: " << *ret << "\n";
           return false;
-        }
-        else
+        } else
           std::cout << "Generated " << replaceExtension(itLib.first, ".lib")
                     << "\n";
         importLibs.push_back(libName);
@@ -114,7 +115,7 @@ bool PeBinaryPrinter::prepareImportLibs(
         std::cerr << "ERROR: Unable to find lib.exe\n";
         return false;
       }
-	}
+    }
     // sort by import name and generate a def file for each import name
   }
 
@@ -123,7 +124,7 @@ bool PeBinaryPrinter::prepareImportLibs(
 
 void PeBinaryPrinter::prepareLinkerArguments(
     gtirb::IR& ir, std::vector<std::string>& importLibs,
-		std::vector<std::string>& args) const {
+    std::vector<std::string>& args) const {
   // The command lines for ml and ml64 are different, but there are some common
   // features. The first thing are the options common to both ml and ml64,
   // followed by assembler-specific options, followed by the name of the file
@@ -159,11 +160,12 @@ void PeBinaryPrinter::prepareLinkerArguments(
 
       // If we found a module with an entrypoint, we next want to determine if
       // this is a console or GUI app to be able to set the subsystem PE header
-      // field correctly.  If the app depends on user32.dll it's likely a GUI app.
+      // field correctly.  If the app depends on user32.dll it's likely a GUI
+      // app.
       // FIXME : This should be based off the original PE header, but that's not
       // yet available.
-      bool isGUI =
-          std::find(importLibs.begin(), importLibs.end(), "user32.lib") != importLibs.end();
+      bool isGUI = std::find(importLibs.begin(), importLibs.end(),
+                             "user32.lib") != importLibs.end();
       if (!isGUI)
         args.push_back("/subsystem:console");
       else
@@ -219,7 +221,8 @@ int PeBinaryPrinter::link(const std::string& outputFilename,
     return -1;
   }
 
-  // Prepare import definition files and generate import libraries for the linker
+  // Prepare import definition files and generate import libraries for the
+  // linker
   std::vector<std::string> importLibs;
   if (!prepareImportLibs(ctx, ir, importLibs)) {
     std::cerr << "ERROR: Unable to generate import libs.";

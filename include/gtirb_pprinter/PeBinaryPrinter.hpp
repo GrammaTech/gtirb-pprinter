@@ -35,10 +35,10 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API PeBinaryPrinter : public BinaryPrinter {
       const std::vector<std::string>& perCompilandExtraArgs,
       std::vector<std::string>& args) const;
   bool prepareImportLibs(gtirb::Context& ctx, gtirb::IR& ir,
-                      std::vector<std::string>& importLibs) const;
+                         std::vector<std::string>& importLibs) const;
   void prepareLinkerArguments(gtirb::IR& ir,
-								std::vector<std::string>& importLibs,
-								std::vector<std::string>& args) const;
+                              std::vector<std::string>& importLibs,
+                              std::vector<std::string>& args) const;
 
 public:
   PeBinaryPrinter(const gtirb_pprint::PrettyPrinter& prettyPrinter,

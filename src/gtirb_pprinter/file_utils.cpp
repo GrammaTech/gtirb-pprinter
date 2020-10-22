@@ -59,10 +59,11 @@ TempFile::TempFile(const std::string extension) {
 }
 
 TempFile::~TempFile() {
-//	fs::remove(Name); 
+  //	fs::remove(Name);
 }
 
-std::string replaceExtension(const std::string path, const std::string new_ext) {
+std::string replaceExtension(const std::string path,
+                             const std::string new_ext) {
   return fs::path(path).stem().string() + new_ext;
 }
 

@@ -39,8 +39,7 @@ public:
   const std::string& fileName() const { return Name; }
 };
 
-std::string replaceExtension(const std::string path,
-                             const std::string new_ext);
+std::string replaceExtension(const std::string path, const std::string new_ext);
 
 // Helper functions to resolve symlinks and get a real path to a file.
 std::optional<std::string> resolveRegularFilePath(const std::string& path);
