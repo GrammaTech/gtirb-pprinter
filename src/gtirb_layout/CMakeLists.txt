@@ -27,9 +27,6 @@ target_link_libraries(
     ${Boost_LIBRARIES}
     gtirb
     ${CAPSTONE}
-    "c:/Boost/boost_1_67_0/lib64-msvc-14.1/libboost_filesystem-vc141-mt-gd-x64-1_67.lib"
-    "c:/Boost/boost_1_67_0/lib64-msvc-14.1/libboost_program_options-vc141-mt-gd-x64-1_67.lib"
-    "c:/Boost/boost_1_67_0/lib64-msvc-14.1/libboost_system-vc141-mt-gd-x64-1_67.lib"
 )
 
 # interface
