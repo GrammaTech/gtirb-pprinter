@@ -58,9 +58,7 @@ TempFile::TempFile(const std::string extension) {
   FileStream.open(Name);
 }
 
-TempFile::~TempFile() {
-  //	fs::remove(Name);
-}
+TempFile::~TempFile() { fs::remove(Name); }
 
 std::string replaceExtension(const std::string path,
                              const std::string new_ext) {
@@ -92,11 +90,6 @@ std::optional<int> execute(const std::string& tool,
   fs::path toolPath = bp::search_path(tool);
   if (toolPath.empty())
     return std::nullopt;
-
-  std::cout << "Executing: " << toolPath;
-  for (const std::string& arg : args)
-    std::cout << " " << arg;
-  std::cout << "\n";
 
   return bp::system(toolPath, args);
 }
