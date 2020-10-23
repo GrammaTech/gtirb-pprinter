@@ -72,6 +72,7 @@ bool PeBinaryPrinter::prepareImportLibs(
       continue;
     }
     for (const auto& [addr, ordinal, fnName, libName] : *pe_imports) {
+      (void)addr; // unused binding
       std::map<std::string, std::vector<std::string>>::iterator itImportDef =
           importDefs.find(libName);
       if (itImportDef == importDefs.end()) {
