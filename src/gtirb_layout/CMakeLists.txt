@@ -20,8 +20,8 @@ set_target_properties(
              SOVERSION ${GTIRB_PPRINTER_MAJOR_VERSION}
              FOLDER "debloat")
 
-target_link_libraries( ${PROJECT_NAME} PUBLIC ${SYSLIBS} ${Boost_LIBRARIES}
-                                              gtirb ${CAPSTONE})
+target_link_libraries(${PROJECT_NAME} PUBLIC ${SYSLIBS} ${Boost_LIBRARIES}
+                                             gtirb ${CAPSTONE})
 
 # interface
 target_include_directories(
