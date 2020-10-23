@@ -59,8 +59,7 @@ void PeBinaryPrinter::prepareAssemblerArguments(
 // Generate import def files (temp files), and build into lib files returned
 // in importLibs to be linked.
 bool PeBinaryPrinter::prepareImportLibs(
-    gtirb::Context& ctx, gtirb::IR& ir,
-    std::vector<std::string>& importLibs) const {
+    gtirb::IR& ir, std::vector<std::string>& importLibs) const {
   std::map<std::string, std::vector<std::string>> importDefs;
 
   LOG_INFO << "Preparing Imort libs...&\n";
@@ -224,7 +223,7 @@ int PeBinaryPrinter::link(const std::string& outputFilename,
   // Prepare import definition files and generate import libraries for the
   // linker
   std::vector<std::string> importLibs;
-  if (!prepareImportLibs(ctx, ir, importLibs)) {
+  if (!prepareImportLibs(ir, importLibs)) {
     std::cerr << "ERROR: Unable to generate import libs.";
     return -1;
   }
