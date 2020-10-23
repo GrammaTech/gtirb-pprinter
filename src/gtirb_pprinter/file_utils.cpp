@@ -53,7 +53,7 @@ TempFile::TempFile(const std::string extension) {
 #else
   std::string TmpFileName = "/tmp/fileXXXXXX";
   TmpFileName += extension;
-  ::close(mkstemps(TmpFileName.c_str(), 2)); // Create tmp file
+  ::close(mkstemps(TmpFileName.data(), 2)); // Create tmp file
 #endif // _WIN32
   Name = TmpFileName;
   FileStream.open(Name);
