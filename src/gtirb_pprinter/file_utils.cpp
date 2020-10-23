@@ -51,8 +51,9 @@ TempFile::TempFile(const std::string extension) {
   }
   fclose(F);
 #else
-  char TmpFileName[] = strcat("/tmp/fileXXXXXX", extension.c_str());
-  ::close(mkstemps(TmpFileName, 2)); // Create tmp file
+  std::string TmpFileName = "/tmp/fileXXXXXX";
+  TmpFileName += extension;
+  ::close(mkstemps(TmpFileName.c_str(), 2)); // Create tmp file
 #endif // _WIN32
   Name = TmpFileName;
   FileStream.open(Name);
