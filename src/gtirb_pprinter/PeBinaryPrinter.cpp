@@ -64,7 +64,7 @@ bool PeBinaryPrinter::prepareImportLibs(
 
   LOG_INFO << "Preparing Import libs...\n";
   for (gtirb::Module& m : ir.modules()) {
-    // for each import in the auxDataTable
+    // For each import in the AuxData table.
     LOG_INFO << "Module: " << m.getBinaryPath() << "\n";
     auto* pe_imports = m.getAuxData<gtirb::schema::ImportEntries>();
     if (!pe_imports) {
