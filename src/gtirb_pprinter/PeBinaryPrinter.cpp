@@ -116,7 +116,7 @@ bool PeBinaryPrinter::prepareImportLibs(
         return false;
       }
     }
-    // sort by import name and generate a def file for each import name
+    // Sort by import name and generate a def file for each import name.
   }
 
   return true;
