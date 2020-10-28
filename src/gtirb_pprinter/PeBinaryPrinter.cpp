@@ -62,7 +62,7 @@ bool PeBinaryPrinter::prepareImportLibs(
     gtirb::IR& ir, std::vector<std::string>& importLibs) const {
   std::map<std::string, std::vector<std::string>> importDefs;
 
-  LOG_INFO << "Preparing Imort libs...&\n";
+  LOG_INFO << "Preparing Import libs...\n";
   for (gtirb::Module& m : ir.modules()) {
     // for each import in the auxDataTable
     LOG_INFO << "Module: " << m.getBinaryPath() << "\n";
