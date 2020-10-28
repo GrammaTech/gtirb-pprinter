@@ -107,9 +107,10 @@ bool PeBinaryPrinter::prepareImportLibs(
         if (*ret) {
           std::cerr << "ERROR: lib returned: " << *ret << "\n";
           return false;
-        } else
+        } else {
           std::cout << "Generated " << replaceExtension(itLib.first, ".lib")
                     << "\n";
+        }
         importLibs.push_back(libName);
       } else {
         std::cerr << "ERROR: Unable to find lib.exe\n";
