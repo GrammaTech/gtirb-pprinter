@@ -37,7 +37,7 @@ check-format:
        esac
     - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=${JOB_NAME} --output "gtirb-$OS-artifacts.zip"
     - unzip gtirb-$OS-artifacts.zip
-    - '[ $OS != "arch" ] || pacman --noconfirm -U gtirb-git*.pkg.tar.xz'
+    - '[ $OS != "arch" ] || pacman --noconfirm -U gtirb-git*.pkg.tar.*'
     - '[[ ! "$OS" =~ ubuntu[12][680] ]] || dpkg -i libgtirb.deb libgtirb-dev.deb'
     - mkdir build && cd build
     - cmake ../ -DCMAKE_CXX_COMPILER=$COMPILER -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCPACK_DEBIAN_RELEASE="$(lsb_release -sc)" -DGTIRB_PPRINTER_STRIP_DEBUG_SYMBOLS=On
@@ -89,7 +89,7 @@ check-format:
        esac
     - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=${JOB_NAME} --output "gtirb-$OS-artifacts.zip"
     - unzip gtirb-$OS-artifacts.zip
-    - '[ $OS != "arch" ] || pacman --noconfirm -U gtirb-git*.pkg.tar.xz'
+    - '[ $OS != "arch" ] || pacman --noconfirm -U gtirb-git*.pkg.tar.*'
     - '[[ ! "$OS" =~ ubuntu[12][680] ]] || dpkg -i libgtirb.deb'
     - cd build && PATH=$(pwd)/bin:$PATH ctest -V
 
@@ -107,16 +107,16 @@ build-arch-gcc:
   script:
     - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=package-arch --output "gtirb-arch-artifacts.zip"
     - unzip gtirb-arch-artifacts.zip
-    - pacman --noconfirm -U gtirb-git*.pkg.tar.xz
+    - pacman --noconfirm -U gtirb-git*.pkg.tar.*
     - sed -i "s/^\(OPT_LONG=(\)/\1'asroot' /;s/EUID == 0/1 == 0/" /usr/bin/makepkg
     - mkdir /tmp/aur
     - cp .ci/PKGBUILD /tmp/aur
     - cd /tmp/aur
     - sed -i "s|git://github.com/grammatech/gtirb-pprinter.git|git+file://${CI_PROJECT_DIR}|" PKGBUILD
     - makepkg
-    - pacman --noconfirm -U *.pkg.tar.xz
+    - pacman --noconfirm -U *.pkg.tar.*
     - cp -r /tmp/aur/src/gtirb-pprinter/build $CI_PROJECT_DIR
-    - cp *.pkg.tar.xz $CI_PROJECT_DIR/build/
+    - cp *.pkg.tar.* $CI_PROJECT_DIR/build/
     - cd /tmp/aur/src/gtirb-pprinter/build && ctest -V
 
 build-ubuntu16-gcc:
@@ -482,8 +482,8 @@ test-arch-package:
   script:
     - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=package-arch --output "gtirb-arch-artifacts.zip"
     - unzip gtirb-arch-artifacts.zip
-    - pacman --noconfirm -U gtirb-git*.pkg.tar.xz
-    - pacman --noconfirm -U build/*.pkg.tar.xz
+    - pacman --noconfirm -U gtirb-git*.pkg.tar.*
+    - pacman --noconfirm -U build/*.pkg.tar.*
     - g++ .ci/test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs
     - ./test-install
     - python3 -m unittest discover tests "*_test.py"
@@ -519,6 +519,6 @@ package-arch:
   artifacts:
     name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
     paths:
-      - '*gtirb-pprinter*.pkg.tar.xz'
+      - '*gtirb-pprinter*.pkg.tar.*'
   script:
-    - cp build/*.pkg.tar.xz ./
+    - cp build/*.pkg.tar.* ./
