@@ -68,10 +68,20 @@ void Mips32PrettyPrinter::printOpRegdirect(std::ostream& os,
 }
 
 void Mips32PrettyPrinter::printOpImmediate(
-    std::ostream& os, const gtirb::SymbolicExpression* /*symbolic*/,
+    std::ostream& os, const gtirb::SymbolicExpression* symbolic,
     const cs_insn& inst, uint64_t index) {
-  const cs_mips_op& op = inst.detail->mips.operands[index];
-  os << op.imm;
+  if (symbolic) {
+    if (auto* SAC = std::get_if<gtirb::SymAddrConst>(symbolic)) {
+      printSymbolicExpression(os, SAC);
+    } else if (auto* SAA = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
+      printSymbolicExpression(os, SAA);
+    } else {
+      assert(!"Unknown sym expr type in printOpImmediate!");
+    }
+  } else {
+    const cs_mips_op& op = inst.detail->mips.operands[index];
+    os << op.imm;
+  }
 }
 
 void Mips32PrettyPrinter::printOpIndirect(
@@ -87,13 +97,16 @@ std::string Mips32PrettyPrinter::getRegisterName(unsigned int reg) const {
 }
 
 void Mips32PrettyPrinter::printOperand(std::ostream& os,
-                                       const gtirb::CodeBlock& /*block*/,
+                                       const gtirb::CodeBlock& block,
                                        const cs_insn& inst, uint64_t index) {
   const cs_mips_op& op = inst.detail->mips.operands[index];
+  const gtirb::SymbolicExpression* SymExpr = nullptr;
 
   switch (op.type) {
   case MIPS_OP_IMM:
-    printOpImmediate(os, nullptr, inst, index);
+    SymExpr = block.getByteInterval()->getSymbolicExpression(
+        gtirb::Addr{inst.address} - *block.getByteInterval()->getAddress());
+    printOpImmediate(os, SymExpr, inst, index);
     return;
   case MIPS_OP_REG:
     printOpRegdirect(os, inst, index);
@@ -112,6 +125,7 @@ void Mips32PrettyPrinter::printInstruction(std::ostream& os,
                                            const gtirb::Offset& offset) {
   gtirb::Addr ea(inst.address);
   printComments(os, offset, inst.size);
+  printCFIDirectives(os, offset);
   printEA(os, ea);
 
   os << "  " << inst.mnemonic << ' ';
