@@ -21,7 +21,8 @@ set(${PROJECT_NAME}_H
     ${CMAKE_BINARY_DIR}/include/gtirb_pprinter/version.h
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/MasmPrettyPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/PeBinaryPrinter.hpp
-    ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/PePrettyPrinter.hpp)
+    ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/PePrettyPrinter.hpp
+    ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Mips32PrettyPrinter.hpp)
 
 # sources
 set(${PROJECT_NAME}_SRC
@@ -39,7 +40,8 @@ set(${PROJECT_NAME}_SRC
     Syntax.cpp
     MasmPrettyPrinter.cpp
     PeBinaryPrinter.cpp
-    PePrettyPrinter.cpp)
+    PePrettyPrinter.cpp
+    Mips32PrettyPrinter.cpp)
 
 add_library(${PROJECT_NAME} ${${PROJECT_NAME}_H} ${${PROJECT_NAME}_SRC})
 

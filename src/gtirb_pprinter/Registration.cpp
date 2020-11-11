@@ -19,6 +19,7 @@
 #include "AuxDataSchema.hpp"
 #include "IntelPrettyPrinter.hpp"
 #include "MasmPrettyPrinter.hpp"
+#include "Mips32PrettyPrinter.hpp"
 #include "PrettyPrinter.hpp"
 #include <gtirb/gtirb.hpp>
 
@@ -52,6 +53,8 @@ void registerPrettyPrinters() {
                   std::make_shared<ArmPrettyPrinterFactory>(), true);
   registerPrinter({"elf"}, {"arm64"}, {"arm64"},
                   std::make_shared<Arm64PrettyPrinterFactory>(), true);
+  registerPrinter({"elf"}, {"mips32"}, {"mips32"},
+                  std::make_shared<Mips32PrettyPrinterFactory>(), true);
   registerPrinter({"pe"}, {"x64"}, {"masm"},
                   std::make_shared<MasmPrettyPrinterFactory>(), true);
 }
