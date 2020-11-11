@@ -108,6 +108,8 @@ std::string getModuleISA(const gtirb::Module& module) {
     return "x64";
   case gtirb::ISA::IA32:
     return "x86";
+  case gtirb::ISA::MIPS32:
+    return "mips32";
   default:
     return "undefined";
   }

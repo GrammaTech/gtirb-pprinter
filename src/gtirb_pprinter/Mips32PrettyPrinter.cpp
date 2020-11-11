@@ -59,14 +59,77 @@ Mips32PrettyPrinter::Mips32PrettyPrinter(gtirb::Context& context_,
 }
 
 void Mips32PrettyPrinter::printHeader(std::ostream& /*os*/) {}
-void Mips32PrettyPrinter::printOpRegdirect(std::ostream& /*os*/,
-                                           const cs_insn& /*inst*/,
-                                           uint64_t /*index*/) {}
+
+void Mips32PrettyPrinter::printOpRegdirect(std::ostream& os,
+                                           const cs_insn& inst,
+                                           uint64_t index) {
+  const cs_mips_op& op = inst.detail->mips.operands[index];
+  os << getRegisterName(op.reg);
+}
+
 void Mips32PrettyPrinter::printOpImmediate(
-    std::ostream& /*os*/, const gtirb::SymbolicExpression* /*symbolic*/,
-    const cs_insn& /*inst*/, uint64_t /*index*/) {}
+    std::ostream& os, const gtirb::SymbolicExpression* /*symbolic*/,
+    const cs_insn& inst, uint64_t index) {
+  const cs_mips_op& op = inst.detail->mips.operands[index];
+  os << op.imm;
+}
+
 void Mips32PrettyPrinter::printOpIndirect(
-    std::ostream& /*os*/, const gtirb::SymbolicExpression* /*symbolic*/,
-    const cs_insn& /*inst*/, uint64_t /*index*/) {}
+    std::ostream& os, const gtirb::SymbolicExpression* /*symbolic*/,
+    const cs_insn& inst, uint64_t index) {
+  const cs_mips_op& op = inst.detail->mips.operands[index];
+  os << op.mem.disp << '(' << getRegisterName(op.mem.base) << ')';
+}
+
+std::string Mips32PrettyPrinter::getRegisterName(unsigned int reg) const {
+  assert(reg != MIPS_REG_INVALID && "Register has no name!");
+  return std::string{"$"} + cs_reg_name(this->csHandle, reg);
+}
+
+void Mips32PrettyPrinter::printOperand(std::ostream& os,
+                                       const gtirb::CodeBlock& /*block*/,
+                                       const cs_insn& inst, uint64_t index) {
+  const cs_mips_op& op = inst.detail->mips.operands[index];
+
+  switch (op.type) {
+  case MIPS_OP_IMM:
+    printOpImmediate(os, nullptr, inst, index);
+    return;
+  case MIPS_OP_REG:
+    printOpRegdirect(os, inst, index);
+    return;
+  case MIPS_OP_MEM:
+    printOpIndirect(os, nullptr, inst, index);
+    return;
+  default:
+    assert(!"unknown mips op type!");
+  }
+}
+
+void Mips32PrettyPrinter::printInstruction(std::ostream& os,
+                                           const gtirb::CodeBlock& block,
+                                           const cs_insn& inst,
+                                           const gtirb::Offset& offset) {
+  gtirb::Addr ea(inst.address);
+  printComments(os, offset, inst.size);
+  printEA(os, ea);
+
+  os << "  " << inst.mnemonic << ' ';
+  printOperandList(os, block, inst);
+  os << '\n';
+}
+
+void Mips32PrettyPrinter::printOperandList(std::ostream& os,
+                                           const gtirb::CodeBlock& block,
+                                           const cs_insn& inst) {
+  const cs_mips& detail = inst.detail->mips;
+
+  for (int i = 0; i < detail.op_count; i++) {
+    if (i != 0) {
+      os << ',';
+    }
+    printOperand(os, block, inst, i);
+  }
+}
 
 } // namespace gtirb_pprint
