@@ -53,8 +53,8 @@ Mips32PrettyPrinter::Mips32PrettyPrinter(gtirb::Context& context_,
                                          const PrintingPolicy& policy_)
     : ElfPrettyPrinter(context_, module_, syntax_, policy_) {
   // Setup Capstone.
-  [[maybe_unused]] cs_err err =
-      cs_open(CS_ARCH_MIPS, CS_MODE_MIPS32 | CS_MODE_BIG_ENDIAN, &this->csHandle);
+  [[maybe_unused]] cs_err err = cs_open(
+      CS_ARCH_MIPS, CS_MODE_MIPS32 | CS_MODE_BIG_ENDIAN, &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
 }
 
