@@ -81,7 +81,7 @@ bool PeBinaryPrinter::prepareImportLibs(
       }
       std::stringstream ss;
       if (ordinal != -1) {
-        ss << libName << "@" << ordinal << " @ " << ordinal << " == " << fnName
+        ss << libName << "@" << ordinal << " @ " << ordinal << " = " << fnName
            << "\n";
       } else {
         ss << fnName << "\n";

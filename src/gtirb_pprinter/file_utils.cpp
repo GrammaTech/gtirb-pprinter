@@ -59,7 +59,8 @@ TempFile::TempFile(const std::string extension) {
   FileStream.open(Name);
 }
 
-TempFile::~TempFile() { fs::remove(Name); }
+TempFile::~TempFile() { //fs::remove(Name);
+}
 
 std::string replaceExtension(const std::string path,
                              const std::string new_ext) {
