@@ -107,6 +107,12 @@ void IntelPrettyPrinter::printOpIndirect(
   if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
     os << '+';
     printSymbolicExpression(os, s, false);
+  } else if (const auto* rel = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
+    // TODO:
+    if (std::optional<gtirb::Addr> Addr = rel->Sym1->getAddress(); Addr) {
+      const std::string& Name = getSymbolName(*rel->Sym1);
+      os << "+" << Name << "@GOTOFF";
+    }
   } else {
     printAddend(os, op.mem.disp, first);
   }
