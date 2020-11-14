@@ -95,9 +95,18 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
       elfSyntax(syntax_) {
 
   // TODO:
-  if (auto It = module.findSymbols("_GLOBAL_OFFSET_TABLE_"); !It.empty()) {
-    gtirb::Symbol* GlobalOffsetTable = &*It.begin();
-    GlobalOffsetTable->setReferent(module.addProxyBlock(context));
+  static auto SpecialSymbols = {
+      "_GLOBAL_OFFSET_TABLE_",
+      "__x86.get_pc_thunk.ax",
+      "__x86.get_pc_thunk.bx",
+      "__x86.get_pc_thunk.dx",
+      "_fp_hw",
+  };
+  for (auto Name : SpecialSymbols) {
+    if (auto It = module.findSymbols(Name); !It.empty()) {
+      gtirb::Symbol* Symbol = &*It.begin();
+      Symbol->setReferent(module.addProxyBlock(context));
+    }
   }
 }
 
