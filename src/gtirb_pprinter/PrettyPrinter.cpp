@@ -566,10 +566,12 @@ void PrettyPrinterBase::printOperand(std::ostream& os,
     printOpImmediate(os, symbolic, inst, index);
     return;
   case X86_OP_MEM:
-    if (dispOffset > 0) {
-      symbolic = block.getByteInterval()->getSymbolicExpression(
-          ea + dispOffset - *block.getByteInterval()->getAddress());
+    // FIXME: Fix Capstone and revert this change:
+    if (dispOffset == 0) {
+      std::cerr << "WARNING: Displacement offset 0: " << ea << "\n";
     }
+    symbolic = block.getByteInterval()->getSymbolicExpression(
+        ea + dispOffset - *block.getByteInterval()->getAddress());
     printOpIndirect(os, symbolic, inst, index);
     return;
   case X86_OP_INVALID:
