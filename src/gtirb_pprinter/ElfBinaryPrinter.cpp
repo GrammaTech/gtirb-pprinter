@@ -137,11 +137,11 @@ ElfBinaryPrinter::buildCompilerArgs(std::string outputFilename,
   }
   // add -m32 for x86 binaries
   for (gtirb::Module& module : ir.modules()) {
-    if (module.getISA() == gtirb::ISA::IA32){
+    if (module.getISA() == gtirb::ISA::IA32) {
       args.push_back("-m32");
     }
   }
-  
+
   if (debug) {
     std::cout << "Compiler arguments: ";
     for (auto i : args)
