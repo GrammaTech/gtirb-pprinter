@@ -179,9 +179,12 @@ void Mips32PrettyPrinter::printSymbolicExpression(std::ostream& OS,
 }
 
 void Mips32PrettyPrinter::printSymExprPrefix(
-    std::ostream& /*OS*/, const gtirb::SymAttributeSet& Attrs) {
+    std::ostream& OS, const gtirb::SymAttributeSet& Attrs) {
   for (const auto& Attr : Attrs) {
     switch (Attr) {
+    case gtirb::SymAttribute::AddrRelGot: {
+      OS << "%call16(";
+    } break;
     default:
       assert(!"Unknown sym expr attribute encountered!");
     }
@@ -189,9 +192,12 @@ void Mips32PrettyPrinter::printSymExprPrefix(
 }
 
 void Mips32PrettyPrinter::printSymExprSuffix(
-    std::ostream& /*OS*/, const gtirb::SymAttributeSet& Attrs) {
+    std::ostream& OS, const gtirb::SymAttributeSet& Attrs) {
   for (const auto& Attr : Attrs) {
     switch (Attr) {
+    case gtirb::SymAttribute::AddrRelGot: {
+      OS << ")";
+    } break;
     default:
       assert(!"Unknown sym expr attribute encountered!");
     }
