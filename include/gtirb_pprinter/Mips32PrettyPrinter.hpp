@@ -45,6 +45,18 @@ protected:
                         const gtirb::Offset& offset) override;
   void printOperandList(std::ostream& os, const gtirb::CodeBlock& block,
                         const cs_insn& inst) override;
+  void printSymbolicExpression(std::ostream& os,
+                               const gtirb::SymAddrConst* sexpr,
+                               bool IsNotBranch = false) override;
+  void printSymbolicExpression(std::ostream& os,
+                               const gtirb::SymAddrAddr* sexpr,
+                               bool IsNotBranch = false) override;
+
+private:
+  void printSymExprPrefix(std::ostream& OS,
+                          const gtirb::SymAttributeSet& Attrs);
+  void printSymExprSuffix(std::ostream& OS,
+                          const gtirb::SymAttributeSet& Attrs);
 };
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API Mips32PrettyPrinterFactory

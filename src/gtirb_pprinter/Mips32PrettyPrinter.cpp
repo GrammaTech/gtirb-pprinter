@@ -86,10 +86,23 @@ void Mips32PrettyPrinter::printOpImmediate(
 }
 
 void Mips32PrettyPrinter::printOpIndirect(
-    std::ostream& os, const gtirb::SymbolicExpression* /*symbolic*/,
+    std::ostream& os, const gtirb::SymbolicExpression* symbolic,
     const cs_insn& inst, uint64_t index) {
   const cs_mips_op& op = inst.detail->mips.operands[index];
-  os << op.mem.disp << '(' << getRegisterName(op.mem.base) << ')';
+
+  if (symbolic) {
+    if (auto* SAC = std::get_if<gtirb::SymAddrConst>(symbolic)) {
+      printSymbolicExpression(os, SAC);
+    } else if (auto* SAA = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
+      printSymbolicExpression(os, SAA);
+    } else {
+      assert(!"Unknown sym expr type in printOpImmediate!");
+    }
+  } else {
+    os << op.mem.disp;
+  }
+
+  os << '(' << getRegisterName(op.mem.base) << ')';
 }
 
 std::string Mips32PrettyPrinter::getRegisterName(unsigned int reg) const {
@@ -113,7 +126,9 @@ void Mips32PrettyPrinter::printOperand(std::ostream& os,
     printOpRegdirect(os, inst, index);
     return;
   case MIPS_OP_MEM:
-    printOpIndirect(os, nullptr, inst, index);
+    SymExpr = block.getByteInterval()->getSymbolicExpression(
+        gtirb::Addr{inst.address} - *block.getByteInterval()->getAddress());
+    printOpIndirect(os, SymExpr, inst, index);
     return;
   default:
     assert(!"unknown mips op type!");
@@ -144,6 +159,42 @@ void Mips32PrettyPrinter::printOperandList(std::ostream& os,
       os << ',';
     }
     printOperand(os, block, inst, i);
+  }
+}
+
+void Mips32PrettyPrinter::printSymbolicExpression(std::ostream& OS,
+                                                  const gtirb::SymAddrConst* SE,
+                                                  bool IsNotBranch) {
+  printSymExprPrefix(OS, SE->Attributes);
+  ElfPrettyPrinter::printSymbolicExpression(OS, SE, IsNotBranch);
+  printSymExprSuffix(OS, SE->Attributes);
+}
+
+void Mips32PrettyPrinter::printSymbolicExpression(std::ostream& OS,
+                                                  const gtirb::SymAddrAddr* SE,
+                                                  bool IsNotBranch) {
+  printSymExprPrefix(OS, SE->Attributes);
+  ElfPrettyPrinter::printSymbolicExpression(OS, SE, IsNotBranch);
+  printSymExprSuffix(OS, SE->Attributes);
+}
+
+void Mips32PrettyPrinter::printSymExprPrefix(
+    std::ostream& /*OS*/, const gtirb::SymAttributeSet& Attrs) {
+  for (const auto& Attr : Attrs) {
+    switch (Attr) {
+    default:
+      assert(!"Unknown sym expr attribute encountered!");
+    }
+  }
+}
+
+void Mips32PrettyPrinter::printSymExprSuffix(
+    std::ostream& /*OS*/, const gtirb::SymAttributeSet& Attrs) {
+  for (const auto& Attr : Attrs) {
+    switch (Attr) {
+    default:
+      assert(!"Unknown sym expr attribute encountered!");
+    }
   }
 }
 
