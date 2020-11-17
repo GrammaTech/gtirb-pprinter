@@ -116,14 +116,19 @@ void Arm64PrettyPrinter::printOperand(std::ostream& os,
   }
 }
 
-void Arm64PrettyPrinter::printPrefix(std::ostream& os, const cs_insn& inst,
-                                     uint64_t index) {
-  if (const auto* symbolicOperandInfo =
-          module.getAuxData<gtirb::schema::SymbolicOperandInfoAD>()) {
-    if (auto it = symbolicOperandInfo->find(gtirb::Addr(inst.address));
-        it != symbolicOperandInfo->end() && index == std::get<0>(it->second)) {
-      os << std::get<1>(it->second);
-    }
+void Arm64PrettyPrinter::printPrefix(std::ostream& os,
+                                     const gtirb::SymAddrConst& sexpr) {
+  // FIXME: Replace Part0 with appropriate attribute when added to GTIRB.
+  if (sexpr.Attributes.isFlagSet(gtirb::SymAttribute::Part0)) {
+    os << ":lo12:";
+  }
+  // FIXME: Replace Part1 with appropriate attribute when added to GTIRB.
+  else if (sexpr.Attributes.isFlagSet(gtirb::SymAttribute::Part1)) {
+    os << ":got_lo12:";
+  }
+  // FIXME: Replace Part2 with appropriate attribute when added to GTIRB.
+  else if (sexpr.Attributes.isFlagSet(gtirb::SymAttribute::Part2)) {
+    os << ":got:";
   }
 }
 
@@ -149,7 +154,7 @@ void Arm64PrettyPrinter::printOpImmediate(
     if (!is_jump) {
       os << ' ';
     }
-    printPrefix(os, inst, index);
+    printPrefix(os, *s);
     this->printSymbolicExpression(os, s, !is_jump);
   } else {
     os << "#" << op.imm;
@@ -184,7 +189,7 @@ void Arm64PrettyPrinter::printOpIndirect(
       os << ",";
     }
     if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
-      printPrefix(os, inst, index);
+      printPrefix(os, *s);
       printSymbolicExpression(os, s, false);
     } else {
       os << "#" << op.mem.disp;

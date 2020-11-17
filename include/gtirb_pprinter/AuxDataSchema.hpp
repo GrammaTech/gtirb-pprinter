@@ -35,13 +35,6 @@ struct Encodings {
   typedef std::map<gtirb::UUID, std::string> Type;
 };
 
-/// \brief Auxiliary data that keeps track of info associated
-/// with each individual appearance of a symbolic operand.
-struct SymbolicOperandInfoAD {
-  static constexpr const char* Name = "symbolicOperandInfo";
-  typedef std::map<gtirb::Addr, std::tuple<uint64_t, std::string>> Type;
-};
-
 /// \brief Auxiliary data covering ELF section properties.
 struct ElfSectionProperties {
   static constexpr const char* Name = "elfSectionProperties";

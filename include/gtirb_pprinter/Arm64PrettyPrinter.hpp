@@ -51,7 +51,7 @@ protected:
   void printOpPrefetch(std::ostream& os, const arm64_prefetch_op prefetch);
   void printOpBarrier(std::ostream& os, const arm64_barrier_op barrier);
 
-  void printPrefix(std::ostream& os, const cs_insn& inst, uint64_t index);
+  void printPrefix(std::ostream& os, const gtirb::SymAddrConst& sexpr);
   void printShift(std::ostream& os, const arm64_shifter type,
                   unsigned int value);
   void printExtender(std::ostream& os, const arm64_extender& ext,
