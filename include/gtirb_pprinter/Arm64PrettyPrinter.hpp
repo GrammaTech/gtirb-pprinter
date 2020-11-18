@@ -43,15 +43,17 @@ protected:
   void printOpIndirect(std::ostream& os,
                        const gtirb::SymbolicExpression* symbolic,
                        const cs_insn& inst, uint64_t index) override;
-  std::optional<std::string>
-  getForwardedSymbolName(const gtirb::Symbol* symbol,
-                         bool IsNotBranch) const override;
 
   void printOpRawValue(std::ostream& os, const cs_insn& inst, uint64_t index);
   void printOpPrefetch(std::ostream& os, const arm64_prefetch_op prefetch);
   void printOpBarrier(std::ostream& os, const arm64_barrier_op barrier);
 
-  void printPrefix(std::ostream& os, const gtirb::SymAddrConst& sexpr);
+  void printSymbolReferencePrefix(std::ostream& os,
+                                  const gtirb::SymAddrConst* sexpr,
+                                  bool IsNotBranch) override;
+  void printSymbolReferenceSuffix(std::ostream& os,
+                                  const gtirb::SymAddrConst* sexpr,
+                                  bool IsNotBranch) override;
   void printShift(std::ostream& os, const arm64_shifter type,
                   unsigned int value);
   void printExtender(std::ostream& os, const arm64_extender& ext,

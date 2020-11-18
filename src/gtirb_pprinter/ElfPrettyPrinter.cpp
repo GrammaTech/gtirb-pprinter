@@ -231,6 +231,17 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
   printBar(os, false);
 }
 
+void ElfPrettyPrinter::printSymbolReferenceSuffix(
+    std::ostream& os, const gtirb::SymAddrConst* sexpr, bool IsNotBranch) {
+  if (sexpr->Attributes.isFlagSet(gtirb::SymAttribute::PltRef)) {
+    if (!IsNotBranch) {
+      os << "@PLT";
+    }
+  } else if (sexpr->Attributes.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
+    os << "@GOTPCREL";
+  }
+}
+
 void ElfPrettyPrinter::printSymbolDefinition(std::ostream& os,
                                              const gtirb::Symbol& sym) {
   printSymbolHeader(os, sym);

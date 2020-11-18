@@ -354,9 +354,8 @@ void PrettyPrinterBase::printBar(std::ostream& os, bool heavy) {
   }
 }
 
-void PrettyPrinterBase::printSymbolReference(std::ostream& os,
-                                             const gtirb::Symbol* symbol,
-                                             bool IsNotBranch) const {
+void PrettyPrinterBase::printSymbolReference(
+    std::ostream& os, const gtirb::Symbol* symbol) const {
   if (!symbol)
     return;
 
@@ -365,8 +364,7 @@ void PrettyPrinterBase::printSymbolReference(std::ostream& os,
     return;
   }
 
-  std::optional<std::string> forwardedName =
-      getForwardedSymbolName(symbol, IsNotBranch);
+  std::optional<std::string> forwardedName = getForwardedSymbolName(symbol);
   if (forwardedName) {
     os << forwardedName.value();
     return;
@@ -376,7 +374,7 @@ void PrettyPrinterBase::printSymbolReference(std::ostream& os,
     return;
   }
   os << getSymbolName(*symbol);
-} // namespace gtirb_pprint
+}
 
 void PrettyPrinterBase::printSymbolDefinition(std::ostream& os,
                                               const gtirb::Symbol& symbol) {
@@ -807,7 +805,7 @@ void PrettyPrinterBase::printCFIDirectives(std::ostream& os,
     if (symbol) {
       if (operands.size() > 0)
         os << ", ";
-      printSymbolReference(os, symbol, true);
+      printSymbolReference(os, symbol);
     }
 
     os << std::endl;
@@ -856,22 +854,32 @@ void PrettyPrinterBase::printSymbolicData(
   os << "\n";
 }
 
+void PrettyPrinterBase::printSymbolReferencePrefix(
+    std::ostream& /* os */, const gtirb::SymAddrConst* /* sexpr */,
+    bool /* IsNotBranch */) {}
+
+void PrettyPrinterBase::printSymbolReferenceSuffix(
+    std::ostream& /* os */, const gtirb::SymAddrConst* /* sexpr */,
+    bool /* IsNotBranch */) {}
+
 void PrettyPrinterBase::printSymbolicExpression(
     std::ostream& os, const gtirb::SymAddrConst* sexpr, bool IsNotBranch) {
-  printSymbolReference(os, sexpr->Sym, IsNotBranch);
+  printSymbolReferencePrefix(os, sexpr, IsNotBranch);
+  printSymbolReference(os, sexpr->Sym);
+  printSymbolReferenceSuffix(os, sexpr, IsNotBranch);
   printAddend(os, sexpr->Offset);
 }
 
 void PrettyPrinterBase::printSymbolicExpression(std::ostream& os,
                                                 const gtirb::SymAddrAddr* sexpr,
-                                                bool IsNotBranch) {
+                                                bool /* IsNotBranch */) {
   if (sexpr->Scale > 1) {
     os << "(";
   }
 
-  printSymbolReference(os, sexpr->Sym1, IsNotBranch);
+  printSymbolReference(os, sexpr->Sym1);
   os << '-';
-  printSymbolReference(os, sexpr->Sym2, IsNotBranch);
+  printSymbolReference(os, sexpr->Sym2);
 
   if (sexpr->Scale > 1) {
     os << ")/" << sexpr->Scale;
@@ -1083,58 +1091,18 @@ PrettyPrinterBase::getSymbolName(const gtirb::Symbol& symbol) const {
 }
 
 std::optional<std::string>
-PrettyPrinterBase::getForwardedSymbolName(const gtirb::Symbol* symbol,
-                                          bool IsNotBranch) const {
+PrettyPrinterBase::getForwardedSymbolName(const gtirb::Symbol* symbol) const {
   const auto* symbolForwarding =
       module.getAuxData<gtirb::schema::SymbolForwarding>();
-
   if (symbol && symbolForwarding) {
     auto found = symbolForwarding->find(symbol->getUUID());
     if (found != symbolForwarding->end()) {
       if (auto* destSymbol =
               nodeFromUUID<gtirb::Symbol>(context, found->second))
-        return getSymbolName(*destSymbol) +
-               getForwardedSymbolEnding(symbol, IsNotBranch);
+        return getSymbolName(*destSymbol);
     }
   }
   return std::nullopt;
-}
-
-std::string
-PrettyPrinterBase::getForwardedSymbolEnding(const gtirb::Symbol* Symbol,
-                                            bool IsNotBranch) const {
-  if (Symbol && Symbol->getAddress()) {
-    const gtirb::Section* ContainerSection;
-    if (Symbol->hasReferent()) {
-      if (const auto* CB = Symbol->getReferent<gtirb::CodeBlock>()) {
-        ContainerSection = CB->getByteInterval()->getSection();
-      } else if (const auto* DB = Symbol->getReferent<gtirb::DataBlock>()) {
-        ContainerSection = DB->getByteInterval()->getSection();
-      } else {
-        // If we're here, then the symbol's referent cannot be a ProxyBlock,
-        // as they never have an address, which we check for the presence of
-        // above.
-        assert(!"Unknown type in symbol referent!");
-        return std::string{};
-      }
-    } else {
-      gtirb::Addr addr = *Symbol->getAddress();
-      const auto ContainerSections = module.findSectionsOn(addr);
-      if (ContainerSections.empty())
-        return std::string{};
-      ContainerSection = &ContainerSections.front();
-    }
-
-    std::string SectionName = ContainerSection->getName();
-    std::string PltPrefix(".plt");
-    if (!IsNotBranch &&
-        SectionName.compare(0, PltPrefix.length(), PltPrefix) == 0)
-      return std::string{"@PLT"};
-    std::string GotPrefix(".got");
-    if (SectionName.compare(0, GotPrefix.length(), GotPrefix) == 0)
-      return std::string{"@GOTPCREL"};
-  }
-  return std::string{};
 }
 
 bool PrettyPrinterBase::isAmbiguousSymbol(const std::string& name) const {
