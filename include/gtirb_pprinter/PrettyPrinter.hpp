@@ -384,8 +384,6 @@ protected:
   virtual std::string getSymbolName(const gtirb::Symbol& symbol) const;
   virtual std::optional<std::string>
   getForwardedSymbolName(const gtirb::Symbol* symbol) const;
-  virtual std::optional<std::string>
-  getTlsSymbol(const gtirb::Symbol& symbol) const;
 
   bool isAmbiguousSymbol(const std::string& ea) const;
 

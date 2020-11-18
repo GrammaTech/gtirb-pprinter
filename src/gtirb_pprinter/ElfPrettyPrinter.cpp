@@ -240,6 +240,17 @@ void ElfPrettyPrinter::printSymbolReferenceSuffix(
   } else if (sexpr->Attributes.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
     os << "@GOTPCREL";
   }
+  // TODO: Use appropriate TLS attribute when it is added to GTIRB.
+  gtirb::Symbol& S = *(sexpr->Sym);
+  if (std::optional<gtirb::Addr> Addr = S.getAddress()) {
+    if (std::optional<const gtirb::Section*> Section =
+            getContainerSection(*Addr)) {
+      std::string Name = (*Section)->getName();
+      if (Name == ".tdata" || Name == ".tbss") {
+        os << "@TPOFF";
+      }
+    }
+  }
 }
 
 void ElfPrettyPrinter::printSymbolDefinition(std::ostream& os,
@@ -282,20 +293,6 @@ void ElfPrettyPrinter::printSymbolicDataType(
   } else {
     PrettyPrinterBase::printSymbolicDataType(os, SEE, Size, Type);
   }
-}
-
-std::optional<std::string>
-ElfPrettyPrinter::getTlsSymbol(const gtirb::Symbol& S) const {
-  if (std::optional<gtirb::Addr> Addr = S.getAddress()) {
-    if (std::optional<const gtirb::Section*> Section =
-            getContainerSection(*Addr)) {
-      std::string Name = (*Section)->getName();
-      if (Name == ".tdata" || Name == ".tbss") {
-        return getSymbolName(S) + "@tpoff";
-      }
-    }
-  }
-  return std::nullopt;
 }
 
 } // namespace gtirb_pprint
