@@ -337,8 +337,7 @@ void MasmPrettyPrinter::printOpIndirect(
   //   e.g.  call QWORD PTR [puts]
   //         call puts
   if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
-    std::optional<std::string> forwardedName =
-        getForwardedSymbolName(s->Sym, true);
+    std::optional<std::string> forwardedName = getForwardedSymbolName(s->Sym);
     if (forwardedName) {
       os << *forwardedName;
       return;
@@ -397,20 +396,20 @@ void MasmPrettyPrinter::printOpIndirect(
 }
 
 void MasmPrettyPrinter::printSymbolicExpression(
-    std::ostream& os, const gtirb::SymAddrConst* sexpr, bool inData) {
-  PrettyPrinterBase::printSymbolicExpression(os, sexpr, inData);
+    std::ostream& os, const gtirb::SymAddrConst* sexpr, bool IsNotBranch) {
+  PrettyPrinterBase::printSymbolicExpression(os, sexpr, IsNotBranch);
 }
 
 void MasmPrettyPrinter::printSymbolicExpression(std::ostream& os,
                                                 const gtirb::SymAddrAddr* sexpr,
-                                                bool inData) {
-  if (inData && sexpr->Sym2 == ImageBase) {
+                                                bool IsNotBranch) {
+  if (IsNotBranch && sexpr->Sym2 == ImageBase) {
     os << masmSyntax.imagerel() << ' ';
-    printSymbolReference(os, sexpr->Sym1, inData);
+    printSymbolReference(os, sexpr->Sym1);
     return;
   }
 
-  PrettyPrinterBase::printSymbolicExpression(os, sexpr, inData);
+  PrettyPrinterBase::printSymbolicExpression(os, sexpr, IsNotBranch);
 }
 
 void MasmPrettyPrinter::printByte(std::ostream& os, std::byte byte) {

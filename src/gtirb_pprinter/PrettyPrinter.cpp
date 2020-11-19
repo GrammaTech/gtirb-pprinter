@@ -1128,11 +1128,6 @@ bool PrettyPrinterBase::isAmbiguousSymbol(const std::string& name) const {
   return distance(begin(found), end(found)) > 1;
 }
 
-std::optional<std::string>
-PrettyPrinterBase::getTlsSymbol(const gtirb::Symbol&) const {
-  return std::nullopt;
-}
-
 void PrettyPrinterBase::printSection(std::ostream& os,
                                      const gtirb::Section& section) {
   if (shouldSkip(section)) {
