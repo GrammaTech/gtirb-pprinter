@@ -182,6 +182,12 @@ void Mips32PrettyPrinter::printSymExprPrefix(
     std::ostream& OS, const gtirb::SymAttributeSet& Attrs) {
   for (const auto& Attr : Attrs) {
     switch (Attr) {
+    case gtirb::SymAttribute::Part0: {
+      OS << "%lo(";
+    } break;
+    case gtirb::SymAttribute::Part1: {
+      OS << "%hi(";
+    } break;
     case gtirb::SymAttribute::AddrRelGot: {
       OS << "%call16(";
     } break;
@@ -195,6 +201,8 @@ void Mips32PrettyPrinter::printSymExprSuffix(
     std::ostream& OS, const gtirb::SymAttributeSet& Attrs) {
   for (const auto& Attr : Attrs) {
     switch (Attr) {
+    case gtirb::SymAttribute::Part0:
+    case gtirb::SymAttribute::Part1:
     case gtirb::SymAttribute::AddrRelGot: {
       OS << ")";
     } break;
