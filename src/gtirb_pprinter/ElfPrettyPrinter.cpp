@@ -241,15 +241,8 @@ void ElfPrettyPrinter::printSymbolReferenceSuffix(
     os << "@GOTPCREL";
   }
   // TODO: Use appropriate TLS attribute when it is added to GTIRB.
-  gtirb::Symbol& S = *(sexpr->Sym);
-  if (std::optional<gtirb::Addr> Addr = S.getAddress()) {
-    if (std::optional<const gtirb::Section*> Section =
-            getContainerSection(*Addr)) {
-      std::string Name = (*Section)->getName();
-      if (Name == ".tdata" || Name == ".tbss") {
-        os << "@TPOFF";
-      }
-    }
+  else if (sexpr->Attributes.isFlagSet(gtirb::SymAttribute::Part0)) {
+    os << "@TPOFF";
   }
 }
 
