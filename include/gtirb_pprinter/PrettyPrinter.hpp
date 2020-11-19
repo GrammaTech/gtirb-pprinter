@@ -309,12 +309,12 @@ protected:
   virtual void printSymbolicExpression(std::ostream& os,
                                        const gtirb::SymAddrAddr* sexpr,
                                        bool IsNotBranch = false);
-  virtual void printSymbolReferencePrefix(std::ostream& os,
-                                          const gtirb::SymAddrConst* sexpr,
-                                          bool IsNotBranch = false);
-  virtual void printSymbolReferenceSuffix(std::ostream& os,
-                                          const gtirb::SymAddrConst* sexpr,
-                                          bool IsNotBranch = false);
+  virtual void printSymExprPrefix(std::ostream& OS,
+                                  const gtirb::SymAttributeSet& Attrs,
+                                  bool IsNotBranch = false);
+  virtual void printSymExprSuffix(std::ostream& OS,
+                                  const gtirb::SymAttributeSet& Attrs,
+                                  bool IsNotBranch = false);
 
   // print a symbol in a symbolic expression
   // if the symbol is ambiguous print a symbol with the address instead.

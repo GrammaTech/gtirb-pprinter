@@ -103,9 +103,8 @@ protected:
 
   void printByte(std::ostream& os, std::byte byte) override;
 
-  void printSymbolReferenceSuffix(std::ostream& os,
-                                  const gtirb::SymAddrConst* sexpr,
-                                  bool IsNotBranch) override;
+  void printSymExprSuffix(std::ostream& OS, const gtirb::SymAttributeSet& Attrs,
+                          bool IsNotBranch) override;
 
   void printSymbolDefinition(std::ostream& os,
                              const gtirb::Symbol& symbol) override;

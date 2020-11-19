@@ -231,18 +231,19 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
   printBar(os, false);
 }
 
-void ElfPrettyPrinter::printSymbolReferenceSuffix(
-    std::ostream& os, const gtirb::SymAddrConst* sexpr, bool IsNotBranch) {
-  if (sexpr->Attributes.isFlagSet(gtirb::SymAttribute::PltRef)) {
+void ElfPrettyPrinter::printSymExprSuffix(std::ostream& OS,
+                                          const gtirb::SymAttributeSet& Attrs,
+                                          bool IsNotBranch) {
+  if (Attrs.isFlagSet(gtirb::SymAttribute::PltRef)) {
     if (!IsNotBranch) {
-      os << "@PLT";
+      OS << "@PLT";
     }
-  } else if (sexpr->Attributes.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
-    os << "@GOTPCREL";
+  } else if (Attrs.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
+    OS << "@GOTPCREL";
   }
-  // TODO: Use appropriate TLS attribute when it is added to GTIRB.
-  else if (sexpr->Attributes.isFlagSet(gtirb::SymAttribute::Part0)) {
-    os << "@TPOFF";
+  // FIXME: Use appropriate TLS attribute when it is added to GTIRB.
+  else if (Attrs.isFlagSet(gtirb::SymAttribute::Part0)) {
+    OS << "@TPOFF";
   }
 }
 

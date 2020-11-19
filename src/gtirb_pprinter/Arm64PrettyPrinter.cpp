@@ -116,24 +116,24 @@ void Arm64PrettyPrinter::printOperand(std::ostream& os,
   }
 }
 
-void Arm64PrettyPrinter::printSymbolReferencePrefix(
-    std::ostream& os, const gtirb::SymAddrConst* sexpr,
-    bool /* IsNotBranch */) {
-  if (sexpr->Attributes.isFlagSet(gtirb::SymAttribute::GotRef)) {
-    os << ":got:";
+void Arm64PrettyPrinter::printSymExprPrefix(std::ostream& OS,
+                                            const gtirb::SymAttributeSet& Attrs,
+                                            bool /* IsNotBranch */) {
+  if (Attrs.isFlagSet(gtirb::SymAttribute::GotRef)) {
+    OS << ":got:";
   }
   // FIXME: Replace Part0 with appropriate attribute when added to GTIRB.
-  else if (sexpr->Attributes.isFlagSet(gtirb::SymAttribute::Part0)) {
-    os << ":lo12:";
+  else if (Attrs.isFlagSet(gtirb::SymAttribute::Part0)) {
+    OS << ":lo12:";
   }
   // FIXME: Replace Part1 with appropriate attribute when added to GTIRB.
-  else if (sexpr->Attributes.isFlagSet(gtirb::SymAttribute::Part1)) {
-    os << ":got_lo12:";
+  else if (Attrs.isFlagSet(gtirb::SymAttribute::Part1)) {
+    OS << ":got_lo12:";
   }
 }
 
-void Arm64PrettyPrinter::printSymbolReferenceSuffix(
-    std::ostream& /* os */, const gtirb::SymAddrConst* /* sexpr */,
+void Arm64PrettyPrinter::printSymExprSuffix(
+    std::ostream& /* OS */, const gtirb::SymAttributeSet& /* Attrs */,
     bool /* IsNotBranch */) {}
 
 void Arm64PrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,

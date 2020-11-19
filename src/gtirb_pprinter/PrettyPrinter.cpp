@@ -849,25 +849,29 @@ void PrettyPrinterBase::printSymbolicData(
   os << "\n";
 }
 
-void PrettyPrinterBase::printSymbolReferencePrefix(
-    std::ostream& /* os */, const gtirb::SymAddrConst* /* sexpr */,
+void PrettyPrinterBase::printSymExprPrefix(
+    std::ostream& /* OS */, const gtirb::SymAttributeSet& /* Attrs */,
     bool /* IsNotBranch */) {}
 
-void PrettyPrinterBase::printSymbolReferenceSuffix(
-    std::ostream& /* os */, const gtirb::SymAddrConst* /* sexpr */,
+void PrettyPrinterBase::printSymExprSuffix(
+    std::ostream& /* OS */, const gtirb::SymAttributeSet& /* Attrs */,
     bool /* IsNotBranch */) {}
 
 void PrettyPrinterBase::printSymbolicExpression(
     std::ostream& os, const gtirb::SymAddrConst* sexpr, bool IsNotBranch) {
-  printSymbolReferencePrefix(os, sexpr, IsNotBranch);
+  printSymExprPrefix(os, sexpr->Attributes, IsNotBranch);
+
   printSymbolReference(os, sexpr->Sym);
-  printSymbolReferenceSuffix(os, sexpr, IsNotBranch);
   printAddend(os, sexpr->Offset);
+
+  printSymExprSuffix(os, sexpr->Attributes, IsNotBranch);
 }
 
 void PrettyPrinterBase::printSymbolicExpression(std::ostream& os,
                                                 const gtirb::SymAddrAddr* sexpr,
-                                                bool /* IsNotBranch */) {
+                                                bool IsNotBranch) {
+  printSymExprPrefix(os, sexpr->Attributes, IsNotBranch);
+
   if (sexpr->Scale > 1) {
     os << "(";
   }
@@ -879,6 +883,8 @@ void PrettyPrinterBase::printSymbolicExpression(std::ostream& os,
   if (sexpr->Scale > 1) {
     os << ")/" << sexpr->Scale;
   }
+
+  printSymExprSuffix(os, sexpr->Attributes, IsNotBranch);
 }
 
 void PrettyPrinterBase::printString(std::ostream& os, const gtirb::DataBlock& x,

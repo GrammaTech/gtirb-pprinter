@@ -48,12 +48,11 @@ protected:
   void printOpPrefetch(std::ostream& os, const arm64_prefetch_op prefetch);
   void printOpBarrier(std::ostream& os, const arm64_barrier_op barrier);
 
-  void printSymbolReferencePrefix(std::ostream& os,
-                                  const gtirb::SymAddrConst* sexpr,
-                                  bool IsNotBranch) override;
-  void printSymbolReferenceSuffix(std::ostream& os,
-                                  const gtirb::SymAddrConst* sexpr,
-                                  bool IsNotBranch) override;
+  void printSymExprPrefix(std::ostream& OS, const gtirb::SymAttributeSet& Attrs,
+                          bool IsNotBranch) override;
+  void printSymExprSuffix(std::ostream& OS, const gtirb::SymAttributeSet& Attrs,
+                          bool IsNotBranch) override;
+
   void printShift(std::ostream& os, const arm64_shifter type,
                   unsigned int value);
   void printExtender(std::ostream& os, const arm64_extender& ext,
