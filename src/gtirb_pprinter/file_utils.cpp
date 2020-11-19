@@ -90,11 +90,6 @@ std::optional<std::string> resolveRegularFilePath(const std::string& path,
 std::optional<int> execute(const std::string& tool,
                            const std::vector<std::string>& args) {
   fs::path toolPath = bp::search_path(tool);
-  std::cout << toolPath;
-  for (auto arg : args) {
-	  std::cout << arg;
-  }
-  std::cout << "\n";
   if (toolPath.empty())
     return std::nullopt;
 
