@@ -67,7 +67,7 @@ void IntelPrettyPrinter::printOpImmediate(
     // The operand is symbolic.
     if (IsNotBranch)
       os << intelSyntax.offset() << ' ';
-    this->printSymbolicExpression(os, s, IsNotBranch);
+    PrettyPrinterBase::printSymbolicExpression(os, s, IsNotBranch);
   } else {
     // The operand is just a number.
     os << op.imm;
@@ -104,19 +104,33 @@ void IntelPrettyPrinter::printOpIndirect(
     os << getRegisterName(op.mem.index) << '*' << std::to_string(op.mem.scale);
   }
 
-  if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
+  if (const auto* SAC = std::get_if<gtirb::SymAddrConst>(symbolic)) {
     os << '+';
-    printSymbolicExpression(os, s, false);
-  } else if (const auto* rel = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
-    // TODO:
-    if (std::optional<gtirb::Addr> Addr = rel->Sym1->getAddress(); Addr) {
-      const std::string& Name = getSymbolName(*rel->Sym1);
-      os << "+" << Name << "@GOTOFF";
-    }
+    PrettyPrinterBase::printSymbolicExpression(os, SAC, false);
+  } else if (const auto* SAA = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
+    printSymbolicExpression(os, SAA, false);
   } else {
     printAddend(os, op.mem.disp, first);
   }
   os << ']';
+}
+
+void IntelPrettyPrinter::printSymbolicExpression(std::ostream& OS,
+                                                 const gtirb::SymAddrAddr* SE,
+                                                 bool IsNotBranch) {
+
+  // FIXME: Use appropriate flag for @GOTOFF when it is added to GTIRB.
+  if (SE->Attributes.isFlagSet(gtirb::SymAttribute::Part1)) {
+    OS << "+";
+    printSymbolReference(OS, SE->Sym1);
+    if (SE->Attributes.isFlagSet(gtirb::SymAttribute::GotRef)) {
+      OS << "@GOT";
+    } else {
+      OS << "@GOTOFF";
+    }
+    return;
+  }
+  PrettyPrinterBase::printSymbolicExpression(OS, SE, IsNotBranch);
 }
 
 const PrintingPolicy& IntelPrettyPrinterFactory::defaultPrintingPolicy() const {
