@@ -163,6 +163,7 @@ std::error_condition PrettyPrinter::print(std::ostream& stream,
   PrintingPolicy policy(factory->defaultPrintingPolicy());
   policy.debug = m_debug;
   FunctionPolicy.apply(policy.skipFunctions);
+  DefinitionPolicy.apply(policy.skipDefinitions);
   SymbolPolicy.apply(policy.skipSymbols);
   SectionPolicy.apply(policy.skipSections);
   ArraySectionPolicy.apply(policy.arraySections);
@@ -951,6 +952,10 @@ bool PrettyPrinterBase::shouldSkip(const gtirb::Symbol& symbol) const {
   if (symbol.hasReferent()) {
     const auto* Referent = symbol.getReferent<gtirb::Node>();
     if (auto* CB = dyn_cast<gtirb::CodeBlock>(Referent)) {
+      auto FunctionName = getContainerFunctionName(*CB->getAddress());
+      if (FunctionName && policy.skipDefinitions.count(*FunctionName)) {
+        return false;
+      }
       return shouldSkip(*CB);
     } else if (auto* DB = dyn_cast<gtirb::DataBlock>(Referent)) {
       return shouldSkip(*DB);
@@ -979,7 +984,9 @@ bool PrettyPrinterBase::shouldSkip(const gtirb::CodeBlock& block) const {
   }
 
   auto FunctionName = getContainerFunctionName(*block.getAddress());
-  return FunctionName && policy.skipFunctions.count(*FunctionName);
+  bool skipFunc = FunctionName && policy.skipFunctions.count(*FunctionName);
+  bool skipDef = FunctionName && policy.skipDefinitions.count(*FunctionName);
+  return skipFunc || skipDef;
 }
 
 bool PrettyPrinterBase::shouldSkip(const gtirb::DataBlock& block) const {

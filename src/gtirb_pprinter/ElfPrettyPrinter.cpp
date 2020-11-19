@@ -94,19 +94,9 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
     : PrettyPrinterBase(context_, module_, syntax_, policy_),
       elfSyntax(syntax_) {
 
-  // TODO:
-  static auto SpecialSymbols = {
-      "_GLOBAL_OFFSET_TABLE_",
-      "__x86.get_pc_thunk.ax",
-      "__x86.get_pc_thunk.bx",
-      "__x86.get_pc_thunk.dx",
-      "_fp_hw",
-  };
-  for (auto Name : SpecialSymbols) {
-    if (auto It = module.findSymbols(Name); !It.empty()) {
-      gtirb::Symbol* Symbol = &*It.begin();
-      Symbol->setReferent(module.addProxyBlock(context));
-    }
+  if (auto It = module.findSymbols("_GLOBAL_OFFSET_TABLE_"); !It.empty()) {
+    gtirb::Symbol* GlobalOffsetTable = &*It.begin();
+    GlobalOffsetTable->setReferent(module.addProxyBlock(context));
   }
 }
 
@@ -117,10 +107,14 @@ const PrintingPolicy& ElfPrettyPrinter::defaultPrintingPolicy() {
        "__do_global_dtors_aux", "frame_dummy", "__libc_csu_fini",
        "__libc_csu_init", "_dl_relocate_static_pie"},
 
+      /// Definitions to avoid printing.
+      {"__x86.get_pc_thunk.ax", "__x86.get_pc_thunk.bx",
+       "__x86.get_pc_thunk.cx", "__x86.get_pc_thunk.dx"},
+
       /// Symbols to avoid printing.
       {"_IO_stdin_used", "__data_start", "__dso_handle", "__TMC_END__",
        "_edata", "__bss_start", "program_invocation_name",
-       "program_invocation_short_name"},
+       "program_invocation_short_name", "_fp_hw"},
 
       /// Sections to avoid printing.
       {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
