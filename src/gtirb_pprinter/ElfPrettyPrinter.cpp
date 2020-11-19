@@ -232,6 +232,22 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
   printBar(os, false);
 }
 
+void ElfPrettyPrinter::printSymExprSuffix(std::ostream& OS,
+                                          const gtirb::SymAttributeSet& Attrs,
+                                          bool IsNotBranch) {
+  if (Attrs.isFlagSet(gtirb::SymAttribute::PltRef)) {
+    if (!IsNotBranch) {
+      OS << "@PLT";
+    }
+  } else if (Attrs.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
+    OS << "@GOTPCREL";
+  }
+  // FIXME: Use appropriate TLS attribute when it is added to GTIRB.
+  else if (Attrs.isFlagSet(gtirb::SymAttribute::Part0)) {
+    OS << "@TPOFF";
+  }
+}
+
 void ElfPrettyPrinter::printSymbolDefinition(std::ostream& os,
                                              const gtirb::Symbol& sym) {
   printSymbolHeader(os, sym);

@@ -116,16 +116,25 @@ void Arm64PrettyPrinter::printOperand(std::ostream& os,
   }
 }
 
-void Arm64PrettyPrinter::printPrefix(std::ostream& os, const cs_insn& inst,
-                                     uint64_t index) {
-  if (const auto* symbolicOperandInfo =
-          module.getAuxData<gtirb::schema::SymbolicOperandInfoAD>()) {
-    if (auto it = symbolicOperandInfo->find(gtirb::Addr(inst.address));
-        it != symbolicOperandInfo->end() && index == std::get<0>(it->second)) {
-      os << std::get<1>(it->second);
-    }
+void Arm64PrettyPrinter::printSymExprPrefix(std::ostream& OS,
+                                            const gtirb::SymAttributeSet& Attrs,
+                                            bool /* IsNotBranch */) {
+  if (Attrs.isFlagSet(gtirb::SymAttribute::GotRef)) {
+    OS << ":got:";
+  }
+  // FIXME: Replace Part0 with appropriate attribute when added to GTIRB.
+  else if (Attrs.isFlagSet(gtirb::SymAttribute::Part0)) {
+    OS << ":lo12:";
+  }
+  // FIXME: Replace Part1 with appropriate attribute when added to GTIRB.
+  else if (Attrs.isFlagSet(gtirb::SymAttribute::Part1)) {
+    OS << ":got_lo12:";
   }
 }
+
+void Arm64PrettyPrinter::printSymExprSuffix(
+    std::ostream& /* OS */, const gtirb::SymAttributeSet& /* Attrs */,
+    bool /* IsNotBranch */) {}
 
 void Arm64PrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
                                           uint64_t index) {
@@ -149,7 +158,6 @@ void Arm64PrettyPrinter::printOpImmediate(
     if (!is_jump) {
       os << ' ';
     }
-    printPrefix(os, inst, index);
     this->printSymbolicExpression(os, s, !is_jump);
   } else {
     os << "#" << op.imm;
@@ -184,7 +192,6 @@ void Arm64PrettyPrinter::printOpIndirect(
       os << ",";
     }
     if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
-      printPrefix(os, inst, index);
       printSymbolicExpression(os, s, false);
     } else {
       os << "#" << op.mem.disp;
@@ -437,22 +444,6 @@ void Arm64PrettyPrinter::printExtender(std::ostream& os,
     assert(shiftType == ARM64_SFT_LSL && "unexpected shift type in extender");
     os << " #" << shiftValue;
   }
-}
-
-std::optional<std::string>
-Arm64PrettyPrinter::getForwardedSymbolName(const gtirb::Symbol* symbol,
-                                           bool /* IsNotBranch */) const {
-  if (const auto* symbolForwarding =
-          module.getAuxData<gtirb::schema::SymbolForwarding>()) {
-    auto found = symbolForwarding->find(symbol->getUUID());
-    if (found != symbolForwarding->end()) {
-      // Find the destination symbol.
-      if (gtirb::Node* N = gtirb::Node::getByUUID(context, found->second)) {
-        return cast<gtirb::Symbol>(N)->getName();
-      }
-    }
-  }
-  return {};
 }
 
 const PrintingPolicy& Arm64PrettyPrinterFactory::defaultPrintingPolicy() const {

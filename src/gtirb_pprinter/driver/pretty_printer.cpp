@@ -410,6 +410,7 @@ int main(int argc, char** argv) {
   }
 
   LOG_INFO << "Linking...\n";
+
   // Link directly to a binary.
   if (vm.count("binary") != 0) {
     const auto binaryPath = fs::path(vm["binary"].as<std::string>());

@@ -311,13 +311,18 @@ protected:
   virtual void printSymbolicExpression(std::ostream& os,
                                        const gtirb::SymAddrAddr* sexpr,
                                        bool IsNotBranch = false);
+  virtual void printSymExprPrefix(std::ostream& OS,
+                                  const gtirb::SymAttributeSet& Attrs,
+                                  bool IsNotBranch = false);
+  virtual void printSymExprSuffix(std::ostream& OS,
+                                  const gtirb::SymAttributeSet& Attrs,
+                                  bool IsNotBranch = false);
+
   // print a symbol in a symbolic expression
   // if the symbol is ambiguous print a symbol with the address instead.
-  // if the symbol is forwarded (e.g. a plt reference) print the forwarded
-  // symbol with the adequate ending (e.g. @PLT)
+  // if the symbol is forwarded (e.g. a plt reference) print the forwarded name
   virtual void printSymbolReference(std::ostream& os,
-                                    const gtirb::Symbol* symbol,
-                                    bool IsNotBranch) const;
+                                    const gtirb::Symbol* symbol) const;
   virtual void printAddend(std::ostream& os, int64_t number,
                            bool first = false);
   virtual void printString(std::ostream& os, const gtirb::DataBlock& x,
@@ -380,9 +385,7 @@ protected:
   virtual std::string getFunctionName(gtirb::Addr x) const;
   virtual std::string getSymbolName(const gtirb::Symbol& symbol) const;
   virtual std::optional<std::string>
-  getForwardedSymbolName(const gtirb::Symbol* symbol, bool IsNotBranch) const;
-  virtual std::optional<std::string>
-  getTlsSymbol(const gtirb::Symbol& symbol) const;
+  getForwardedSymbolName(const gtirb::Symbol* symbol) const;
 
   bool isAmbiguousSymbol(const std::string& ea) const;
 
@@ -397,9 +400,6 @@ private:
   std::set<gtirb::Addr> functionEntry;
   std::set<gtirb::Addr> functionLastBlock;
   gtirb::Addr programCounter;
-
-  std::string getForwardedSymbolEnding(const gtirb::Symbol* symbol,
-                                       bool IsNotBranch) const;
 
   template <typename BlockType>
   void printBlockImpl(std::ostream& os, BlockType& block);
