@@ -119,17 +119,16 @@ void Arm64PrettyPrinter::printOperand(std::ostream& os,
 void Arm64PrettyPrinter::printSymbolReferencePrefix(
     std::ostream& os, const gtirb::SymAddrConst* sexpr,
     bool /* IsNotBranch */) {
+  if (sexpr->Attributes.isFlagSet(gtirb::SymAttribute::GotRef)) {
+    os << ":got:";
+  }
   // FIXME: Replace Part0 with appropriate attribute when added to GTIRB.
-  if (sexpr->Attributes.isFlagSet(gtirb::SymAttribute::Part0)) {
+  else if (sexpr->Attributes.isFlagSet(gtirb::SymAttribute::Part0)) {
     os << ":lo12:";
   }
   // FIXME: Replace Part1 with appropriate attribute when added to GTIRB.
   else if (sexpr->Attributes.isFlagSet(gtirb::SymAttribute::Part1)) {
     os << ":got_lo12:";
-  }
-  // FIXME: Replace Part2 with appropriate attribute when added to GTIRB.
-  else if (sexpr->Attributes.isFlagSet(gtirb::SymAttribute::Part2)) {
-    os << ":got:";
   }
 }
 
