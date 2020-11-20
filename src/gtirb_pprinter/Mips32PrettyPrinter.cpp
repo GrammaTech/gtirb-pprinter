@@ -23,17 +23,17 @@ namespace gtirb_pprint {
 const PrintingPolicy&
 Mips32PrettyPrinterFactory::defaultPrintingPolicy() const {
   static PrintingPolicy DefaultPolicy{
-      /// Functions to avoid printing.
-      {},
+      // /// Functions to avoid printing.
+      // {},
 
-      /// Symbols to avoid printing.
-      {},
+      // /// Symbols to avoid printing.
+      // {},
 
-      /// Sections to avoid printing.
-      {},
+      // /// Sections to avoid printing.
+      // {},
 
-      /// Sections with possible data object exclusion.
-      {},
+      // /// Sections with possible data object exclusion.
+      // {},
   };
   return DefaultPolicy;
 }
