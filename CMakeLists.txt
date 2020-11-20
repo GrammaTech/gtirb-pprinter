@@ -7,7 +7,7 @@
 cmake_minimum_required(VERSION 3.12.1)
 
 project(gtirb_pprinter)
-set(PACKAGE_BRANCH windows-support)
+set(PACKAGE_BRANCH mips)
 
 # get version information
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" ver)
