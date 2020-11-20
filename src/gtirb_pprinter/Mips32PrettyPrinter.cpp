@@ -23,17 +23,23 @@ namespace gtirb_pprint {
 const PrintingPolicy&
 Mips32PrettyPrinterFactory::defaultPrintingPolicy() const {
   static PrintingPolicy DefaultPolicy{
-      // /// Functions to avoid printing.
-      // {},
+      /// Functions to avoid printing.
+      {"_start", "__start", "deregister_tm_clones", "register_tm_clones",
+       "__do_global_dtors_aux", "__do_global_ctors_aux", "frame_dummy",
+       "__libc_csu_fini", "__libc_csu_init", "_dl_relocate_static_pie"},
 
-      // /// Symbols to avoid printing.
-      // {},
+      /// Symbols to avoid printing.
+      {"_IO_stdin_used", "__data_start", "__dso_handle", "__TMC_END__",
+       "_edata", "_fdata", "_DYNAMIC", "data_start", "__bss_start",
+       "program_invocation_name", "program_invocation_short_name"},
 
-      // /// Sections to avoid printing.
-      // {},
+      /// Sections to avoid printing.
+      {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
+       ".plt.sec", ".eh_frame_hdr", ".eh_frame", ".interp", ".MIPS.stubs",
+       ".ctors", ".dtors", ".rld_map", ".sdata", ".bss"},
 
-      // /// Sections with possible data object exclusion.
-      // {},
+      /// Sections with possible data object exclusion.
+      {".init_array", ".fini_array"},
   };
   return DefaultPolicy;
 }
