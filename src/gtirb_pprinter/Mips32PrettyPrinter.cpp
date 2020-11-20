@@ -162,24 +162,9 @@ void Mips32PrettyPrinter::printOperandList(std::ostream& os,
   }
 }
 
-void Mips32PrettyPrinter::printSymbolicExpression(std::ostream& OS,
-                                                  const gtirb::SymAddrConst* SE,
-                                                  bool IsNotBranch) {
-  printSymExprPrefix(OS, SE->Attributes);
-  ElfPrettyPrinter::printSymbolicExpression(OS, SE, IsNotBranch);
-  printSymExprSuffix(OS, SE->Attributes);
-}
-
-void Mips32PrettyPrinter::printSymbolicExpression(std::ostream& OS,
-                                                  const gtirb::SymAddrAddr* SE,
-                                                  bool IsNotBranch) {
-  printSymExprPrefix(OS, SE->Attributes);
-  ElfPrettyPrinter::printSymbolicExpression(OS, SE, IsNotBranch);
-  printSymExprSuffix(OS, SE->Attributes);
-}
-
 void Mips32PrettyPrinter::printSymExprPrefix(
-    std::ostream& OS, const gtirb::SymAttributeSet& Attrs) {
+    std::ostream& OS, const gtirb::SymAttributeSet& Attrs,
+    bool /*IsNotBranch*/) {
   for (const auto& Attr : Attrs) {
     switch (Attr) {
     case gtirb::SymAttribute::Part0: {
@@ -198,7 +183,8 @@ void Mips32PrettyPrinter::printSymExprPrefix(
 }
 
 void Mips32PrettyPrinter::printSymExprSuffix(
-    std::ostream& OS, const gtirb::SymAttributeSet& Attrs) {
+    std::ostream& OS, const gtirb::SymAttributeSet& Attrs,
+    bool /*IsNotBranch*/) {
   for (const auto& Attr : Attrs) {
     switch (Attr) {
     case gtirb::SymAttribute::Part0:
