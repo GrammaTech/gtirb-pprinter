@@ -49,6 +49,7 @@ protected:
                           bool IsNotBranch = false) override;
   void printSymExprSuffix(std::ostream& OS, const gtirb::SymAttributeSet& Attrs,
                           bool IsNotBranch = false) override;
+  void printIntegralSymbol(std::ostream& os, const gtirb::Symbol& sym) override;
 };
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API Mips32PrettyPrinterFactory

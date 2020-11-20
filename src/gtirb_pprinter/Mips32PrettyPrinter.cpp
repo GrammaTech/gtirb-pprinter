@@ -198,4 +198,12 @@ void Mips32PrettyPrinter::printSymExprSuffix(
   }
 }
 
+void Mips32PrettyPrinter::printIntegralSymbol(std::ostream& os,
+                                              const gtirb::Symbol& sym) {
+  if (sym.getName() == "_gp") {
+    return;
+  }
+  ElfPrettyPrinter::printIntegralSymbol(os, sym);
+}
+
 } // namespace gtirb_pprint
