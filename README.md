@@ -101,7 +101,8 @@ associated types and contents in this table.
 | encodings            | `std::map<gtirb::UUID,std::string>`            | Map from (typed) data objects to the encoding of the data,  expressed as a std::string containing an assembler encoding specifier: "string", "uleb128" or "sleb128".     |
 | elfSectionProperties | `std::map<gtirb::UUID, std::tuple<uint64_t, uint64_t>>` | Map from section UUIDs to tuples with the ELF section types and flags. |
 | cfiDirectives   | `std::map<gtirb::Offset, std::vector<std::tuple<std::string, std::vector<int64_t>, gtirb::UUID>>>` | Map from Offsets to  vector of cfi directives. A cfi directive contains: a string describing the directive, a vector  of numeric arguments, and an optional symbolic argument (represented with the UUID of the symbol). |
-| elfSymbolInfo | `std::map<gtirb::UUID, std::tuple<uint64_t, std::string, std::string, std::string, uint64_t, std::string, uint64_t>>` | On ELF targets only: Map from symbols to their type, binding, visibility, symbol table, and table index categories. |
+| elfSymbolInfo | `std::map<gtirb::UUID, std::tuple<uint64_t, std::string, std::string, std::string, uint64_t, std::vector<std::tuple<std::string, uint64_t>>>>` | On ELF targets only: Map from symbols to their type, binding, visibility, and a (possibly empty) list of (symbol table, table index) pairs where
+the symbol was defined. |
 
 ## AuxData Used by the Binary Printer
 
