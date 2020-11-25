@@ -36,7 +36,7 @@ Mips32PrettyPrinterFactory::defaultPrintingPolicy() const {
       /// Sections to avoid printing.
       {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
        ".plt.sec", ".eh_frame_hdr", ".eh_frame", ".interp", ".MIPS.stubs",
-       ".ctors", ".dtors", ".rld_map", ".sdata", ".bss"},
+       ".ctors", ".dtors", ".rld_map", ".sdata"},
 
       /// Sections with possible data object exclusion.
       {".init_array", ".fini_array"},
