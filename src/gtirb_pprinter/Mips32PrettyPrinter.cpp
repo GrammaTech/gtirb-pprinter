@@ -180,7 +180,7 @@ void Mips32PrettyPrinter::printSymExprPrefix(
       OS << "%hi(";
     } break;
     case gtirb::SymAttribute::AddrRelGot: {
-      OS << "%call16(";
+      OS << "%got(";
     } break;
     default:
       assert(!"Unknown sym expr attribute encountered!");
