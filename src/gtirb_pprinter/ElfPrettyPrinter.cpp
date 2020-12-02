@@ -92,13 +92,7 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
                                    const ElfSyntax& syntax_,
                                    const PrintingPolicy& policy_)
     : PrettyPrinterBase(context_, module_, syntax_, policy_),
-      elfSyntax(syntax_) {
-
-  if (auto It = module.findSymbols("_GLOBAL_OFFSET_TABLE_"); !It.empty()) {
-    gtirb::Symbol* GlobalOffsetTable = &*It.begin();
-    GlobalOffsetTable->setReferent(module.addProxyBlock(context));
-  }
-}
+      elfSyntax(syntax_) {}
 
 const PrintingPolicy& ElfPrettyPrinter::defaultPrintingPolicy() {
   static PrintingPolicy DefaultPolicy{

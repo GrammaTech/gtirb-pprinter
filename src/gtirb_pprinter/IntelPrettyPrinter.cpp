@@ -63,7 +63,10 @@ void IntelPrettyPrinter::printOpImmediate(
       !cs_insn_group(this->csHandle, &inst, CS_GRP_JUMP) &&
       !cs_insn_group(this->csHandle, &inst, CS_GRP_BRANCH_RELATIVE);
 
-  if (const gtirb::SymAddrConst* s = this->getSymbolicImmediate(symbolic)) {
+  if (const auto* SAA = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
+    printSymbolicExpression(os, SAA, false);
+  } else if (const gtirb::SymAddrConst* s =
+                 this->getSymbolicImmediate(symbolic)) {
     // The operand is symbolic.
     if (IsNotBranch)
       os << intelSyntax.offset() << ' ';
@@ -118,6 +121,11 @@ void IntelPrettyPrinter::printOpIndirect(
 void IntelPrettyPrinter::printSymbolicExpression(std::ostream& OS,
                                                  const gtirb::SymAddrAddr* SE,
                                                  bool IsNotBranch) {
+
+  if (SE->Sym1->getName() == "_GLOBAL_OFFSET_TABLE_") {
+    OS << intelSyntax.offset() << ' ' << SE->Sym1->getName();
+    return;
+  }
 
   // FIXME: Use appropriate flag for @GOTOFF when it is added to GTIRB.
   if (SE->Attributes.isFlagSet(gtirb::SymAttribute::Part1)) {
