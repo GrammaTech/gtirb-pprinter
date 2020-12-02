@@ -952,12 +952,21 @@ bool PrettyPrinterBase::shouldSkip(const gtirb::Symbol& symbol) const {
   if (symbol.hasReferent()) {
     const auto* Referent = symbol.getReferent<gtirb::Node>();
     if (auto* CB = dyn_cast<gtirb::CodeBlock>(Referent)) {
+      // Skipping a definition implies we can still reference the symbol.
       auto FunctionName = getContainerFunctionName(*CB->getAddress());
       if (FunctionName && policy.skipDefinitions.count(*FunctionName)) {
         return false;
       }
+
       return shouldSkip(*CB);
     } else if (auto* DB = dyn_cast<gtirb::DataBlock>(Referent)) {
+      // Skipping a definition implies we can still reference the symbol.
+      for (const auto& Symbol : module.findSymbols(*DB)) {
+        if (policy.skipDefinitions.count(Symbol.getName())) {
+          return false;
+        }
+      }
+
       return shouldSkip(*DB);
     } else if (isa<gtirb::ProxyBlock>(Referent)) {
       return false;
@@ -997,6 +1006,12 @@ bool PrettyPrinterBase::shouldSkip(const gtirb::DataBlock& block) const {
   if (policy.skipSections.count(
           block.getByteInterval()->getSection()->getName())) {
     return true;
+  }
+
+  for (const auto& Symbol : module.findSymbols(block)) {
+    if (policy.skipDefinitions.count(Symbol.getName())) {
+      return true;
+    }
   }
 
   return false;
