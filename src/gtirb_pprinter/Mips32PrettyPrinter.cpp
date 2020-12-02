@@ -57,7 +57,8 @@ Mips32PrettyPrinter::Mips32PrettyPrinter(gtirb::Context& context_,
                                          gtirb::Module& module_,
                                          const ElfSyntax& syntax_,
                                          const PrintingPolicy& policy_)
-    : ElfPrettyPrinter(context_, module_, syntax_, policy_) {
+    : ElfPrettyPrinter(context_, module_, syntax_, policy_),
+      GP{module_.findSymbols("_gp").front()} {
   // Setup Capstone.
   [[maybe_unused]] cs_err err =
       cs_open(CS_ARCH_MIPS, (cs_mode)(CS_MODE_MIPS32 | CS_MODE_BIG_ENDIAN),
@@ -210,6 +211,24 @@ void Mips32PrettyPrinter::printIntegralSymbol(std::ostream& os,
     return;
   }
   ElfPrettyPrinter::printIntegralSymbol(os, sym);
+}
+
+void Mips32PrettyPrinter::printSymbolicExpression(
+    std::ostream& os, const gtirb::SymAddrAddr* sexpr, bool IsNotBranch) {
+  if (sexpr->Sym1 == &GP) {
+    // TODO: is this ever scaled?
+    printSymExprPrefix(os, sexpr->Attributes, IsNotBranch);
+    os << "_gp_disp";
+    printSymExprSuffix(os, sexpr->Attributes, IsNotBranch);
+    return;
+  }
+
+  ElfPrettyPrinter::printSymbolicExpression(os, sexpr, IsNotBranch);
+}
+
+void Mips32PrettyPrinter::printSymbolicExpression(
+    std::ostream& os, const gtirb::SymAddrConst* sexpr, bool IsNotBranch) {
+  ElfPrettyPrinter::printSymbolicExpression(os, sexpr, IsNotBranch);
 }
 
 } // namespace gtirb_pprint

@@ -50,6 +50,15 @@ protected:
   void printSymExprSuffix(std::ostream& OS, const gtirb::SymAttributeSet& Attrs,
                           bool IsNotBranch = false) override;
   void printIntegralSymbol(std::ostream& os, const gtirb::Symbol& sym) override;
+  void printSymbolicExpression(std::ostream& os,
+                               const gtirb::SymAddrConst* sexpr,
+                               bool IsNotBranch = false) override;
+  void printSymbolicExpression(std::ostream& os,
+                               const gtirb::SymAddrAddr* sexpr,
+                               bool IsNotBranch = false) override;
+
+private:
+  const gtirb::Symbol& GP;
 };
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API Mips32PrettyPrinterFactory
