@@ -66,7 +66,10 @@ Mips32PrettyPrinter::Mips32PrettyPrinter(gtirb::Context& context_,
   assert(err == CS_ERR_OK && "Capstone failure");
 }
 
-void Mips32PrettyPrinter::printHeader(std::ostream& /*os*/) {}
+void Mips32PrettyPrinter::printHeader(std::ostream& os) {
+  // we already account for delay slots; don't let the assembler insert them
+  os << ".set noreorder" << std::endl;
+}
 
 void Mips32PrettyPrinter::printOpRegdirect(std::ostream& os,
                                            const cs_insn& inst,
