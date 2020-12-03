@@ -114,6 +114,13 @@ struct ImportEntries {
       Type;
 };
 
+struct PEResources {
+    static constexpr const char* Name = "peResources";
+// \brief List on PE Resources in the form <header, data_offset, data_length
+    typedef std::vector<std::tuple<std::vector<uint8_t>, gtirb::Offset, uint64_t>> Type;
+};
+
+
 } // namespace schema
 } // namespace gtirb
 

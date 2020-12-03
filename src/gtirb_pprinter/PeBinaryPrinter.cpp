@@ -56,6 +56,77 @@ void PeBinaryPrinter::prepareAssemblerArguments(
     args.push_back(compiland.fileName());
   }
 }
+
+bool PeBinaryPrinter::prepareResources(
+    gtirb::IR& ir, gtirb::Context& ctx,
+    std::vector<std::string>& resourceFiles) const {
+
+  for (gtirb::Module& m : ir.modules()) {
+    // For each import in the AuxData table.
+    auto* pe_resources = m.getAuxData<gtirb::schema::PEResources>();
+    if (!pe_resources) {
+      continue;
+    }
+
+    std::ofstream resfile;
+    std::string resfilename = replaceExtension(m.getBinaryPath(), ".res");
+    resfile.open(resfilename, std::ios::binary | std::ios::trunc);
+    if (!resfile.is_open()) {
+      LOG_ERROR << "Unable to open resource file: " << resfilename << "\n";
+      return false;
+    }
+
+    // File header
+    const uint8_t file_header[] = {
+        0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0xff, 0xff, 0x00,
+        0x00, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+#define WR(tf, d, n) tf.write(reinterpret_cast<const char*>(d), n)
+
+    WR(resfile, &file_header, 32);
+
+    // .. followed by a list of header/data blocks
+    for (const auto& [header, offset, data_len] : *pe_resources) {
+      // resource header
+      WR(resfile, header.data(), header.size());
+
+      const auto* bi = dyn_cast_or_null<gtirb::ByteInterval>(
+          gtirb::Node::getByUUID(ctx, offset.ElementId));
+
+      uint64_t bi_offset = offset.Displacement;
+
+      if (bi) {
+        // resource data
+        const uint8_t* resource_data =
+            reinterpret_cast<const uint8_t*>(bi->rawBytes<const uint8_t*>()) +
+            bi_offset;
+        if (bi_offset + data_len > bi->getSize()) {
+          std::cout
+              << "[WARNING] PE - Insufficient data in byte interval for resource.\n";
+        }
+
+        // data longer than the bi provides.
+        if (resource_data) {
+          WR(resfile, resource_data, data_len);
+        } else
+          std::cout << "[WARNING] PE - Unable to get resource data\n";
+
+        // padding to align subsequent headers
+        if (data_len % 4 != 0) {
+          uint32_t tmp = 0x0000;
+          WR(resfile, &tmp, 4 - data_len % 4);
+        }
+      } else
+        std::cout << "[WARNING] PE - Could not find byte interval for resource data\n";
+    }
+
+    resfile.close();
+    resourceFiles.push_back(resfilename);
+  }
+  return true;
+}
+
 // Generate import def files (temp files), and build into lib files returned
 // in importLibs to be linked.
 bool PeBinaryPrinter::prepareImportLibs(
@@ -125,6 +196,7 @@ bool PeBinaryPrinter::prepareImportLibs(
 
 void PeBinaryPrinter::prepareLinkerArguments(
     gtirb::IR& ir, std::vector<std::string>& importLibs,
+    std::vector<std::string>& resourceFiles,
     std::vector<std::string>& args) const {
   // The command lines for ml and ml64 are different, but there are some common
   // features. The first thing are the options common to both ml and ml64,
@@ -146,6 +218,10 @@ void PeBinaryPrinter::prepareLinkerArguments(
     // accept linker command line arguments.
     for (const std::string& libPath : LibraryPaths)
       args.push_back("/LIBPATH:" + libPath);
+
+    // Add resource files
+    for (const std::string& resfile : resourceFiles)
+      args.push_back(resfile);
 
     // If there's an entrypoint defined in any module, specify it on the
     // command line. This works around the fact that ml64 cannot automatically
@@ -230,10 +306,17 @@ int PeBinaryPrinter::link(const std::string& outputFilename,
     return -1;
   }
 
+  // Prepare resource files for the linker
+  std::vector<std::string> resourceFiles;
+  if (!prepareResources(ir, ctx, resourceFiles)) {
+    std::cerr << "ERROR: Unable to generate resource files.";
+    return -1;
+  }
+
   // Collect the arguments for invoking the assembler.
   std::vector<std::string> args;
   prepareAssemblerArguments(tempFiles, outputFilename, {}, args);
-  prepareLinkerArguments(ir, importLibs, args);
+  prepareLinkerArguments(ir, importLibs, resourceFiles, args);
 
   // Invoke the assembler.
   if (std::optional<int> ret = execute(compiler, args)) {
