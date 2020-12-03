@@ -37,7 +37,7 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API PeBinaryPrinter : public BinaryPrinter {
   bool prepareImportLibs(gtirb::IR& ir,
                          std::vector<std::string>& importLibs) const;
   bool prepareResources(gtirb::IR& ir, gtirb::Context& ctx,
-                         std::vector<std::string>& resourceFiles) const;
+                        std::vector<std::string>& resourceFiles) const;
   // TODO Remove importLibs.
   // importLibs are not neccessary here since the asm has INCLUDE
   // statement, however, since we don't have the PE header information in the

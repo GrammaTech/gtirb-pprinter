@@ -102,8 +102,8 @@ bool PeBinaryPrinter::prepareResources(
             reinterpret_cast<const uint8_t*>(bi->rawBytes<const uint8_t*>()) +
             bi_offset;
         if (bi_offset + data_len > bi->getSize()) {
-          std::cout
-              << "[WARNING] PE - Insufficient data in byte interval for resource.\n";
+          std::cout << "[WARNING] PE - Insufficient data in byte interval for "
+                       "resource.\n";
         }
 
         // data longer than the bi provides.
@@ -118,7 +118,8 @@ bool PeBinaryPrinter::prepareResources(
           WR(resfile, &tmp, 4 - data_len % 4);
         }
       } else
-        std::cout << "[WARNING] PE - Could not find byte interval for resource data\n";
+        std::cout << "[WARNING] PE - Could not find byte interval for resource "
+                     "data\n";
     }
 
     resfile.close();
