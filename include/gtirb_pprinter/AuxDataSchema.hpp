@@ -121,7 +121,6 @@ struct PEResources {
       Type;
 };
 
-
 } // namespace schema
 } // namespace gtirb
 
