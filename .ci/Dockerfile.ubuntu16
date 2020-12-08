@@ -15,7 +15,7 @@ RUN apt-get -y update && apt-get -y install make git \
 
 # Install gcc-7
 RUN apt-get -y install software-properties-common && \
-    add-apt-repository ppa:jonathonf/gcc-7.1 && \
+    add-apt-repository ppa:jonathonf/gcc && \
     apt-get -y update && \
     apt-get -y install gcc-7 g++-7
 
