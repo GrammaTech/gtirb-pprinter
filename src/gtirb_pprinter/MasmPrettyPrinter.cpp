@@ -92,7 +92,7 @@ void MasmPrettyPrinter::printIncludes(std::ostream& os) {
     for (const auto& library : *libraries) {
       // Include replacement libs.
       bool replaced = false;
-      for (const auto& [pattern, replacements] : dllLibraries) {
+      /*for (const auto& [pattern, replacements] : dllLibraries) {
         std::regex re(pattern, std::regex::icase);
         if (std::regex_match(library, re)) {
           for (const auto& lib : replacements) {
@@ -100,8 +100,9 @@ void MasmPrettyPrinter::printIncludes(std::ostream& os) {
           }
           replaced = true;
         }
-      }
-      // Include DLL as LIB.
+      }*/
+      // Include DLL as LIB, created by writing a DEF file based on the import
+      // table and building with lib.exe.
       if (!replaced) {
         os << "INCLUDELIB "
            << boost::ireplace_last_copy(library, ".dll", ".lib") << '\n';
