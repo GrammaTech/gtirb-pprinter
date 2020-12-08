@@ -1050,21 +1050,23 @@ void PrettyPrinterBase::printAddend(std::ostream& os, int64_t number,
 void PrettyPrinterBase::printAlignment(std::ostream& os, gtirb::Addr addr) {
   // Enforce maximum alignment
   uint64_t x{addr};
+  int n = 0;
   if (x % 16 == 0) {
-    os << syntax.align() << " 16\n";
-    return;
+    n = 4;
+  } else if (x % 8 == 0) {
+    n = 3;
+  } else if (x % 4 == 0) {
+    n = 2;
+  } else if (x % 2 == 0) {
+    n = 1;
   }
-  if (x % 8 == 0) {
-    os << syntax.align() << " 8\n";
-    return;
-  }
-  if (x % 4 == 0) {
-    os << syntax.align() << " 4\n";
-    return;
-  }
-  if (x % 2 == 0) {
-    os << syntax.align() << " 2\n";
-    return;
+
+  if (n != 0) {
+    // MIPS Assembly Language: .align n: aligns next element to multiple of 2^N
+    // Other ISAs: .align n: aligns next element to n
+    if (module.getISA() != gtirb::ISA::MIPS32)
+      n = 1 << n;
+    os << syntax.align() << " " << n << std::endl;
   }
 }
 
