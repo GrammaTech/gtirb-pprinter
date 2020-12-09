@@ -19,7 +19,7 @@ class TestBinaryGeneration(unittest.TestCase):
         out_path = os.path.join(base_path, "project1.exe")
         in_path = os.path.abspath(str(pe32plus_gtirb))
         output = subprocess.check_output(
-                ["gtirb-pprinter", "--ir", in_path, "--binary", out_path],
+            ["gtirb-pprinter", "--ir", in_path, "--binary", out_path],
             cwd=base_path,
         ).decode(sys.stdout.encoding)
         ec = subprocess.call(out_path)
