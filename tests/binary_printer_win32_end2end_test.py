@@ -22,7 +22,5 @@ class TestBinaryGeneration(unittest.TestCase):
             ["gtirb-pprinter", "--ir", in_path, "--binary", out_path],
             cwd=base_path,
         ).decode(sys.stdout.encoding)
-        ec = subprocess.check_output(out_path).decode(
-            sys.stdout.encoding
-        )
+        ec = subprocess.call(out_path).decode( sys.stdout.encoding)
         self.assertTrue(ec == 1)
