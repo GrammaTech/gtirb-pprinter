@@ -140,7 +140,7 @@ bool PeBinaryPrinter::prepareImportLibs(
     LOG_INFO << "Module: " << m.getBinaryPath() << "\n";
     auto* pe_imports = m.getAuxData<gtirb::schema::ImportEntries>();
     if (!pe_imports) {
-      LOG_ERROR << "\tNo import entries!\n";
+      LOG_INFO << "\tNo import entries.\n";
       continue;
     }
     for (const auto& [addr, ordinal, fnName, libName] : *pe_imports) {
