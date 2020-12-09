@@ -18,9 +18,9 @@ class TestBinaryGeneration(unittest.TestCase):
         # and then exit with exit code 100.
         out_path = os.path.join(base_path, "project1.exe")
         in_path = os.path.abspath(str(pe32plus_gtirb))
-        subprocess.check_output(
-            ["gtirb-pprinter", "--ir", in_path, "--binary", out_path],
+        output = subprocess.check_output(
+                ["gtirb-pprinter", "--ir", in_path, "--binary", out_path],
             cwd=base_path,
         ).decode(sys.stdout.encoding)
-        ec = subprocess.call(out_path).decode(sys.stdout.encoding)
-        self.assertTrue(ec == 1)
+        ec = subprocess.call(out_path)
+        self.assertTrue(ec == 100)
