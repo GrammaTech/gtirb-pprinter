@@ -5,7 +5,7 @@ import subprocess
 import sys
 import tempfile
 
-hello_world_win32_gtirb = Path("tests", "hello_world_win32.gtirb")
+pe32plus_gtirb = Path("tests", "project1.exe.gtirb")
 
 
 class TestBinaryGeneration(unittest.TestCase):
@@ -14,13 +14,15 @@ class TestBinaryGeneration(unittest.TestCase):
             return
 
         base_path = tempfile.mkdtemp()
-        out_path = os.path.join(base_path, "hello_world.exe")
-        in_path = os.path.abspath(str(hello_world_win32_gtirb))
+        # This is a pe32+ gui application that will bring up a gui, delay 1s and
+        # then exit with exit code 100.
+        out_path = os.path.join(base_path, "project1.exe")
+        in_path = os.path.abspath(str(pe32plus_gtirb))
         subprocess.check_output(
             ["gtirb-pprinter", "--ir", in_path, "--binary", out_path],
             cwd=base_path,
         ).decode(sys.stdout.encoding)
-        output_bin = subprocess.check_output(out_path).decode(
+        ec = subprocess.check_output(out_path).decode(
             sys.stdout.encoding
         )
-        self.assertTrue("hello world" in output_bin)
+        self.assertTrue(ec == 1)
