@@ -5,7 +5,7 @@ import subprocess
 import sys
 import tempfile
 
-pe32plus_gtirb = Path("tests", "project1.exe.gtirb")
+pe32plus_gtirb = Path("tests", "ConsoleApplication1.exe.gtirb")
 
 
 class TestBinaryGeneration(unittest.TestCase):
@@ -16,7 +16,7 @@ class TestBinaryGeneration(unittest.TestCase):
         base_path = tempfile.mkdtemp()
         # This is a pe32+ gui application that will bring up a gui, delay 1s
         # and then exit with exit code 100.
-        out_path = os.path.join(base_path, "project1.exe")
+        out_path = os.path.join(base_path, "ConsoleApplication1.exe")
         in_path = os.path.abspath(str(pe32plus_gtirb))
         subprocess.check_output(
             ["gtirb-pprinter", "--ir", in_path, "--binary", out_path],
