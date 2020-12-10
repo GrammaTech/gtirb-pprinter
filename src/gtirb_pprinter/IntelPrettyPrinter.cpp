@@ -86,6 +86,11 @@ void IntelPrettyPrinter::printOpIndirect(
          "printOpIndirect called without a memory operand");
   bool first = true;
 
+  bool IsNotBranch =
+      !cs_insn_group(this->csHandle, &inst, CS_GRP_CALL) &&
+      !cs_insn_group(this->csHandle, &inst, CS_GRP_JUMP) &&
+      !cs_insn_group(this->csHandle, &inst, CS_GRP_BRANCH_RELATIVE);
+
   if (std::optional<std::string> size = syntax.getSizeName(op.size * 8))
     os << *size << " PTR ";
 
@@ -109,9 +114,9 @@ void IntelPrettyPrinter::printOpIndirect(
 
   if (const auto* SAC = std::get_if<gtirb::SymAddrConst>(symbolic)) {
     os << '+';
-    PrettyPrinterBase::printSymbolicExpression(os, SAC, false);
+    PrettyPrinterBase::printSymbolicExpression(os, SAC, IsNotBranch);
   } else if (const auto* SAA = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
-    printSymbolicExpression(os, SAA, false);
+    printSymbolicExpression(os, SAA, IsNotBranch);
   } else {
     printAddend(os, op.mem.disp, first);
   }
