@@ -426,7 +426,10 @@ void PrettyPrinterBase::fixupInstruction(cs_insn& inst) {
   }
 
   // FXSAVE operands should not have a size annotation
-  if (inst.id == X86_INS_FXSAVE && detail.op_count == 1) {
+  if ((inst.id == X86_INS_FXSAVE || inst.id == X86_INS_FXRSTOR ||
+       inst.id == X86_INS_XSAVE || inst.id == X86_INS_XSAVEC ||
+       inst.id == X86_INS_XRSTOR) &&
+      detail.op_count == 1) {
     detail.operands[0].size = 0;
   }
 
