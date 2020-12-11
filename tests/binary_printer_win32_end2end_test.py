@@ -23,4 +23,4 @@ class TestBinaryGeneration(unittest.TestCase):
             cwd=base_path,
         ).decode(sys.stdout.encoding)
         output = subprocess.check_output(out_path)
-        self.assertTrue('Test resource string' in output)
+        self.assertTrue("Test resource string" in output)
