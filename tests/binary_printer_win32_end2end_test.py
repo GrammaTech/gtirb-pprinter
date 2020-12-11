@@ -22,5 +22,5 @@ class TestBinaryGeneration(unittest.TestCase):
             ["gtirb-pprinter", "--ir", in_path, "--binary", out_path],
             cwd=base_path,
         ).decode(sys.stdout.encoding)
-        ec = subprocess.call(out_path)
-        self.assertTrue(ec == 100)
+        output = subprocess.check_output(out_path)
+        self.assertTrue('Test resource string' in output)
