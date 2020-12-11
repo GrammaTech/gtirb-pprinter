@@ -141,6 +141,7 @@ void IntelPrettyPrinter::printSymbolicExpression(std::ostream& OS,
     } else {
       OS << "@GOTOFF";
     }
+    printAddend(OS, SE->Offset, false);
     return;
   }
   PrettyPrinterBase::printSymbolicExpression(OS, SE, IsNotBranch);
