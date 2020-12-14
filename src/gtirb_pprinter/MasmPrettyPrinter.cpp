@@ -333,18 +333,28 @@ void MasmPrettyPrinter::printOpIndirect(
          "printOpIndirect called without a memory operand");
   bool first = true;
 
+  bool IsNotBranch =
+      !cs_insn_group(this->csHandle, &inst, CS_GRP_CALL) &&
+      !cs_insn_group(this->csHandle, &inst, CS_GRP_JUMP) &&
+      !cs_insn_group(this->csHandle, &inst, CS_GRP_BRANCH_RELATIVE);
+
+  uint64_t size = op.size;
+
   // Replace indirect reference to EXTERN with direct reference.
   //   e.g.  call QWORD PTR [puts]
   //         call puts
   if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
     std::optional<std::string> forwardedName = getForwardedSymbolName(s->Sym);
     if (forwardedName) {
+      if (IsNotBranch) {
+        if (std::optional<std::string> Size = syntax.getSizeName(size * 8)) {
+          os << *Size << " PTR ";
+        }
+      }
       os << *forwardedName;
       return;
     }
   }
-
-  uint64_t size = op.size;
 
   //////////////////////////////////////////////////////////////////////////////
   // Capstone incorrectly gives memory operands XMMWORD size.
