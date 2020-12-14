@@ -91,8 +91,7 @@ struct ElfSymbolInfo {
   static constexpr const char* Name = "elfSymbolInfo";
   typedef std::map<
       gtirb::UUID,
-      std::tuple<uint64_t, std::string, std::string, std::string, uint64_t,
-                 std::vector<std::tuple<std::string, uint64_t>>>>
+      std::tuple<uint64_t, std::string, std::string, std::string, uint64_t>>
       Type;
 };
 
