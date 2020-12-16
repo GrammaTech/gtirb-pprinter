@@ -103,7 +103,8 @@ const PrintingPolicy& ElfPrettyPrinter::defaultPrintingPolicy() {
 
       /// Definitions to avoid printing.
       {"__x86.get_pc_thunk.ax", "__x86.get_pc_thunk.bx",
-       "__x86.get_pc_thunk.cx", "__x86.get_pc_thunk.dx", "__dso_handle"},
+       "__x86.get_pc_thunk.cx", "__x86.get_pc_thunk.dx",
+       "__x86.get_pc_thunk.bp", "__dso_handle"},
 
       /// Symbols to avoid printing.
       {"_IO_stdin_used", "__data_start", "__TMC_END__", "_edata", "__bss_start",
