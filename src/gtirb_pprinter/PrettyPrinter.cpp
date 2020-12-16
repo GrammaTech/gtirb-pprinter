@@ -796,7 +796,17 @@ void PrettyPrinterBase::printCFIDirectives(std::ostream& os,
     return;
 
   for (auto& cfiDirective : entry->second) {
-    os << std::get<0>(cfiDirective) << " ";
+    std::string Directive = std::get<0>(cfiDirective);
+
+    if (Directive == ".cfi_startproc") {
+      CFIStartProc = programCounter;
+    } else if (!CFIStartProc) {
+      std::cerr << "WARNING: Missing `.cfi_startproc', omitting `" << Directive
+                << "' directive.\n";
+      continue;
+    }
+
+    os << Directive << " ";
     const std::vector<int64_t>& operands = std::get<1>(cfiDirective);
     for (auto it = operands.begin(); it != operands.end(); it++) {
       if (it != operands.begin())
@@ -813,6 +823,10 @@ void PrettyPrinterBase::printCFIDirectives(std::ostream& os,
     }
 
     os << std::endl;
+
+    if (Directive == ".cfi_endproc") {
+      CFIStartProc = std::nullopt;
+    }
   }
 }
 

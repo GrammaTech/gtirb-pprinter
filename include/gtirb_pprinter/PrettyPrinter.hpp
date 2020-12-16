@@ -406,6 +406,8 @@ private:
   std::set<gtirb::Addr> functionLastBlock;
   gtirb::Addr programCounter;
 
+  std::optional<gtirb::Addr> CFIStartProc;
+
   template <typename BlockType>
   void printBlockImpl(std::ostream& os, BlockType& block);
 };
