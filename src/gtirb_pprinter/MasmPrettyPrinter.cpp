@@ -124,7 +124,12 @@ void MasmPrettyPrinter::printExterns(std::ostream& os) {
       }
     }
     for (auto& name : externs) {
-      os << masmSyntax.extrn() << ' ' << name << ":PROC\n";
+      // Since we don't know up front if the references to an export are direct,
+      // indirect, or both, we will define both as extern conservatively.  This
+      // should have no impact at runtime, and both with be defined in the
+      // import library regardless.
+      os << masmSyntax.extrn() << " __imp_" << name << ":PROC\n";
+      os << masmSyntax.extrn() << " " << name << ":PROC\n";
     }
   }
 
@@ -333,26 +338,17 @@ void MasmPrettyPrinter::printOpIndirect(
   assert(op.type == X86_OP_MEM &&
          "printOpIndirect called without a memory operand");
   bool first = true;
-
-  bool IsNotBranch =
-      !cs_insn_group(this->csHandle, &inst, CS_GRP_CALL) &&
-      !cs_insn_group(this->csHandle, &inst, CS_GRP_JUMP) &&
-      !cs_insn_group(this->csHandle, &inst, CS_GRP_BRANCH_RELATIVE);
-
   uint64_t size = op.size;
 
-  // Replace indirect reference to EXTERN with direct reference.
-  //   e.g.  call QWORD PTR [puts]
-  //         call puts
+  // Indirect references to imported symbols should refer to the IAT entry, i.e.
+  // "__imp_foo"
   if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
     std::optional<std::string> forwardedName = getForwardedSymbolName(s->Sym);
     if (forwardedName) {
-      if (IsNotBranch) {
-        if (std::optional<std::string> Size = syntax.getSizeName(size * 8)) {
-          os << *Size << " PTR ";
-        }
+      if (std::optional<std::string> Size = syntax.getSizeName(size * 8)) {
+        os << *Size << " PTR ";
       }
-      os << *forwardedName;
+      os << "__imp_" << *forwardedName;
       return;
     }
   }
