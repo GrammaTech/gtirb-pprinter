@@ -14,8 +14,8 @@ class TestBinaryGeneration(unittest.TestCase):
             return
 
         base_path = tempfile.mkdtemp()
-        # This is a pe32+ gui application that will bring up a gui, delay 1s
-        # and then exit with exit code 100.
+        # This is a pe32+ console application that will load a resource test
+        # string and display it on the console.
         out_path = os.path.join(base_path, "ConsoleApplication1.exe")
         in_path = os.path.abspath(str(pe32plus_gtirb))
         subprocess.check_output(

@@ -154,21 +154,6 @@ private:
   gtirb::Symbol* ImageBase;
   std::unordered_set<gtirb::UUID> Imports;
   std::unordered_set<gtirb::UUID> Exports;
-
-  // Map linked DLLs to corresponding INCLUDELIB libraries.
-  std::unordered_map<std::string, std::vector<std::string>> dllLibraries = {
-      // Skip implicit api-ms-win-crt-*.dll libraries.
-      {"api-ms-win-crt-(.*)\\.dll", {}},
-      // Add libraries for dynamically linked CRT (Option: /MD).
-      {"vcruntime(\\d+)\\.dll", {"ucrt.lib", "vcruntime.lib", "msvcrt.lib"}},
-      // Add libraries for dynamically linked debug CRT (Option: /MDd).
-      {"vcruntime(\\d+)d\\.dll",
-       {"ucrtd.lib", "vcruntimed.lib", "msvcrtd.lib"}},
-      // Add libraries for multithreaded, dynamically linked runtime.
-      {"msvcp(\\d+)\\.dll", {"msvcprt.lib"}},
-      // Add libraries for multithreaded, dynamically linked, debug runtime.
-      {"msvcp(\\d+)d\\.dll", {"msvcprtd.lib"}},
-  };
 };
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API MasmPrettyPrinterFactory
