@@ -92,8 +92,8 @@ void MasmPrettyPrinter::printIncludes(std::ostream& os) {
     for (const auto& library : *libraries) {
       // Include import libs later generated using synthesized DEF files passed
       // through lib.exe
-      os << "INCLUDELIB "
-         << boost::ireplace_last_copy(library, ".dll", ".lib") << '\n';
+      os << "INCLUDELIB " << boost::ireplace_last_copy(library, ".dll", ".lib")
+         << '\n';
     }
   }
   os << '\n';
