@@ -28,6 +28,7 @@ public:
 
 protected:
   void printHeader(std::ostream& os) override;
+  void printAlignment(std::ostream& os, const gtirb::Addr addr) override;
   void printOpRegdirect(std::ostream& os, const cs_insn& inst,
                         uint64_t index) override;
   void printOpImmediate(std::ostream& os,

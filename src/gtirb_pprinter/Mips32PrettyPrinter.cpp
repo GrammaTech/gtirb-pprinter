@@ -71,6 +71,30 @@ void Mips32PrettyPrinter::printHeader(std::ostream& os) {
   os << ".set noreorder" << std::endl;
 }
 
+void Mips32PrettyPrinter::printAlignment(std::ostream& os,
+                                         const gtirb::Addr addr) {
+  // Enforce maximum alignment
+  uint64_t x{addr};
+  int n = 0;
+  if (x % 16 == 0) {
+    n = 4;
+  } else if (x % 8 == 0) {
+    n = 3;
+  } else if (x % 4 == 0) {
+    n = 2;
+  } else if (x % 2 == 0) {
+    n = 1;
+  }
+
+  if (n != 0) {
+    // MIPS Assembly Language: .align n: aligns next element to multiple of 2^N
+    // Other ISAs: .align n: aligns next element to n
+    if (module.getISA() != gtirb::ISA::MIPS32)
+      n = 1 << n;
+    os << syntax.align() << " " << n << std::endl;
+  }
+}
+
 void Mips32PrettyPrinter::printOpRegdirect(std::ostream& os,
                                            const cs_insn& inst,
                                            uint64_t index) {
@@ -210,7 +234,8 @@ void Mips32PrettyPrinter::printSymExprSuffix(
 
 void Mips32PrettyPrinter::printIntegralSymbol(std::ostream& os,
                                               const gtirb::Symbol& sym) {
-  if (sym.getName() == "_gp") {
+  const gtirb::ProxyBlock* externalBlock = sym.getReferent<gtirb::ProxyBlock>();
+  if (!externalBlock) {
     return;
   }
   ElfPrettyPrinter::printIntegralSymbol(os, sym);
@@ -219,7 +244,6 @@ void Mips32PrettyPrinter::printIntegralSymbol(std::ostream& os,
 void Mips32PrettyPrinter::printSymbolicExpression(
     std::ostream& os, const gtirb::SymAddrAddr* sexpr, bool IsNotBranch) {
   if (sexpr->Sym1 == &GP) {
-    // TODO: is this ever scaled?
     printSymExprPrefix(os, sexpr->Attributes, IsNotBranch);
     os << "_gp_disp";
     printSymExprSuffix(os, sexpr->Attributes, IsNotBranch);
