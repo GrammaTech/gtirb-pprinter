@@ -122,6 +122,8 @@ void IntelPrettyPrinter::printSymbolicExpression(std::ostream& OS,
                                                  const gtirb::SymAddrAddr* SE,
                                                  bool IsNotBranch) {
 
+  // We replace the symbol-minus-symbol with the special _GLOBAL_OFFSET_TABLE_
+  // reference that will be resolved as an equivalent GOT-PC expression value.
   if (SE->Sym1->getName() == "_GLOBAL_OFFSET_TABLE_") {
     OS << intelSyntax.offset() << ' ' << SE->Sym1->getName();
     return;
