@@ -284,7 +284,6 @@ int main(int argc, char** argv) {
 
   if (vm.count("keep-all") != 0) {
     pp.functionPolicy().useDefaults(false);
-    pp.definitionPolicy().useDefaults(false);
     pp.symbolPolicy().useDefaults(false);
     pp.sectionPolicy().useDefaults(false);
     pp.arraySectionPolicy().useDefaults(false);
@@ -301,20 +300,6 @@ int main(int argc, char** argv) {
   if (vm.count("skip-function") != 0) {
     for (const auto& S : vm["skip-function"].as<std::vector<std::string>>()) {
       pp.functionPolicy().skip(S);
-    }
-  }
-
-  if (vm.count("keep-all-definitions") != 0) {
-    pp.definitionPolicy().useDefaults(false);
-  }
-  if (vm.count("keep-defintion") != 0) {
-    for (const auto& S : vm["keep-definition"].as<std::vector<std::string>>()) {
-      pp.definitionPolicy().keep(S);
-    }
-  }
-  if (vm.count("skip-definition") != 0) {
-    for (const auto& S : vm["skip-definition"].as<std::vector<std::string>>()) {
-      pp.definitionPolicy().skip(S);
     }
   }
 

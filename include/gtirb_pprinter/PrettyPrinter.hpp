@@ -169,9 +169,6 @@ public:
   PolicyOptions& functionPolicy() { return FunctionPolicy; }
   const PolicyOptions& functionPolicy() const { return FunctionPolicy; }
 
-  PolicyOptions& definitionPolicy() { return DefinitionPolicy; }
-  const PolicyOptions& definitionPolicy() const { return DefinitionPolicy; }
-
   PolicyOptions& symbolPolicy() { return SymbolPolicy; }
   const PolicyOptions& symbolPolicy() const { return SymbolPolicy; }
 
@@ -186,16 +183,12 @@ private:
   std::string m_isa;
   std::string m_syntax;
   DebugStyle m_debug;
-  PolicyOptions FunctionPolicy, DefinitionPolicy, SymbolPolicy, SectionPolicy,
-      ArraySectionPolicy;
+  PolicyOptions FunctionPolicy, SymbolPolicy, SectionPolicy, ArraySectionPolicy;
 };
 
 struct DEBLOAT_PRETTYPRINTER_EXPORT_API PrintingPolicy {
   /// Functions to avoid printing the contents and labels of.
   std::unordered_set<std::string> skipFunctions;
-
-  /// Functions to avoid printing the contents of.
-  std::unordered_set<std::string> skipDefinitions;
 
   /// Symbols to avoid printing the labels of.
   std::unordered_set<std::string> skipSymbols;

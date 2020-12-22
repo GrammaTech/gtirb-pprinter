@@ -453,9 +453,6 @@ const PrintingPolicy& Arm64PrettyPrinterFactory::defaultPrintingPolicy() const {
        "__do_global_dtors_aux", "frame_dummy", "__libc_csu_fini",
        "__libc_csu_init", "_dl_relocate_static_pie", "call_weak_fn"},
 
-      /// Definitions to avoid printing.
-      {},
-
       /// Symbols to avoid printing.
       {"_IO_stdin_used", "__data_start", "__dso_handle", "__TMC_END__",
        "_edata", "__bss_start", "program_invocation_name",
