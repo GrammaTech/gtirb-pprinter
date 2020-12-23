@@ -129,6 +129,8 @@ void IntelPrettyPrinter::printSymbolicExpression(std::ostream& OS,
     return;
   }
 
+  // We replace the GOT-Label, symbol-minus-symbol, with Label@GOTOFF or
+  // Label@GOT that will be resolved to the equivalent GOT-relative value.
   // FIXME: Use appropriate flag for @GOTOFF when it is added to GTIRB.
   if (SE->Attributes.isFlagSet(gtirb::SymAttribute::Part1)) {
     OS << "+";
@@ -141,6 +143,7 @@ void IntelPrettyPrinter::printSymbolicExpression(std::ostream& OS,
     printAddend(OS, SE->Offset, false);
     return;
   }
+
   PrettyPrinterBase::printSymbolicExpression(OS, SE, IsNotBranch);
 }
 
