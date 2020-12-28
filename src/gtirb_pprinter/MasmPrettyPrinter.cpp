@@ -62,11 +62,16 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
 
   if (gtirb::CodeBlock* Block = module.getEntryPoint();
       Block && Block->getAddress()) {
-    auto* EntryPoint =
-        gtirb::Symbol::Create(context, *(Block->getAddress()), "__EntryPoint");
-    EntryPoint->setReferent<gtirb::CodeBlock>(Block);
-    module.addSymbol(EntryPoint);
-    Exports.insert(EntryPoint->getUUID());
+    auto It = module.findSymbols("__EntryPoint");
+    if (It.empty()) {
+      auto* EntryPoint = gtirb::Symbol::Create(context, *(Block->getAddress()),
+                                               "__EntryPoint");
+      EntryPoint->setReferent<gtirb::CodeBlock>(Block);
+      module.addSymbol(EntryPoint);
+      Exports.insert(EntryPoint->getUUID());
+    } else {
+      Exports.insert((&*It.begin())->getUUID());
+    }
   }
 
   const auto* ImportedSymbols =
