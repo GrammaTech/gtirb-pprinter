@@ -62,15 +62,15 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
 
   if (gtirb::CodeBlock* Block = module.getEntryPoint();
       Block && Block->getAddress()) {
-    auto It = module.findSymbols("__EntryPoint");
-    if (It.empty()) {
+    auto entry_syms = module.findSymbols(*Block->getAddress());
+    if (entry_syms.empty()) {
       auto* EntryPoint = gtirb::Symbol::Create(context, *(Block->getAddress()),
                                                "__EntryPoint");
       EntryPoint->setReferent<gtirb::CodeBlock>(Block);
       module.addSymbol(EntryPoint);
       Exports.insert(EntryPoint->getUUID());
     } else {
-      Exports.insert((&*It.begin())->getUUID());
+      Exports.insert((&*entry_syms.begin())->getUUID());
     }
   }
 
@@ -244,11 +244,6 @@ void MasmPrettyPrinter::printSymbolFooter(std::ostream& os,
 
 void MasmPrettyPrinter::printSymbolDefinition(std::ostream& os,
                                               const gtirb::Symbol& symbol) {
-  auto ea = *symbol.getAddress();
-  if (ea == gtirb::Addr(0)) {
-    return;
-  }
-
   printSymbolHeader(os, symbol);
   if (symbol.getReferent<gtirb::DataBlock>() ||
       Exports.count(symbol.getUUID()) == 0) {
@@ -260,9 +255,6 @@ void MasmPrettyPrinter::printSymbolDefinition(std::ostream& os,
 void MasmPrettyPrinter::printSymbolDefinitionRelativeToPC(
     std::ostream& os, const gtirb::Symbol& symbol, gtirb::Addr pc) {
   auto symAddr = *symbol.getAddress();
-  if (symAddr == gtirb::Addr(0)) {
-    return;
-  }
 
   printSymbolHeader(os, symbol);
 
