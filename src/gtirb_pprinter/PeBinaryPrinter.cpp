@@ -232,9 +232,12 @@ void PeBinaryPrinter::prepareLinkerArguments(
                                    return M.getEntryPoint() != nullptr;
                                  });
         Iter != ir.modules_end()) {
-      // By convention, we name the entrypoint this way. See the constructor
-      // for MasmPrettyPrinter for more information.
-      args.push_back("/entry:__EntryPoint");
+
+      if (gtirb::CodeBlock* Block = Iter->getEntryPoint();
+          Block && Block->getAddress()) {
+        auto entry_syms = Iter->findSymbols(*Block->getAddress());
+        args.push_back("/entry:" + (&*entry_syms.begin())->getName());
+      }
 
       // If we found a module with an entrypoint, we next want to determine if
       // this is a console or GUI app to be able to set the subsystem PE header
