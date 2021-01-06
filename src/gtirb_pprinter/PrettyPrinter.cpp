@@ -577,10 +577,12 @@ void PrettyPrinterBase::printOperand(std::ostream& os,
     printOpImmediate(os, symbolic, inst, index);
     return;
   case X86_OP_MEM:
-    if (dispOffset > 0) {
-      symbolic = block.getByteInterval()->getSymbolicExpression(
-          ea + dispOffset - *block.getByteInterval()->getAddress());
+    // FIXME: Fix Capstone and revert this change:
+    if (dispOffset == 0) {
+      std::cerr << "WARNING: Displacement offset 0: " << ea << "\n";
     }
+    symbolic = block.getByteInterval()->getSymbolicExpression(
+        ea + dispOffset - *block.getByteInterval()->getAddress());
     printOpIndirect(os, symbolic, inst, index);
     return;
   case X86_OP_INVALID:
@@ -805,7 +807,17 @@ void PrettyPrinterBase::printCFIDirectives(std::ostream& os,
     return;
 
   for (auto& cfiDirective : entry->second) {
-    os << std::get<0>(cfiDirective) << " ";
+    std::string Directive = std::get<0>(cfiDirective);
+
+    if (Directive == ".cfi_startproc") {
+      CFIStartProc = programCounter;
+    } else if (!CFIStartProc) {
+      std::cerr << "WARNING: Missing `.cfi_startproc', omitting `" << Directive
+                << "' directive.\n";
+      continue;
+    }
+
+    os << Directive << " ";
     const std::vector<int64_t>& operands = std::get<1>(cfiDirective);
     for (auto it = operands.begin(); it != operands.end(); it++) {
       if (it != operands.begin())
@@ -822,6 +834,10 @@ void PrettyPrinterBase::printCFIDirectives(std::ostream& os,
     }
 
     os << std::endl;
+
+    if (Directive == ".cfi_endproc") {
+      CFIStartProc = std::nullopt;
+    }
   }
 }
 

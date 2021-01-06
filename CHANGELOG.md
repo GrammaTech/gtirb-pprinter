@@ -1,3 +1,7 @@
+1.5.0
+
+  * Add preliminary x86_32 support.
+
 1.4.0
 
   * Use GTIRB symbolic expression attributes.

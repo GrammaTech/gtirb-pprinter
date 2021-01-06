@@ -104,7 +104,7 @@ const PrintingPolicy& ElfPrettyPrinter::defaultPrintingPolicy() {
       /// Symbols to avoid printing.
       {"_IO_stdin_used", "__data_start", "__dso_handle", "__TMC_END__",
        "_edata", "__bss_start", "program_invocation_name",
-       "program_invocation_short_name"},
+       "program_invocation_short_name", "_fp_hw"},
 
       /// Sections to avoid printing.
       {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
@@ -245,6 +245,10 @@ void ElfPrettyPrinter::printSymExprSuffix(std::ostream& OS,
   // FIXME: Use appropriate TLS attribute when it is added to GTIRB.
   else if (Attrs.isFlagSet(gtirb::SymAttribute::Part0)) {
     OS << "@TPOFF";
+  }
+  // FIXME: Use appropriate TLS attribute when it is added to GTIRB.
+  else if (Attrs.isFlagSet(gtirb::SymAttribute::Part2)) {
+    OS << "@NTPOFF";
   }
 }
 

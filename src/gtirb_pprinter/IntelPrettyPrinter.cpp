@@ -24,8 +24,11 @@ IntelPrettyPrinter::IntelPrettyPrinter(gtirb::Context& context_,
     : ElfPrettyPrinter(context_, module_, syntax_, policy_),
       intelSyntax(syntax_) {
   // Setup Capstone.
-  [[maybe_unused]] cs_err err =
-      cs_open(CS_ARCH_X86, CS_MODE_64, &this->csHandle);
+  cs_mode Mode = CS_MODE_64;
+  if (module.getISA() == gtirb::ISA::IA32) {
+    Mode = CS_MODE_32;
+  }
+  [[maybe_unused]] cs_err err = cs_open(CS_ARCH_X86, Mode, &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
 }
 
@@ -60,11 +63,14 @@ void IntelPrettyPrinter::printOpImmediate(
       !cs_insn_group(this->csHandle, &inst, CS_GRP_JUMP) &&
       !cs_insn_group(this->csHandle, &inst, CS_GRP_BRANCH_RELATIVE);
 
-  if (const gtirb::SymAddrConst* s = this->getSymbolicImmediate(symbolic)) {
+  if (const auto* SAA = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
+    printSymbolicExpression(os, SAA, false);
+  } else if (const gtirb::SymAddrConst* s =
+                 this->getSymbolicImmediate(symbolic)) {
     // The operand is symbolic.
     if (IsNotBranch)
       os << intelSyntax.offset() << ' ';
-    this->printSymbolicExpression(os, s, IsNotBranch);
+    PrettyPrinterBase::printSymbolicExpression(os, s, IsNotBranch);
   } else {
     // The operand is just a number.
     os << op.imm;
@@ -101,13 +107,44 @@ void IntelPrettyPrinter::printOpIndirect(
     os << getRegisterName(op.mem.index) << '*' << std::to_string(op.mem.scale);
   }
 
-  if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
+  if (const auto* SAC = std::get_if<gtirb::SymAddrConst>(symbolic)) {
     os << '+';
-    printSymbolicExpression(os, s, false);
+    PrettyPrinterBase::printSymbolicExpression(os, SAC, false);
+  } else if (const auto* SAA = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
+    printSymbolicExpression(os, SAA, false);
   } else {
     printAddend(os, op.mem.disp, first);
   }
   os << ']';
+}
+
+void IntelPrettyPrinter::printSymbolicExpression(std::ostream& OS,
+                                                 const gtirb::SymAddrAddr* SE,
+                                                 bool IsNotBranch) {
+
+  // We replace the symbol-minus-symbol with the special _GLOBAL_OFFSET_TABLE_
+  // reference that will be resolved as an equivalent GOT-PC expression value.
+  if (SE->Sym1->getName() == "_GLOBAL_OFFSET_TABLE_") {
+    OS << intelSyntax.offset() << ' ' << SE->Sym1->getName();
+    return;
+  }
+
+  // We replace the GOT-Label, symbol-minus-symbol, with Label@GOTOFF or
+  // Label@GOT that will be resolved to the equivalent GOT-relative value.
+  // FIXME: Use appropriate flag for @GOTOFF when it is added to GTIRB.
+  if (SE->Attributes.isFlagSet(gtirb::SymAttribute::Part1)) {
+    OS << "+";
+    printSymbolReference(OS, SE->Sym1);
+    if (SE->Attributes.isFlagSet(gtirb::SymAttribute::GotRef)) {
+      OS << "@GOT";
+    } else {
+      OS << "@GOTOFF";
+    }
+    printAddend(OS, SE->Offset, false);
+    return;
+  }
+
+  PrettyPrinterBase::printSymbolicExpression(OS, SE, IsNotBranch);
 }
 
 const PrintingPolicy& IntelPrettyPrinterFactory::defaultPrintingPolicy() const {

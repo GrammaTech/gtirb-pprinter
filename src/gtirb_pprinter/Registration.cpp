@@ -46,9 +46,9 @@ void registerAuxDataTypes() {
 }
 
 void registerPrettyPrinters() {
-  registerPrinter({"elf"}, {"x64"}, {"intel"},
+  registerPrinter({"elf"}, {"x86", "x64"}, {"intel"},
                   std::make_shared<IntelPrettyPrinterFactory>(), true);
-  registerPrinter({"elf"}, {"x64"}, {"att"},
+  registerPrinter({"elf"}, {"x86", "x64"}, {"att"},
                   std::make_shared<AttPrettyPrinterFactory>());
   registerPrinter({"elf"}, {"arm"}, {"arm"},
                   std::make_shared<ArmPrettyPrinterFactory>(), true);
