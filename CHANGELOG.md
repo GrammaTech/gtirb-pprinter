@@ -1,3 +1,5 @@
+  * Remove null displacement offset warning.
+
 1.5.0
 
   * Add preliminary x86_32 support.

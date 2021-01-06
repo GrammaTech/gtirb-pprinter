@@ -566,10 +566,11 @@ void PrettyPrinterBase::printOperand(std::ostream& os,
     printOpImmediate(os, symbolic, inst, index);
     return;
   case X86_OP_MEM:
-    // FIXME: Fix Capstone and revert this change:
-    if (dispOffset == 0) {
-      std::cerr << "WARNING: Displacement offset 0: " << ea << "\n";
-    }
+    // FIXME: Capstone frequently populates instruction details incorrectly with
+    // a displacement offset of 0. We use the same incorrect offset in ddisasm
+    // to populate the symbolic expressions so we find the correspond symbolic
+    // by coincidence, but the addresses are incorrect.
+    // We should fix Capstone and check `dispOffset > 0` here.
     symbolic = block.getByteInterval()->getSymbolicExpression(
         ea + dispOffset - *block.getByteInterval()->getAddress());
     printOpIndirect(os, symbolic, inst, index);
