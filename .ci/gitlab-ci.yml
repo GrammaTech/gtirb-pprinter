@@ -192,7 +192,7 @@ static-drivers:
   artifacts:
     name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
     paths:
-      - build/bin
+      - bin
   script:
     - git clone https://git.grammatech.com/rewriting/gtirb.git
     - cd gtirb
