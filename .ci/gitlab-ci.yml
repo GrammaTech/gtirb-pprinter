@@ -192,14 +192,14 @@ static-drivers:
   artifacts:
     name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
     paths:
-      - bin
+      - build/bin
   script:
     - git clone https://git.grammatech.com/rewriting/gtirb.git
     - cd gtirb
     - mkdir build && cd build
     - cmake ../ -DCMAKE_BUILD_TYPE=Debug -DGTIRB_BUILD_SHARED_LIBS=OFF -DGTIRB_PY_API=OFF
     - make -j
-    - cd ..
+    - cd ../..
     - mkdir build && cd build
     - cmake ../ -DCMAKE_BUILD_TYPE=Debug -DGTIRB_PPRINTER_STATIC_DRIVERS=ON
     - make -j
