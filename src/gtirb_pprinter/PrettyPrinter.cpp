@@ -160,7 +160,7 @@ std::error_condition PrettyPrinter::print(std::ostream& stream,
       getFactories().at(target);
 
   // Configure printing policy.
-  PrintingPolicy policy(factory->defaultPrintingPolicy());
+  PrintingPolicy policy(factory->defaultPrintingPolicy(module));
   policy.debug = m_debug;
   FunctionPolicy.apply(policy.skipFunctions);
   SymbolPolicy.apply(policy.skipSymbols);

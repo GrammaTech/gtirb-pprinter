@@ -94,7 +94,12 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
     : PrettyPrinterBase(context_, module_, syntax_, policy_),
       elfSyntax(syntax_) {}
 
-const PrintingPolicy& ElfPrettyPrinter::defaultPrintingPolicy() {
+bool ElfPrettyPrinter::isStaticBinary(gtirb::Module& Module) {
+  return Module.findSections(".dynamic") == Module.sections_by_name_end();
+}
+
+const PrintingPolicy&
+ElfPrettyPrinter::defaultPrintingPolicy(gtirb::Module& Module) {
   static PrintingPolicy DefaultPolicy{
       /// Functions to avoid printing.
       {"_start", "deregister_tm_clones", "register_tm_clones",
@@ -113,7 +118,21 @@ const PrintingPolicy& ElfPrettyPrinter::defaultPrintingPolicy() {
       /// Sections with possible data object exclusion.
       {".init_array", ".fini_array"},
   };
-  return DefaultPolicy;
+
+  static PrintingPolicy DefaultStaticPolicy{
+      /// Functions to avoid printing.
+      {},
+      /// Symbols to avoid printing.
+      {},
+      /// Sections to avoid printing.
+      {".eh_frame", ".rela.plt"},
+      /// Sections with possible data object exclusion.
+      {},
+  };
+  if (isStaticBinary(Module))
+    return DefaultStaticPolicy;
+  else
+    return DefaultPolicy;
 }
 
 void ElfPrettyPrinter::printSectionHeaderDirective(

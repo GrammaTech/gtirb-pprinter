@@ -446,7 +446,8 @@ void Arm64PrettyPrinter::printExtender(std::ostream& os,
   }
 }
 
-const PrintingPolicy& Arm64PrettyPrinterFactory::defaultPrintingPolicy() const {
+const PrintingPolicy& Arm64PrettyPrinterFactory::defaultPrintingPolicy(
+    gtirb::Module& /*Module*/) const {
   static PrintingPolicy DefaultPolicy{
       /// Functions to avoid printing.
       {"_start", "deregister_tm_clones", "register_tm_clones",
