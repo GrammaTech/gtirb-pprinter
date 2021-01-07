@@ -157,9 +157,8 @@ private:
 };
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API MasmPrettyPrinterFactory
-    : public PrettyPrinterFactory {
+    : public PePrettyPrinterFactory {
 public:
-  const PrintingPolicy& defaultPrintingPolicy() const override;
   std::unique_ptr<PrettyPrinterBase>
   create(gtirb::Context& context, gtirb::Module& module,
          const PrintingPolicy& policy) override;

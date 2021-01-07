@@ -20,8 +20,8 @@
 
 namespace gtirb_pprint {
 
-const PrintingPolicy&
-Mips32PrettyPrinterFactory::defaultPrintingPolicy() const {
+const PrintingPolicy& Mips32PrettyPrinterFactory::defaultPrintingPolicy(
+    gtirb::Module& /*Module*/) const {
   static PrintingPolicy DefaultPolicy{
       /// Functions to avoid printing.
       {"_start", "__start", "deregister_tm_clones", "register_tm_clones",

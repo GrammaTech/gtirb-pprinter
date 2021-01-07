@@ -453,10 +453,6 @@ void MasmPrettyPrinter::printFooter(std::ostream& os) {
   os << '\n' << masmSyntax.end();
 }
 
-const PrintingPolicy& MasmPrettyPrinterFactory::defaultPrintingPolicy() const {
-  return MasmPrettyPrinter::defaultPrintingPolicy();
-}
-
 std::unique_ptr<PrettyPrinterBase>
 MasmPrettyPrinterFactory::create(gtirb::Context& context, gtirb::Module& module,
                                  const PrintingPolicy& policy) {

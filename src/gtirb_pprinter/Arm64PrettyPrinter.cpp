@@ -445,6 +445,7 @@ void Arm64PrettyPrinter::printExtender(std::ostream& os,
     os << " #" << shiftValue;
   }
 }
+
 const PrintingPolicy&
 Arm64PrettyPrinterFactory::defaultPrintingPolicy(gtirb::Module& Module) const {
   static PrintingPolicy DefaultPolicy(
