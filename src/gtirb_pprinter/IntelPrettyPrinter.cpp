@@ -147,8 +147,9 @@ void IntelPrettyPrinter::printSymbolicExpression(std::ostream& OS,
   PrettyPrinterBase::printSymbolicExpression(OS, SE, IsNotBranch);
 }
 
-const PrintingPolicy& IntelPrettyPrinterFactory::defaultPrintingPolicy() const {
-  return ElfPrettyPrinter::defaultPrintingPolicy();
+const PrintingPolicy&
+IntelPrettyPrinterFactory::defaultPrintingPolicy(gtirb::Module& Module) const {
+  return ElfPrettyPrinter::defaultPrintingPolicy(Module);
 }
 
 std::unique_ptr<PrettyPrinterBase>

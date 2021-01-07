@@ -130,8 +130,9 @@ void AttPrettyPrinter::printOpIndirect(
   }
 }
 
-const PrintingPolicy& AttPrettyPrinterFactory::defaultPrintingPolicy() const {
-  return ElfPrettyPrinter::defaultPrintingPolicy();
+const PrintingPolicy&
+AttPrettyPrinterFactory::defaultPrintingPolicy(gtirb::Module& Module) const {
+  return ElfPrettyPrinter::defaultPrintingPolicy(Module);
 }
 
 std::unique_ptr<PrettyPrinterBase>
