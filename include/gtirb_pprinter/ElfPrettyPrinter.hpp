@@ -85,8 +85,6 @@ public:
   ElfPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
                    const ElfSyntax& syntax, const PrintingPolicy& policy);
 
-  static const PrintingPolicy& defaultPrintingPolicy(gtirb::Module& Module);
-
 protected:
   const ElfSyntax& elfSyntax;
 
@@ -119,8 +117,18 @@ protected:
       uint64_t Size, std::optional<std::string> Type) override;
 
   void printSymbolHeader(std::ostream& os, const gtirb::Symbol& symbol);
+};
 
-  static bool isStaticBinary(gtirb::Module& Module);
+class DEBLOAT_PRETTYPRINTER_EXPORT_API ElfPrettyPrinterFactory
+    : public PrettyPrinterFactory {
+public:
+  virtual ~ElfPrettyPrinterFactory() = default;
+
+  bool isStaticBinary(gtirb::Module& Module) const;
+
+  /// Load the default printing policy.
+  virtual const PrintingPolicy&
+  defaultPrintingPolicy(gtirb::Module& Module) const;
 };
 
 } // namespace gtirb_pprint

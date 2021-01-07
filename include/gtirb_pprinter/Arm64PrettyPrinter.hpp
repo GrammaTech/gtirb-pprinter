@@ -59,8 +59,9 @@ protected:
                      const arm64_shifter shiftType, uint64_t shiftValue);
 };
 
-class Arm64PrettyPrinterFactory : public PrettyPrinterFactory {
+class Arm64PrettyPrinterFactory : public ElfPrettyPrinterFactory {
 public:
+  /// Load the default printing policy.
   const PrintingPolicy&
   defaultPrintingPolicy(gtirb::Module& Module) const override;
 
