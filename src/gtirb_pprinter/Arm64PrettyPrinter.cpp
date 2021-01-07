@@ -452,9 +452,11 @@ Arm64PrettyPrinterFactory::defaultPrintingPolicy(gtirb::Module& Module) const {
 
   // We skip .init_array and .fini_array instead of
   // having them in the arraySections.
-  DefaultPolicy.arraySections.clear();
-  DefaultPolicy.skipSections.emplace(".init_array");
-  DefaultPolicy.skipSections.emplace(".fini_array");
+  if (!isStaticBinary(Module)) {
+    DefaultPolicy.arraySections.clear();
+    DefaultPolicy.skipSections.emplace(".init_array");
+    DefaultPolicy.skipSections.emplace(".fini_array");
+  }
   return DefaultPolicy;
 }
 
