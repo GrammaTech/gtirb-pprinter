@@ -108,7 +108,7 @@ const PrintingPolicy& ElfPrettyPrinter::defaultPrintingPolicy() {
 
       /// Sections to avoid printing.
       {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
-       ".plt.sec", ".eh_frame_hdr", ".eh_frame"},
+       ".plt.sec", ".eh_frame_hdr", ".eh_frame", ".rela.dyn", ".rela.plt"},
 
       /// Sections with possible data object exclusion.
       {".init_array", ".fini_array"},

@@ -460,7 +460,8 @@ const PrintingPolicy& Arm64PrettyPrinterFactory::defaultPrintingPolicy() const {
 
       /// Sections to avoid printing.
       {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
-       ".plt.sec", ".eh_frame_hdr", ".init_array", ".fini_array"},
+       ".plt.sec", ".eh_frame_hdr", ".init_array", ".fini_array", ".rela.dyn",
+       ".rela.plt"},
 
       /// Sections with possible data object exclusion.
       {},
