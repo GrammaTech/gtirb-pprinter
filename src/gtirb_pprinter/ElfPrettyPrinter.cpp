@@ -129,10 +129,7 @@ ElfPrettyPrinter::defaultPrintingPolicy(gtirb::Module& Module) {
       /// Sections with possible data object exclusion.
       {},
   };
-  if (isStaticBinary(Module))
-    return DefaultStaticPolicy;
-  else
-    return DefaultPolicy;
+  return isStaticBinary(Module) ? DefaultStaticPolicy : DefaultPolicy;
 }
 
 void ElfPrettyPrinter::printSectionHeaderDirective(
