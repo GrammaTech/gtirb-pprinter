@@ -147,11 +147,6 @@ void IntelPrettyPrinter::printSymbolicExpression(std::ostream& OS,
   PrettyPrinterBase::printSymbolicExpression(OS, SE, IsNotBranch);
 }
 
-const PrintingPolicy&
-IntelPrettyPrinterFactory::defaultPrintingPolicy(gtirb::Module& Module) const {
-  return ElfPrettyPrinter::defaultPrintingPolicy(Module);
-}
-
 std::unique_ptr<PrettyPrinterBase>
 IntelPrettyPrinterFactory::create(gtirb::Context& gtirb_context,
                                   gtirb::Module& module,
