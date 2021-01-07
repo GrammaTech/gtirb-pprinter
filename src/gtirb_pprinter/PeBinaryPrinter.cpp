@@ -251,11 +251,16 @@ void PeBinaryPrinter::prepareLinkerArguments(
         args.push_back("/subsystem:console");
       else
         args.push_back("/subsystem:windows");
-    } else {
-      // We could not find an entrypoint, so assume this is a resource-only
-      // DLL with no entry point as a fallback.
-      args.push_back("/DLL");
-      args.push_back("/NOENTRY");
+    }
+
+    for (gtirb::Module& Module : ir.modules()) {
+      if (auto* Table = Module.getAuxData<gtirb::schema::BinaryType>()) {
+        if (std::find(Table->begin(), Table->end(), "DLL") != Table->end()) {
+          args.push_back("/DLL");
+          args.push_back("/NOENTRY");
+          break;
+        }
+      }
     }
   }
 }
