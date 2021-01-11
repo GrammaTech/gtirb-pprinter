@@ -361,21 +361,44 @@ void PrettyPrinterBase::printBar(std::ostream& os, bool heavy) {
   }
 }
 
-void PrettyPrinterBase::printSymbolReference(
+bool PrettyPrinterBase::printSymbolReference(
     std::ostream& os, const gtirb::Symbol* symbol) const {
   if (!symbol)
-    return;
+    return false;
 
   std::optional<std::string> forwardedName = getForwardedSymbolName(symbol);
   if (forwardedName) {
-    os << forwardedName.value();
-    return;
+    if (debug) {
+      os << forwardedName.value();
+      return false;
+    } else {
+      if (policy.skipSymbols.count(forwardedName.value())) {
+        // NOTE: It is OK not to print symbols in unexercised code (functions
+        // that never execute, but were not skipped due to lack of information
+        // : e.g., sectionless binaries). However, printing symbol addresses
+        // can cause the assembler to fail if the address is too big for the
+        // instruction. To avoid the problem, we print 0 here.
+        // os << static_cast<uint64_t>(*symbol->getAddress());
+        os << "0";
+        return true;
+      } else {
+        os << forwardedName.value();
+        return false;
+      }
+    }
   }
   if (shouldSkip(*symbol)) {
-    os << static_cast<uint64_t>(*symbol->getAddress());
-    return;
+    if (debug) {
+      os << static_cast<uint64_t>(*symbol->getAddress());
+    } else {
+      // NOTE: See the comment above.
+      // os << static_cast<uint64_t>(*symbol->getAddress());
+      os << "0";
+    }
+    return true;
   }
   os << getSymbolName(*symbol);
+  return false;
 }
 
 void PrettyPrinterBase::printSymbolDefinition(std::ostream& os,
@@ -894,12 +917,19 @@ void PrettyPrinterBase::printSymExprSuffix(
 
 void PrettyPrinterBase::printSymbolicExpression(
     std::ostream& os, const gtirb::SymAddrConst* sexpr, bool IsNotBranch) {
-  printSymExprPrefix(os, sexpr->Attributes, IsNotBranch);
+  std::stringstream ss;
+  bool skipped = printSymbolReference(ss, sexpr->Sym);
 
-  printSymbolReference(os, sexpr->Sym);
-  printAddend(os, sexpr->Offset);
+  if (skipped) {
+    os << ss.str();
+  } else {
+    printSymExprPrefix(os, sexpr->Attributes, IsNotBranch);
 
-  printSymExprSuffix(os, sexpr->Attributes, IsNotBranch);
+    os << ss.str();
+    printAddend(os, sexpr->Offset);
+
+    printSymExprSuffix(os, sexpr->Attributes, IsNotBranch);
+  }
 }
 
 void PrettyPrinterBase::printSymbolicExpression(std::ostream& os,

@@ -321,7 +321,8 @@ protected:
   // print a symbol in a symbolic expression
   // if the symbol is ambiguous print a symbol with the address instead.
   // if the symbol is forwarded (e.g. a plt reference) print the forwarded name
-  virtual void printSymbolReference(std::ostream& os,
+  // Return true if the symbol is skipped.
+  virtual bool printSymbolReference(std::ostream& os,
                                     const gtirb::Symbol* symbol) const;
   virtual void printAddend(std::ostream& os, int64_t number,
                            bool first = false);

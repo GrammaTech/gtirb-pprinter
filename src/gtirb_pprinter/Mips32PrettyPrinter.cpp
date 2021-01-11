@@ -31,7 +31,10 @@ Mips32PrettyPrinterFactory::defaultPrintingPolicy() const {
       /// Symbols to avoid printing.
       {"_IO_stdin_used", "__data_start", "__dso_handle", "__TMC_END__",
        "_edata", "_fdata", "_DYNAMIC", "data_start", "__bss_start",
-       "program_invocation_name", "program_invocation_short_name"},
+       "program_invocation_name", "program_invocation_short_name",
+       // Include symbols in sections to avoid printing for sectionless binaries
+       "__gmon_start__", "_ITM_deregisterTMCloneTable",
+       "_ITM_registerTMCloneTable"},
 
       /// Sections to avoid printing.
       {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
@@ -57,8 +60,15 @@ Mips32PrettyPrinter::Mips32PrettyPrinter(gtirb::Context& context_,
                                          gtirb::Module& module_,
                                          const ElfSyntax& syntax_,
                                          const PrintingPolicy& policy_)
-    : ElfPrettyPrinter(context_, module_, syntax_, policy_),
-      GP{module_.findSymbols("_gp").front()} {
+    : ElfPrettyPrinter(context_, module_, syntax_, policy_) {
+  auto a = module_.findSymbols("_gp");
+  if (!a.empty()) {
+    GP = &a.front();
+  } else {
+    // If _gp is not found, leave GP as NULL.
+    std::cerr << "WARNING: Could not find GP\n";
+  }
+
   // Setup Capstone.
   [[maybe_unused]] cs_err err =
       cs_open(CS_ARCH_MIPS, (cs_mode)(CS_MODE_MIPS32 | CS_MODE_BIG_ENDIAN),
@@ -243,7 +253,7 @@ void Mips32PrettyPrinter::printIntegralSymbol(std::ostream& os,
 
 void Mips32PrettyPrinter::printSymbolicExpression(
     std::ostream& os, const gtirb::SymAddrAddr* sexpr, bool IsNotBranch) {
-  if (sexpr->Sym1 == &GP) {
+  if (sexpr->Sym1 == GP) {
     printSymExprPrefix(os, sexpr->Attributes, IsNotBranch);
     os << "_gp_disp";
     printSymExprSuffix(os, sexpr->Attributes, IsNotBranch);
