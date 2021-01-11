@@ -195,8 +195,8 @@ int main(int argc, char** argv) {
 
   public:
     ~ContextForgetter() { ctx.ForgetAllocations(); }
-    operator gtirb::Context &() { return ctx; }
-    operator const gtirb::Context &() const { return ctx; }
+    operator gtirb::Context&() { return ctx; }
+    operator const gtirb::Context&() const { return ctx; }
   };
 
   ContextForgetter ctx;
