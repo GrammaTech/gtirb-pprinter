@@ -46,6 +46,7 @@ check-format:
       ) && exit 1)
 
 build-conan:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18:bfair-conan
   stage: build
   needs: [check-format]
   script:
