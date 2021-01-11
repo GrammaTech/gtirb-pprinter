@@ -7,11 +7,11 @@ if("${CPACK_GTIRB_DEBIAN_PACKAGE}" STREQUAL "lib")
   set(CPACK_COMPONENTS_ALL pprinter_library layout_library)
   if("${CPACK_DEBIAN_RELEASE}" STREQUAL "focal")
     set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "libstdc++6, libc6, libgcc1, libgtirb (>=${CPACK_GTIRB_VERSION}), libgtirb (<<${CPACK_GTIRB_VERSION_UPPER_BOUND}), libboost-filesystem1.71.0, libcapstone-dev (=1:4.0.1-gt2)"
+        "libstdc++6, libc6, libgcc1, libgtirb (>=${CPACK_GTIRB_VERSION}), libgtirb (<<${CPACK_GTIRB_VERSION_UPPER_BOUND}), libboost-filesystem1.71.0, libcapstone-dev (=1:4.0.1-gt3)"
     )
   else()
     set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "libstdc++6, libc6, libgcc1, libgtirb (>=${CPACK_GTIRB_VERSION}), libgtirb (<<${CPACK_GTIRB_VERSION_UPPER_BOUND}), libboost (>=1.67) | libboost1.67, libcapstone-dev (=1:4.0.1-gt2)"
+        "libstdc++6, libc6, libgcc1, libgtirb (>=${CPACK_GTIRB_VERSION}), libgtirb (<<${CPACK_GTIRB_VERSION_UPPER_BOUND}), libboost (>=1.67) | libboost1.67, libcapstone-dev (=1:4.0.1-gt3)"
     )
   endif()
 elseif("${CPACK_GTIRB_DEBIAN_PACKAGE}" STREQUAL "lib-dbg")
@@ -27,11 +27,11 @@ elseif("${CPACK_GTIRB_DEBIAN_PACKAGE}" STREQUAL "dev")
                            cmake_target)
   if("${CPACK_DEBIAN_RELEASE}" STREQUAL "focal")
     set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "libstdc++6, libc6, libgcc1, libgtirb-dev (>=${CPACK_GTIRB_VERSION}), libgtirb-dev (<<${CPACK_GTIRB_VERSION_UPPER_BOUND}), libgtirb-pprinter (=${CPACK_GTIRB_PPRINTER_VERSION}), libboost-dev, libcapstone-dev (=1:4.0.1-gt2)"
+        "libstdc++6, libc6, libgcc1, libgtirb-dev (>=${CPACK_GTIRB_VERSION}), libgtirb-dev (<<${CPACK_GTIRB_VERSION_UPPER_BOUND}), libgtirb-pprinter (=${CPACK_GTIRB_PPRINTER_VERSION}), libboost-dev, libcapstone-dev (=1:4.0.1-gt3)"
     )
   else()
     set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "libstdc++6, libc6, libgcc1, libgtirb-dev (>=${CPACK_GTIRB_VERSION}), libgtirb-dev (<<${CPACK_GTIRB_VERSION_UPPER_BOUND}), libgtirb-pprinter (=${CPACK_GTIRB_PPRINTER_VERSION}), libboost-dev (>=1.67) | libboost1.67-dev, libcapstone-dev (=1:4.0.1-gt2)"
+        "libstdc++6, libc6, libgcc1, libgtirb-dev (>=${CPACK_GTIRB_VERSION}), libgtirb-dev (<<${CPACK_GTIRB_VERSION_UPPER_BOUND}), libgtirb-pprinter (=${CPACK_GTIRB_PPRINTER_VERSION}), libboost-dev (>=1.67) | libboost1.67-dev, libcapstone-dev (=1:4.0.1-gt3)"
     )
   endif()
 
@@ -41,11 +41,11 @@ elseif("${CPACK_GTIRB_DEBIAN_PACKAGE}" STREQUAL "driver")
   set(CPACK_COMPONENTS_ALL pprinter_driver layout_driver)
   if("${CPACK_DEBIAN_RELEASE}" STREQUAL "focal")
     set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "libstdc++6, libc6, libgcc1, libgtirb (>=${CPACK_GTIRB_VERSION}), libgtirb (<<${CPACK_GTIRB_VERSION_UPPER_BOUND}), libgtirb-pprinter (=${CPACK_GTIRB_PPRINTER_VERSION}), libboost-filesystem1.71.0, libboost-program-options1.71.0, libcapstone-dev (=1:4.0.1-gt2)"
+        "libstdc++6, libc6, libgcc1, libgtirb (>=${CPACK_GTIRB_VERSION}), libgtirb (<<${CPACK_GTIRB_VERSION_UPPER_BOUND}), libgtirb-pprinter (=${CPACK_GTIRB_PPRINTER_VERSION}), libboost-filesystem1.71.0, libboost-program-options1.71.0, libcapstone-dev (=1:4.0.1-gt3)"
     )
   else()
     set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "libstdc++6, libc6, libgcc1, libgtirb (>=${CPACK_GTIRB_VERSION}), libgtirb (<<${CPACK_GTIRB_VERSION_UPPER_BOUND}), libgtirb-pprinter (=${CPACK_GTIRB_PPRINTER_VERSION}), libboost (>=1.67) | libboost1.67, libcapstone-dev (=1:4.0.1-gt2)"
+        "libstdc++6, libc6, libgcc1, libgtirb (>=${CPACK_GTIRB_VERSION}), libgtirb (<<${CPACK_GTIRB_VERSION_UPPER_BOUND}), libgtirb-pprinter (=${CPACK_GTIRB_PPRINTER_VERSION}), libboost (>=1.67) | libboost1.67, libcapstone-dev (=1:4.0.1-gt3)"
     )
   endif()
 elseif("${CPACK_GTIRB_DEBIAN_PACKAGE}" STREQUAL "driver-dbg")
