@@ -252,6 +252,9 @@ elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL Clang)
   add_compile_options(-fPIC)
 endif()
 
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+conan_basic_setup()
+
 # ---------------------------------------------------------------------------
 # gtirb
 # ---------------------------------------------------------------------------
