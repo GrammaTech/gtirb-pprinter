@@ -78,7 +78,7 @@ class GtirbPprinterConan(Properties, ConanFile):
     gtirb_version = "1.10.0"
     requires = (
         "boost/%s@conan/stable" % (boost_version),
-        "gtirb/%s@conan/stable" % (gtirb_version),
+        "gtirb/%s@rewriting+gtirb/stable" % (gtirb_version),
     )
     author = "GrammaTech Inc."
     generators = "cmake"
