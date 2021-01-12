@@ -50,8 +50,11 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
     : PePrettyPrinter(context_, module_, syntax_, policy_),
       masmSyntax(syntax_) {
   // Setup Capstone.
-  [[maybe_unused]] cs_err err =
-      cs_open(CS_ARCH_X86, CS_MODE_64, &this->csHandle);
+  cs_mode Mode = CS_MODE_64;
+  if (module.getISA() == gtirb::ISA::IA32) {
+    Mode = CS_MODE_32;
+  }
+  [[maybe_unused]] cs_err err = cs_open(CS_ARCH_X86, Mode, &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
 
   BaseAddress = module.getPreferredAddr();
@@ -131,6 +134,10 @@ void MasmPrettyPrinter::printExterns(std::ostream& os) {
 }
 
 void MasmPrettyPrinter::printHeader(std::ostream& os) {
+  if (module.getISA() == gtirb::ISA::IA32) {
+    os << ".MODEL FLAT\n";
+    os << "ASSUME FS : NOTHING\n";
+  }
   printIncludes(os);
   printExterns(os);
 }
@@ -217,39 +224,67 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
     }
   }
 
+  // Floating point operations with an implicit argument required by MASM.
+  switch (inst.id) {
+  case X86_INS_FADD:
+  case X86_INS_FSUB:
+  case X86_INS_FSUBP:
+  case X86_INS_FDIVRP:
+  case X86_INS_FMULP:
+    if (Detail.op_count == 1) {
+      cs_x86_op& Dest = Detail.operands[0];
+      if (Dest.type == X86_OP_REG) {
+        cs_x86_op& Src = Detail.operands[1];
+        Detail.op_count = 2;
+        Src.type = X86_OP_REG;
+        Src.reg = Dest.reg == X86_REG_ST0 ? X86_REG_ST1 : X86_REG_ST0;
+      }
+    }
+  }
+
+  // The first argument for SCASB is implied.
+  if (inst.id == X86_INS_SCASB) {
+    if (Detail.op_count == 2 && Detail.operands[0].type == X86_OP_REG &&
+        Detail.operands[0].reg == X86_REG_AL) {
+      Detail.operands[0] = Detail.operands[1];
+      Detail.op_count = 1;
+    }
+  }
+
   PrettyPrinterBase::fixupInstruction(inst);
 }
 
-void MasmPrettyPrinter::printSymbolHeader(std::ostream& os,
-                                          const gtirb::Symbol& symbol) {
-  // Print public definitions
-  if (Exports.count(symbol.getUUID())) {
-    if (symbol.getReferent<gtirb::DataBlock>()) {
-      os << '\n' << syntax.global() << ' ' << getSymbolName(symbol) << '\n';
-    } else {
-      os << symbol.getName() << ' ' << masmSyntax.proc() << " EXPORT\n"
-         << symbol.getName() << ' ' << masmSyntax.endp() << '\n';
-    }
-  }
-}
+void MasmPrettyPrinter::printSymbolHeader(std::ostream& /* os */,
+                                          const gtirb::Symbol& /* symbol */) {}
 
-void MasmPrettyPrinter::printSymbolFooter(std::ostream& os,
-                                          const gtirb::Symbol& symbol) {
-  // Print name for data block
-  if (symbol.getReferent<gtirb::DataBlock>()) {
-    if (const std::string& str = getSymbolName(symbol); str.size() >= 2)
-      os << 'N' << str.substr(2);
+void MasmPrettyPrinter::printSymbolFooter(std::ostream& /* os */,
+                                          const gtirb::Symbol& /*  symbol */) {}
+
+std::string
+MasmPrettyPrinter::getSymbolName(const gtirb::Symbol& symbol) const {
+  std::string Name = PrettyPrinterBase::getSymbolName(symbol);
+  if (symbol.getReferent<gtirb::DataBlock>() && Name.size() >= 2) {
+    Name.replace(0, 2, "N");
   }
+  return Name;
 }
 
 void MasmPrettyPrinter::printSymbolDefinition(std::ostream& os,
                                               const gtirb::Symbol& symbol) {
-  printSymbolHeader(os, symbol);
-  if (symbol.getReferent<gtirb::DataBlock>() ||
-      Exports.count(symbol.getUUID()) == 0) {
-    PrettyPrinterBase::printSymbolDefinition(os, symbol);
+  bool Exported = Exports.count(symbol.getUUID()) > 0;
+  if (symbol.getReferent<gtirb::DataBlock>()) {
+    if (Exported) {
+      os << syntax.global() << ' ';
+    }
+    os << getSymbolName(symbol) << ' ';
+  } else {
+    if (Exported) {
+      os << symbol.getName() << ' ' << masmSyntax.proc() << " EXPORT\n"
+         << symbol.getName() << ' ' << masmSyntax.endp() << '\n';
+    } else {
+      PrettyPrinterBase::printSymbolDefinition(os, symbol);
+    }
   }
-  printSymbolFooter(os, symbol);
 }
 
 void MasmPrettyPrinter::printSymbolDefinitionRelativeToPC(
