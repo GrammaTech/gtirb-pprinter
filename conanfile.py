@@ -105,6 +105,8 @@ class GtirbPprinterConan(Properties, ConanFile):
         defs = {"CMAKE_VERBOSE_MAKEFILE:BOOL": "ON", "ENABLE_CONAN:BOOL": "ON"}
         cmake.configure(source_folder=self.name, defs=defs)
         cmake.build()
+        bin_dir = os.path.join(os.getcwd(), "bin")
+        os.environ["PATH"] = os.environ.get("PATH") + ":%s" % bin_dir
         cmake.test()
         cmake.install()
 
@@ -117,4 +119,5 @@ class GtirbPprinterConan(Properties, ConanFile):
         self.copy("*.a", dst="lib", keep_path=False)
 
     def package_info(self):
+        self.env_info.path.append(os.path.join(os.getcwd(), "bin"))
         self.cpp_info.libs = [self.name]
