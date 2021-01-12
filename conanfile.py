@@ -102,9 +102,8 @@ class GtirbPprinterConan(Properties, ConanFile):
 
     def build(self):
         cmake = CMake(self)
-        cmake.configure(
-            source_folder=self.name, defs={"CMAKE_VERBOSE_MAKEFILE:BOOL": "ON"}
-        )
+        defs = {"CMAKE_VERBOSE_MAKEFILE:BOOL": "ON", "ENABLE_CONAN:BOOL": "ON"}
+        cmake.configure(source_folder=self.name, defs=defs)
         cmake.build()
         cmake.test()
         cmake.install()

@@ -40,6 +40,12 @@ include(CheckFunctionExists)
 include(CheckCXXSourceCompiles)
 include(CheckIncludeFile)
 
+option(ENABLE_CONAN "Use Conan to inject dependencies" OFF)
+if(ENABLE_CONAN)
+  include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+  conan_basic_setup()
+endif()
+
 # ---------------------------------------------------------------------------
 # Global settings
 # ---------------------------------------------------------------------------
@@ -251,9 +257,6 @@ elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL Clang)
   add_compile_options(-Werror)
   add_compile_options(-fPIC)
 endif()
-
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-conan_basic_setup()
 
 # ---------------------------------------------------------------------------
 # gtirb
