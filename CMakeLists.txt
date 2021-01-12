@@ -42,6 +42,7 @@ include(CheckIncludeFile)
 
 option(ENABLE_CONAN "Use Conan to inject dependencies" OFF)
 if(ENABLE_CONAN)
+  set(CONAN_SYSTEM_INCLUDES ON)
   include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
   conan_basic_setup()
 endif()
@@ -283,6 +284,7 @@ add_compile_options(-DBOOST_SYSTEM_NO_DEPRECATED)
 # CMake's internal Boost support. The former uses "Boost::boost" and so on,
 # while the latter uses "Boost_BOOST" and so on. This normalizes the two cases
 # to use Boost_INCLUDE_DIRS and Boost_LIBRARIES.
+
 if(TARGET Boost::headers)
   get_target_property(Boost_INCLUDE_DIRS Boost::headers
                       INTERFACE_INCLUDE_DIRECTORIES)
@@ -291,7 +293,7 @@ if(TARGET Boost::headers)
   endforeach()
 endif()
 
-include_directories(${Boost_INCLUDE_DIRS})
+include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
 # ---------------------------------------------------------------------------
 # capstone
