@@ -254,21 +254,6 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
   PrettyPrinterBase::fixupInstruction(inst);
 }
 
-void MasmPrettyPrinter::printSymbolHeader(std::ostream& /* os */,
-                                          const gtirb::Symbol& /* symbol */) {}
-
-void MasmPrettyPrinter::printSymbolFooter(std::ostream& /* os */,
-                                          const gtirb::Symbol& /*  symbol */) {}
-
-std::string
-MasmPrettyPrinter::getSymbolName(const gtirb::Symbol& symbol) const {
-  std::string Name = PrettyPrinterBase::getSymbolName(symbol);
-  if (symbol.getReferent<gtirb::DataBlock>() && Name.size() >= 2) {
-    Name.replace(0, 2, "N");
-  }
-  return Name;
-}
-
 void MasmPrettyPrinter::printSymbolDefinition(std::ostream& os,
                                               const gtirb::Symbol& symbol) {
   bool Exported = Exports.count(symbol.getUUID()) > 0;
@@ -282,7 +267,7 @@ void MasmPrettyPrinter::printSymbolDefinition(std::ostream& os,
       os << symbol.getName() << ' ' << masmSyntax.proc() << " EXPORT\n"
          << symbol.getName() << ' ' << masmSyntax.endp() << '\n';
     } else {
-      PrettyPrinterBase::printSymbolDefinition(os, symbol);
+      os << getSymbolName(symbol) << ":\n";
     }
   }
 }
@@ -291,8 +276,6 @@ void MasmPrettyPrinter::printSymbolDefinitionRelativeToPC(
     std::ostream& os, const gtirb::Symbol& symbol, gtirb::Addr pc) {
   auto symAddr = *symbol.getAddress();
 
-  printSymbolHeader(os, symbol);
-
   os << getSymbolName(symbol) << " = " << syntax.programCounter();
   if (symAddr > pc) {
     os << " + " << (symAddr - pc);
@@ -300,8 +283,6 @@ void MasmPrettyPrinter::printSymbolDefinitionRelativeToPC(
     os << " - " << (pc - symAddr);
   }
   os << "\n";
-
-  printSymbolFooter(os, symbol);
 }
 
 void MasmPrettyPrinter::printIntegralSymbol(std::ostream& os,
@@ -309,12 +290,7 @@ void MasmPrettyPrinter::printIntegralSymbol(std::ostream& os,
   if (*symbol.getAddress() == gtirb::Addr(0)) {
     return;
   }
-
-  printSymbolHeader(os, symbol);
-
   os << getSymbolName(symbol) << " = " << *symbol.getAddress() << '\n';
-
-  printSymbolFooter(os, symbol);
 }
 
 void MasmPrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
@@ -409,10 +385,8 @@ void MasmPrettyPrinter::printOpIndirect(
     printSymbolicExpression(os, s, false);
   } else if (const auto* rel = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
     if (std::optional<gtirb::Addr> Addr = rel->Sym1->getAddress(); Addr) {
-      if (const std::string& str = getSymbolName(*rel->Sym1); str.size() >= 2) {
-        os << "+(" << masmSyntax.imagerel() << ' ' << 'N' << str.substr(2)
-           << ")";
-      }
+      os << "+(" << masmSyntax.imagerel() << ' ' << getSymbolName(*rel->Sym1)
+         << ")";
       printAddend(os, rel->Offset, false);
     }
   } else {

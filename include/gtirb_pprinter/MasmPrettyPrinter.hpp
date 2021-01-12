@@ -124,10 +124,6 @@ protected:
 
   void fixupInstruction(cs_insn& inst) override;
 
-  virtual std::string getSymbolName(const gtirb::Symbol& symbol) const override;
-  virtual void printSymbolHeader(std::ostream& os, const gtirb::Symbol& symbol);
-  virtual void printSymbolFooter(std::ostream& os, const gtirb::Symbol& symbol);
-
   void printSymbolDefinition(std::ostream& os,
                              const gtirb::Symbol& symbol) override;
   void printSymbolDefinitionRelativeToPC(std::ostream& os,
