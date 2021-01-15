@@ -409,20 +409,21 @@ int main(int argc, char** argv) {
     }
   }
 
-  LOG_INFO << "Linking...\n";
-
   // Link directly to a binary.
   if (vm.count("binary") != 0) {
     const auto binaryPath = fs::path(vm["binary"].as<std::string>());
+
     std::vector<std::string> extraCompilerArgs;
     if (vm.count("compiler-args") != 0)
       extraCompilerArgs = vm["compiler-args"].as<std::vector<std::string>>();
+
     std::vector<std::string> libraryPaths;
     if (vm.count("library-paths") != 0)
       libraryPaths = vm["library-paths"].as<std::vector<std::string>>();
 
     std::unique_ptr<gtirb_bprint::BinaryPrinter> binaryPrinter =
         getBinaryPrinter(format, pp, extraCompilerArgs, libraryPaths);
+
     if (!binaryPrinter) {
       LOG_ERROR << "'" << format
                 << "' is an unsupported binary printing format.\n";
