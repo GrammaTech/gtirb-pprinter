@@ -173,8 +173,10 @@ bool PeBinaryPrinter::prepareImportLibs(
       std::vector<std::string> args;
       std::string libTool = "lib.exe";
       std::string libName = replaceExtension(itLib.first, ".lib");
+      std::string Machine = m.getISA() == gtirb::ISA::IA32 ? "X86" : "X64";
       args.push_back(std::string("/DEF:") + tf.fileName());
       args.push_back(std::string("/OUT:") + libName);
+      args.push_back(std::string("/MACHINE:" + Machine));
       if (std::optional<int> ret = execute(libTool, args)) {
         if (*ret) {
           std::cerr << "ERROR: lib returned: " << *ret << "\n";
@@ -199,67 +201,57 @@ void PeBinaryPrinter::prepareLinkerArguments(
     gtirb::IR& ir, std::vector<std::string>& importLibs,
     std::vector<std::string>& resourceFiles,
     std::vector<std::string>& args) const {
-  // The command lines for ml and ml64 are different, but there are some common
-  // features. The first thing are the options common to both ml and ml64,
-  // followed by assembler-specific options, followed by the name of the file
-  // to be assembled. For ml64 compilations, the linker arguments follow all of
-  // the compliands.
-  bool isML64 = compiler == "ml64";
 
-  // Handle the linker options for ml64.
-  if (isML64) {
-    // Start the linker arguments.
-    args.push_back("/link");
+  // Start the linker arguments.
+  args.push_back("/link");
 
-    // Disable the banner for the linker.
-    args.push_back("/nologo");
+  // Disable the banner for the linker.
+  args.push_back("/nologo");
 
-    // If the user specified additional library paths, tell the linker about
-    // them now. Note, there is no way to do this for ml, as it does not
-    // accept linker command line arguments.
-    for (const std::string& libPath : LibraryPaths)
-      args.push_back("/LIBPATH:" + libPath);
+  // If the user specified additional library paths, tell the linker about
+  // them now. Note, there is no way to do this for ml, as it does not
+  // accept linker command line arguments.
+  for (const std::string& libPath : LibraryPaths)
+    args.push_back("/LIBPATH:" + libPath);
 
-    // Add resource files
-    for (const std::string& resfile : resourceFiles)
-      args.push_back(resfile);
+  // Add resource files
+  for (const std::string& resfile : resourceFiles)
+    args.push_back(resfile);
 
-    // If there's an entrypoint defined in any module, specify it on the
-    // command line. This works around the fact that ml64 cannot automatically
-    // determine what the entrypoint is.
-    if (auto Iter = std::find_if(ir.modules_begin(), ir.modules_end(),
-                                 [](const gtirb::Module& M) {
-                                   return M.getEntryPoint() != nullptr;
-                                 });
-        Iter != ir.modules_end()) {
+  // If there's an entrypoint defined in any module, specify it on the
+  // command line. This works around the fact that ml64 cannot automatically
+  // determine what the entrypoint is.
+  if (auto Iter = std::find_if(
+          ir.modules_begin(), ir.modules_end(),
+          [](const gtirb::Module& M) { return M.getEntryPoint() != nullptr; });
+      Iter != ir.modules_end()) {
 
-      if (gtirb::CodeBlock* Block = Iter->getEntryPoint();
-          Block && Block->getAddress()) {
-        auto entry_syms = Iter->findSymbols(*Block->getAddress());
-        args.push_back("/entry:" + (&*entry_syms.begin())->getName());
-      }
-
-      // If we found a module with an entrypoint, we next want to determine if
-      // this is a console or GUI app to be able to set the subsystem PE header
-      // field correctly.  If the app depends on user32.dll it's likely a GUI
-      // app.
-      // FIXME : This should be based off the original PE header, but that's not
-      // yet available.
-      bool isGUI = std::find(importLibs.begin(), importLibs.end(),
-                             "user32.lib") != importLibs.end();
-      if (!isGUI)
-        args.push_back("/subsystem:console");
-      else
-        args.push_back("/subsystem:windows");
+    if (gtirb::CodeBlock* Block = Iter->getEntryPoint();
+        Block && Block->getAddress()) {
+      auto entry_syms = Iter->findSymbols(*Block->getAddress());
+      args.push_back("/entry:" + (&*entry_syms.begin())->getName());
     }
 
-    for (gtirb::Module& Module : ir.modules()) {
-      if (auto* Table = Module.getAuxData<gtirb::schema::BinaryType>()) {
-        if (std::find(Table->begin(), Table->end(), "DLL") != Table->end()) {
-          args.push_back("/DLL");
-          args.push_back("/NOENTRY");
-          break;
-        }
+    // If we found a module with an entrypoint, we next want to determine if
+    // this is a console or GUI app to be able to set the subsystem PE header
+    // field correctly.  If the app depends on user32.dll it's likely a GUI
+    // app.
+    // FIXME : This should be based off the original PE header, but that's not
+    // yet available.
+    bool isGUI = std::find(importLibs.begin(), importLibs.end(),
+                           "user32.lib") != importLibs.end();
+    if (!isGUI)
+      args.push_back("/subsystem:console");
+    else
+      args.push_back("/subsystem:windows");
+  }
+
+  for (gtirb::Module& Module : ir.modules()) {
+    if (auto* Table = Module.getAuxData<gtirb::schema::BinaryType>()) {
+      if (std::find(Table->begin(), Table->end(), "DLL") != Table->end()) {
+        args.push_back("/DLL");
+        args.push_back("/NOENTRY");
+        break;
       }
     }
   }
@@ -299,7 +291,15 @@ int PeBinaryPrinter::assemble(const std::string& outputFilename,
 }
 
 int PeBinaryPrinter::link(const std::string& outputFilename,
-                          gtirb::Context& ctx, gtirb::IR& ir) const {
+                          gtirb::Context& ctx, gtirb::IR& ir) {
+
+  for (const auto& Module : ir.modules()) {
+    if (Module.getISA() == gtirb::ISA::IA32) {
+      compiler = "ml";
+      break;
+    }
+  }
+
   // Prepare all of the files we're going to generate assembly into.
   std::vector<TempFile> tempFiles;
   if (!prepareSources(ctx, ir, tempFiles)) {

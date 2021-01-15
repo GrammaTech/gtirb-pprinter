@@ -52,7 +52,7 @@ public:
   int assemble(const std::string& outputFilename, gtirb::Context& context,
                gtirb::Module& mod) const override;
   int link(const std::string& outputFilename, gtirb::Context& context,
-           gtirb::IR& ir) const override;
+           gtirb::IR& ir) override;
 };
 
 } // namespace gtirb_bprint

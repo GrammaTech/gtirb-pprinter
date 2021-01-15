@@ -175,7 +175,7 @@ int ElfBinaryPrinter::assemble(const std::string& outputFilename,
 }
 
 int ElfBinaryPrinter::link(const std::string& outputFilename,
-                           gtirb::Context& ctx, gtirb::IR& ir) const {
+                           gtirb::Context& ctx, gtirb::IR& ir) {
   if (debug)
     std::cout << "Generating binary file" << std::endl;
   std::vector<TempFile> tempFiles;
