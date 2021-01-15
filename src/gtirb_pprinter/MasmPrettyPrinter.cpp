@@ -123,6 +123,9 @@ void MasmPrettyPrinter::printExterns(std::ostream& os) {
       // indirect, or both, we will define both as extern conservatively.  This
       // should have no impact at runtime, and both with be defined in the
       // import library regardless.
+      // TODO: PE32 seems to automatically prefix symbols with an underscore,
+      // so it is likely we will have omit the first for 32-bit.
+      // TODO: PE32 also seems to use two underscores after __imp, eg. _imp__.
       os << masmSyntax.extrn() << " __imp_" << name << ":PROC\n";
       os << masmSyntax.extrn() << " " << name << ":PROC\n";
     }
@@ -135,8 +138,11 @@ void MasmPrettyPrinter::printExterns(std::ostream& os) {
 
 void MasmPrettyPrinter::printHeader(std::ostream& os) {
   if (module.getISA() == gtirb::ISA::IA32) {
-    os << ".MODEL FLAT\n";
-    os << "ASSUME FS : NOTHING\n";
+    // CAUTION: Omitting the calling convention will break symbol resolution.
+    os << ".MODEL FLAT, STDCALL\n";
+    os << "ASSUME FS:NOTHING\n";
+    os << ".686p\n";
+    os << ".XMM\n";
   }
   printIncludes(os);
   printExterns(os);
