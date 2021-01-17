@@ -57,6 +57,9 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
   [[maybe_unused]] cs_err err = cs_open(CS_ARCH_X86, Mode, &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
 
+  // TODO: Evaluate this syntax option.
+  // cs_option(this->csHandle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_MASM);
+
   BaseAddress = module.getPreferredAddr();
   if (auto It = module.findSymbols("__ImageBase"); !It.empty()) {
     ImageBase = &*It.begin();
@@ -142,6 +145,7 @@ void MasmPrettyPrinter::printHeader(std::ostream& os) {
     os << "ASSUME FS:NOTHING\n";
     os << ".686p\n";
     os << ".XMM\n";
+    os << "\n";
   }
   printIncludes(os);
   printExterns(os);
@@ -229,23 +233,56 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
     }
   }
 
-  // Floating point operations with an implicit argument required by MASM.
+  // TODO: These next two fixups of one-operand floating-point instructions need
+  // much more consideration.
+
+  //  Floating point one-operand operations with an implicit FIRST operand.
+  //   e.g  fmul st(1)  needs to be  fmul st(0),st(1)
   switch (inst.id) {
-  case X86_INS_FADD:
   case X86_INS_FSUB:
-  case X86_INS_FSUBP:
-  case X86_INS_FDIVRP:
-  case X86_INS_FMULP:
+  case X86_INS_FMUL:
     if (Detail.op_count == 1) {
-      cs_x86_op& Dest = Detail.operands[0];
-      if (Dest.type == X86_OP_REG) {
-        cs_x86_op& Src = Detail.operands[1];
+      cs_x86_op& Op = Detail.operands[0];
+      if (Op.type == X86_OP_REG) {
+        Detail.operands[1] = Detail.operands[0];
+        Detail.operands[0].reg = X86_REG_ST0;
         Detail.op_count = 2;
-        Src.type = X86_OP_REG;
-        Src.reg = Dest.reg == X86_REG_ST0 ? X86_REG_ST1 : X86_REG_ST0;
       }
     }
   }
+
+  // Floating point one-operand operations with an implicit SECOND operand.
+  //   e.g  faddp st(2)  needs to be  faddp st(2),st(0)
+  switch (inst.id) {
+  case X86_INS_FSUBP:
+  case X86_INS_FADD:
+  case X86_INS_FMULP:
+  case X86_INS_FDIVP:
+  case X86_INS_FSUBRP:
+  case X86_INS_FDIVRP:
+    if (Detail.op_count == 1) {
+      cs_x86_op& Op = Detail.operands[0];
+      if (Op.type == X86_OP_REG) {
+        Detail.operands[1] = Detail.operands[0];
+        Detail.operands[1].reg = X86_REG_ST0;
+        Detail.op_count = 2;
+      }
+    }
+  }
+
+  //  FUCOMPI has an implicit first operand and a different mnemonic.
+  //   e.g. fucompi ST(1)  should be  fucomip ST(0),ST(1)
+  if (inst.id == X86_INS_FUCOMPI)
+    if (Detail.op_count == 1) {
+      cs_x86_op& Op = Detail.operands[0];
+      if (Op.type == X86_OP_REG && Op.reg == X86_REG_ST1) {
+        Detail.operands[1] = Detail.operands[0];
+        Detail.operands[0].reg = X86_REG_ST0;
+        Detail.op_count = 2;
+        inst.mnemonic[5] = 'i';
+        inst.mnemonic[6] = 'p';
+      }
+    }
 
   // The first argument for SCASB is implied.
   if (inst.id == X86_INS_SCASB) {
@@ -256,7 +293,31 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
     }
   }
 
+  // The k1 register from AVX512 instructions is frequently set to NULL.
+  if (inst.id == X86_INS_KMOVB) {
+    cs_x86_op& Op = Detail.operands[0];
+    if (Op.type == X86_OP_REG && Op.reg == X86_REG_INVALID) {
+      Op.reg = X86_REG_K1;
+    }
+  }
+  if (inst.id == X86_INS_VCVTTPS2UQQ || inst.id == X86_INS_VCVTTPS2QQ) {
+    if (Detail.op_count > 1) {
+      cs_x86_op& Op = Detail.operands[1];
+      if (Op.type == X86_OP_REG && Op.reg == X86_REG_INVALID) {
+        Op.reg = X86_REG_K1;
+      }
+    }
+  }
+
   PrettyPrinterBase::fixupInstruction(inst);
+}
+
+std::string MasmPrettyPrinter::getRegisterName(unsigned int Reg) const {
+  // Uppercase `k1' causes a syntax error with MASM. Yes, really.
+  if (Reg == X86_REG_K1) {
+    return "k1";
+  }
+  return PrettyPrinterBase::getRegisterName(Reg);
 }
 
 void MasmPrettyPrinter::printSymbolDefinition(std::ostream& os,
