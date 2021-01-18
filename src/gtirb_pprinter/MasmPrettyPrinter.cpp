@@ -64,6 +64,9 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
   if (auto It = module.findSymbols("__ImageBase"); !It.empty()) {
     ImageBase = &*It.begin();
     ImageBase->setReferent(module.addProxyBlock(context));
+    if (module.getISA() == gtirb::ISA::IA32) {
+      ImageBase->setName("___ImageBase");
+    }
   }
 
   if (gtirb::CodeBlock* Block = module.getEntryPoint();
@@ -121,19 +124,31 @@ void MasmPrettyPrinter::printExterns(std::ostream& os) {
         externs.insert(getSymbolName(*symbol));
       }
     }
-    for (auto& name : externs) {
+    for (auto& Name : externs) {
       // Since we don't know up front if the references to an export are direct,
       // indirect, or both, we will define both as extern conservatively.  This
       // should have no impact at runtime, and both with be defined in the
       // import library regardless.
-      std::string Prefix =
-          module.getISA() == gtirb::ISA::IA32 ? "_imp__" : "__imp_";
-      os << masmSyntax.extrn() << " " << Prefix << name << ":PROC\n";
-      os << masmSyntax.extrn() << " " << name << ":PROC\n";
+      os << masmSyntax.extrn() << " "
+         << "__imp_";
+      if (module.getISA() == gtirb::ISA::IA32) {
+        os << "_";
+      }
+      os << Name << ":PROC\n";
+
+      os << masmSyntax.extrn() << " ";
+      if (module.getISA() == gtirb::ISA::IA32) {
+        os << "_";
+      }
+      os << Name << ":PROC\n";
     }
   }
 
-  os << '\n' << masmSyntax.extrn() << " __ImageBase:BYTE\n";
+  os << '\n' << masmSyntax.extrn();
+  if (module.getISA() == gtirb::ISA::IA32) {
+    os << " _";
+  }
+  os << "__ImageBase:BYTE\n";
 
   os << '\n';
 }
@@ -141,7 +156,7 @@ void MasmPrettyPrinter::printExterns(std::ostream& os) {
 void MasmPrettyPrinter::printHeader(std::ostream& os) {
   if (module.getISA() == gtirb::ISA::IA32) {
     // CAUTION: Omitting the calling convention will break symbol resolution.
-    os << ".MODEL FLAT, STDCALL\n";
+    os << ".MODEL FLAT\n";
     os << "ASSUME FS:NOTHING\n";
     os << ".686p\n";
     os << ".XMM\n";
@@ -326,7 +341,7 @@ void MasmPrettyPrinter::printSymbolDefinition(std::ostream& os,
   bool Exported = Exports.count(symbol.getUUID()) > 0;
   if (symbol.getReferent<gtirb::DataBlock>()) {
     if (Exported) {
-      os << syntax.global() << ' ';
+      os << syntax.global() << ' ' << getSymbolName(symbol) << '\n';
     }
     os << getSymbolName(symbol) << ' ';
   } else {
@@ -411,7 +426,7 @@ void MasmPrettyPrinter::printOpIndirect(
         os << *Size << " PTR ";
       }
       std::string Prefix =
-          module.getISA() == gtirb::ISA::IA32 ? "_imp__" : "__imp_";
+          module.getISA() == gtirb::ISA::IA32 ? "__imp__" : "__imp_";
       os << Prefix << *forwardedName;
       return;
     }
