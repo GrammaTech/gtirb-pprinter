@@ -239,6 +239,7 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
   //  Floating point one-operand operations with an implicit FIRST operand.
   //   e.g  fmul st(1)  needs to be  fmul st(0),st(1)
   switch (inst.id) {
+  case X86_INS_FDIV:
   case X86_INS_FSUB:
   case X86_INS_FMUL:
     if (Detail.op_count == 1) {
