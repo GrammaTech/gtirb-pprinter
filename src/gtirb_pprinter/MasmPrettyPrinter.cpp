@@ -117,38 +117,30 @@ void MasmPrettyPrinter::printExterns(std::ostream& os) {
   // Declare EXTERN symbols
   if (const auto* symbolForwarding =
           module.getAuxData<gtirb::schema::SymbolForwarding>()) {
-    std::set<std::string> externs;
+    std::set<std::string> Externs;
     for (auto& forward : *symbolForwarding) {
       if (const auto* symbol = dyn_cast_or_null<gtirb::Symbol>(
               gtirb::Node::getByUUID(context, forward.second))) {
-        externs.insert(getSymbolName(*symbol));
+        std::string Name = getSymbolName(*symbol);
+        Externs.insert(module.getISA() == gtirb::ISA::IA32 ? "_" + Name : Name);
       }
     }
-    for (auto& Name : externs) {
+    for (auto& Name : Externs) {
       // Since we don't know up front if the references to an export are direct,
       // indirect, or both, we will define both as extern conservatively.  This
       // should have no impact at runtime, and both with be defined in the
       // import library regardless.
       os << masmSyntax.extrn() << " "
-         << "__imp_";
-      if (module.getISA() == gtirb::ISA::IA32) {
-        os << "_";
-      }
-      os << Name << ":PROC\n";
-
-      os << masmSyntax.extrn() << " ";
-      if (module.getISA() == gtirb::ISA::IA32) {
-        os << "_";
-      }
-      os << Name << ":PROC\n";
+         << "__imp_" << Name << ":PROC\n";
+      os << masmSyntax.extrn() << " " << Name << ":PROC\n";
     }
   }
 
-  os << '\n' << masmSyntax.extrn();
-  if (module.getISA() == gtirb::ISA::IA32) {
-    os << " _";
-  }
-  os << "__ImageBase:BYTE\n";
+  os << '\n';
+
+  os << masmSyntax.extrn() << " "
+     << (module.getISA() == gtirb::ISA::IA32 ? "___ImageBase" : "__ImageBase")
+     << ":BYTE\n";
 
   os << '\n';
 }
@@ -328,6 +320,15 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
   PrettyPrinterBase::fixupInstruction(inst);
 }
 
+std::optional<std::string>
+MasmPrettyPrinter::getForwardedSymbolName(const gtirb::Symbol* symbol) const {
+  if (std::optional<std::string> Name =
+          PrettyPrinterBase::getForwardedSymbolName(symbol)) {
+    return module.getISA() == gtirb::ISA::IA32 ? "_" + *Name : Name;
+  }
+  return std::nullopt;
+}
+
 std::string MasmPrettyPrinter::getRegisterName(unsigned int Reg) const {
   // Uppercase `k1' causes a syntax error with MASM. Yes, really.
   if (Reg == X86_REG_K1) {
@@ -417,7 +418,8 @@ void MasmPrettyPrinter::printOpIndirect(
   bool first = true;
   uint64_t size = op.size;
 
-  // Indirect references to imported symbols should refer to the IAT entry, i.e.
+  // Indirect references to imported symbols should refer to the IAT entry,
+  // i.e.
   // "__imp_foo"
   if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
     std::optional<std::string> forwardedName = getForwardedSymbolName(s->Sym);
@@ -425,9 +427,7 @@ void MasmPrettyPrinter::printOpIndirect(
       if (std::optional<std::string> Size = syntax.getSizeName(size * 8)) {
         os << *Size << " PTR ";
       }
-      std::string Prefix =
-          module.getISA() == gtirb::ISA::IA32 ? "__imp__" : "__imp_";
-      os << Prefix << *forwardedName;
+      os << "__imp_" << *forwardedName;
       return;
     }
   }

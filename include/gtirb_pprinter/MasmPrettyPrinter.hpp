@@ -122,6 +122,9 @@ protected:
                        const gtirb::SymbolicExpression* symbolic,
                        const cs_insn& inst, uint64_t index) override;
 
+  std::optional<std::string>
+  getForwardedSymbolName(const gtirb::Symbol* symbol) const override;
+
   std::string getRegisterName(unsigned int Reg) const override;
   void fixupInstruction(cs_insn& inst) override;
 
