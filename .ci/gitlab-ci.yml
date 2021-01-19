@@ -56,6 +56,27 @@ build-conan:
     - conan user ci_user -r gitlab -p ${CI_JOB_TOKEN}
     - PYTHONPATH="$(pwd):$PYTHONPATH" python3 .ci/build.py
 
+conan-windows:
+  stage: build
+  tags: [gtirb-pprinter-windows]
+  script:
+    - systeminfo
+    - export PATH="C:\\Program Files\\Python38;$PATH"
+    # Install conan
+    - python -m pip install conan
+    # Set up user and remote
+    - conan profile new default --detect
+    - conan profile update settings.compiler.libcxx=libstdc++11 default
+    - conan remote add gitlab ${CI_API_V4_URL}/packages/conan
+    - conan user ci_user -r gitlab -p ${CI_JOB_TOKEN}
+    # Run build script
+    - export PYTHONPATH="$(cygpath -w $(pwd))"
+    - export PATH="$PATH;C:\\Program Files\\CMake\\bin"
+    - export CMAKE_PREFIX_PATH="C:\\Program Files (x86)\\protobuf"
+    - export PYTHON="C:\\Python38\\python.exe"
+    - export BOOST_ROOT="C:\\Boost"
+    - CI_PROJECT_DIR=$(cygpath -w $(pwd)) python .ci/build.py
+
 .build-template: &build
   stage: build
   artifacts:
