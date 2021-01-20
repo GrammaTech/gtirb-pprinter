@@ -72,7 +72,6 @@ conan-windows:
     - export PATH="$PATH;C:\\Program Files\\CMake\\bin"
     - export CMAKE_PREFIX_PATH="C:\\Program Files (x86)\\protobuf"
     - export PYTHON="C:\\Python38\\python.exe"
-    - export BOOST_ROOT="C:\\Boost"
     - CI_PROJECT_DIR=$(cygpath -w $(pwd)) python .ci/build.py
 
 .build-template: &build
