@@ -1,4 +1,4 @@
-from conans import ConanFile, CMake
+from conans import ConanFile, CMake, tools
 from conans.errors import ConanInvalidConfiguration
 import os
 import re
@@ -103,14 +103,45 @@ class GtirbPprinterConan(Properties, ConanFile):
         self.run("git clone %s %s" % (project_dir, self.name))
 
     def build(self):
-        cmake = CMake(self)
+        if self.settings.os == "Windows":
+            with tools.vcvars(
+                self.settings, force=True, filter_known_paths=False
+            ):
+                self.build_cmake()
+        else:
+            self.build_cmake()
+
+    def build_cmake(self):
         defs = {"CMAKE_VERBOSE_MAKEFILE:BOOL": "ON", "ENABLE_CONAN:BOOL": "ON"}
+        if self.settings.os == "Windows":
+            cmake = CMake(self, generator="Ninja")
+            defs.update(
+                {
+                    k: os.environ.get(k)
+                    for k in ["BOOST_ROOT", "CMAKE_PREFIX_PATH", "PYTHON"]
+                }
+            )
+            defs.update({"Protobuf_USE_STATIC_LIBS": "ON"})
+        else:
+            cmake = CMake(self, generator=None)
+            defs.update(
+                {
+                    "CMAKE_CXX_COMPILER": "g++-7",
+                    "GTIRB_PPRINTER_STRIP_DEBUG_SYMBOLS:BOOL": "ON",
+                }
+            )
+
         cmake.configure(source_folder=self.name, defs=defs)
         cmake.build()
+        # The tests need the built gtirb-pprinter on the path
         bin_dir = os.path.join(os.getcwd(), "bin")
         os.environ["PATH"] = os.environ.get("PATH") + ":%s" % bin_dir
         cmake.test()
         cmake.install()
+
+    def build_requirements(self):
+        if self.settings.os == "Windows":
+            self.build_requires("ninja_installer/1.9.0@bincrafters/stable")
 
     def package(self):
         self.copy("*.h", dst="include", src=self.name)

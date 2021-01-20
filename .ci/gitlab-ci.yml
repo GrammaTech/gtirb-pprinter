@@ -65,8 +65,6 @@ conan-windows:
     # Install conan
     - python -m pip install conan
     # Set up user and remote
-    - conan profile new default --detect
-    - conan profile update settings.compiler.libcxx=libstdc++11 default
     - conan remote add gitlab ${CI_API_V4_URL}/packages/conan
     - conan user ci_user -r gitlab -p ${CI_JOB_TOKEN}
     # Run build script
