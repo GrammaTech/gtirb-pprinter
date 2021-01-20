@@ -278,8 +278,7 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
     }
   }
 
-// FIXME: Guard Capstone version here.
-#ifndef __MSC_VER
+#if defined(X86_INS_FUCOMPI)
   //  FUCOMPI has an implicit first operand and a different mnemonic.
   //   e.g. fucompi ST(1)  should be  fucomip ST(0),ST(1)
   if (inst.id == X86_INS_FUCOMPI)
@@ -312,8 +311,7 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
     }
   }
 
-// FIXME: Guard Capstone version here.
-#ifndef _MSC_VER
+#if defined(X86_INS_VCVTTPS2UQQ)
   if (inst.id == X86_INS_VCVTTPS2UQQ || inst.id == X86_INS_VCVTTPS2QQ) {
     if (Detail.op_count > 1) {
       cs_x86_op& Op = Detail.operands[1];
