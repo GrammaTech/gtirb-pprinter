@@ -278,6 +278,8 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
     }
   }
 
+// FIXME: Guard Capstone version here.
+#ifndef __MSC_VER
   //  FUCOMPI has an implicit first operand and a different mnemonic.
   //   e.g. fucompi ST(1)  should be  fucomip ST(0),ST(1)
   if (inst.id == X86_INS_FUCOMPI)
@@ -291,6 +293,7 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
         inst.mnemonic[6] = 'p';
       }
     }
+#endif
 
   // The first argument for SCASB is implied.
   if (inst.id == X86_INS_SCASB) {
@@ -308,6 +311,9 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
       Op.reg = X86_REG_K1;
     }
   }
+
+// FIXME: Guard Capstone version here.
+#ifndef _MSC_VER
   if (inst.id == X86_INS_VCVTTPS2UQQ || inst.id == X86_INS_VCVTTPS2QQ) {
     if (Detail.op_count > 1) {
       cs_x86_op& Op = Detail.operands[1];
@@ -316,6 +322,7 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
       }
     }
   }
+#endif
 
   PrettyPrinterBase::fixupInstruction(inst);
 }

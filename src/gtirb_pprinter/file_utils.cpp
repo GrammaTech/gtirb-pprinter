@@ -92,6 +92,12 @@ std::optional<int> execute(const std::string& tool,
   if (toolPath.empty())
     return std::nullopt;
 
+  std::cerr << toolPath;
+  for (const auto& arg : args) {
+    std::cerr << " " << arg;
+  }
+  std::cerr << "\n";
+
   return bp::system(toolPath, args);
 }
 } // namespace gtirb_bprint
