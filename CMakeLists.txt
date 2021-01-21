@@ -181,6 +181,10 @@ if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
   add_compile_options(-WX)
 
   add_compile_options(
+    -wd4267) # Conversion warning.  Appears in gtirb's proto headers, but only
+             # when building with conan. Unfortunately, this is the only way to
+             # get it to go away it seems.
+  add_compile_options(
     -wd4251) # 'identifier' : class 'type' needs to have dll- interface to be
              # used by clients of class 'type2'
   add_compile_options(-wd4275) # Non-dll interface base classes.
