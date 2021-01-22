@@ -36,6 +36,7 @@ class Properties:
     name = "gtirb-pprinter"
     version = get_version()
     rel_url = "rewriting/gtirb-pprinter"
+    exports_sources = "*"
 
     @property
     def description(self):
@@ -75,7 +76,7 @@ class Properties:
 
 class GtirbPprinterConan(Properties, ConanFile):
     boost_version = "1.69.0"
-    gtirb_version = "1.10.0"
+    gtirb_version = "1.10.1"
     capstone_version = "4.0.1"
     requires = (
         "boost/%s@conan/stable" % (boost_version),
@@ -97,10 +98,6 @@ class GtirbPprinterConan(Properties, ConanFile):
                     "conan profile"
                 )
             )
-
-    def source(self):
-        project_dir = os.environ["CI_PROJECT_DIR"]
-        self.run("git clone %s %s" % (project_dir, self.name))
 
     def build(self):
         if self.settings.os == "Windows":
@@ -131,7 +128,7 @@ class GtirbPprinterConan(Properties, ConanFile):
                 }
             )
 
-        cmake.configure(source_folder=self.name, defs=defs)
+        cmake.configure(source_folder=".", defs=defs)
         cmake.build()
         # The tests need the built gtirb-pprinter on the path
         bin_dir = os.path.join(os.getcwd(), "bin")
