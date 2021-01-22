@@ -135,6 +135,13 @@ class GtirbPprinterConan(Properties, ConanFile):
         os.environ["PATH"] = os.pathsep.join([os.environ["PATH"], bin_dir])
         cmake.test(output_on_failure=True)
         cmake.install()
+        # The patch_config_paths() function will change absolute paths in the
+        # exported cmake config files to use the appropriate conan variables
+        # instead.
+        # It is an experimental feature of conan, however, so if you're having
+        # trouble with paths in the cmake of the conan package, it could that
+        # this function is no longer doing what we want.
+        cmake.patch_config_paths()
 
     def build_requirements(self):
         if self.settings.os == "Windows":
