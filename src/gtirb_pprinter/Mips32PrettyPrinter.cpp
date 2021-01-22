@@ -66,7 +66,7 @@ Mips32PrettyPrinter::Mips32PrettyPrinter(gtirb::Context& context_,
     GP = &a.front();
   } else {
     // If _gp is not found, leave GP as NULL.
-    std::cerr << "WARNING: Could not find GP\n";
+    // TODO: log
   }
 
   // Setup Capstone.
