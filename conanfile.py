@@ -132,7 +132,7 @@ class GtirbPprinterConan(Properties, ConanFile):
         cmake.build()
         # The tests need the built gtirb-pprinter on the path
         bin_dir = os.path.join(os.getcwd(), "bin")
-        os.environ["PATH"] = os.environ["PATH"] + ";%s" % bin_dir
+        os.environ["PATH"] = os.pathsep.join([os.environ["PATH"], bin_dir])
         cmake.test(output_on_failure=True)
         cmake.install()
 
