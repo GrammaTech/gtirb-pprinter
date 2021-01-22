@@ -40,9 +40,8 @@ protected:
 };
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API AttPrettyPrinterFactory
-    : public PrettyPrinterFactory {
+    : public ElfPrettyPrinterFactory {
 public:
-  const PrintingPolicy& defaultPrintingPolicy() const override;
   std::unique_ptr<PrettyPrinterBase>
   create(gtirb::Context& context, gtirb::Module& module,
          const PrintingPolicy& policy) override;

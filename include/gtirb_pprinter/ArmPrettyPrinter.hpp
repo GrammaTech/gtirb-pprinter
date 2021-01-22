@@ -61,9 +61,10 @@ protected:
   std::string getFunctionName(gtirb::Addr x) const override;
 };
 
-class ArmPrettyPrinterFactory : public PrettyPrinterFactory {
+class ArmPrettyPrinterFactory : public ElfPrettyPrinterFactory {
 public:
-  const PrintingPolicy& defaultPrintingPolicy() const override;
+  const PrintingPolicy&
+  defaultPrintingPolicy(gtirb::Module& Module) const override;
   std::unique_ptr<PrettyPrinterBase>
   create(gtirb::Context& context, gtirb::Module& module,
          const PrintingPolicy& policy) override;

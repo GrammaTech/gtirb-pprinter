@@ -73,18 +73,20 @@ namespace gtirb_pprint {
 
 struct ElfSymbolInfo {
   using AuxDataType =
-      std::tuple<uint64_t, std::string, std::string, std::string, uint64_t>;
+      std::tuple<uint64_t, std::string, std::string, std::string, uint64_t,
+                 std::vector<std::tuple<std::string, uint64_t>>>;
 
   uint64_t Size;
   std::string Type;
   std::string Binding;
   std::string Visibility;
   uint64_t SectionIndex;
+  std::vector<std::tuple<std::string, uint64_t>> TableIndexes;
 
   ElfSymbolInfo(const AuxDataType& tuple)
       : Size(std::get<0>(tuple)), Type(std::get<1>(tuple)),
         Binding(std::get<2>(tuple)), Visibility(std::get<3>(tuple)),
-        SectionIndex(std::get<4>(tuple)) {}
+        SectionIndex(std::get<4>(tuple)), TableIndexes(std::get<5>(tuple)) {}
 };
 
 ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
@@ -93,6 +95,28 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
                                    const PrintingPolicy& policy_)
     : PrettyPrinterBase(context_, module_, syntax_, policy_),
       elfSyntax(syntax_) {}
+
+const PrintingPolicy& ElfPrettyPrinter::defaultPrintingPolicy() {
+  static PrintingPolicy DefaultPolicy{
+      /// Functions to avoid printing.
+      {"_start", "deregister_tm_clones", "register_tm_clones",
+       "__do_global_dtors_aux", "frame_dummy", "__libc_csu_fini",
+       "__libc_csu_init", "_dl_relocate_static_pie"},
+
+      /// Symbols to avoid printing.
+      {"_IO_stdin_used", "__data_start", "__dso_handle", "__TMC_END__",
+       "_edata", "__bss_start", "program_invocation_name",
+       "program_invocation_short_name"},
+
+      /// Sections to avoid printing.
+      {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
+       ".plt.sec", ".eh_frame_hdr", ".eh_frame"},
+
+      /// Sections with possible data object exclusion.
+      {".init_array", ".fini_array"},
+  };
+  return DefaultPolicy;
+}
 
 void ElfPrettyPrinter::printSectionHeaderDirective(
     std::ostream& os, const gtirb::Section& section) {
@@ -159,15 +183,20 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
 
   ElfSymbolInfo SymbolInfo{SymTypeIt->second};
 
-  if (SymbolInfo.Binding == "LOCAL") {
-    return;
-  }
-
   auto ea = *sym.getAddress();
   auto name = getSymbolName(sym);
 
-  printBar(os, false);
-  printAlignment(os, ea);
+
+  if (SymbolInfo.Binding != "LOCAL"
+              || (SymbolInfo.Binding == "LOCAL" && SymbolInfo.Type == "FUNC"))
+  {
+      printBar(os, false);
+      printAlignment(os, ea);
+  }
+
+  if (SymbolInfo.Binding == "LOCAL") {
+    return;
+  }
 
   bool unique = false;
   if (SymbolInfo.Binding == "GLOBAL") {
@@ -224,10 +253,6 @@ void ElfPrettyPrinter::printSymExprSuffix(std::ostream& OS,
   else if (Attrs.isFlagSet(gtirb::SymAttribute::Part0)) {
     OS << "@TPOFF";
   }
-  // FIXME: Use appropriate TLS attribute when it is added to GTIRB.
-  else if (Attrs.isFlagSet(gtirb::SymAttribute::Part2)) {
-    OS << "@NTPOFF";
-  }
 }
 
 void ElfPrettyPrinter::printSymbolDefinition(std::ostream& os,
@@ -270,44 +295,6 @@ void ElfPrettyPrinter::printSymbolicDataType(
   } else {
     PrettyPrinterBase::printSymbolicDataType(os, SEE, Size, Type);
   }
-}
-
-bool ElfPrettyPrinterFactory::isStaticBinary(gtirb::Module& Module) const {
-  return Module.findSections(".dynamic") == Module.sections_by_name_end();
-}
-
-const PrintingPolicy&
-ElfPrettyPrinterFactory::defaultPrintingPolicy(gtirb::Module& Module) const {
-  static PrintingPolicy DefaultPolicy{
-      /// Functions to avoid printing.
-      {"_start", "deregister_tm_clones", "register_tm_clones",
-       "__do_global_dtors_aux", "frame_dummy", "__libc_csu_fini",
-       "__libc_csu_init", "_dl_relocate_static_pie", "call_weak_fn"},
-
-      /// Symbols to avoid printing.
-      {"_IO_stdin_used", "__data_start", "__dso_handle", "__TMC_END__",
-       "_edata", "__bss_start", "program_invocation_name",
-       "program_invocation_short_name", "_fp_hw"},
-
-      /// Sections to avoid printing.
-      {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
-       ".plt.sec", ".eh_frame_hdr", ".eh_frame", ".rela.dyn", ".rela.plt"},
-
-      /// Sections with possible data object exclusion.
-      {".init_array", ".fini_array"},
-  };
-
-  static PrintingPolicy DefaultStaticPolicy{
-      /// Functions to avoid printing.
-      {},
-      /// Symbols to avoid printing.
-      {},
-      /// Sections to avoid printing.
-      {".eh_frame", ".rela.plt"},
-      /// Sections with possible data object exclusion.
-      {},
-  };
-  return isStaticBinary(Module) ? DefaultStaticPolicy : DefaultPolicy;
 }
 
 } // namespace gtirb_pprint

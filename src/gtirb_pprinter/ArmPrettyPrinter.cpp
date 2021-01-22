@@ -251,26 +251,18 @@ std::string ArmPrettyPrinter::getFunctionName(gtirb::Addr x) const {
   return PrettyPrinterBase::getFunctionName(x);
 }
 
-const PrintingPolicy& ArmPrettyPrinterFactory::defaultPrintingPolicy() const {
-  static PrintingPolicy DefaultPolicy{
+const PrintingPolicy&
+ArmPrettyPrinterFactory::defaultPrintingPolicy(gtirb::Module& Module) const {
+  static PrintingPolicy DefaultPolicy(
+      ElfPrettyPrinterFactory::defaultPrintingPolicy(Module));
 
-      /// Functions to avoid printing.
-      {"_start", "call_weak_fn", "deregister_tm_clones", "register_tm_clones",
-       "__do_global_dtors_aux", "frame_dummy", "__libc_csu_fini",
-       "__libc_csu_init", "_dl_relocate_static_pie"},
-
-      /// Symbols to avoid printing.
-      {"_IO_stdin_used", "__data_start", "__dso_handle", "__TMC_END__",
-       "_edata", "__bss_start", "program_invocation_name",
-       "program_invocation_short_name"},
-
-      /// Sections to avoid printing.
-      {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
-       ".plt.sec", ".eh_frame_hdr", ".init_array", ".fini_array"},
-
-      /// Sections with possible data object exclusion.
-      {},
-  };
+  // We skip .init_array and .fini_array instead of
+  // having them in the arraySections.
+  if (!isStaticBinary(Module)) {
+    DefaultPolicy.arraySections.clear();
+    DefaultPolicy.skipSections.emplace(".init_array");
+    DefaultPolicy.skipSections.emplace(".fini_array");
+  }
   return DefaultPolicy;
 }
 

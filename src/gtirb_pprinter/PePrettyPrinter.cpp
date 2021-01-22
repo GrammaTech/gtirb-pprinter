@@ -23,7 +23,8 @@ PePrettyPrinter::PePrettyPrinter(gtirb::Context& context_,
                                  const PrintingPolicy& policy_)
     : PrettyPrinterBase(context_, module_, syntax_, policy_) {}
 
-const PrintingPolicy& PePrettyPrinter::defaultPrintingPolicy() {
+const PrintingPolicy&
+PePrettyPrinterFactory::defaultPrintingPolicy(gtirb::Module& /*Module*/) const {
   static PrintingPolicy DefaultPolicy{
       /// Functions to avoid printing.
       {},
