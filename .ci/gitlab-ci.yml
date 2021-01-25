@@ -62,8 +62,6 @@ conan-windows:
   script:
     - systeminfo
     - export PATH="C:\\Program Files\\Python38;$PATH"
-    # Install conan
-    - python -m pip install conan
     # Set up user and remote
     - conan remote add gitlab ${CI_API_V4_URL}/packages/conan
     - conan user ci_user -r gitlab -p ${CI_JOB_TOKEN}
