@@ -40,7 +40,6 @@ Vagrant.configure("2") do |config|
     choco install -y cmake
     choco install -y ninja
     choco install -y python3
-    choco install -y conan
     cd $HOME
     Invoke-WebRequest "https://download.visualstudio.microsoft.com/download/pr/57d28351-e762-4ee1-aca4-16b6d3faaa33/9fd19a14823506bdbd249be8f519e4a17af494df5cd92e3dc65e110a744d6ebb/vs_Community.exe" -OutFile vs_community.exe
     $startInfo = New-Object System.Diagnostics.ProcessStartInfo
@@ -52,6 +51,12 @@ Vagrant.configure("2") do |config|
     $process.StartInfo = $startInfo
     $process.Start()
     $process.WaitForExit()
+  SHELL
+
+  config.vm.provision :reload
+
+  config.vm.provision "setup-conan", type: "shell", inline: <<-SHELL
+    python -m pip install conan
   SHELL
 
   # The provisioner belows uses the installer from sourceforge, because it is
