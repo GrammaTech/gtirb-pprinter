@@ -115,7 +115,6 @@ std::string Arm64PrettyPrinter::printOperand(std::ostream& os,
     std::cerr << "invalid operand\n";
     exit(1);
   }
-  return "";
 }
 
 void Arm64PrettyPrinter::printSymExprPrefix(std::ostream& OS,

@@ -130,7 +130,6 @@ std::string ArmPrettyPrinter::printOperand(std::ostream& os,
     std::cerr << "invalid operand\n";
     exit(1);
   }
-  return "";
 }
 
 void ArmPrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
