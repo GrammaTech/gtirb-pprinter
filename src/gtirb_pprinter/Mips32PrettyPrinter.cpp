@@ -61,7 +61,7 @@ Mips32PrettyPrinter::Mips32PrettyPrinter(gtirb::Context& context_,
                                          const ElfSyntax& syntax_,
                                          const PrintingPolicy& policy_)
     : ElfPrettyPrinter(context_, module_, syntax_, policy_) {
-  auto a = module_.findSymbols("_gp");
+  auto a = module_.findSymbols("_gp_copy");
   if (!a.empty()) {
     GP = &a.front();
   } else {
