@@ -87,6 +87,9 @@ class GtirbPprinterConan(Properties, ConanFile):
     generators = "cmake"
     settings = ("os", "compiler", "build_type", "arch")
 
+    def imports(self):
+        self.copy("*.dll", "bin", "bin")
+
     def configure(self):
         if (
             self.settings.compiler == "gcc"
