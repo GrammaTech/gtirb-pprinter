@@ -51,9 +51,10 @@ void IntelPrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
   os << getRegisterName(op.reg);
 }
 
-void IntelPrettyPrinter::printOpImmediate(
-    std::ostream& os, const gtirb::SymbolicExpression* symbolic,
-    const cs_insn& inst, uint64_t index) {
+std::string
+IntelPrettyPrinter::printOpImmediate(std::ostream& os,
+                                     const gtirb::SymbolicExpression* symbolic,
+                                     const cs_insn& inst, uint64_t index) {
   const cs_x86_op& op = inst.detail->x86.operands[index];
   assert(op.type == X86_OP_IMM &&
          "printOpImmediate called without an immediate operand");
@@ -63,23 +64,26 @@ void IntelPrettyPrinter::printOpImmediate(
       !cs_insn_group(this->csHandle, &inst, CS_GRP_JUMP) &&
       !cs_insn_group(this->csHandle, &inst, CS_GRP_BRANCH_RELATIVE);
 
+  std::string ret("");
   if (const auto* SAA = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
-    printSymbolicExpression(os, SAA, false);
+    ret = printSymbolicExpression(os, SAA, false);
   } else if (const gtirb::SymAddrConst* s =
                  this->getSymbolicImmediate(symbolic)) {
     // The operand is symbolic.
     if (IsNotBranch)
       os << intelSyntax.offset() << ' ';
-    PrettyPrinterBase::printSymbolicExpression(os, s, IsNotBranch);
+    ret = PrettyPrinterBase::printSymbolicExpression(os, s, IsNotBranch);
   } else {
     // The operand is just a number.
     os << op.imm;
   }
+  return ret;
 }
 
-void IntelPrettyPrinter::printOpIndirect(
-    std::ostream& os, const gtirb::SymbolicExpression* symbolic,
-    const cs_insn& inst, uint64_t index) {
+std::string
+IntelPrettyPrinter::printOpIndirect(std::ostream& os,
+                                    const gtirb::SymbolicExpression* symbolic,
+                                    const cs_insn& inst, uint64_t index) {
   const cs_x86& detail = inst.detail->x86;
   const cs_x86_op& op = detail.operands[index];
   assert(op.type == X86_OP_MEM &&
@@ -107,26 +111,27 @@ void IntelPrettyPrinter::printOpIndirect(
     os << getRegisterName(op.mem.index) << '*' << std::to_string(op.mem.scale);
   }
 
+  std::string ret("");
   if (const auto* SAC = std::get_if<gtirb::SymAddrConst>(symbolic)) {
     os << '+';
-    PrettyPrinterBase::printSymbolicExpression(os, SAC, false);
+    ret = PrettyPrinterBase::printSymbolicExpression(os, SAC, false);
   } else if (const auto* SAA = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
-    printSymbolicExpression(os, SAA, false);
+    ret = printSymbolicExpression(os, SAA, false);
   } else {
     printAddend(os, op.mem.disp, first);
   }
   os << ']';
+  return ret;
 }
 
-void IntelPrettyPrinter::printSymbolicExpression(std::ostream& OS,
-                                                 const gtirb::SymAddrAddr* SE,
-                                                 bool IsNotBranch) {
+std::string IntelPrettyPrinter::printSymbolicExpression(
+    std::ostream& OS, const gtirb::SymAddrAddr* SE, bool IsNotBranch) {
 
   // We replace the symbol-minus-symbol with the special _GLOBAL_OFFSET_TABLE_
   // reference that will be resolved as an equivalent GOT-PC expression value.
   if (SE->Sym1->getName() == "_GLOBAL_OFFSET_TABLE_") {
     OS << intelSyntax.offset() << ' ' << SE->Sym1->getName();
-    return;
+    return "";
   }
 
   // We replace the GOT-Label, symbol-minus-symbol, with Label@GOTOFF or
@@ -134,17 +139,21 @@ void IntelPrettyPrinter::printSymbolicExpression(std::ostream& OS,
   // FIXME: Use appropriate flag for @GOTOFF when it is added to GTIRB.
   if (SE->Attributes.isFlagSet(gtirb::SymAttribute::Part1)) {
     OS << "+";
-    printSymbolReference(OS, SE->Sym1);
+    uint64_t symAddr = 0;
+    bool skipped = printSymbolReference(OS, SE->Sym1, symAddr);
     if (SE->Attributes.isFlagSet(gtirb::SymAttribute::GotRef)) {
       OS << "@GOT";
     } else {
       OS << "@GOTOFF";
     }
     printAddend(OS, SE->Offset, false);
-    return;
+    if (skipped && symAddr != 0)
+      return s_symaddr_0_warning(symAddr);
+    else
+      return "";
   }
 
-  PrettyPrinterBase::printSymbolicExpression(OS, SE, IsNotBranch);
+  return PrettyPrinterBase::printSymbolicExpression(OS, SE, IsNotBranch);
 }
 
 std::unique_ptr<PrettyPrinterBase>

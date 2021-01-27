@@ -290,9 +290,10 @@ void MasmPrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
   os << getRegisterName(op.reg);
 }
 
-void MasmPrettyPrinter::printOpImmediate(
-    std::ostream& os, const gtirb::SymbolicExpression* symbolic,
-    const cs_insn& inst, uint64_t index) {
+std::string
+MasmPrettyPrinter::printOpImmediate(std::ostream& os,
+                                    const gtirb::SymbolicExpression* symbolic,
+                                    const cs_insn& inst, uint64_t index) {
   const cs_x86_op& op = inst.detail->x86.operands[index];
   assert(op.type == X86_OP_IMM &&
          "printOpImmediate called without an immediate operand");
@@ -300,6 +301,7 @@ void MasmPrettyPrinter::printOpImmediate(
   bool is_call = cs_insn_group(this->csHandle, &inst, CS_GRP_CALL);
   bool is_jump = cs_insn_group(this->csHandle, &inst, CS_GRP_JUMP);
 
+  std::string ret("");
   if (const gtirb::SymAddrConst* s = this->getSymbolicImmediate(symbolic)) {
     // The operand is symbolic.
 
@@ -307,16 +309,18 @@ void MasmPrettyPrinter::printOpImmediate(
     if (!is_call && !is_jump && !shouldSkip(*s->Sym))
       os << masmSyntax.offset() << ' ';
 
-    printSymbolicExpression(os, s, !is_call && !is_jump);
+    ret = printSymbolicExpression(os, s, !is_call && !is_jump);
   } else {
     // The operand is just a number.
     os << op.imm;
   }
+  return ret;
 }
 
-void MasmPrettyPrinter::printOpIndirect(
-    std::ostream& os, const gtirb::SymbolicExpression* symbolic,
-    const cs_insn& inst, uint64_t index) {
+std::string
+MasmPrettyPrinter::printOpIndirect(std::ostream& os,
+                                   const gtirb::SymbolicExpression* symbolic,
+                                   const cs_insn& inst, uint64_t index) {
   const cs_x86& detail = inst.detail->x86;
   const cs_x86_op& op = detail.operands[index];
   assert(op.type == X86_OP_MEM &&
@@ -333,7 +337,7 @@ void MasmPrettyPrinter::printOpIndirect(
         os << *Size << " PTR ";
       }
       os << "__imp_" << *forwardedName;
-      return;
+      return "";
     }
   }
 
@@ -367,11 +371,12 @@ void MasmPrettyPrinter::printOpIndirect(
     os << getRegisterName(op.mem.index) << '*' << std::to_string(op.mem.scale);
   }
 
+  std::string ret("");
   if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
     if (!first)
       os << '+';
 
-    printSymbolicExpression(os, s, false);
+    ret = printSymbolicExpression(os, s, false);
   } else if (const auto* rel = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
     if (std::optional<gtirb::Addr> Addr = rel->Sym1->getAddress(); Addr) {
       if (const std::string& str = getSymbolName(*rel->Sym1); str.size() >= 2) {
@@ -384,23 +389,26 @@ void MasmPrettyPrinter::printOpIndirect(
     printAddend(os, op.mem.disp, first);
   }
   os << ']';
+  return ret;
 }
 
-void MasmPrettyPrinter::printSymbolicExpression(
+std::string MasmPrettyPrinter::printSymbolicExpression(
     std::ostream& os, const gtirb::SymAddrConst* sexpr, bool IsNotBranch) {
-  PrettyPrinterBase::printSymbolicExpression(os, sexpr, IsNotBranch);
+  return PrettyPrinterBase::printSymbolicExpression(os, sexpr, IsNotBranch);
 }
 
-void MasmPrettyPrinter::printSymbolicExpression(std::ostream& os,
-                                                const gtirb::SymAddrAddr* sexpr,
-                                                bool IsNotBranch) {
+std::string MasmPrettyPrinter::printSymbolicExpression(
+    std::ostream& os, const gtirb::SymAddrAddr* sexpr, bool IsNotBranch) {
   if (IsNotBranch && sexpr->Sym2 == ImageBase) {
     os << masmSyntax.imagerel() << ' ';
-    printSymbolReference(os, sexpr->Sym1);
-    return;
+    uint64_t symAddr = 0;
+    bool skipped = printSymbolReference(os, sexpr->Sym1, symAddr);
+    if (skipped && symAddr != 0) {
+      return s_symaddr_0_warning(symAddr);
+    }
   }
 
-  PrettyPrinterBase::printSymbolicExpression(os, sexpr, IsNotBranch);
+  return PrettyPrinterBase::printSymbolicExpression(os, sexpr, IsNotBranch);
 }
 
 void MasmPrettyPrinter::printByte(std::ostream& os, std::byte byte) {

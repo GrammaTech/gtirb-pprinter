@@ -115,12 +115,12 @@ protected:
 
   void printOpRegdirect(std::ostream& os, const cs_insn& inst,
                         uint64_t index) override;
-  void printOpImmediate(std::ostream& os,
-                        const gtirb::SymbolicExpression* symbolic,
-                        const cs_insn& inst, uint64_t index) override;
-  void printOpIndirect(std::ostream& os,
-                       const gtirb::SymbolicExpression* symbolic,
-                       const cs_insn& inst, uint64_t index) override;
+  std::string printOpImmediate(std::ostream& os,
+                               const gtirb::SymbolicExpression* symbolic,
+                               const cs_insn& inst, uint64_t index) override;
+  std::string printOpIndirect(std::ostream& os,
+                              const gtirb::SymbolicExpression* symbolic,
+                              const cs_insn& inst, uint64_t index) override;
 
   void fixupInstruction(cs_insn& inst) override;
 
@@ -135,12 +135,12 @@ protected:
   void printIntegralSymbol(std::ostream& os,
                            const gtirb::Symbol& symbol) override;
 
-  void printSymbolicExpression(std::ostream& os,
-                               const gtirb::SymAddrConst* sexpr,
-                               bool inData = false) override;
-  void printSymbolicExpression(std::ostream& os,
-                               const gtirb::SymAddrAddr* sexpr,
-                               bool inData = false) override;
+  std::string printSymbolicExpression(std::ostream& os,
+                                      const gtirb::SymAddrConst* sexpr,
+                                      bool inData = false) override;
+  std::string printSymbolicExpression(std::ostream& os,
+                                      const gtirb::SymAddrAddr* sexpr,
+                                      bool inData = false) override;
 
   void printByte(std::ostream& os, std::byte byte) override;
   void printZeroDataBlock(std::ostream& os, const gtirb::DataBlock& dataObject,

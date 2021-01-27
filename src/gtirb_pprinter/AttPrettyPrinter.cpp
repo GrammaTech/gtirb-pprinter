@@ -53,9 +53,10 @@ void AttPrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
   os << getRegisterName(op.reg);
 }
 
-void AttPrettyPrinter::printOpImmediate(
-    std::ostream& os, const gtirb::SymbolicExpression* symbolic,
-    const cs_insn& inst, uint64_t index) {
+std::string
+AttPrettyPrinter::printOpImmediate(std::ostream& os,
+                                   const gtirb::SymbolicExpression* symbolic,
+                                   const cs_insn& inst, uint64_t index) {
   const cs_x86_op& op = inst.detail->x86.operands[index];
   assert(op.type == X86_OP_IMM &&
          "printOpImmediate called without an immediate operand");
@@ -68,8 +69,10 @@ void AttPrettyPrinter::printOpImmediate(
   if (!referencesCode)
     os << '$';
 
+  std::string ret("");
+
   if (const gtirb::SymAddrConst* s = this->getSymbolicImmediate(symbolic)) {
-    this->printSymbolicExpression(os, s, !referencesCode);
+    ret = this->printSymbolicExpression(os, s, !referencesCode);
   } else {
     std::ios_base::fmtflags flags = os.flags();
     if (referencesCode)
@@ -77,11 +80,13 @@ void AttPrettyPrinter::printOpImmediate(
     os << op.imm;
     os.flags(flags);
   }
+  return ret;
 }
 
-void AttPrettyPrinter::printOpIndirect(
-    std::ostream& os, const gtirb::SymbolicExpression* symbolic,
-    const cs_insn& inst, uint64_t index) {
+std::string
+AttPrettyPrinter::printOpIndirect(std::ostream& os,
+                                  const gtirb::SymbolicExpression* symbolic,
+                                  const cs_insn& inst, uint64_t index) {
   const cs_x86& detail = inst.detail->x86;
   const cs_x86_op& op = detail.operands[index];
   assert(op.type == X86_OP_MEM &&
@@ -99,9 +104,11 @@ void AttPrettyPrinter::printOpIndirect(
     os << getRegisterName(op.mem.segment) << ':';
   }
 
+  std::string ret("");
+
   if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
     // Displacement is symbolic.
-    printSymbolicExpression(os, s, false);
+    ret = printSymbolicExpression(os, s, false);
   } else {
     // Displacement is numeric.
     if (!has_segment && !has_base && !has_index) {
@@ -128,6 +135,7 @@ void AttPrettyPrinter::printOpIndirect(
     }
     os << ')';
   }
+  return ret;
 }
 
 std::unique_ptr<PrettyPrinterBase>
