@@ -115,12 +115,7 @@ class GtirbPprinterConan(Properties, ConanFile):
         defs = {"CMAKE_VERBOSE_MAKEFILE:BOOL": "ON", "ENABLE_CONAN:BOOL": "ON"}
         if self.settings.os == "Windows":
             cmake = CMake(self, generator="Ninja")
-            defs.update(
-                {
-                    k: os.environ.get(k)
-                    for k in ["BOOST_ROOT", "CMAKE_PREFIX_PATH", "PYTHON"]
-                }
-            )
+            defs.update({k: os.environ.get(k) for k in ["CMAKE_PREFIX_PATH"]})
             defs["Boost_USE_STATIC_LIBS"] = "ON"
         else:
             cmake = CMake(self, generator=None)

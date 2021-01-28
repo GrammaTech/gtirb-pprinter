@@ -61,15 +61,13 @@ conan-windows:
   tags: [gtirb-pprinter-windows]
   script:
     - systeminfo
-    - export PATH="C:\\Program Files\\Python38;$PATH"
     # Set up user and remote
     - conan remote add gitlab ${CI_API_V4_URL}/packages/conan
     - conan user ci_user -r gitlab -p ${CI_JOB_TOKEN}
     # Run build script
     - export PYTHONPATH="$(cygpath -w $(pwd))"
     - export PATH="$PATH;C:\\Program Files\\CMake\\bin"
-    - export PYTHON="C:\\Python38\\python.exe"
-    - CI_PROJECT_DIR=$(cygpath -w $(pwd)) python .ci/build.py
+    - python .ci/build.py
 
 .build-template: &build
   stage: build
