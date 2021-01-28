@@ -62,7 +62,7 @@ class Properties:
     # branches archived in gitlab.
     @property
     def archived_channels(self):
-        archived_branches = ["master"]
+        archived_branches = ["master", "windows-support"]
         return list(map(branch_to_channel, archived_branches))
 
     @property
