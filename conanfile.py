@@ -159,5 +159,4 @@ class GtirbPprinterConan(Properties, ConanFile):
         self.copy("*.a", dst="lib", keep_path=False)
 
     def package_info(self):
-        self.env_info.path.append(os.path.join(os.getcwd(), "bin"))
         self.cpp_info.libs = [self.name]
