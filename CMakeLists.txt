@@ -40,6 +40,13 @@ include(CheckFunctionExists)
 include(CheckCXXSourceCompiles)
 include(CheckIncludeFile)
 
+option(ENABLE_CONAN "Use Conan to inject dependencies" OFF)
+if(ENABLE_CONAN)
+  set(CONAN_SYSTEM_INCLUDES ON)
+  include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+  conan_basic_setup()
+endif()
+
 # ---------------------------------------------------------------------------
 # Global settings
 # ---------------------------------------------------------------------------
@@ -174,6 +181,10 @@ if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
   add_compile_options(-WX)
 
   add_compile_options(
+    -wd4267) # Conversion warning.  Appears in gtirb's proto headers, but only
+             # when building with conan. Unfortunately, this is the only way to
+             # get it to go away it seems.
+  add_compile_options(
     -wd4251) # 'identifier' : class 'type' needs to have dll- interface to be
              # used by clients of class 'type2'
   add_compile_options(-wd4275) # Non-dll interface base classes.
@@ -277,6 +288,7 @@ add_compile_options(-DBOOST_SYSTEM_NO_DEPRECATED)
 # CMake's internal Boost support. The former uses "Boost::boost" and so on,
 # while the latter uses "Boost_BOOST" and so on. This normalizes the two cases
 # to use Boost_INCLUDE_DIRS and Boost_LIBRARIES.
+
 if(TARGET Boost::headers)
   get_target_property(Boost_INCLUDE_DIRS Boost::headers
                       INTERFACE_INCLUDE_DIRECTORIES)
@@ -285,7 +297,7 @@ if(TARGET Boost::headers)
   endforeach()
 endif()
 
-include_directories(${Boost_INCLUDE_DIRS})
+include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
 # ---------------------------------------------------------------------------
 # capstone
