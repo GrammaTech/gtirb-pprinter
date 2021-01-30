@@ -907,14 +907,18 @@ void PrettyPrinterBase::printSymbolicData(
 
   if (const auto* s =
           std::get_if<gtirb::SymAddrConst>(&SEE.getSymbolicExpression())) {
-    std::string comment_str = printSymbolicExpression(os, s, true);
-    if (!comment_str.empty())
-      os << syntax.comment() << comment_str;
+    printSymbolicExpression(os, s, true);
+    // CHECK: Some assemblers don't seem to allow comments
+    //std::string comment_str = printSymbolicExpression(os, s, true);
+    //if (!comment_str.empty())
+    //  os << " " << syntax.comment() << " " << comment_str;
   } else if (const auto* sa = std::get_if<gtirb::SymAddrAddr>(
                  &SEE.getSymbolicExpression())) {
-    std::string comment_str = printSymbolicExpression(os, sa, true);
-    if (!comment_str.empty())
-      os << syntax.comment() << comment_str;
+    printSymbolicExpression(os, sa, true);
+    // CHECK: Some assemblers don't seem to allow comments
+    //std::string comment_str = printSymbolicExpression(os, sa, true);
+    //if (!comment_str.empty())
+    //  os << " " << syntax.comment() << " " << comment_str;
   }
 
   os << "\n";
