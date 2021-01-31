@@ -37,7 +37,7 @@ const PrintingPolicy& Mips32PrettyPrinterFactory::defaultPrintingPolicy(
        "program_invocation_name", "program_invocation_short_name",
        // Include symbols in sections to avoid printing for sectionless binaries
        "__gmon_start__", "_ITM_deregisterTMCloneTable",
-       "_ITM_registerTMCloneTable"},
+       "_ITM_registerTMCloneTable", "_Jv_RegisterClasses"},
 
       /// Sections to avoid printing.
       {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
