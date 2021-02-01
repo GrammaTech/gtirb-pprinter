@@ -150,6 +150,7 @@ class GtirbPprinterConan(Properties, ConanFile):
         self.copy("*%s.lib" % (self.name), dst="lib", keep_path=False)
         self.copy("*.dll", dst="bin", keep_path=False)
         self.copy("*.so", dst="lib", keep_path=False)
+        self.copy("*.so.*", dst="lib", keep_path=False)
         self.copy("*.dylib", dst="lib", keep_path=False)
         self.copy("*.a", dst="lib", keep_path=False)
 
