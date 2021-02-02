@@ -403,9 +403,10 @@ std::string MasmPrettyPrinter::printSymbolicExpression(
     os << masmSyntax.imagerel() << ' ';
     uint64_t symAddr = 0;
     bool skipped = printSymbolReference(os, sexpr->Sym1, symAddr);
-    if (skipped && symAddr != 0) {
+    if (skipped && symAddr != 0)
       return s_symaddr_0_warning(symAddr);
-    }
+    else
+      return "";
   }
 
   return PrettyPrinterBase::printSymbolicExpression(os, sexpr, IsNotBranch);
