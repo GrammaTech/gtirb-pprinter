@@ -320,8 +320,9 @@ protected:
   // print a symbol in a symbolic expression
   // if the symbol is ambiguous print a symbol with the address instead.
   // if the symbol is forwarded (e.g. a plt reference) print the forwarded name
-  virtual void printSymbolReference(std::ostream& os,
-                                    const gtirb::Symbol* symbol) const;
+  // Return true if the symbol is skipped.
+  virtual bool printSymbolReference(std::ostream& os,
+                                    const gtirb::Symbol* symbol);
   virtual void printAddend(std::ostream& os, int64_t number,
                            bool first = false);
   virtual void printString(std::ostream& os, const gtirb::DataBlock& x,
@@ -404,6 +405,10 @@ private:
 
   template <typename BlockType>
   void printBlockImpl(std::ostream& os, BlockType& block);
+
+protected:
+  std::string m_accum_comment;
+  static std::string s_symaddr_0_warning(uint64_t symAddr);
 };
 
 /// !brief Register AuxData types used by the pretty printer.
