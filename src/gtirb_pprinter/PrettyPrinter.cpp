@@ -519,6 +519,8 @@ void PrettyPrinterBase::printInstruction(std::ostream& os,
 
   std::string opcode = ascii_str_tolower(inst.mnemonic);
   os << "  " << opcode << ' ';
+  // Make sure the initial m_accum_comment is empty.
+  m_accum_comment.clear();
   printOperandList(os, block, inst);
   if (!m_accum_comment.empty()) {
     os << " " << syntax.comment() << " " << m_accum_comment;
@@ -619,7 +621,6 @@ void PrettyPrinterBase::printOperand(std::ostream& os,
     std::cerr << "invalid operand\n";
     exit(1);
   }
-  return;
 }
 
 template <typename BlockType>

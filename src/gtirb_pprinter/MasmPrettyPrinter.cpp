@@ -400,7 +400,7 @@ void MasmPrettyPrinter::printSymbolicExpression(std::ostream& os,
     return;
   }
 
-  return PrettyPrinterBase::printSymbolicExpression(os, sexpr, IsNotBranch);
+  PrettyPrinterBase::printSymbolicExpression(os, sexpr, IsNotBranch);
 }
 
 void MasmPrettyPrinter::printByte(std::ostream& os, std::byte byte) {

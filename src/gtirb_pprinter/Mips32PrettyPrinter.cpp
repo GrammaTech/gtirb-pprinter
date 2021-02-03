@@ -192,6 +192,8 @@ void Mips32PrettyPrinter::printInstruction(std::ostream& os,
   printEA(os, ea);
 
   os << "  " << inst.mnemonic << ' ';
+  // Make sure the initial m_accum_comment is empty.
+  m_accum_comment.clear();
   printOperandList(os, block, inst);
   if (!m_accum_comment.empty()) {
     os << " " << syntax.comment() << " " << m_accum_comment;
