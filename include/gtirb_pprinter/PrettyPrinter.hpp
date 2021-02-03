@@ -293,9 +293,8 @@ protected:
                                 const gtirb::Offset& offset);
 
   virtual void printEA(std::ostream& os, gtirb::Addr ea);
-  virtual std::string printOperandList(std::ostream& os,
-                                       const gtirb::CodeBlock& block,
-                                       const cs_insn& inst);
+  virtual void printOperandList(std::ostream& os, const gtirb::CodeBlock& block,
+                                const cs_insn& inst);
   virtual void printComments(std::ostream& os, const gtirb::Offset& offset,
                              uint64_t range);
   virtual void printCFIDirectives(std::ostream& os, const gtirb::Offset& ea);
@@ -307,12 +306,12 @@ protected:
       std::ostream& os,
       const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE,
       uint64_t Size, std::optional<std::string> Type);
-  virtual std::string printSymbolicExpression(std::ostream& os,
-                                              const gtirb::SymAddrConst* sexpr,
-                                              bool IsNotBranch = false);
-  virtual std::string printSymbolicExpression(std::ostream& os,
-                                              const gtirb::SymAddrAddr* sexpr,
-                                              bool IsNotBranch = false);
+  virtual void printSymbolicExpression(std::ostream& os,
+                                       const gtirb::SymAddrConst* sexpr,
+                                       bool IsNotBranch = false);
+  virtual void printSymbolicExpression(std::ostream& os,
+                                       const gtirb::SymAddrAddr* sexpr,
+                                       bool IsNotBranch = false);
   virtual void printSymExprPrefix(std::ostream& OS,
                                   const gtirb::SymAttributeSet& Attrs,
                                   bool IsNotBranch = false);
@@ -325,24 +324,22 @@ protected:
   // if the symbol is forwarded (e.g. a plt reference) print the forwarded name
   // Return true if the symbol is skipped.
   virtual bool printSymbolReference(std::ostream& os,
-                                    const gtirb::Symbol* symbol,
-                                    uint64_t& symAddr) const;
+                                    const gtirb::Symbol* symbol);
   virtual void printAddend(std::ostream& os, int64_t number,
                            bool first = false);
   virtual void printString(std::ostream& os, const gtirb::DataBlock& x,
                            uint64_t offset);
 
-  virtual std::string printOperand(std::ostream& os,
-                                   const gtirb::CodeBlock& block,
-                                   const cs_insn& inst, uint64_t index);
+  virtual void printOperand(std::ostream& os, const gtirb::CodeBlock& block,
+                            const cs_insn& inst, uint64_t index);
   virtual void printOpRegdirect(std::ostream& os, const cs_insn& inst,
                                 uint64_t index) = 0;
-  virtual std::string
-  printOpImmediate(std::ostream& os, const gtirb::SymbolicExpression* symbolic,
-                   const cs_insn& inst, uint64_t index) = 0;
-  virtual std::string printOpIndirect(std::ostream& os,
-                                      const gtirb::SymbolicExpression* symbolic,
-                                      const cs_insn& inst, uint64_t index) = 0;
+  virtual void printOpImmediate(std::ostream& os,
+                                const gtirb::SymbolicExpression* symbolic,
+                                const cs_insn& inst, uint64_t index) = 0;
+  virtual void printOpIndirect(std::ostream& os,
+                               const gtirb::SymbolicExpression* symbolic,
+                               const cs_insn& inst, uint64_t index) = 0;
 
   virtual void printSymbolDefinition(std::ostream& os,
                                      const gtirb::Symbol& symbol);
@@ -412,6 +409,7 @@ private:
   void printBlockImpl(std::ostream& os, BlockType& block);
 
 protected:
+  std::string m_accum_comment;
   static std::string s_symaddr_0_warning(uint64_t symAddr);
 };
 

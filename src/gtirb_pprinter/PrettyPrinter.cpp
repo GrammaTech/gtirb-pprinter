@@ -362,8 +362,7 @@ void PrettyPrinterBase::printBar(std::ostream& os, bool heavy) {
 }
 
 bool PrettyPrinterBase::printSymbolReference(std::ostream& os,
-                                             const gtirb::Symbol* symbol,
-                                             uint64_t& symAddr) const {
+                                             const gtirb::Symbol* symbol) {
   if (!symbol)
     return false;
 
@@ -380,7 +379,8 @@ bool PrettyPrinterBase::printSymbolReference(std::ostream& os,
         // can cause the assembler to fail if the address is too big for the
         // instruction. To avoid the problem, we print 0 here.
         os << "0";
-        symAddr = static_cast<uint64_t>(*symbol->getAddress());
+        uint64_t symAddr = static_cast<uint64_t>(*symbol->getAddress());
+        m_accum_comment += s_symaddr_0_warning(symAddr);
         return true;
       } else {
         os << forwardedName.value();
@@ -394,7 +394,8 @@ bool PrettyPrinterBase::printSymbolReference(std::ostream& os,
     } else {
       // NOTE: See the comment above.
       os << "0";
-      symAddr = static_cast<uint64_t>(*symbol->getAddress());
+      uint64_t symAddr = static_cast<uint64_t>(*symbol->getAddress());
+      m_accum_comment += s_symaddr_0_warning(symAddr);
     }
     return true;
   }
@@ -518,9 +519,11 @@ void PrettyPrinterBase::printInstruction(std::ostream& os,
 
   std::string opcode = ascii_str_tolower(inst.mnemonic);
   os << "  " << opcode << ' ';
-  std::string comment_str = printOperandList(os, block, inst);
-  if (!comment_str.empty())
-    os << " " << syntax.comment() << " " << comment_str;
+  printOperandList(os, block, inst);
+  if (!m_accum_comment.empty()) {
+    os << " " << syntax.comment() << " " << m_accum_comment;
+    m_accum_comment.clear();
+  }
   os << '\n';
 }
 
@@ -531,9 +534,9 @@ void PrettyPrinterBase::printEA(std::ostream& os, gtirb::Addr ea) {
   }
 }
 
-std::string PrettyPrinterBase::printOperandList(std::ostream& os,
-                                                const gtirb::CodeBlock& block,
-                                                const cs_insn& inst) {
+void PrettyPrinterBase::printOperandList(std::ostream& os,
+                                         const gtirb::CodeBlock& block,
+                                         const cs_insn& inst) {
   const cs_x86& detail = inst.detail->x86;
 
   // some instructions don't put commas between thier operands, but instead
@@ -561,7 +564,6 @@ std::string PrettyPrinterBase::printOperandList(std::ostream& os,
   bool IsBracketedAVX512Instruction =
       UnbracketedAVX512Instructions.count(static_cast<x86_insn>(inst.id)) == 0;
 
-  std::string ret("");
   for (int i = 0; i < detail.op_count; i++) {
     const cs_x86_op& Op = detail.operands[i];
 
@@ -569,7 +571,7 @@ std::string PrettyPrinterBase::printOperandList(std::ostream& os,
         (Op.reg >= X86_REG_K0 && Op.reg <= X86_REG_K7)) {
       // print AVX512 mask operand
       os << '{';
-      ret += printOperand(os, block, inst, i);
+      printOperand(os, block, inst, i);
       os << '}';
       if (Op.avx_zero_opmask) {
         os << "{z}";
@@ -579,17 +581,14 @@ std::string PrettyPrinterBase::printOperandList(std::ostream& os,
       if (i != 0) {
         os << ',';
       }
-      ret += printOperand(os, block, inst, i);
+      printOperand(os, block, inst, i);
     }
   }
-  return ret;
 }
 
-std::string PrettyPrinterBase::printOperand(std::ostream& os,
-                                            const gtirb::CodeBlock& block,
-                                            const cs_insn& inst,
-                                            uint64_t index) {
-  std::string ret("");
+void PrettyPrinterBase::printOperand(std::ostream& os,
+                                     const gtirb::CodeBlock& block,
+                                     const cs_insn& inst, uint64_t index) {
   gtirb::Addr ea(inst.address);
   const cs_x86_op& op = inst.detail->x86.operands[index];
 
@@ -600,12 +599,12 @@ std::string PrettyPrinterBase::printOperand(std::ostream& os,
   switch (op.type) {
   case X86_OP_REG:
     printOpRegdirect(os, inst, index);
-    return ret;
+    return;
   case X86_OP_IMM:
     symbolic = block.getByteInterval()->getSymbolicExpression(
         ea + immOffset - *block.getByteInterval()->getAddress());
-    ret = printOpImmediate(os, symbolic, inst, index);
-    return ret;
+    printOpImmediate(os, symbolic, inst, index);
+    return;
   case X86_OP_MEM:
     // FIXME: Capstone frequently populates instruction details incorrectly with
     // a displacement offset of 0. We use the same incorrect offset in ddisasm
@@ -614,13 +613,13 @@ std::string PrettyPrinterBase::printOperand(std::ostream& os,
     // We should fix Capstone and check `dispOffset > 0` here.
     symbolic = block.getByteInterval()->getSymbolicExpression(
         ea + dispOffset - *block.getByteInterval()->getAddress());
-    ret = printOpIndirect(os, symbolic, inst, index);
-    return ret;
+    printOpIndirect(os, symbolic, inst, index);
+    return;
   case X86_OP_INVALID:
     std::cerr << "invalid operand\n";
     exit(1);
   }
-  return ret;
+  return;
 }
 
 template <typename BlockType>
@@ -862,8 +861,7 @@ void PrettyPrinterBase::printCFIDirectives(std::ostream& os,
     if (symbol) {
       if (operands.size() > 0)
         os << ", ";
-      uint64_t symAddrDummy = 0;
-      printSymbolReference(os, symbol, symAddrDummy);
+      printSymbolReference(os, symbol);
     }
 
     os << std::endl;
@@ -909,16 +907,18 @@ void PrettyPrinterBase::printSymbolicData(
           std::get_if<gtirb::SymAddrConst>(&SEE.getSymbolicExpression())) {
     printSymbolicExpression(os, s, true);
     // CHECK: Some assemblers don't seem to allow comments
-    // std::string comment_str = printSymbolicExpression(os, s, true);
-    // if (!comment_str.empty())
-    //  os << " " << syntax.comment() << " " << comment_str;
+    // if (!m_accum_comment.empty()) {
+    //  os << " " << syntax.comment() << " " << m_accum_comment;
+    //  m_accum_comment.clear();
+    // }
   } else if (const auto* sa = std::get_if<gtirb::SymAddrAddr>(
                  &SEE.getSymbolicExpression())) {
     printSymbolicExpression(os, sa, true);
     // CHECK: Some assemblers don't seem to allow comments
-    // std::string comment_str = printSymbolicExpression(os, sa, true);
-    // if (!comment_str.empty())
-    //  os << " " << syntax.comment() << " " << comment_str;
+    // if (!m_accum_comment.empty()) {
+    //  os << " " << syntax.comment() << " " << m_accum_comment;
+    //  m_accum_comment.clear();
+    // }
   }
 
   os << "\n";
@@ -938,11 +938,10 @@ std::string PrettyPrinterBase::s_symaddr_0_warning(uint64_t symAddr) {
   return ss.str();
 }
 
-std::string PrettyPrinterBase::printSymbolicExpression(
+void PrettyPrinterBase::printSymbolicExpression(
     std::ostream& os, const gtirb::SymAddrConst* sexpr, bool IsNotBranch) {
   std::stringstream ss;
-  uint64_t symAddr = 0;
-  bool skipped = printSymbolReference(ss, sexpr->Sym, symAddr);
+  bool skipped = printSymbolReference(ss, sexpr->Sym);
 
   if (skipped) {
     os << ss.str();
@@ -954,42 +953,26 @@ std::string PrettyPrinterBase::printSymbolicExpression(
 
     printSymExprSuffix(os, sexpr->Attributes, IsNotBranch);
   }
-
-  std::string ret("");
-  if (skipped && symAddr != 0) {
-    ret = s_symaddr_0_warning(symAddr);
-  }
-  return ret;
 }
 
-std::string PrettyPrinterBase::printSymbolicExpression(
-    std::ostream& os, const gtirb::SymAddrAddr* sexpr, bool IsNotBranch) {
+void PrettyPrinterBase::printSymbolicExpression(std::ostream& os,
+                                                const gtirb::SymAddrAddr* sexpr,
+                                                bool IsNotBranch) {
   printSymExprPrefix(os, sexpr->Attributes, IsNotBranch);
 
   if (sexpr->Scale > 1) {
     os << "(";
   }
 
-  uint64_t symAddr1 = 0;
-  bool skipped1 = printSymbolReference(os, sexpr->Sym1, symAddr1);
+  printSymbolReference(os, sexpr->Sym1);
   os << '-';
-  uint64_t symAddr2 = 0;
-  bool skipped2 = printSymbolReference(os, sexpr->Sym2, symAddr2);
+  printSymbolReference(os, sexpr->Sym2);
 
   if (sexpr->Scale > 1) {
     os << ")/" << sexpr->Scale;
   }
 
   printSymExprSuffix(os, sexpr->Attributes, IsNotBranch);
-
-  std::string ret("");
-  if (skipped1 && symAddr1 != 0) {
-    ret += s_symaddr_0_warning(symAddr1);
-  }
-  if (skipped2 && symAddr2 != 0) {
-    ret += s_symaddr_0_warning(symAddr2);
-  }
-  return ret;
 }
 
 void PrettyPrinterBase::printString(std::ostream& os, const gtirb::DataBlock& x,

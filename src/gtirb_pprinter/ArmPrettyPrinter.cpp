@@ -64,16 +64,17 @@ void ArmPrettyPrinter::printInstruction(std::ostream& os,
     opcode = opcode.substr(0, index);
 
   os << "  " << opcode << ' ';
-  std::string comment_str = printOperandList(os, block, inst);
-  if (!comment_str.empty()) {
-    os << " " << syntax.comment() << " " << comment_str;
+  printOperandList(os, block, inst);
+  if (!m_accum_comment.empty()) {
+    os << " " << syntax.comment() << " " << m_accum_comment;
+    m_accum_comment.clear();
   }
   os << '\n';
 }
 
-std::string ArmPrettyPrinter::printOperandList(std::ostream& os,
-                                               const gtirb::CodeBlock& block,
-                                               const cs_insn& inst) {
+void ArmPrettyPrinter::printOperandList(std::ostream& os,
+                                        const gtirb::CodeBlock& block,
+                                        const cs_insn& inst) {
   cs_arm& detail = inst.detail->arm;
   int opCount = detail.op_count;
   std::set<arm_insn> LdmSdm = {ARM_INS_LDM,   ARM_INS_LDMDA, ARM_INS_LDMDB,
@@ -87,24 +88,21 @@ std::string ArmPrettyPrinter::printOperandList(std::ostream& os,
   if (PushPop.find(static_cast<arm_insn>(inst.id)) != PushPop.end())
     RegBitVectorIndex = 0;
 
-  std::string ret("");
   for (int i = 0; i < opCount; i++) {
     if (i == RegBitVectorIndex)
       os << "{ ";
     if (i != 0) {
       os << ", ";
     }
-    ret += printOperand(os, block, inst, i);
+    printOperand(os, block, inst, i);
   }
   if (RegBitVectorIndex != -1)
     os << " }";
-  return ret;
 }
 
-std::string ArmPrettyPrinter::printOperand(std::ostream& os,
-                                           const gtirb::CodeBlock& block,
-                                           const cs_insn& inst,
-                                           uint64_t index) {
+void ArmPrettyPrinter::printOperand(std::ostream& os,
+                                    const gtirb::CodeBlock& block,
+                                    const cs_insn& inst, uint64_t index) {
   gtirb::Addr ea(inst.address);
   const cs_arm_op& op = inst.detail->arm.operands[index];
 
@@ -113,18 +111,20 @@ std::string ArmPrettyPrinter::printOperand(std::ostream& os,
   case ARM_OP_REG:
   case ARM_OP_SYSREG:
     printOpRegdirect(os, inst, index);
-    return "";
+    return;
   case ARM_OP_IMM:
   case ARM_OP_PIMM:
   case ARM_OP_CIMM: {
     symbolic = block.getByteInterval()->getSymbolicExpression(
         ea - *block.getByteInterval()->getAddress());
-    return printOpImmediate(os, symbolic, inst, index);
+    printOpImmediate(os, symbolic, inst, index);
+    return;
   }
   case ARM_OP_MEM: {
     symbolic = block.getByteInterval()->getSymbolicExpression(
         ea - *block.getByteInterval()->getAddress());
-    return printOpIndirect(os, symbolic, inst, index);
+    printOpIndirect(os, symbolic, inst, index);
+    return;
   }
   default:
     std::cerr << "invalid operand\n";
@@ -145,48 +145,42 @@ std::string ArmPrettyPrinter::getRegisterName(unsigned int reg) const {
   return reg == ARM_REG_INVALID ? "" : cs_reg_name(this->csHandle, reg);
 }
 
-std::string
-ArmPrettyPrinter::printOpImmediate(std::ostream& os,
-                                   const gtirb::SymbolicExpression* symbolic,
-                                   const cs_insn& inst, uint64_t index) {
+void ArmPrettyPrinter::printOpImmediate(
+    std::ostream& os, const gtirb::SymbolicExpression* symbolic,
+    const cs_insn& inst, uint64_t index) {
   const cs_arm_op& op = inst.detail->arm.operands[index];
-  std::string ret("");
   if (const gtirb::SymAddrConst* s = this->getSymbolicImmediate(symbolic)) {
     // The operand is symbolic.
     if (inst.id == ARM_INS_MOV)
       os << "#:lower16:";
     if (inst.id == ARM_INS_MOVT)
       os << "#:upper16:";
-    ret = this->printSymbolicExpression(os, s, true);
+    this->printSymbolicExpression(os, s, true);
   } else {
     if (op.type == ARM_OP_IMM)
       os << '#';
     // The operand is just a number.
     os << op.imm;
   }
-  return ret;
 }
 
-std::string
-ArmPrettyPrinter::printOpIndirect(std::ostream& os,
-                                  const gtirb::SymbolicExpression* symbolic,
-                                  const cs_insn& inst, uint64_t index) {
+void ArmPrettyPrinter::printOpIndirect(
+    std::ostream& os, const gtirb::SymbolicExpression* symbolic,
+    const cs_insn& inst, uint64_t index) {
   const cs_arm& detail = inst.detail->arm;
   const cs_arm_op& op = detail.operands[index];
   assert(op.type == ARM_OP_MEM &&
          "printOpIndirect called without a memory operand");
 
-  std::string ret("");
-
   // PC-relative operand
   if (op.mem.base == ARM_REG_PC) {
     if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
-      ret = printSymbolicExpression(os, s, false);
+      printSymbolicExpression(os, s, false);
     } else {
       if (op.mem.disp != 0)
         os << "#" << op.mem.disp;
     }
-    return ret;
+    return;
   }
 
   bool first = true;
@@ -238,13 +232,12 @@ ArmPrettyPrinter::printOpIndirect(std::ostream& os,
 
   if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
     os << ", #";
-    ret = printSymbolicExpression(os, s, false);
+    printSymbolicExpression(os, s, false);
   } else {
     if (op.mem.disp != 0)
       os << ", #" << op.mem.disp;
   }
   os << ']';
-  return ret;
 }
 
 std::string ArmPrettyPrinter::getFunctionName(gtirb::Addr x) const {

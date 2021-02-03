@@ -31,12 +31,12 @@ protected:
   void printHeader(std::ostream& os) override;
   void printOpRegdirect(std::ostream& os, const cs_insn& inst,
                         uint64_t index) override;
-  std::string printOpImmediate(std::ostream& os,
-                               const gtirb::SymbolicExpression* symbolic,
-                               const cs_insn& inst, uint64_t index) override;
-  std::string printOpIndirect(std::ostream& os,
-                              const gtirb::SymbolicExpression* symbolic,
-                              const cs_insn& inst, uint64_t index) override;
+  void printOpImmediate(std::ostream& os,
+                        const gtirb::SymbolicExpression* symbolic,
+                        const cs_insn& inst, uint64_t index) override;
+  void printOpIndirect(std::ostream& os,
+                       const gtirb::SymbolicExpression* symbolic,
+                       const cs_insn& inst, uint64_t index) override;
 };
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API AttPrettyPrinterFactory

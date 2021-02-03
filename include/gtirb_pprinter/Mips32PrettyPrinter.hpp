@@ -31,32 +31,32 @@ protected:
   void printAlignment(std::ostream& os, const gtirb::Addr addr) override;
   void printOpRegdirect(std::ostream& os, const cs_insn& inst,
                         uint64_t index) override;
-  std::string printOpImmediate(std::ostream& os,
-                               const gtirb::SymbolicExpression* symbolic,
-                               const cs_insn& inst, uint64_t index) override;
-  std::string printOpIndirect(std::ostream& os,
-                              const gtirb::SymbolicExpression* symbolic,
-                              const cs_insn& inst, uint64_t index) override;
+  void printOpImmediate(std::ostream& os,
+                        const gtirb::SymbolicExpression* symbolic,
+                        const cs_insn& inst, uint64_t index) override;
+  void printOpIndirect(std::ostream& os,
+                       const gtirb::SymbolicExpression* symbolic,
+                       const cs_insn& inst, uint64_t index) override;
 
   std::string getRegisterName(unsigned int reg) const override;
-  std::string printOperand(std::ostream& os, const gtirb::CodeBlock& block,
-                           const cs_insn& inst, uint64_t index) override;
+  void printOperand(std::ostream& os, const gtirb::CodeBlock& block,
+                    const cs_insn& inst, uint64_t index) override;
   void printInstruction(std::ostream& os, const gtirb::CodeBlock& block,
                         const cs_insn& inst,
                         const gtirb::Offset& offset) override;
-  std::string printOperandList(std::ostream& os, const gtirb::CodeBlock& block,
-                               const cs_insn& inst) override;
+  void printOperandList(std::ostream& os, const gtirb::CodeBlock& block,
+                        const cs_insn& inst) override;
   void printSymExprPrefix(std::ostream& OS, const gtirb::SymAttributeSet& Attrs,
                           bool IsNotBranch = false) override;
   void printSymExprSuffix(std::ostream& OS, const gtirb::SymAttributeSet& Attrs,
                           bool IsNotBranch = false) override;
   void printIntegralSymbol(std::ostream& os, const gtirb::Symbol& sym) override;
-  std::string printSymbolicExpression(std::ostream& os,
-                                      const gtirb::SymAddrConst* sexpr,
-                                      bool IsNotBranch = false) override;
-  std::string printSymbolicExpression(std::ostream& os,
-                                      const gtirb::SymAddrAddr* sexpr,
-                                      bool IsNotBranch = false) override;
+  void printSymbolicExpression(std::ostream& os,
+                               const gtirb::SymAddrConst* sexpr,
+                               bool IsNotBranch = false) override;
+  void printSymbolicExpression(std::ostream& os,
+                               const gtirb::SymAddrAddr* sexpr,
+                               bool IsNotBranch = false) override;
 
 private:
   const gtirb::Symbol* GP;

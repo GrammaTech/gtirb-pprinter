@@ -115,16 +115,14 @@ void Mips32PrettyPrinter::printOpRegdirect(std::ostream& os,
   os << getRegisterName(op.reg);
 }
 
-std::string
-Mips32PrettyPrinter::printOpImmediate(std::ostream& os,
-                                      const gtirb::SymbolicExpression* symbolic,
-                                      const cs_insn& inst, uint64_t index) {
-  std::string ret("");
+void Mips32PrettyPrinter::printOpImmediate(
+    std::ostream& os, const gtirb::SymbolicExpression* symbolic,
+    const cs_insn& inst, uint64_t index) {
   if (symbolic) {
     if (auto* SAC = std::get_if<gtirb::SymAddrConst>(symbolic)) {
-      ret = printSymbolicExpression(os, SAC);
+      printSymbolicExpression(os, SAC);
     } else if (auto* SAA = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
-      ret = printSymbolicExpression(os, SAA);
+      printSymbolicExpression(os, SAA);
     } else {
       assert(!"Unknown sym expr type in printOpImmediate!");
     }
@@ -132,21 +130,18 @@ Mips32PrettyPrinter::printOpImmediate(std::ostream& os,
     const cs_mips_op& op = inst.detail->mips.operands[index];
     os << op.imm;
   }
-  return ret;
 }
 
-std::string
-Mips32PrettyPrinter::printOpIndirect(std::ostream& os,
-                                     const gtirb::SymbolicExpression* symbolic,
-                                     const cs_insn& inst, uint64_t index) {
+void Mips32PrettyPrinter::printOpIndirect(
+    std::ostream& os, const gtirb::SymbolicExpression* symbolic,
+    const cs_insn& inst, uint64_t index) {
   const cs_mips_op& op = inst.detail->mips.operands[index];
 
-  std::string ret("");
   if (symbolic) {
     if (auto* SAC = std::get_if<gtirb::SymAddrConst>(symbolic)) {
-      ret = printSymbolicExpression(os, SAC);
+      printSymbolicExpression(os, SAC);
     } else if (auto* SAA = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
-      ret = printSymbolicExpression(os, SAA);
+      printSymbolicExpression(os, SAA);
     } else {
       assert(!"Unknown sym expr type in printOpImmediate!");
     }
@@ -155,7 +150,6 @@ Mips32PrettyPrinter::printOpIndirect(std::ostream& os,
   }
 
   os << '(' << getRegisterName(op.mem.base) << ')';
-  return ret;
 }
 
 std::string Mips32PrettyPrinter::getRegisterName(unsigned int reg) const {
@@ -163,10 +157,9 @@ std::string Mips32PrettyPrinter::getRegisterName(unsigned int reg) const {
   return std::string{"$"} + cs_reg_name(this->csHandle, reg);
 }
 
-std::string Mips32PrettyPrinter::printOperand(std::ostream& os,
-                                              const gtirb::CodeBlock& block,
-                                              const cs_insn& inst,
-                                              uint64_t index) {
+void Mips32PrettyPrinter::printOperand(std::ostream& os,
+                                       const gtirb::CodeBlock& block,
+                                       const cs_insn& inst, uint64_t index) {
   const cs_mips_op& op = inst.detail->mips.operands[index];
   const gtirb::SymbolicExpression* SymExpr = nullptr;
 
@@ -174,18 +167,19 @@ std::string Mips32PrettyPrinter::printOperand(std::ostream& os,
   case MIPS_OP_IMM:
     SymExpr = block.getByteInterval()->getSymbolicExpression(
         gtirb::Addr{inst.address} - *block.getByteInterval()->getAddress());
-    return printOpImmediate(os, SymExpr, inst, index);
+    printOpImmediate(os, SymExpr, inst, index);
+    return;
   case MIPS_OP_REG:
     printOpRegdirect(os, inst, index);
-    return "";
+    return;
   case MIPS_OP_MEM:
     SymExpr = block.getByteInterval()->getSymbolicExpression(
         gtirb::Addr{inst.address} - *block.getByteInterval()->getAddress());
-    return printOpIndirect(os, SymExpr, inst, index);
+    printOpIndirect(os, SymExpr, inst, index);
+    return;
   default:
     assert(!"unknown mips op type!");
   }
-  return "";
 }
 
 void Mips32PrettyPrinter::printInstruction(std::ostream& os,
@@ -198,26 +192,25 @@ void Mips32PrettyPrinter::printInstruction(std::ostream& os,
   printEA(os, ea);
 
   os << "  " << inst.mnemonic << ' ';
-  std::string comment_str = printOperandList(os, block, inst);
-  if (!comment_str.empty()) {
-    os << " " << syntax.comment() << " " << comment_str;
+  printOperandList(os, block, inst);
+  if (!m_accum_comment.empty()) {
+    os << " " << syntax.comment() << " " << m_accum_comment;
+    m_accum_comment.clear();
   }
   os << '\n';
 }
 
-std::string Mips32PrettyPrinter::printOperandList(std::ostream& os,
-                                                  const gtirb::CodeBlock& block,
-                                                  const cs_insn& inst) {
+void Mips32PrettyPrinter::printOperandList(std::ostream& os,
+                                           const gtirb::CodeBlock& block,
+                                           const cs_insn& inst) {
   const cs_mips& detail = inst.detail->mips;
 
-  std::string ret("");
   for (int i = 0; i < detail.op_count; i++) {
     if (i != 0) {
       os << ',';
     }
-    ret += printOperand(os, block, inst, i);
+    printOperand(os, block, inst, i);
   }
-  return ret;
 }
 
 void Mips32PrettyPrinter::printSymExprPrefix(
@@ -265,21 +258,21 @@ void Mips32PrettyPrinter::printIntegralSymbol(std::ostream& os,
   ElfPrettyPrinter::printIntegralSymbol(os, sym);
 }
 
-std::string Mips32PrettyPrinter::printSymbolicExpression(
+void Mips32PrettyPrinter::printSymbolicExpression(
     std::ostream& os, const gtirb::SymAddrAddr* sexpr, bool IsNotBranch) {
   if (sexpr->Sym1 == GP) {
     printSymExprPrefix(os, sexpr->Attributes, IsNotBranch);
     os << "_gp_disp";
     printSymExprSuffix(os, sexpr->Attributes, IsNotBranch);
-    return "";
+    return;
   }
 
-  return ElfPrettyPrinter::printSymbolicExpression(os, sexpr, IsNotBranch);
+  ElfPrettyPrinter::printSymbolicExpression(os, sexpr, IsNotBranch);
 }
 
-std::string Mips32PrettyPrinter::printSymbolicExpression(
+void Mips32PrettyPrinter::printSymbolicExpression(
     std::ostream& os, const gtirb::SymAddrConst* sexpr, bool IsNotBranch) {
-  return ElfPrettyPrinter::printSymbolicExpression(os, sexpr, IsNotBranch);
+  ElfPrettyPrinter::printSymbolicExpression(os, sexpr, IsNotBranch);
 }
 
 } // namespace gtirb_pprint

@@ -31,18 +31,18 @@ protected:
   std::string getRegisterName(unsigned int reg) const override;
 
   void printHeader(std::ostream& os) override;
-  std::string printOperandList(std::ostream& os, const gtirb::CodeBlock& block,
-                               const cs_insn& inst) override;
-  std::string printOperand(std::ostream& os, const gtirb::CodeBlock& block,
-                           const cs_insn& inst, uint64_t index) override;
+  void printOperandList(std::ostream& os, const gtirb::CodeBlock& block,
+                        const cs_insn& inst) override;
+  void printOperand(std::ostream& os, const gtirb::CodeBlock& block,
+                    const cs_insn& inst, uint64_t index) override;
   void printOpRegdirect(std::ostream& os, const cs_insn& inst,
                         uint64_t index) override;
-  std::string printOpImmediate(std::ostream& os,
-                               const gtirb::SymbolicExpression* symbolic,
-                               const cs_insn& inst, uint64_t index) override;
-  std::string printOpIndirect(std::ostream& os,
-                              const gtirb::SymbolicExpression* symbolic,
-                              const cs_insn& inst, uint64_t index) override;
+  void printOpImmediate(std::ostream& os,
+                        const gtirb::SymbolicExpression* symbolic,
+                        const cs_insn& inst, uint64_t index) override;
+  void printOpIndirect(std::ostream& os,
+                       const gtirb::SymbolicExpression* symbolic,
+                       const cs_insn& inst, uint64_t index) override;
 
   void printOpRawValue(std::ostream& os, const cs_insn& inst, uint64_t index);
   void printOpPrefetch(std::ostream& os, const arm64_prefetch_op prefetch);

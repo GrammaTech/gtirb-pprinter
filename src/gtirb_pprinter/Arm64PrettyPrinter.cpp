@@ -46,26 +46,23 @@ std::string Arm64PrettyPrinter::getRegisterName(unsigned int reg) const {
   return reg == ARM64_REG_INVALID ? "" : cs_reg_name(this->csHandle, reg);
 }
 
-std::string Arm64PrettyPrinter::printOperandList(std::ostream& os,
-                                                 const gtirb::CodeBlock& block,
-                                                 const cs_insn& inst) {
+void Arm64PrettyPrinter::printOperandList(std::ostream& os,
+                                          const gtirb::CodeBlock& block,
+                                          const cs_insn& inst) {
   cs_arm64& detail = inst.detail->arm64;
   int opCount = detail.op_count;
 
-  std::string ret("");
   for (int i = 0; i < opCount; i++) {
     if (i != 0) {
       os << ',';
     }
-    ret += printOperand(os, block, inst, i);
+    printOperand(os, block, inst, i);
   }
-  return ret;
 }
 
-std::string Arm64PrettyPrinter::printOperand(std::ostream& os,
-                                             const gtirb::CodeBlock& block,
-                                             const cs_insn& inst,
-                                             uint64_t index) {
+void Arm64PrettyPrinter::printOperand(std::ostream& os,
+                                      const gtirb::CodeBlock& block,
+                                      const cs_insn& inst, uint64_t index) {
   gtirb::Addr ea(inst.address);
   const cs_arm64_op& op = inst.detail->arm64.operands[index];
   const gtirb::SymbolicExpression* symbolic = nullptr;
@@ -80,22 +77,24 @@ std::string Arm64PrettyPrinter::printOperand(std::ostream& os,
       os << ", ";
       printExtender(os, op.ext, op.shift.type, op.shift.value);
     }
-    return "";
+    return;
   case ARM64_OP_IMM:
     if (finalOp) {
       uint64_t Offset = ea - *block.getByteInterval()->getAddress();
       symbolic = block.getByteInterval()->getSymbolicExpression(Offset);
     }
-    return printOpImmediate(os, symbolic, inst, index);
+    printOpImmediate(os, symbolic, inst, index);
+    return;
   case ARM64_OP_MEM:
     if (finalOp) {
       uint64_t Offset = ea - *block.getByteInterval()->getAddress();
       symbolic = block.getByteInterval()->getSymbolicExpression(Offset);
     }
-    return printOpIndirect(os, symbolic, inst, index);
+    printOpIndirect(os, symbolic, inst, index);
+    return;
   case ARM64_OP_FP:
     os << "#" << op.fp;
-    return "";
+    return;
   case ARM64_OP_CIMM:
   case ARM64_OP_REG_MRS:
   case ARM64_OP_REG_MSR:
@@ -103,13 +102,13 @@ std::string Arm64PrettyPrinter::printOperand(std::ostream& os,
   case ARM64_OP_SYS:
     // Print the operand directly.
     printOpRawValue(os, inst, index);
-    return "";
+    return;
   case ARM64_OP_PREFETCH:
     printOpPrefetch(os, op.prefetch);
-    return "";
+    return;
   case ARM64_OP_BARRIER:
     printOpBarrier(os, op.barrier);
-    return "";
+    return;
   case ARM64_OP_INVALID:
   default:
     std::cerr << "invalid operand\n";
@@ -147,22 +146,19 @@ void Arm64PrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
   os << getRegisterName(op.reg);
 }
 
-std::string
-Arm64PrettyPrinter::printOpImmediate(std::ostream& os,
-                                     const gtirb::SymbolicExpression* symbolic,
-                                     const cs_insn& inst, uint64_t index) {
+void Arm64PrettyPrinter::printOpImmediate(
+    std::ostream& os, const gtirb::SymbolicExpression* symbolic,
+    const cs_insn& inst, uint64_t index) {
   const cs_arm64_op& op = inst.detail->arm64.operands[index];
   assert(op.type == ARM64_OP_IMM &&
          "printOpImmediate called without an immediate operand");
-
-  std::string ret("");
 
   if (const gtirb::SymAddrConst* s = this->getSymbolicImmediate(symbolic)) {
     bool is_jump = cs_insn_group(this->csHandle, &inst, ARM64_GRP_JUMP);
     if (!is_jump) {
       os << ' ';
     }
-    ret = this->printSymbolicExpression(os, s, !is_jump);
+    this->printSymbolicExpression(os, s, !is_jump);
   } else {
     os << "#" << op.imm;
     if (op.shift.type != ARM64_SFT_INVALID && op.shift.value != 0) {
@@ -170,13 +166,11 @@ Arm64PrettyPrinter::printOpImmediate(std::ostream& os,
       printShift(os, op.shift.type, op.shift.value);
     }
   }
-  return ret;
 }
 
-std::string
-Arm64PrettyPrinter::printOpIndirect(std::ostream& os,
-                                    const gtirb::SymbolicExpression* symbolic,
-                                    const cs_insn& inst, uint64_t index) {
+void Arm64PrettyPrinter::printOpIndirect(
+    std::ostream& os, const gtirb::SymbolicExpression* symbolic,
+    const cs_insn& inst, uint64_t index) {
   const cs_arm64& detail = inst.detail->arm64;
   const cs_arm64_op& op = detail.operands[index];
   assert(op.type == ARM64_OP_MEM &&
@@ -192,15 +186,13 @@ Arm64PrettyPrinter::printOpIndirect(std::ostream& os,
     os << getRegisterName(op.mem.base);
   }
 
-  std::string ret("");
-
   // Displacement (constant)
   if (op.mem.disp != 0) {
     if (!first) {
       os << ",";
     }
     if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
-      ret = printSymbolicExpression(os, s, false);
+      printSymbolicExpression(os, s, false);
     } else {
       os << "#" << op.mem.disp;
     }
@@ -228,7 +220,6 @@ Arm64PrettyPrinter::printOpIndirect(std::ostream& os,
   if (detail.writeback && index + 1 == detail.op_count) {
     os << "!";
   }
-  return ret;
 }
 
 void Arm64PrettyPrinter::printOpRawValue(std::ostream& os, const cs_insn& inst,
