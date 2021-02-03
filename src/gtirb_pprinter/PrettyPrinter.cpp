@@ -906,20 +906,22 @@ void PrettyPrinterBase::printSymbolicData(
 
   if (const auto* s =
           std::get_if<gtirb::SymAddrConst>(&SEE.getSymbolicExpression())) {
+    // Make sure the initial m_accum_comment is empty.
+    m_accum_comment.clear();
     printSymbolicExpression(os, s, true);
-    // CHECK: Some assemblers don't seem to allow comments
-    // if (!m_accum_comment.empty()) {
-    //  os << " " << syntax.comment() << " " << m_accum_comment;
-    //  m_accum_comment.clear();
-    // }
+    if (!m_accum_comment.empty()) {
+      os << " " << syntax.comment() << " " << m_accum_comment;
+      m_accum_comment.clear();
+    }
   } else if (const auto* sa = std::get_if<gtirb::SymAddrAddr>(
                  &SEE.getSymbolicExpression())) {
+    // Make sure the initial m_accum_comment is empty.
+    m_accum_comment.clear();
     printSymbolicExpression(os, sa, true);
-    // CHECK: Some assemblers don't seem to allow comments
-    // if (!m_accum_comment.empty()) {
-    //  os << " " << syntax.comment() << " " << m_accum_comment;
-    //  m_accum_comment.clear();
-    // }
+    if (!m_accum_comment.empty()) {
+      os << " " << syntax.comment() << " " << m_accum_comment;
+      m_accum_comment.clear();
+    }
   }
 
   os << "\n";
