@@ -128,6 +128,47 @@ bool PeBinaryPrinter::prepareResources(
   return true;
 }
 
+bool PeBinaryPrinter::prepareDefFile(gtirb::IR& ir, TempFile& defFile) const {
+
+  std::vector<std::string> export_defs;
+
+  for (gtirb::Module& m : ir.modules()) {
+    LOG_INFO << "Preparing DEF file...\n";
+    auto* pe_exports = m.getAuxData<gtirb::schema::ExportEntries>();
+    if (!pe_exports) {
+      LOG_INFO << "\tNo export entries.\n";
+      continue;
+    }
+
+    for (const auto& [addr, ordinal, fnName] : *pe_exports) {
+      std::string extra;
+      (void)addr; // silence unused var warning in MSVC < 15.7
+      auto syms = m.findSymbols(fnName);
+      if (syms.begin()->getReferent<gtirb::DataBlock>())
+        extra = " DATA";
+
+      std::stringstream ss;
+      if (ordinal != -1) {
+        ss << fnName << " @ " << ordinal << extra << "\n";
+      } else {
+        ss << fnName << extra << "\n";
+      }
+      export_defs.push_back(ss.str());
+    }
+  }
+
+  if (!export_defs.empty()) {
+    std::ostream& os = static_cast<std::ostream&>(defFile);
+    os << "\nEXPORTS\n";
+    for (auto& export_def : export_defs) {
+      os << export_def;
+    }
+    defFile.close();
+    return true;
+  }
+  return false;
+}
+
 // Generate import def files (temp files), and build into lib files returned
 // in importLibs to be linked.
 bool PeBinaryPrinter::prepareImportLibs(
@@ -197,7 +238,7 @@ bool PeBinaryPrinter::prepareImportLibs(
 
 void PeBinaryPrinter::prepareLinkerArguments(
     gtirb::IR& ir, std::vector<std::string>& importLibs,
-    std::vector<std::string>& resourceFiles,
+    std::vector<std::string>& resourceFiles, TempFile& defFile,
     std::vector<std::string>& args) const {
   // The command lines for ml and ml64 are different, but there are some common
   // features. The first thing are the options common to both ml and ml64,
@@ -213,6 +254,9 @@ void PeBinaryPrinter::prepareLinkerArguments(
 
     // Disable the banner for the linker.
     args.push_back("/nologo");
+
+    // Add def file
+    args.push_back("/DEF:" + defFile.fileName());
 
     // If the user specified additional library paths, tell the linker about
     // them now. Note, there is no way to do this for ml, as it does not
@@ -237,6 +281,8 @@ void PeBinaryPrinter::prepareLinkerArguments(
           Block && Block->getAddress()) {
         auto entry_syms = Iter->findSymbols(*Block->getAddress());
         args.push_back("/entry:" + (&*entry_syms.begin())->getName());
+      } else {
+        args.push_back("/NOENTRY");
       }
 
       // If we found a module with an entrypoint, we next want to determine if
@@ -257,7 +303,6 @@ void PeBinaryPrinter::prepareLinkerArguments(
       if (auto* Table = Module.getAuxData<gtirb::schema::BinaryType>()) {
         if (std::find(Table->begin(), Table->end(), "DLL") != Table->end()) {
           args.push_back("/DLL");
-          args.push_back("/NOENTRY");
           break;
         }
       }
@@ -315,6 +360,12 @@ int PeBinaryPrinter::link(const std::string& outputFilename,
     return -1;
   }
 
+  TempFile defFile(".def");
+  if (!prepareDefFile(ir, defFile)) {
+    std::cerr << "ERROR: Unable to generate DEF file.";
+    return -1;
+  }
+
   // Prepare resource files for the linker
   std::vector<std::string> resourceFiles;
   if (!prepareResources(ir, ctx, resourceFiles)) {
@@ -325,7 +376,9 @@ int PeBinaryPrinter::link(const std::string& outputFilename,
   // Collect the arguments for invoking the assembler.
   std::vector<std::string> args;
   prepareAssemblerArguments(tempFiles, outputFilename, {}, args);
-  prepareLinkerArguments(ir, importLibs, resourceFiles, args);
+
+  // Collect linker arguments
+  prepareLinkerArguments(ir, importLibs, resourceFiles, defFile, args);
 
   // Invoke the assembler.
   if (std::optional<int> ret = execute(compiler, args)) {
