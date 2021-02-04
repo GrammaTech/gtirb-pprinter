@@ -898,8 +898,7 @@ void PrettyPrinterBase::printSymbolicDataType(
 }
 
 void PrettyPrinterBase::printSymbolicData(
-    std::ostream& os,
-    const gtirb::Addr & EA,
+    std::ostream& os, const gtirb::Addr& EA,
     const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE,
     uint64_t Size, std::optional<std::string> Type) {
   printSymbolicDataType(os, SEE, Size, Type);
