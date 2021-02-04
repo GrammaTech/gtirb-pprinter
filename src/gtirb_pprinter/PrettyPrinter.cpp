@@ -780,8 +780,9 @@ void PrettyPrinterBase::printNonZeroDataBlock(
       if (HasComments) {
         printCommentsBetween(Size);
       }
-      printEA(os, *dataObject.getAddress() + CurrOffset.Displacement);
-      printSymbolicData(os, SEE, Size, Type);
+      gtirb::Addr EA = *dataObject.getAddress() + CurrOffset.Displacement;
+      printEA(os, EA);
+      printSymbolicData(os, EA, SEE, Size, Type);
       ByteI += Size;
       ByteIt += Size;
       CurrOffset.Displacement += Size;
@@ -898,6 +899,7 @@ void PrettyPrinterBase::printSymbolicDataType(
 
 void PrettyPrinterBase::printSymbolicData(
     std::ostream& os,
+    const gtirb::Addr & EA,
     const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE,
     uint64_t Size, std::optional<std::string> Type) {
   printSymbolicDataType(os, SEE, Size, Type);
@@ -910,7 +912,9 @@ void PrettyPrinterBase::printSymbolicData(
     m_accum_comment.clear();
     printSymbolicExpression(os, s, true);
     if (!m_accum_comment.empty()) {
-      os << " " << syntax.comment() << " " << m_accum_comment;
+      os << '\n' << syntax.comment() << " ";
+      printEA(os, EA);
+      os << ": " << m_accum_comment;
       m_accum_comment.clear();
     }
   } else if (const auto* sa = std::get_if<gtirb::SymAddrAddr>(
@@ -919,7 +923,9 @@ void PrettyPrinterBase::printSymbolicData(
     m_accum_comment.clear();
     printSymbolicExpression(os, sa, true);
     if (!m_accum_comment.empty()) {
-      os << " " << syntax.comment() << " " << m_accum_comment;
+      os << '\n' << syntax.comment() << " ";
+      printEA(os, EA);
+      os << ": " << m_accum_comment;
       m_accum_comment.clear();
     }
   }

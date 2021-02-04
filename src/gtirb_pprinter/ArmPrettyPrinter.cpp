@@ -67,7 +67,9 @@ void ArmPrettyPrinter::printInstruction(std::ostream& os,
   m_accum_comment.clear();
   printOperandList(os, block, inst);
   if (!m_accum_comment.empty()) {
-    os << " " << syntax.comment() << " " << m_accum_comment;
+    os << '\n' << syntax.comment() << " ";
+    printEA(os, ea);
+    os << ": " << m_accum_comment;
     m_accum_comment.clear();
   }
   os << '\n';
