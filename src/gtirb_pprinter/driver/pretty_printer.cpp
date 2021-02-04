@@ -332,7 +332,7 @@ int main(int argc, char** argv) {
   }
 
   if (vm.count("keep-all-array-sections") != 0) {
-    pp.sectionPolicy().useDefaults(false);
+    pp.arraySectionPolicy().useDefaults(false);
   }
   if (vm.count("keep-array-section") != 0) {
     for (const auto& S :
