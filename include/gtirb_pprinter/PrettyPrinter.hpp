@@ -297,7 +297,7 @@ protected:
                              uint64_t range);
   virtual void printCFIDirectives(std::ostream& os, const gtirb::Offset& ea);
   virtual void printSymbolicData(
-      std::ostream& os,
+      std::ostream& os, const gtirb::Addr& EA,
       const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE,
       uint64_t Size, std::optional<std::string> Type);
   virtual void printSymbolicDataType(
