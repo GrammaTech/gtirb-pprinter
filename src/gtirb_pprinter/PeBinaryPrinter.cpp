@@ -163,10 +163,10 @@ bool PeBinaryPrinter::prepareDefFile(gtirb::IR& ir, TempFile& defFile) const {
     for (auto& export_def : export_defs) {
       os << export_def;
     }
-    defFile.close();
-    return true;
   }
-  return false;
+
+  defFile.close();
+  return !export_defs.empty();
 }
 
 // Generate import def files (temp files), and build into lib files returned
@@ -238,7 +238,7 @@ bool PeBinaryPrinter::prepareImportLibs(
 
 void PeBinaryPrinter::prepareLinkerArguments(
     gtirb::IR& ir, std::vector<std::string>& importLibs,
-    std::vector<std::string>& resourceFiles, TempFile& defFile,
+    std::vector<std::string>& resourceFiles, std::string defFile,
     std::vector<std::string>& args) const {
   // The command lines for ml and ml64 are different, but there are some common
   // features. The first thing are the options common to both ml and ml64,
@@ -256,7 +256,9 @@ void PeBinaryPrinter::prepareLinkerArguments(
     args.push_back("/nologo");
 
     // Add def file
-    args.push_back("/DEF:" + defFile.fileName());
+    if (!defFile.empty()) {
+      args.push_back("/DEF:" + defFile);
+    }
 
     // If the user specified additional library paths, tell the linker about
     // them now. Note, there is no way to do this for ml, as it does not
@@ -361,9 +363,9 @@ int PeBinaryPrinter::link(const std::string& outputFilename,
   }
 
   TempFile defFile(".def");
-  if (!prepareDefFile(ir, defFile)) {
-    std::cerr << "ERROR: Unable to generate DEF file.";
-    return -1;
+  std::string defFileName;
+  if (prepareDefFile(ir, defFile)) {
+    defFileName = defFile.fileName();
   }
 
   // Prepare resource files for the linker
@@ -378,7 +380,7 @@ int PeBinaryPrinter::link(const std::string& outputFilename,
   prepareAssemblerArguments(tempFiles, outputFilename, {}, args);
 
   // Collect linker arguments
-  prepareLinkerArguments(ir, importLibs, resourceFiles, defFile, args);
+  prepareLinkerArguments(ir, importLibs, resourceFiles, defFileName, args);
 
   // Invoke the assembler.
   if (std::optional<int> ret = execute(compiler, args)) {
@@ -386,7 +388,6 @@ int PeBinaryPrinter::link(const std::string& outputFilename,
       std::cerr << "ERROR: assembler returned: " << *ret << "\n";
     return *ret;
   }
-
   std::cerr << "ERROR: could not find the assembler '" << compiler
             << "' on the PATH.\n";
   return -1;

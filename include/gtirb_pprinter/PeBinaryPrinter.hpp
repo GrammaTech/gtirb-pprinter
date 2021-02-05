@@ -47,7 +47,7 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API PeBinaryPrinter : public BinaryPrinter {
   void prepareLinkerArguments(gtirb::IR& ir,
                               std::vector<std::string>& importLibs,
                               std::vector<std::string>& resourceFiles,
-                              TempFile& defFile,
+                              std::string defFile,
                               std::vector<std::string>& args) const;
 
 public:
