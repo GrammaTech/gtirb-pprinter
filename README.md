@@ -15,9 +15,9 @@ To build and install the pretty printer, the following requirements
 should be installed:
 
 * [GTIRB](https://github.com/grammatech/gtirb).
-* [Capstone](http://www.capstone-engine.org/), version 4.0.1 or later.
-  * Ubuntu 18 and earlier provide out of date versions;
-    build from source on those Ubuntu versions.
+* [Capstone](http://www.capstone-engine.org/). At the moment
+  we require our own fork https://github.com/GrammaTech/capstone/tree/next
+  with some additional fixes (until new official releases are cut).
 * [Boost](https://www.boost.org/), version 1.67.0 or later.
   * Requires the libraries:
     * filesystem
