@@ -17,7 +17,7 @@ should be installed:
 * [GTIRB](https://github.com/grammatech/gtirb).
 * [Capstone](http://www.capstone-engine.org/). At the moment
   we require our own fork https://github.com/GrammaTech/capstone/tree/next
-  with some additional fixes (until new official releases are cut).
+  that contains some additional fixes (until new official releases are cut).
 * [Boost](https://www.boost.org/), version 1.67.0 or later.
   * Requires the libraries:
     * filesystem
