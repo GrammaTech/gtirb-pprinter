@@ -274,7 +274,11 @@ void PeBinaryPrinter::prepareLinkerArguments(
     if (gtirb::CodeBlock* Block = Iter->getEntryPoint();
         Block && Block->getAddress()) {
       auto entry_syms = Iter->findSymbols(*Block->getAddress());
-      args.push_back("/entry:" + (&*entry_syms.begin())->getName());
+      std::string Name = (&*entry_syms.begin())->getName();
+      if (Iter->getISA() == gtirb::ISA::IA32 && Name.size() && Name[0] == '_') {
+        Name = Name.substr(1);
+      }
+      args.push_back("/entry:" + Name);
     } else {
       args.push_back("/NOENTRY");
     }
