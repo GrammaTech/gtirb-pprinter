@@ -59,7 +59,7 @@ protected:
                                bool IsNotBranch = false) override;
 
 private:
-  const gtirb::Symbol& GP;
+  const gtirb::Symbol* GP;
 };
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API Mips32PrettyPrinterFactory

@@ -15,6 +15,7 @@
 
 #include "Mips32PrettyPrinter.hpp"
 #include "AuxDataSchema.hpp"
+#include "driver/Logger.h"
 
 #include <capstone/capstone.h>
 
@@ -26,12 +27,17 @@ const PrintingPolicy& Mips32PrettyPrinterFactory::defaultPrintingPolicy(
       /// Functions to avoid printing.
       {"_start", "__start", "deregister_tm_clones", "register_tm_clones",
        "__do_global_dtors_aux", "__do_global_ctors_aux", "frame_dummy",
-       "__libc_csu_fini", "__libc_csu_init", "_dl_relocate_static_pie"},
+       "__libc_csu_fini", "__libc_csu_init", "_dl_relocate_static_pie",
+       // Functions to avoid printing for sectionless binaries
+       "_init"},
 
       /// Symbols to avoid printing.
       {"_IO_stdin_used", "__data_start", "__dso_handle", "__TMC_END__",
        "_edata", "_fdata", "_DYNAMIC", "data_start", "__bss_start",
-       "program_invocation_name", "program_invocation_short_name"},
+       "program_invocation_name", "program_invocation_short_name",
+       // Include symbols in sections to avoid printing for sectionless binaries
+       "__gmon_start__", "_ITM_deregisterTMCloneTable",
+       "_ITM_registerTMCloneTable", "_Jv_RegisterClasses"},
 
       /// Sections to avoid printing.
       {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
@@ -57,8 +63,15 @@ Mips32PrettyPrinter::Mips32PrettyPrinter(gtirb::Context& context_,
                                          gtirb::Module& module_,
                                          const ElfSyntax& syntax_,
                                          const PrintingPolicy& policy_)
-    : ElfPrettyPrinter(context_, module_, syntax_, policy_),
-      GP{module_.findSymbols("_gp").front()} {
+    : ElfPrettyPrinter(context_, module_, syntax_, policy_) {
+  auto a = module_.findSymbols("_gp_copy");
+  if (!a.empty()) {
+    GP = &a.front();
+  } else {
+    // If _gp is not found, leave GP as NULL.
+    LOG_ERROR << "WARNING: Could not find _gp.";
+  }
+
   // Setup Capstone.
   [[maybe_unused]] cs_err err =
       cs_open(CS_ARCH_MIPS, (cs_mode)(CS_MODE_MIPS32 | CS_MODE_BIG_ENDIAN),
@@ -179,7 +192,13 @@ void Mips32PrettyPrinter::printInstruction(std::ostream& os,
   printEA(os, ea);
 
   os << "  " << inst.mnemonic << ' ';
+  // Make sure the initial m_accum_comment is empty.
+  m_accum_comment.clear();
   printOperandList(os, block, inst);
+  if (!m_accum_comment.empty()) {
+    os << " " << syntax.comment() << " " << m_accum_comment;
+    m_accum_comment.clear();
+  }
   os << '\n';
 }
 
@@ -243,7 +262,7 @@ void Mips32PrettyPrinter::printIntegralSymbol(std::ostream& os,
 
 void Mips32PrettyPrinter::printSymbolicExpression(
     std::ostream& os, const gtirb::SymAddrAddr* sexpr, bool IsNotBranch) {
-  if (sexpr->Sym1 == &GP) {
+  if (sexpr->Sym1 == GP) {
     printSymExprPrefix(os, sexpr->Attributes, IsNotBranch);
     os << "_gp_disp";
     printSymExprSuffix(os, sexpr->Attributes, IsNotBranch);

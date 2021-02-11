@@ -54,7 +54,6 @@ void ArmPrettyPrinter::printInstruction(std::ostream& os,
                                         const gtirb::CodeBlock& block,
                                         const cs_insn& inst,
                                         const gtirb::Offset& offset) {
-
   gtirb::Addr ea(inst.address);
   printComments(os, offset, inst.size);
   printCFIDirectives(os, offset);
@@ -64,7 +63,15 @@ void ArmPrettyPrinter::printInstruction(std::ostream& os,
     opcode = opcode.substr(0, index);
 
   os << "  " << opcode << ' ';
+  // Make sure the initial m_accum_comment is empty.
+  m_accum_comment.clear();
   printOperandList(os, block, inst);
+  if (!m_accum_comment.empty()) {
+    os << '\n' << syntax.comment() << " ";
+    printEA(os, ea);
+    os << ": " << m_accum_comment;
+    m_accum_comment.clear();
+  }
   os << '\n';
 }
 

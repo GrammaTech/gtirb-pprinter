@@ -36,6 +36,7 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API PeBinaryPrinter : public BinaryPrinter {
       std::vector<std::string>& args) const;
   bool prepareImportLibs(gtirb::IR& ir,
                          std::vector<std::string>& importLibs) const;
+  bool prepareDefFile(gtirb::IR& ir, TempFile& defFile) const;
   bool prepareResources(gtirb::IR& ir, gtirb::Context& ctx,
                         std::vector<std::string>& resourceFiles) const;
   // TODO Remove importLibs.
@@ -46,6 +47,7 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API PeBinaryPrinter : public BinaryPrinter {
   void prepareLinkerArguments(gtirb::IR& ir,
                               std::vector<std::string>& importLibs,
                               std::vector<std::string>& resourceFiles,
+                              std::string defFile,
                               std::vector<std::string>& args) const;
 
 public:

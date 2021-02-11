@@ -361,21 +361,46 @@ void PrettyPrinterBase::printBar(std::ostream& os, bool heavy) {
   }
 }
 
-void PrettyPrinterBase::printSymbolReference(
-    std::ostream& os, const gtirb::Symbol* symbol) const {
+bool PrettyPrinterBase::printSymbolReference(std::ostream& os,
+                                             const gtirb::Symbol* symbol) {
   if (!symbol)
-    return;
+    return false;
 
   std::optional<std::string> forwardedName = getForwardedSymbolName(symbol);
   if (forwardedName) {
-    os << forwardedName.value();
-    return;
+    if (debug) {
+      os << forwardedName.value();
+      return false;
+    } else {
+      if (policy.skipSymbols.count(forwardedName.value())) {
+        // NOTE: It is OK not to print symbols in unexercised code (functions
+        // that never execute, but were not skipped due to lack of information
+        // : e.g., sectionless binaries). However, printing symbol addresses
+        // can cause the assembler to fail if the address is too big for the
+        // instruction. To avoid the problem, we print 0 here.
+        os << "0";
+        uint64_t symAddr = static_cast<uint64_t>(*symbol->getAddress());
+        m_accum_comment += s_symaddr_0_warning(symAddr);
+        return true;
+      } else {
+        os << forwardedName.value();
+        return false;
+      }
+    }
   }
   if (shouldSkip(*symbol)) {
-    os << static_cast<uint64_t>(*symbol->getAddress());
-    return;
+    if (debug) {
+      os << static_cast<uint64_t>(*symbol->getAddress());
+    } else {
+      // NOTE: See the comment above.
+      os << "0";
+      uint64_t symAddr = static_cast<uint64_t>(*symbol->getAddress());
+      m_accum_comment += s_symaddr_0_warning(symAddr);
+    }
+    return true;
   }
   os << getSymbolName(*symbol);
+  return false;
 }
 
 void PrettyPrinterBase::printSymbolDefinition(std::ostream& os,
@@ -494,7 +519,13 @@ void PrettyPrinterBase::printInstruction(std::ostream& os,
 
   std::string opcode = ascii_str_tolower(inst.mnemonic);
   os << "  " << opcode << ' ';
+  // Make sure the initial m_accum_comment is empty.
+  m_accum_comment.clear();
   printOperandList(os, block, inst);
+  if (!m_accum_comment.empty()) {
+    os << " " << syntax.comment() << " " << m_accum_comment;
+    m_accum_comment.clear();
+  }
   os << '\n';
 }
 
@@ -749,8 +780,9 @@ void PrettyPrinterBase::printNonZeroDataBlock(
       if (HasComments) {
         printCommentsBetween(Size);
       }
-      printEA(os, *dataObject.getAddress() + CurrOffset.Displacement);
-      printSymbolicData(os, SEE, Size, Type);
+      gtirb::Addr EA = *dataObject.getAddress() + CurrOffset.Displacement;
+      printEA(os, EA);
+      printSymbolicData(os, EA, SEE, Size, Type);
       ByteI += Size;
       ByteIt += Size;
       CurrOffset.Displacement += Size;
@@ -866,7 +898,7 @@ void PrettyPrinterBase::printSymbolicDataType(
 }
 
 void PrettyPrinterBase::printSymbolicData(
-    std::ostream& os,
+    std::ostream& os, const gtirb::Addr& EA,
     const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE,
     uint64_t Size, std::optional<std::string> Type) {
   printSymbolicDataType(os, SEE, Size, Type);
@@ -875,10 +907,26 @@ void PrettyPrinterBase::printSymbolicData(
 
   if (const auto* s =
           std::get_if<gtirb::SymAddrConst>(&SEE.getSymbolicExpression())) {
+    // Make sure the initial m_accum_comment is empty.
+    m_accum_comment.clear();
     printSymbolicExpression(os, s, true);
+    if (!m_accum_comment.empty()) {
+      os << '\n' << syntax.comment() << " ";
+      printEA(os, EA);
+      os << ": " << m_accum_comment;
+      m_accum_comment.clear();
+    }
   } else if (const auto* sa = std::get_if<gtirb::SymAddrAddr>(
                  &SEE.getSymbolicExpression())) {
+    // Make sure the initial m_accum_comment is empty.
+    m_accum_comment.clear();
     printSymbolicExpression(os, sa, true);
+    if (!m_accum_comment.empty()) {
+      os << '\n' << syntax.comment() << " ";
+      printEA(os, EA);
+      os << ": " << m_accum_comment;
+      m_accum_comment.clear();
+    }
   }
 
   os << "\n";
@@ -892,14 +940,27 @@ void PrettyPrinterBase::printSymExprSuffix(
     std::ostream& /* OS */, const gtirb::SymAttributeSet& /* Attrs */,
     bool /* IsNotBranch */) {}
 
+std::string PrettyPrinterBase::s_symaddr_0_warning(uint64_t symAddr) {
+  std::stringstream ss;
+  ss << "WARNING:0: no symbol for address 0x" << std::hex << symAddr << " ";
+  return ss.str();
+}
+
 void PrettyPrinterBase::printSymbolicExpression(
     std::ostream& os, const gtirb::SymAddrConst* sexpr, bool IsNotBranch) {
-  printSymExprPrefix(os, sexpr->Attributes, IsNotBranch);
+  std::stringstream ss;
+  bool skipped = printSymbolReference(ss, sexpr->Sym);
 
-  printSymbolReference(os, sexpr->Sym);
-  printAddend(os, sexpr->Offset);
+  if (skipped) {
+    os << ss.str();
+  } else {
+    printSymExprPrefix(os, sexpr->Attributes, IsNotBranch);
 
-  printSymExprSuffix(os, sexpr->Attributes, IsNotBranch);
+    os << ss.str();
+    printAddend(os, sexpr->Offset);
+
+    printSymExprSuffix(os, sexpr->Attributes, IsNotBranch);
+  }
 }
 
 void PrettyPrinterBase::printSymbolicExpression(std::ostream& os,
