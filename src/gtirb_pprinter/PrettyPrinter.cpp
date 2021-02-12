@@ -212,17 +212,23 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
 
   // FIXME: Make getContainerFunctionName return multiple labels, remove this.
   // Alias all labels at skipped function blocks; getContainerFunctionName gives
-  // only one label, which may not be in the list of skipped functions.
+  // only one label, which may not be in the list of skipped functions. Find the
+  // additional names and a separate pass from adding them to avoid updating the
+  // container while iterating over it.
+  std::vector<std::string> AdditionalSkips;
   for (const std::string& Name : policy.skipFunctions) {
     for (const gtirb::Symbol& Symbol : module.findSymbols(Name)) {
       if (const auto* Block = Symbol.getReferent<gtirb::CodeBlock>()) {
         if (Block->getAddress()) {
           for (const auto& Other : module.findSymbols(*Block->getAddress())) {
-            policy.skipFunctions.insert(Other.getName());
+            AdditionalSkips.emplace_back(Other.getName());
           }
         }
       }
     }
+  }
+  for (const std::string& Name : AdditionalSkips) {
+    policy.skipFunctions.insert(Name);
   }
 }
 
