@@ -329,10 +329,19 @@ void MasmPrettyPrinter::printOpIndirect(
   if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
     std::optional<std::string> forwardedName = getForwardedSymbolName(s->Sym);
     if (forwardedName) {
-      if (std::optional<std::string> Size = syntax.getSizeName(size * 8)) {
-        os << *Size << " PTR ";
+      // If this references code, then it is (and should continue to) reference
+      // the jmp thunk of the import which will have the unprefixed "foo" symbol
+      // on it. If this references data, then it is (and should continue to)
+      // reference the relocation address (IAT entry) name "__imp_foo"
+      if (s->Sym->getReferent<gtirb::CodeBlock>())
+        os << *forwardedName;
+      else {
+        if (std::optional<std::string> Size = syntax.getSizeName(size * 8)) {
+          os << *Size << " PTR ";
+        }
+        os << "__imp_" << *forwardedName;
       }
-      os << "__imp_" << *forwardedName;
+
       return;
     }
   }
