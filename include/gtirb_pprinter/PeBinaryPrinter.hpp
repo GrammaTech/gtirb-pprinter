@@ -34,8 +34,6 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API PeBinaryPrinter : public BinaryPrinter {
       const std::string& outputFilename,
       const std::vector<std::string>& perCompilandExtraArgs,
       std::vector<std::string>& args) const;
-  bool prepareImportLibs(gtirb::IR& ir,
-                         std::vector<std::string>& importLibs) const;
   bool prepareDefFile(gtirb::IR& ir, TempFile& defFile) const;
   bool prepareResources(gtirb::IR& ir, gtirb::Context& ctx,
                         std::vector<std::string>& resourceFiles) const;
@@ -59,6 +57,8 @@ public:
                gtirb::Module& mod) const override;
   int link(const std::string& outputFilename, gtirb::Context& context,
            gtirb::IR& ir) override;
+  bool prepareImportLibs(gtirb::IR& ir,
+                         std::vector<std::string>& importLibs) const;
 };
 
 } // namespace gtirb_bprint
