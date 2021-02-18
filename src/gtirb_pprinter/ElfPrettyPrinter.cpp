@@ -259,6 +259,11 @@ void ElfPrettyPrinter::printIntegralSymbol(std::ostream& os,
      << *sym.getAddress() << '\n';
 }
 
+void ElfPrettyPrinter::printUndefinedSymbol(std::ostream& os,
+                                            const gtirb::Symbol& sym) {
+  printSymbolHeader(os, sym);
+}
+
 void ElfPrettyPrinter::printSymbolicDataType(
     std::ostream& os,
     const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE,

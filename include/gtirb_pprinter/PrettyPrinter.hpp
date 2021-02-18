@@ -349,6 +349,8 @@ protected:
                                                  gtirb::Addr pc) = 0;
   virtual void printIntegralSymbol(std::ostream& os,
                                    const gtirb::Symbol& symbol) = 0;
+  virtual void printUndefinedSymbol(std::ostream& os,
+                                    const gtirb::Symbol& symbol) = 0;
 
   virtual bool shouldSkip(const gtirb::Section& section) const;
   virtual bool shouldSkip(const gtirb::Symbol& symbol) const;
