@@ -123,7 +123,8 @@ protected:
       const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE,
       uint64_t Size, std::optional<std::string> Type) override;
 
-  void printSymbolHeader(std::ostream& os, const gtirb::Symbol& symbol);
+  void printSymbolHeader(std::ostream& os, const gtirb::Symbol& symbol,
+                         bool PrintAlignment = true);
 };
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API ElfPrettyPrinterFactory
