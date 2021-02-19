@@ -5,6 +5,10 @@ import re
 
 
 def get_version():
+    if "CI_COMMIT_BRANCH" in os.environ:
+        branch = os.environ["CI_COMMIT_BRANCH"]
+        if branch == "windows-support":
+            return "dev"
     try:
         with open("version.txt") as f:
             s = f.read()
@@ -27,6 +31,8 @@ def get_version():
 
 def branch_to_channel(branch):
     if branch == "master":
+        return "dev"
+    if re.match(r"v[\d]+\.[\d]+\.[\d]+", branch):
         return "stable"
     else:
         return branch.replace("/", "+")
@@ -62,8 +68,15 @@ class Properties:
     # branches archived in gitlab.
     @property
     def archived_channels(self):
+        # Add to this list branch names to have conan packages for
+        # branches archived in gitlab.
         archived_branches = ["master", "windows-support"]
-        return list(map(branch_to_channel, archived_branches))
+        # Also, archive the 'stable' channel, where all stable versions
+        # will be uploaded
+        archived_channels = ["stable"]
+        return archived_channels + list(
+            map(branch_to_channel, archived_branches)
+        )
 
     @property
     def conan_ref(self):
