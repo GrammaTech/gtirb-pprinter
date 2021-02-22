@@ -30,8 +30,6 @@ def get_version():
 
 
 def branch_to_channel(branch):
-    if branch == "master":
-        return "dev"
     if re.match(r"v[\d]+\.[\d]+\.[\d]+", branch):
         return "stable"
     else:
@@ -93,7 +91,7 @@ class GtirbPprinterConan(Properties, ConanFile):
     capstone_version = "4.0.1"
     requires = (
         "boost/%s@conan/stable" % (boost_version),
-        "gtirb/%s@rewriting+gtirb/dev" % (gtirb_version),
+        "gtirb/%s@rewriting+gtirb/master" % (gtirb_version),
         "capstone/%s@rewriting+extra-packages/next" % (capstone_version),
     )
     author = "GrammaTech Inc."
