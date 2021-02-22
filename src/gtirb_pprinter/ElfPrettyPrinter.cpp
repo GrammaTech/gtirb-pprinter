@@ -146,7 +146,8 @@ void ElfPrettyPrinter::printByte(std::ostream& os, std::byte byte) {
 void ElfPrettyPrinter::printFooter(std::ostream& /* os */){};
 
 void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
-                                         const gtirb::Symbol& sym) {
+                                         const gtirb::Symbol& sym,
+                                         bool PrintAlignment) {
   const auto* SymbolTypes = module.getAuxData<gtirb::schema::ElfSymbolInfo>();
   if (!SymbolTypes) {
     return;
@@ -167,7 +168,9 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
   auto name = getSymbolName(sym);
 
   printBar(os, false);
-  printAlignment(os, ea);
+  if (PrintAlignment) {
+    printAlignment(os, ea);
+  }
 
   bool unique = false;
   if (SymbolInfo.Binding == "GLOBAL") {
@@ -257,6 +260,11 @@ void ElfPrettyPrinter::printIntegralSymbol(std::ostream& os,
 
   os << elfSyntax.set() << ' ' << getSymbolName(sym) << ", "
      << *sym.getAddress() << '\n';
+}
+
+void ElfPrettyPrinter::printUndefinedSymbol(std::ostream& os,
+                                            const gtirb::Symbol& sym) {
+  printSymbolHeader(os, sym, false);
 }
 
 void ElfPrettyPrinter::printSymbolicDataType(

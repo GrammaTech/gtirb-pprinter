@@ -115,12 +115,16 @@ protected:
                                          gtirb::Addr pc) override;
   void printIntegralSymbol(std::ostream& os,
                            const gtirb::Symbol& symbol) override;
+  void printUndefinedSymbol(std::ostream& os,
+                            const gtirb::Symbol& symbol) override;
+
   void printSymbolicDataType(
       std::ostream& os,
       const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE,
       uint64_t Size, std::optional<std::string> Type) override;
 
-  void printSymbolHeader(std::ostream& os, const gtirb::Symbol& symbol);
+  void printSymbolHeader(std::ostream& os, const gtirb::Symbol& symbol,
+                         bool PrintAlignment = true);
 };
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API ElfPrettyPrinterFactory
