@@ -292,8 +292,9 @@ int main(int argc, char** argv) {
   if (vm.count("policy") != 0) {
     auto Policy = vm["policy"].as<std::string>();
 
-    if (pp.findNamedPolicy(Policy) == nullptr) {
+    if (Policy != "default" && pp.findNamedPolicy(Policy) == nullptr) {
       LOG_ERROR << "Unknown policy '" << Policy << "'. Available policies:\n";
+      LOG_ERROR << "\tdefault\n";
       for (const auto& Pair : pp.namedPolicies()) {
         LOG_ERROR << "\t" << Pair.first << "\n";
       }
