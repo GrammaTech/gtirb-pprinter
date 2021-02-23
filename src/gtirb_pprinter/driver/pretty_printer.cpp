@@ -121,6 +121,9 @@ int main(int argc, char** argv) {
   desc.add_options()("layout,l", "Layout code and data in memory to "
                                  "avoid overlap");
   desc.add_options()("debug,d", "Turn on debugging (will break assembly)");
+  desc.add_options()("policy,p", po::value<std::string>(),
+                     "The base skip/keep policy to use. To use no policy, "
+                     "specify --keep-all.");
 
   desc.add_options()("keep-function",
                      po::value<std::vector<std::string>>()->multitoken(),
@@ -285,6 +288,20 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
   pp.setTarget(std::move(target));
+
+  if (vm.count("policy") != 0) {
+    auto Policy = vm["policy"].as<std::string>();
+
+    if (pp.findNamedPolicy(Policy) == nullptr) {
+      LOG_ERROR << "Unknown policy '" << Policy << "'. Available policies:\n";
+      for (const auto& Pair : pp.namedPolicies()) {
+        LOG_ERROR << "\t" << Pair.first << "\n";
+      }
+      return EXIT_FAILURE;
+    }
+
+    pp.setPolicyName(Policy);
+  }
 
   if (vm.count("keep-all") != 0) {
     pp.functionPolicy().useDefaults(false);

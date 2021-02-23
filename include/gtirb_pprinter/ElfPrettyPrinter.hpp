@@ -130,6 +130,7 @@ protected:
 class DEBLOAT_PRETTYPRINTER_EXPORT_API ElfPrettyPrinterFactory
     : public PrettyPrinterFactory {
 public:
+  ElfPrettyPrinterFactory();
   virtual ~ElfPrettyPrinterFactory() = default;
 
   bool isStaticBinary(gtirb::Module& Module) const;
