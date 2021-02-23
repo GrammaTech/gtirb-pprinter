@@ -176,8 +176,9 @@ std::error_condition PrettyPrinter::print(std::ostream& stream,
       getFactories().at(target);
 
   // Configure printing policy.
-  PrintingPolicy policy(PolicyName ? *factory->findNamedPolicy(*PolicyName)
-                                   : factory->defaultPrintingPolicy(module));
+  PrintingPolicy policy(PolicyName == "default"
+                            ? factory->defaultPrintingPolicy(module)
+                            : *factory->findNamedPolicy(PolicyName));
   policy.debug = m_debug;
   FunctionPolicy.apply(policy.skipFunctions);
   SymbolPolicy.apply(policy.skipSymbols);

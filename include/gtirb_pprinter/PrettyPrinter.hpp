@@ -58,7 +58,6 @@ using string_range = boost::any_range<std::string, boost::forward_traversal_tag,
 /// \param formats    the (non-empty) formats produced by the factory
 /// \param isas       the (non-empty) ISAs produced by the factory
 /// \param syntaxes   the (non-empty) syntaxes produced by the factory
-/// \param policies   the (non-empty) policies produced by the factory
 /// \param f          the (non-empty) \link PrettyPrinterFactory object
 /// \param isDefault  optionally make this the default factory for the
 ///                   named format and syntax parameters
@@ -117,7 +116,6 @@ public:
 private:
   std::unordered_set<std::string> Skip, Keep;
   bool UseDefaults = true;
-  std::string Policy = "default";
 };
 
 struct DEBLOAT_PRETTYPRINTER_EXPORT_API PrintingPolicy {
@@ -201,9 +199,8 @@ public:
   PolicyOptions& arraySectionPolicy() { return ArraySectionPolicy; }
   const PolicyOptions& arraySectionPolicy() const { return ArraySectionPolicy; }
 
-  std::optional<std::string> getPolicyName() { return PolicyName; }
+  std::string getPolicyName() { return PolicyName; }
   void setPolicyName(const std::string& Name) { PolicyName = Name; }
-  void clearPolicyName() { PolicyName = std::nullopt; }
 
   boost::iterator_range<NamedPolicyMap::const_iterator> namedPolicies() const;
   const PrintingPolicy* findNamedPolicy(const std::string& Name) const;
@@ -214,7 +211,7 @@ private:
   std::string m_syntax;
   DebugStyle m_debug;
   PolicyOptions FunctionPolicy, SymbolPolicy, SectionPolicy, ArraySectionPolicy;
-  std::optional<std::string> PolicyName = std::nullopt;
+  std::string PolicyName = "default";
 };
 
 /// Abstract factory - encloses default printing configuration and a method for
