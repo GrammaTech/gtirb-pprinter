@@ -145,6 +145,22 @@ void PrettyPrinter::setDebug(bool do_debug) {
 
 bool PrettyPrinter::getDebug() const { return m_debug == DebugMessages; }
 
+boost::iterator_range<NamedPolicyMap::const_iterator>
+PrettyPrinter::namedPolicies() const {
+  auto It = getFactories().find(std::make_tuple(m_format, m_isa, m_syntax));
+  assert(It != getFactories().end() &&
+         "call setTarget before calling this function");
+  return It->second->namedPolicies();
+}
+
+const PrintingPolicy*
+PrettyPrinter::findNamedPolicy(const std::string& Name) const {
+  auto It = getFactories().find(std::make_tuple(m_format, m_isa, m_syntax));
+  assert(It != getFactories().end() &&
+         "call setTarget before calling this function");
+  return It->second->findNamedPolicy(Name);
+}
+
 std::error_condition PrettyPrinter::print(std::ostream& stream,
                                           gtirb::Context& context,
                                           gtirb::Module& module) const {
@@ -160,7 +176,8 @@ std::error_condition PrettyPrinter::print(std::ostream& stream,
       getFactories().at(target);
 
   // Configure printing policy.
-  PrintingPolicy policy(factory->defaultPrintingPolicy(module));
+  PrintingPolicy policy(PolicyName ? *factory->findNamedPolicy(*PolicyName)
+                                   : factory->defaultPrintingPolicy(module));
   policy.debug = m_debug;
   FunctionPolicy.apply(policy.skipFunctions);
   SymbolPolicy.apply(policy.skipSymbols);

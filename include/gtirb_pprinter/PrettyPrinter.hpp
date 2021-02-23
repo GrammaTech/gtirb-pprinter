@@ -58,6 +58,7 @@ using string_range = boost::any_range<std::string, boost::forward_traversal_tag,
 /// \param formats    the (non-empty) formats produced by the factory
 /// \param isas       the (non-empty) ISAs produced by the factory
 /// \param syntaxes   the (non-empty) syntaxes produced by the factory
+/// \param policies   the (non-empty) policies produced by the factory
 /// \param f          the (non-empty) \link PrettyPrinterFactory object
 /// \param isDefault  optionally make this the default factory for the
 ///                   named format and syntax parameters
@@ -116,7 +117,28 @@ public:
 private:
   std::unordered_set<std::string> Skip, Keep;
   bool UseDefaults = true;
+  std::string Policy = "default";
 };
+
+struct DEBLOAT_PRETTYPRINTER_EXPORT_API PrintingPolicy {
+  /// Functions to avoid printing the contents and labels of.
+  std::unordered_set<std::string> skipFunctions;
+
+  /// Symbols to avoid printing the labels of.
+  std::unordered_set<std::string> skipSymbols;
+
+  /// Sections to avoid printing.
+  std::unordered_set<std::string> skipSections;
+
+  // These sections have a couple of special cases for data objects. They
+  // usually contain entries that need to be ignored (the compiler will add them
+  // again) and require special alignment of 8
+  std::unordered_set<std::string> arraySections;
+
+  DebugStyle debug = NoDebug;
+};
+
+using NamedPolicyMap = std::unordered_map<std::string, const PrintingPolicy>;
 
 /// The primary interface for pretty-printing GTIRB objects. The typical flow
 /// is to create a PrettyPrinter, configure it (e.g., set the output syntax,
@@ -179,30 +201,20 @@ public:
   PolicyOptions& arraySectionPolicy() { return ArraySectionPolicy; }
   const PolicyOptions& arraySectionPolicy() const { return ArraySectionPolicy; }
 
+  std::optional<std::string> getPolicyName() { return PolicyName; }
+  void setPolicyName(const std::string& Name) { PolicyName = Name; }
+  void clearPolicyName() { PolicyName = std::nullopt; }
+
+  boost::iterator_range<NamedPolicyMap::const_iterator> namedPolicies() const;
+  const PrintingPolicy* findNamedPolicy(const std::string& Name) const;
+
 private:
   std::string m_format;
   std::string m_isa;
   std::string m_syntax;
   DebugStyle m_debug;
   PolicyOptions FunctionPolicy, SymbolPolicy, SectionPolicy, ArraySectionPolicy;
-};
-
-struct DEBLOAT_PRETTYPRINTER_EXPORT_API PrintingPolicy {
-  /// Functions to avoid printing the contents and labels of.
-  std::unordered_set<std::string> skipFunctions;
-
-  /// Symbols to avoid printing the labels of.
-  std::unordered_set<std::string> skipSymbols;
-
-  /// Sections to avoid printing.
-  std::unordered_set<std::string> skipSections;
-
-  // These sections have a couple of special cases for data objects. They
-  // usually contain entries that need to be ignored (the compiler will add them
-  // again) and require special alignment of 8
-  std::unordered_set<std::string> arraySections;
-
-  DebugStyle debug = NoDebug;
+  std::optional<std::string> PolicyName = std::nullopt;
 };
 
 /// Abstract factory - encloses default printing configuration and a method for
@@ -211,7 +223,7 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API PrettyPrinterFactory {
 public:
   virtual ~PrettyPrinterFactory() = default;
 
-  /// Load the default printing policy.
+  /// Load the default printing policy, used when no policy name was given.
   virtual const PrintingPolicy&
   defaultPrintingPolicy(gtirb::Module& Module) const = 0;
 
@@ -219,6 +231,38 @@ public:
   virtual std::unique_ptr<PrettyPrinterBase>
   create(gtirb::Context& context, gtirb::Module& module,
          const PrintingPolicy& policy) = 0;
+
+  /// Return a list of all named policies.
+  boost::iterator_range<NamedPolicyMap::const_iterator> namedPolicies() const {
+    return boost::make_iterator_range(NamedPolicies.begin(),
+                                      NamedPolicies.end());
+  }
+
+  /// Return the policy with a given name, or nullptr if none was found.
+  const PrintingPolicy* findNamedPolicy(const std::string& Name) const {
+    auto It = NamedPolicies.find(Name);
+    if (It == NamedPolicies.end()) {
+      return nullptr;
+    } else {
+      return &It->second;
+    }
+  }
+
+protected:
+  /// Register a named policy. Call in your constructor.
+  void registerNamedPolicy(const std::string& Name,
+                           const PrintingPolicy&& Policy) {
+    NamedPolicies.emplace(Name, std::move(Policy));
+  }
+
+  /// Register a named policy. Call in your constructor.
+  void registerNamedPolicy(const std::string& Name,
+                           const PrintingPolicy& Policy) {
+    NamedPolicies.emplace(Name, Policy);
+  }
+
+private:
+  NamedPolicyMap NamedPolicies;
 };
 
 /// The pretty-printer interface. There is only one exposed function, \link

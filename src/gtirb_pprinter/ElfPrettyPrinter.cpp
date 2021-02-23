@@ -284,38 +284,56 @@ bool ElfPrettyPrinterFactory::isStaticBinary(gtirb::Module& Module) const {
   return Module.findSections(".dynamic") == Module.sections_by_name_end();
 }
 
+static const PrintingPolicy POLICY_DYNAMIC{
+    /// Functions to avoid printing.
+    {"_start", "deregister_tm_clones", "register_tm_clones",
+     "__do_global_dtors_aux", "frame_dummy", "__libc_csu_fini",
+     "__libc_csu_init", "_dl_relocate_static_pie", "call_weak_fn"},
+
+    /// Symbols to avoid printing.
+    {"_IO_stdin_used", "__data_start", "__dso_handle", "__TMC_END__", "_edata",
+     "__bss_start", "program_invocation_name", "program_invocation_short_name",
+     "_fp_hw"},
+
+    /// Sections to avoid printing.
+    {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
+     ".plt.sec", ".eh_frame_hdr", ".eh_frame", ".rela.dyn", ".rela.plt"},
+
+    /// Sections with possible data object exclusion.
+    {".init_array", ".fini_array"},
+};
+
+static const PrintingPolicy POLICY_STATIC{
+    /// Functions to avoid printing.
+    {},
+    /// Symbols to avoid printing.
+    {},
+    /// Sections to avoid printing.
+    {".eh_frame", ".rela.plt"},
+    /// Sections with possible data object exclusion.
+    {},
+};
+
 const PrintingPolicy&
 ElfPrettyPrinterFactory::defaultPrintingPolicy(gtirb::Module& Module) const {
-  static PrintingPolicy DefaultPolicy{
-      /// Functions to avoid printing.
-      {"_start", "deregister_tm_clones", "register_tm_clones",
-       "__do_global_dtors_aux", "frame_dummy", "__libc_csu_fini",
-       "__libc_csu_init", "_dl_relocate_static_pie", "call_weak_fn"},
+  return isStaticBinary(Module) ? POLICY_STATIC : POLICY_DYNAMIC;
+}
 
-      /// Symbols to avoid printing.
-      {"_IO_stdin_used", "__data_start", "__dso_handle", "__TMC_END__",
-       "_edata", "__bss_start", "program_invocation_name",
-       "program_invocation_short_name", "_fp_hw"},
+ElfPrettyPrinterFactory::ElfPrettyPrinterFactory() {
+  registerNamedPolicy("dynamic", POLICY_DYNAMIC);
+  registerNamedPolicy("static", POLICY_STATIC);
 
-      /// Sections to avoid printing.
-      {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
-       ".plt.sec", ".eh_frame_hdr", ".eh_frame", ".rela.dyn", ".rela.plt"},
-
-      /// Sections with possible data object exclusion.
-      {".init_array", ".fini_array"},
-  };
-
-  static PrintingPolicy DefaultStaticPolicy{
-      /// Functions to avoid printing.
-      {},
-      /// Symbols to avoid printing.
-      {},
-      /// Sections to avoid printing.
-      {".eh_frame", ".rela.plt"},
-      /// Sections with possible data object exclusion.
-      {},
-  };
-  return isStaticBinary(Module) ? DefaultStaticPolicy : DefaultPolicy;
+  registerNamedPolicy("complete",
+                      PrintingPolicy{
+                          /// Functions to avoid printing.
+                          {},
+                          /// Symbols to avoid printing.
+                          {},
+                          /// Sections to avoid printing.
+                          {".got", ".got.plt", ".eh_frame_hdr", ".eh_frame"},
+                          /// Sections with possible data object exclusion.
+                          {},
+                      });
 }
 
 } // namespace gtirb_pprint
