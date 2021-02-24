@@ -279,4 +279,6 @@ ArmPrettyPrinterFactory::create(gtirb::Context& gtirb_context,
   return std::make_unique<ArmPrettyPrinter>(gtirb_context, module, syntax,
                                             policy);
 }
+
+void ArmPrettyPrinterFactory::registerNamedPolicies() {}
 } // namespace gtirb_pprint

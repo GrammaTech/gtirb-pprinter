@@ -67,6 +67,7 @@ public:
   std::unique_ptr<PrettyPrinterBase>
   create(gtirb::Context& context, gtirb::Module& module,
          const PrintingPolicy& policy) override;
+  void registerNamedPolicies() override;
 };
 
 } // namespace gtirb_pprint

@@ -59,6 +59,8 @@ Mips32PrettyPrinterFactory::create(gtirb::Context& gtirb_context,
                                                policy);
 }
 
+void Mips32PrettyPrinterFactory::registerNamedPolicies() {}
+
 Mips32PrettyPrinter::Mips32PrettyPrinter(gtirb::Context& context_,
                                          gtirb::Module& module_,
                                          const ElfSyntax& syntax_,

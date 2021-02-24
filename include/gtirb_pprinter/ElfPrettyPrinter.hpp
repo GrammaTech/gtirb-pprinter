@@ -130,7 +130,6 @@ protected:
 class DEBLOAT_PRETTYPRINTER_EXPORT_API ElfPrettyPrinterFactory
     : public PrettyPrinterFactory {
 public:
-  ElfPrettyPrinterFactory();
   virtual ~ElfPrettyPrinterFactory() = default;
 
   bool isStaticBinary(gtirb::Module& Module) const;
@@ -138,6 +137,9 @@ public:
   /// Load the default printing policy.
   virtual const PrintingPolicy&
   defaultPrintingPolicy(gtirb::Module& Module) const;
+
+  /// Register all named policies.
+  virtual void registerNamedPolicies() override;
 };
 
 } // namespace gtirb_pprint

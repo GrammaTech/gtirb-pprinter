@@ -41,4 +41,6 @@ PePrettyPrinterFactory::defaultPrintingPolicy(gtirb::Module& /*Module*/) const {
   return DefaultPolicy;
 }
 
+void PePrettyPrinterFactory::registerNamedPolicies() {}
+
 } // namespace gtirb_pprint
