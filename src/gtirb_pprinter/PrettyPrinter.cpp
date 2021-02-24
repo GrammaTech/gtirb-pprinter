@@ -148,16 +148,20 @@ bool PrettyPrinter::getDebug() const { return m_debug == DebugMessages; }
 boost::iterator_range<NamedPolicyMap::const_iterator>
 PrettyPrinter::namedPolicies() const {
   auto It = getFactories().find(std::make_tuple(m_format, m_isa, m_syntax));
-  assert(It != getFactories().end() &&
-         "call setTarget before calling this function");
+  if (It == getFactories().end()) {
+    static const NamedPolicyMap EmptyPolicyMap;
+    return boost::make_iterator_range(EmptyPolicyMap.end(),
+                                      EmptyPolicyMap.end());
+  }
   return It->second->namedPolicies();
 }
 
 const PrintingPolicy*
 PrettyPrinter::findNamedPolicy(const std::string& Name) const {
   auto It = getFactories().find(std::make_tuple(m_format, m_isa, m_syntax));
-  assert(It != getFactories().end() &&
-         "call setTarget before calling this function");
+  if (It == getFactories().end()) {
+    return nullptr;
+  }
   return It->second->findNamedPolicy(Name);
 }
 
