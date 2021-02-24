@@ -286,21 +286,21 @@ bool ElfPrettyPrinterFactory::isStaticBinary(gtirb::Module& Module) const {
 
 static const PrintingPolicy POLICY_DYNAMIC{
     /// Functions to avoid printing.
-    {"_start", "deregister_tm_clones", "register_tm_clones",
-     "__do_global_dtors_aux", "frame_dummy", "__libc_csu_fini",
-     "__libc_csu_init", "_dl_relocate_static_pie", "call_weak_fn"},
+    {"call_weak_fn", "deregister_tm_clones", "_dl_relocate_static_pie",
+     "__do_global_dtors_aux", "frame_dummy", "_start", "register_tm_clones",
+     "__libc_csu_fini", "__libc_csu_init"},
 
     /// Symbols to avoid printing.
-    {"_IO_stdin_used", "__data_start", "__dso_handle", "__TMC_END__", "_edata",
-     "__bss_start", "program_invocation_name", "program_invocation_short_name",
-     "_fp_hw"},
+    {"__bss_start", "__data_start", "__dso_handle", "_edata", "_fp_hw",
+     "_IO_stdin_used", "program_invocation_name",
+     "program_invocation_short_name", "__TMC_END__"},
 
     /// Sections to avoid printing.
-    {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
-     ".plt.sec", ".eh_frame_hdr", ".eh_frame", ".rela.dyn", ".rela.plt"},
+    {".comment", ".eh_frame_hdr", ".eh_frame", ".fini", ".got", ".got.plt",
+     ".init", ".plt", ".plt.got", ".plt.sec", ".rela.dyn", ".rela.plt"},
 
     /// Sections with possible data object exclusion.
-    {".init_array", ".fini_array"},
+    {".fini_array", ".init_array"},
 };
 
 static const PrintingPolicy POLICY_STATIC{
@@ -330,7 +330,8 @@ ElfPrettyPrinterFactory::ElfPrettyPrinterFactory() {
                           /// Symbols to avoid printing.
                           {},
                           /// Sections to avoid printing.
-                          {".got", ".got.plt", ".eh_frame_hdr", ".eh_frame"},
+                          {".eh_frame_hdr", ".eh_frame", ".got", ".got.plt",
+                           ".plt", ".rela.dyn", ".rela.plt"},
                           /// Sections with possible data object exclusion.
                           {},
                       });
