@@ -77,6 +77,9 @@ Mips32PrettyPrinter::Mips32PrettyPrinter(gtirb::Context& context_,
     mode |= CS_MODE_BIG_ENDIAN;
   } else if (module_.getByteOrder() == gtirb::ByteOrder::Little) {
     mode |= CS_MODE_LITTLE_ENDIAN;
+  } else {
+    LOG_ERROR << "WARNING: No BE/LE info: Use Big-Endian by default.";
+    mode |= CS_MODE_BIG_ENDIAN;
   }
 
   // Setup Capstone.
