@@ -55,6 +55,7 @@ bool registerPrinter(std::initializer_list<std::string> formats,
   assert(formats.size() > 0 && "No formats to register!");
   assert(isas.size() > 0 && "No ISAs to register!");
   assert(syntaxes.size() > 0 && "No syntaxes to register!");
+  f->registerNamedPolicies();
   for (const std::string& format : formats) {
     for (const std::string& isa : isas) {
       for (const std::string& syntax : syntaxes) {

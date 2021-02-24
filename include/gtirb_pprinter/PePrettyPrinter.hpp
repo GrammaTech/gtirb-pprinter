@@ -44,6 +44,7 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API PePrettyPrinterFactory
 public:
   const PrintingPolicy&
   defaultPrintingPolicy(gtirb::Module& Module) const override;
+  void registerNamedPolicies() override;
 };
 
 } // namespace gtirb_pprint

@@ -319,7 +319,7 @@ ElfPrettyPrinterFactory::defaultPrintingPolicy(gtirb::Module& Module) const {
   return isStaticBinary(Module) ? POLICY_STATIC : POLICY_DYNAMIC;
 }
 
-ElfPrettyPrinterFactory::ElfPrettyPrinterFactory() {
+void ElfPrettyPrinterFactory::registerNamedPolicies() {
   registerNamedPolicy("dynamic", POLICY_DYNAMIC);
   registerNamedPolicy("static", POLICY_STATIC);
 

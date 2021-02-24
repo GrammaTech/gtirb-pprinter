@@ -469,4 +469,6 @@ Arm64PrettyPrinterFactory::create(gtirb::Context& gtirb_context,
   return std::make_unique<Arm64PrettyPrinter>(gtirb_context, module, syntax,
                                               policy);
 }
+
+void Arm64PrettyPrinterFactory::registerNamedPolicies() {}
 } // namespace gtirb_pprint

@@ -245,14 +245,17 @@ public:
     }
   }
 
+  /// Register all your named policies in this function.
+  virtual void registerNamedPolicies() = 0;
+
 protected:
-  /// Register a named policy. Call in your constructor.
+  /// Register a named policy. Call in \link registerNamedPolicies.
   void registerNamedPolicy(const std::string& Name,
                            const PrintingPolicy&& Policy) {
     NamedPolicies.emplace(Name, std::move(Policy));
   }
 
-  /// Register a named policy. Call in your constructor.
+  /// Register a named policy. Call in \link registerNamedPolicies.
   void registerNamedPolicy(const std::string& Name,
                            const PrintingPolicy& Policy) {
     NamedPolicies.emplace(Name, Policy);
