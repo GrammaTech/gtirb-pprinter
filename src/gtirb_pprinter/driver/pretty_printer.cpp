@@ -121,9 +121,10 @@ int main(int argc, char** argv) {
   desc.add_options()("layout,l", "Layout code and data in memory to "
                                  "avoid overlap");
   desc.add_options()("debug,d", "Turn on debugging (will break assembly)");
-  desc.add_options()("policy,p", po::value<std::string>(),
-                     "The base skip/keep policy to use. To use no policy, "
-                     "specify --keep-all.");
+  desc.add_options()(
+      "policy,p", po::value<std::string>(),
+      "The default set of objects to skip when printing assembly. To modify "
+      "this set further, use the --keep and --skip options.");
 
   desc.add_options()("keep-function",
                      po::value<std::vector<std::string>>()->multitoken(),
