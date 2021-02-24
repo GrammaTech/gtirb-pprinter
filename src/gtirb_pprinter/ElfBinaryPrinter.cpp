@@ -141,6 +141,10 @@ ElfBinaryPrinter::buildCompilerArgs(std::string outputFilename,
       args.push_back("-m32");
     }
   }
+  // add -nostartfiles if using complete policy
+  if (Printer.getPolicyName() == "complete") {
+    args.push_back("-nostartfiles");
+  }
 
   if (debug) {
     std::cout << "Compiler arguments: ";

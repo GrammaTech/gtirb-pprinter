@@ -199,7 +199,7 @@ public:
   PolicyOptions& arraySectionPolicy() { return ArraySectionPolicy; }
   const PolicyOptions& arraySectionPolicy() const { return ArraySectionPolicy; }
 
-  std::string getPolicyName() { return PolicyName; }
+  std::string getPolicyName() const { return PolicyName; }
   void setPolicyName(const std::string& Name) { PolicyName = Name; }
 
   boost::iterator_range<NamedPolicyMap::const_iterator> namedPolicies() const;
