@@ -72,10 +72,16 @@ Mips32PrettyPrinter::Mips32PrettyPrinter(gtirb::Context& context_,
     LOG_ERROR << "WARNING: Could not find _gp.";
   }
 
+  unsigned int mode = CS_MODE_MIPS32;
+  if (module_.getByteOrder() == gtirb::ByteOrder::Big) {
+    mode |= CS_MODE_BIG_ENDIAN;
+  } else if (module_.getByteOrder() == gtirb::ByteOrder::Little) {
+    mode |= CS_MODE_LITTLE_ENDIAN;
+  }
+
   // Setup Capstone.
   [[maybe_unused]] cs_err err =
-      cs_open(CS_ARCH_MIPS, (cs_mode)(CS_MODE_MIPS32 | CS_MODE_BIG_ENDIAN),
-              &this->csHandle);
+      cs_open(CS_ARCH_MIPS, (cs_mode)mode, &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
 }
 
