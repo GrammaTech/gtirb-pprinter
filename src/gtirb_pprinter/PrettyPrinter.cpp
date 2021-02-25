@@ -171,24 +171,31 @@ bool PrettyPrinter::namedPolicyExists(const std::string& Name) const {
   return It->second->findNamedPolicy(Name) != nullptr;
 }
 
+PrettyPrinterFactory& PrettyPrinter::getFactory(gtirb::Module& Module) const {
+  auto target = std::make_tuple(m_format, m_isa, m_syntax);
+  if (m_format.empty()) {
+    const std::string& format = gtirb_pprint::getModuleFileFormat(Module);
+    const std::string& isa = gtirb_pprint::getModuleISA(Module);
+    const std::string& syntax = getDefaultSyntax(format, isa).value_or("");
+    target = std::make_tuple(format, isa, syntax);
+  }
+  return *getFactories().at(target);
+}
+
+const PrintingPolicy& PrettyPrinter::getPolicy(gtirb::Module& Module) const {
+  const PrettyPrinterFactory& Factory = getFactory(Module);
+  return PolicyName == "default" ? Factory.defaultPrintingPolicy(Module)
+                                 : *Factory.findNamedPolicy(PolicyName);
+}
+
 std::error_condition PrettyPrinter::print(std::ostream& stream,
                                           gtirb::Context& context,
                                           gtirb::Module& module) const {
   // Find pretty printer factory.
-  auto target = std::make_tuple(m_format, m_isa, m_syntax);
-  if (m_format.empty()) {
-    const std::string& format = gtirb_pprint::getModuleFileFormat(module);
-    const std::string& isa = gtirb_pprint::getModuleISA(module);
-    const std::string& syntax = getDefaultSyntax(format, isa).value_or("");
-    target = std::make_tuple(format, isa, syntax);
-  }
-  const std::shared_ptr<PrettyPrinterFactory> factory =
-      getFactories().at(target);
+  PrettyPrinterFactory& Factory = getFactory(module);
 
   // Configure printing policy.
-  PrintingPolicy policy(PolicyName == "default"
-                            ? factory->defaultPrintingPolicy(module)
-                            : *factory->findNamedPolicy(PolicyName));
+  PrintingPolicy policy(getPolicy(module));
   policy.debug = m_debug;
   FunctionPolicy.apply(policy.skipFunctions);
   SymbolPolicy.apply(policy.skipSymbols);
@@ -196,7 +203,7 @@ std::error_condition PrettyPrinter::print(std::ostream& stream,
   ArraySectionPolicy.apply(policy.arraySections);
 
   // Create the pretty printer and print the IR.
-  factory->create(context, module, policy)->print(stream);
+  Factory.create(context, module, policy)->print(stream);
 
   return std::error_condition{};
 }
