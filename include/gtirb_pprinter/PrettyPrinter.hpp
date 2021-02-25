@@ -136,7 +136,7 @@ struct DEBLOAT_PRETTYPRINTER_EXPORT_API PrintingPolicy {
   DebugStyle debug = NoDebug;
 };
 
-using NamedPolicyMap = std::unordered_map<std::string, const PrintingPolicy>;
+using NamedPolicyMap = std::unordered_map<std::string, PrintingPolicy>;
 
 class NamedPolicyIteratorTransformer {
 public:
@@ -245,13 +245,17 @@ public:
   /// Return the policy with a given name, or nullptr if none was found.
   const PrintingPolicy* findNamedPolicy(const std::string& Name) const;
 
-  /// Register all your named policies in this function.
-  virtual void registerNamedPolicies() = 0;
-
 protected:
-  /// Register a named policy. Call in \link registerNamedPolicies.
+  /// Register a named policy. Call in your constructor.
   void registerNamedPolicy(const std::string& Name,
                            const PrintingPolicy Policy);
+
+  /// Remove a previously registered named policy. Call in your constructor.
+  void deregisterNamedPolicy(const std::string& Name);
+
+  /// Get a previously registered named policy for modification. Call in your
+  /// constructor.
+  PrintingPolicy* findRegisteredNamedPolicy(const std::string& Name);
 
 private:
   NamedPolicyMap NamedPolicies;

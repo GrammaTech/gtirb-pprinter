@@ -290,7 +290,7 @@ ElfPrettyPrinterFactory::defaultPrintingPolicy(gtirb::Module& Module) const {
                                 : *findNamedPolicy("dynamic");
 }
 
-void ElfPrettyPrinterFactory::registerNamedPolicies() {
+ElfPrettyPrinterFactory::ElfPrettyPrinterFactory() {
   registerNamedPolicy(
       "dynamic",
       PrintingPolicy{

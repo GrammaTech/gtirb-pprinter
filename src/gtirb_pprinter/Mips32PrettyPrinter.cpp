@@ -59,7 +59,11 @@ Mips32PrettyPrinterFactory::create(gtirb::Context& gtirb_context,
                                                policy);
 }
 
-void Mips32PrettyPrinterFactory::registerNamedPolicies() {}
+Mips32PrettyPrinterFactory::Mips32PrettyPrinterFactory() {
+  deregisterNamedPolicy("dynamic");
+  deregisterNamedPolicy("static");
+  deregisterNamedPolicy("complete");
+}
 
 Mips32PrettyPrinter::Mips32PrettyPrinter(gtirb::Context& context_,
                                          gtirb::Module& module_,

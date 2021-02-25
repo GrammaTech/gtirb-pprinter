@@ -61,15 +61,11 @@ protected:
 
 class Arm64PrettyPrinterFactory : public ElfPrettyPrinterFactory {
 public:
-  /// Load the default printing policy.
-  const PrintingPolicy&
-  defaultPrintingPolicy(gtirb::Module& Module) const override;
+  Arm64PrettyPrinterFactory();
 
   std::unique_ptr<PrettyPrinterBase>
   create(gtirb::Context& context, gtirb::Module& module,
          const PrintingPolicy& policy) override;
-
-  void registerNamedPolicies() override;
 };
 
 } // namespace gtirb_pprint

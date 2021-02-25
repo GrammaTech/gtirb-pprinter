@@ -62,12 +62,10 @@ protected:
 
 class ArmPrettyPrinterFactory : public ElfPrettyPrinterFactory {
 public:
-  const PrintingPolicy&
-  defaultPrintingPolicy(gtirb::Module& Module) const override;
+  ArmPrettyPrinterFactory();
   std::unique_ptr<PrettyPrinterBase>
   create(gtirb::Context& context, gtirb::Module& module,
          const PrintingPolicy& policy) override;
-  void registerNamedPolicies() override;
 };
 
 } // namespace gtirb_pprint

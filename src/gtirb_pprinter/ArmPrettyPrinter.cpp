@@ -256,21 +256,6 @@ std::string ArmPrettyPrinter::getFunctionName(gtirb::Addr x) const {
   return PrettyPrinterBase::getFunctionName(x);
 }
 
-const PrintingPolicy&
-ArmPrettyPrinterFactory::defaultPrintingPolicy(gtirb::Module& Module) const {
-  static PrintingPolicy DefaultPolicy(
-      ElfPrettyPrinterFactory::defaultPrintingPolicy(Module));
-
-  // We skip .init_array and .fini_array instead of
-  // having them in the arraySections.
-  if (!isStaticBinary(Module)) {
-    DefaultPolicy.arraySections.clear();
-    DefaultPolicy.skipSections.emplace(".init_array");
-    DefaultPolicy.skipSections.emplace(".fini_array");
-  }
-  return DefaultPolicy;
-}
-
 std::unique_ptr<PrettyPrinterBase>
 ArmPrettyPrinterFactory::create(gtirb::Context& gtirb_context,
                                 gtirb::Module& module,
@@ -280,5 +265,10 @@ ArmPrettyPrinterFactory::create(gtirb::Context& gtirb_context,
                                             policy);
 }
 
-void ArmPrettyPrinterFactory::registerNamedPolicies() {}
+ArmPrettyPrinterFactory::ArmPrettyPrinterFactory() {
+  auto& DynamicPolicy = *findRegisteredNamedPolicy("dynamic");
+  DynamicPolicy.arraySections.clear();
+  DynamicPolicy.skipSections.emplace(".init_array");
+  DynamicPolicy.skipSections.emplace(".fini_array");
+}
 } // namespace gtirb_pprint

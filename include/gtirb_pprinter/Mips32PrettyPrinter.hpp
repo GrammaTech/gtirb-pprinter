@@ -65,14 +65,14 @@ private:
 class DEBLOAT_PRETTYPRINTER_EXPORT_API Mips32PrettyPrinterFactory
     : public ElfPrettyPrinterFactory {
 public:
+  Mips32PrettyPrinterFactory();
+
   const PrintingPolicy&
   defaultPrintingPolicy(gtirb::Module& Module) const override;
 
   std::unique_ptr<PrettyPrinterBase>
   create(gtirb::Context& context, gtirb::Module& module,
          const PrintingPolicy& policy) override;
-
-  void registerNamedPolicies() override;
 };
 
 } // namespace gtirb_pprint
