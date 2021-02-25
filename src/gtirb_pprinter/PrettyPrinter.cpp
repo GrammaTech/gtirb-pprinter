@@ -150,24 +150,30 @@ void PrettyPrinter::setDebug(bool do_debug) {
 
 bool PrettyPrinter::getDebug() const { return m_debug == DebugMessages; }
 
-boost::iterator_range<NamedPolicyMap::const_iterator>
+boost::iterator_range<NamedPolicyIterator>
 PrettyPrinter::namedPolicies() const {
   auto It = getFactories().find(std::make_tuple(m_format, m_isa, m_syntax));
   if (It == getFactories().end()) {
     static const NamedPolicyMap EmptyPolicyMap;
-    return boost::make_iterator_range(EmptyPolicyMap.end(),
-                                      EmptyPolicyMap.end());
+    return boost::make_iterator_range(
+        boost::make_transform_iterator(EmptyPolicyMap.begin(),
+                                       NamedPolicyIteratorTransformer()),
+        boost::make_transform_iterator(EmptyPolicyMap.end(),
+                                       NamedPolicyIteratorTransformer()));
   }
-  return It->second->namedPolicies();
+  return boost::make_iterator_range(
+      boost::make_transform_iterator(It->second->namedPolicies().begin(),
+                                     NamedPolicyIteratorTransformer()),
+      boost::make_transform_iterator(It->second->namedPolicies().end(),
+                                     NamedPolicyIteratorTransformer()));
 }
 
-const PrintingPolicy*
-PrettyPrinter::findNamedPolicy(const std::string& Name) const {
+bool PrettyPrinter::namedPolicyExists(const std::string& Name) const {
   auto It = getFactories().find(std::make_tuple(m_format, m_isa, m_syntax));
   if (It == getFactories().end()) {
-    return nullptr;
+    return false;
   }
-  return It->second->findNamedPolicy(Name);
+  return It->second->findNamedPolicy(Name) != nullptr;
 }
 
 std::error_condition PrettyPrinter::print(std::ostream& stream,
@@ -224,6 +230,11 @@ void PrettyPrinterFactory::registerNamedPolicy(const std::string& Name,
 void PrettyPrinterFactory::registerNamedPolicy(const std::string& Name,
                                                const PrintingPolicy& Policy) {
   NamedPolicies.emplace(Name, Policy);
+}
+
+const std::string& NamedPolicyIteratorTransformer::
+operator()(NamedPolicyMap::const_iterator::reference Pair) const {
+  return Pair.first;
 }
 
 PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
