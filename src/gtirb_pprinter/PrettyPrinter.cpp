@@ -200,6 +200,32 @@ std::error_condition PrettyPrinter::print(std::ostream& stream,
   return std::error_condition{};
 }
 
+boost::iterator_range<NamedPolicyMap::const_iterator>
+PrettyPrinterFactory::namedPolicies() const {
+  return boost::make_iterator_range(NamedPolicies.begin(), NamedPolicies.end());
+}
+
+const PrintingPolicy*
+PrettyPrinterFactory::findNamedPolicy(const std::string& Name) const {
+  auto It = NamedPolicies.find(Name);
+  if (It == NamedPolicies.end()) {
+    return nullptr;
+  } else {
+    return &It->second;
+  }
+}
+
+void PrettyPrinterFactory::registerNamedPolicy(const std::string& Name,
+                                               const PrintingPolicy&& Policy) {
+  NamedPolicies.emplace(Name, std::move(Policy));
+}
+
+/// Register a named policy. Call in \link registerNamedPolicies.
+void PrettyPrinterFactory::registerNamedPolicy(const std::string& Name,
+                                               const PrintingPolicy& Policy) {
+  NamedPolicies.emplace(Name, Policy);
+}
+
 PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
                                      gtirb::Module& module_,
                                      const Syntax& syntax_,

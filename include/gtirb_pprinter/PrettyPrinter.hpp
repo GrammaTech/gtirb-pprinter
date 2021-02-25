@@ -230,20 +230,10 @@ public:
          const PrintingPolicy& policy) = 0;
 
   /// Return a list of all named policies.
-  boost::iterator_range<NamedPolicyMap::const_iterator> namedPolicies() const {
-    return boost::make_iterator_range(NamedPolicies.begin(),
-                                      NamedPolicies.end());
-  }
+  boost::iterator_range<NamedPolicyMap::const_iterator> namedPolicies() const;
 
   /// Return the policy with a given name, or nullptr if none was found.
-  const PrintingPolicy* findNamedPolicy(const std::string& Name) const {
-    auto It = NamedPolicies.find(Name);
-    if (It == NamedPolicies.end()) {
-      return nullptr;
-    } else {
-      return &It->second;
-    }
-  }
+  const PrintingPolicy* findNamedPolicy(const std::string& Name) const;
 
   /// Register all your named policies in this function.
   virtual void registerNamedPolicies() = 0;
@@ -251,15 +241,11 @@ public:
 protected:
   /// Register a named policy. Call in \link registerNamedPolicies.
   void registerNamedPolicy(const std::string& Name,
-                           const PrintingPolicy&& Policy) {
-    NamedPolicies.emplace(Name, std::move(Policy));
-  }
+                           const PrintingPolicy&& Policy);
 
   /// Register a named policy. Call in \link registerNamedPolicies.
   void registerNamedPolicy(const std::string& Name,
-                           const PrintingPolicy& Policy) {
-    NamedPolicies.emplace(Name, Policy);
-  }
+                           const PrintingPolicy& Policy);
 
 private:
   NamedPolicyMap NamedPolicies;
