@@ -251,11 +251,7 @@ public:
 protected:
   /// Register a named policy. Call in \link registerNamedPolicies.
   void registerNamedPolicy(const std::string& Name,
-                           const PrintingPolicy&& Policy);
-
-  /// Register a named policy. Call in \link registerNamedPolicies.
-  void registerNamedPolicy(const std::string& Name,
-                           const PrintingPolicy& Policy);
+                           const PrintingPolicy Policy);
 
 private:
   NamedPolicyMap NamedPolicies;

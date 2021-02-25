@@ -222,14 +222,8 @@ PrettyPrinterFactory::findNamedPolicy(const std::string& Name) const {
 }
 
 void PrettyPrinterFactory::registerNamedPolicy(const std::string& Name,
-                                               const PrintingPolicy&& Policy) {
+                                               const PrintingPolicy Policy) {
   NamedPolicies.emplace(Name, std::move(Policy));
-}
-
-/// Register a named policy. Call in \link registerNamedPolicies.
-void PrettyPrinterFactory::registerNamedPolicy(const std::string& Name,
-                                               const PrintingPolicy& Policy) {
-  NamedPolicies.emplace(Name, Policy);
 }
 
 const std::string& NamedPolicyIteratorTransformer::
