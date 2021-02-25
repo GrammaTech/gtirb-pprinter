@@ -55,7 +55,6 @@ bool registerPrinter(std::initializer_list<std::string> formats,
   assert(formats.size() > 0 && "No formats to register!");
   assert(isas.size() > 0 && "No ISAs to register!");
   assert(syntaxes.size() > 0 && "No syntaxes to register!");
-  f->registerNamedPolicies();
   for (const std::string& format : formats) {
     for (const std::string& isa : isas) {
       for (const std::string& syntax : syntaxes) {
@@ -217,9 +216,23 @@ PrettyPrinterFactory::findNamedPolicy(const std::string& Name) const {
   }
 }
 
+PrintingPolicy*
+PrettyPrinterFactory::findRegisteredNamedPolicy(const std::string& Name) {
+  auto It = NamedPolicies.find(Name);
+  if (It == NamedPolicies.end()) {
+    return nullptr;
+  } else {
+    return &It->second;
+  }
+}
+
 void PrettyPrinterFactory::registerNamedPolicy(const std::string& Name,
                                                const PrintingPolicy Policy) {
   NamedPolicies.emplace(Name, std::move(Policy));
+}
+
+void PrettyPrinterFactory::deregisterNamedPolicy(const std::string& Name) {
+  NamedPolicies.erase(Name);
 }
 
 const std::string& NamedPolicyIteratorTransformer::
