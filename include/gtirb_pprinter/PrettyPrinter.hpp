@@ -128,10 +128,13 @@ struct DEBLOAT_PRETTYPRINTER_EXPORT_API PrintingPolicy {
   /// Sections to avoid printing.
   std::unordered_set<std::string> skipSections;
 
-  // These sections have a couple of special cases for data objects. They
-  // usually contain entries that need to be ignored (the compiler will add them
-  // again) and require special alignment of 8
+  /// These sections have a couple of special cases for data objects. They
+  /// usually contain entries that need to be ignored (the compiler will add
+  /// them again) and require special alignment of 8
   std::unordered_set<std::string> arraySections;
+
+  /// Additional arguments to the compiler. Used only with binary printers.
+  std::unordered_set<std::string> compilerArguments{};
 
   DebugStyle debug = NoDebug;
 };
@@ -214,6 +217,7 @@ public:
 
   boost::iterator_range<NamedPolicyIterator> namedPolicies() const;
   bool namedPolicyExists(const std::string& Name) const;
+  const PrintingPolicy& getPolicy(gtirb::Module& Module) const;
 
 private:
   std::string m_format;
@@ -222,6 +226,8 @@ private:
   DebugStyle m_debug;
   PolicyOptions FunctionPolicy, SymbolPolicy, SectionPolicy, ArraySectionPolicy;
   std::string PolicyName = "default";
+
+  PrettyPrinterFactory& getFactory(gtirb::Module& Module) const;
 };
 
 /// Abstract factory - encloses default printing configuration and a method for

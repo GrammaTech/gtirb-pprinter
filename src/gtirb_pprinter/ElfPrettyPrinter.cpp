@@ -311,6 +311,8 @@ ElfPrettyPrinterFactory::ElfPrettyPrinterFactory() {
 
           /// Sections with possible data object exclusion.
           {".fini_array", ".init_array"},
+          /// Extra compiler arguments.
+          {},
       });
   registerNamedPolicy("static",
                       PrintingPolicy{
@@ -322,6 +324,8 @@ ElfPrettyPrinterFactory::ElfPrettyPrinterFactory() {
                           {".eh_frame", ".rela.plt"},
                           /// Sections with possible data object exclusion.
                           {},
+                          /// Extra compiler arguments.
+                          {"-static"},
                       });
   registerNamedPolicy("complete",
                       PrintingPolicy{
@@ -334,6 +338,8 @@ ElfPrettyPrinterFactory::ElfPrettyPrinterFactory() {
                            ".plt", ".rela.dyn", ".rela.plt"},
                           /// Sections with possible data object exclusion.
                           {},
+                          /// Extra compiler arguments.
+                          {"-nostartfiles"},
                       });
 }
 
