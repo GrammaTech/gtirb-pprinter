@@ -279,6 +279,9 @@ protected:
 
   virtual void fixupInstruction(cs_insn& inst);
 
+  // x86-specific fixups helper.
+  void x86FixupInstruction(cs_insn& inst);
+
   /// Print a single instruction to the stream. This implementation prints the
   /// mnemonic provided by Capstone, then calls printOperandList(). Thus, it is
   /// probably sufficient for most subclasses to configure Capstone to produce

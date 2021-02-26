@@ -48,8 +48,6 @@ void ArmPrettyPrinter::setDecodeMode(std::ostream& os,
   }
 }
 
-void ArmPrettyPrinter::fixupInstruction(cs_insn& /*inst*/) {}
-
 void ArmPrettyPrinter::printInstruction(std::ostream& os,
                                         const gtirb::CodeBlock& block,
                                         const cs_insn& inst,
