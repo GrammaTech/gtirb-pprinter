@@ -153,12 +153,7 @@ boost::iterator_range<NamedPolicyIterator>
 PrettyPrinter::namedPolicies() const {
   auto It = getFactories().find(std::make_tuple(m_format, m_isa, m_syntax));
   if (It == getFactories().end()) {
-    static const NamedPolicyMap EmptyPolicyMap;
-    return boost::make_iterator_range(
-        boost::make_transform_iterator(EmptyPolicyMap.begin(),
-                                       NamedPolicyIteratorTransformer()),
-        boost::make_transform_iterator(EmptyPolicyMap.end(),
-                                       NamedPolicyIteratorTransformer()));
+    return {};
   }
   return boost::make_iterator_range(
       boost::make_transform_iterator(It->second->namedPolicies().begin(),
