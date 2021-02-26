@@ -32,6 +32,10 @@ IntelPrettyPrinter::IntelPrettyPrinter(gtirb::Context& context_,
   assert(err == CS_ERR_OK && "Capstone failure");
 }
 
+void IntelPrettyPrinter::fixupInstruction(cs_insn& inst) {
+  x86FixupInstruction(inst);
+}
+
 void IntelPrettyPrinter::printHeader(std::ostream& os) {
   this->printBar(os);
   os << ".intel_syntax noprefix\n";

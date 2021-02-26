@@ -100,6 +100,7 @@ protected:
   void printIncludes(std::ostream& os);
   void printExterns(std::ostream& os);
 
+  void fixupInstruction(cs_insn& inst) override;
   void printHeader(std::ostream& os) override;
   void printFooter(std::ostream& os) override;
 
@@ -126,7 +127,6 @@ protected:
   getForwardedSymbolName(const gtirb::Symbol* symbol) const override;
 
   std::string getRegisterName(unsigned int Reg) const override;
-  void fixupInstruction(cs_insn& inst) override;
 
   void printSymbolDefinition(std::ostream& os,
                              const gtirb::Symbol& symbol) override;

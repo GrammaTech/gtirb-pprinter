@@ -318,7 +318,7 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
     }
   }
 
-  PrettyPrinterBase::fixupInstruction(inst);
+  x86FixupInstruction(inst);
 }
 
 std::optional<std::string>

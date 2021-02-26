@@ -28,6 +28,7 @@ public:
 protected:
   std::string getRegisterName(unsigned int reg) const override;
 
+  void fixupInstruction(cs_insn& inst) override;
   void printHeader(std::ostream& os) override;
   void printOpRegdirect(std::ostream& os, const cs_insn& inst,
                         uint64_t index) override;
