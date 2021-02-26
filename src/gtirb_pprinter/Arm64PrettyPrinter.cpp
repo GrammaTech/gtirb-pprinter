@@ -449,7 +449,7 @@ void Arm64PrettyPrinter::printExtender(std::ostream& os,
 const PrintingPolicy&
 Arm64PrettyPrinterFactory::defaultPrintingPolicy(gtirb::Module& Module) const {
   static PrintingPolicy DefaultPolicy(
-      Arm64PrettyPrinterFactory::defaultPrintingPolicy(Module));
+      ElfPrettyPrinterFactory::defaultPrintingPolicy(Module));
 
   // We skip .init_array and .fini_array instead of
   // having them in the arraySections.
