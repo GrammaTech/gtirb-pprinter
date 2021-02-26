@@ -1,3 +1,6 @@
+1.6.0
+
+  * Add PE support.
   * Remove null displacement offset warning.
 
 1.5.0
