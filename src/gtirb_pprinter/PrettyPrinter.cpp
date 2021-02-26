@@ -286,6 +286,8 @@ void PrettyPrinterBase::printOverlapWarning(std::ostream& os,
   os.flags(flags);
 }
 
+// X86_FIXUP_HACK: see comment at x86FixupInstruction definition
+static void x86FixupInstruction(cs_insn& inst);
 void PrettyPrinterBase::printBlockContents(std::ostream& os,
                                            const gtirb::CodeBlock& x,
                                            uint64_t offset) {
@@ -309,6 +311,11 @@ void PrettyPrinterBase::printBlockContents(std::ostream& os,
 
   gtirb::Offset blockOffset(x.getUUID(), offset);
   for (size_t i = 0; i < count; i++) {
+    // X86_FIXUP_HACK: see comment at x86FixupInstruction definition
+    if (auto isa = x.getByteInterval()->getSection()->getModule()->getISA();
+        isa == gtirb::ISA::IA32 || isa == gtirb::ISA::X64) {
+      x86FixupInstruction(insn[i]);
+    }
     fixupInstruction(insn[i]);
     printInstruction(os, x, insn[i], blockOffset);
     blockOffset.Displacement += insn[i].size;
@@ -417,7 +424,13 @@ void PrettyPrinterBase::printSymbolDefinition(std::ostream& os,
   os << getSymbolName(symbol) << ":\n";
 }
 
-void PrettyPrinterBase::fixupInstruction(cs_insn& inst) {
+void PrettyPrinterBase::fixupInstruction(cs_insn&) {}
+
+// X86_FIXUP_HACK: The following fixup should properly belong to a subclass
+// implementation of fixupInstruction that's activated for x86 and x64 only,
+// but the current {PE, Elf} x {Att, Intel, Masm} hierarchy doesn't have a good
+// place for this, so we use a runtime ISA filter for now.
+static void x86FixupInstruction(cs_insn& inst) {
   cs_x86& detail = inst.detail->x86;
 
   // Operands are implicit for various MOVS* instructions. But there is also
