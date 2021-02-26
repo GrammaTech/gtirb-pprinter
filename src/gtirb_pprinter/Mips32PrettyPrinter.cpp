@@ -75,7 +75,7 @@ Mips32PrettyPrinter::Mips32PrettyPrinter(gtirb::Context& context_,
     GP = &a.front();
   } else {
     // If _gp is not found, leave GP as NULL.
-    LOG_ERROR << "WARNING: Could not find _gp.";
+    LOG_ERROR << "WARNING: Could not find _gp.\n";
   }
 
   unsigned int mode = CS_MODE_MIPS32;
@@ -123,11 +123,46 @@ void Mips32PrettyPrinter::printAlignment(std::ostream& os,
   }
 }
 
+// Workaround for correct printing of the following instructions:
+//
+//      cfc1  $t0,$31       instead of      cfc1 $t0,$ra     (be: 4448f800)
+//      ctc1  $at,$31       instead of      ctc1 $at,$ra     (be: 44c1f800)
+//      rdhwr $v1,$29       instead of      rdhwr $v1,$sp    (be: 7c03e83b)
+//      ldc2  $3,0($k0)     instead of      ldc2 $v1,0($k0)  (be: db430000)
+//      lwc2  $3,0($k0)     instead of      lwc2 $v1,0($k0)  (be: cb430000)
+//      sdc2  $3,0($k0)     instead of      sdc2 $v1,0($k0)  (be: fb430000)
+//      swc2  $3,0($k0)     instead of      swc2 $v1,0($k0)  (be: eb430000)
+//
+// Note that capstone's Mips_printInst has the logic to produce the correct
+// output (as can be seen by running `cstool -d mipsbe 4448f800`),
+// but capstone's Mips_map_register folds away the distinction.
+// To implement a proper capstone fix, start by looking at Mips_map_register.
+//
+// Note: cfc1 and ctc1 occur as part of trunc.w.d macro expansion (when
+// compiling with -march=mips1); rdhwr is produced by gcc/libsanitizer (kernel
+// illegal instruction trap optimized for v1).
+static bool printOpRegdirectSpecial(std::ostream& os,
+                                    unsigned int opcode, // cs_insn.id
+                                    uint64_t opno, mips_reg reg) {
+  // NOTE: this should ideally be an unordered_set, but it's not worth mucking
+  // with a hash function at this point (until there is a std::hash_combine).
+  static const std::set<std::pair<unsigned int, uint64_t>> specials = {
+      {MIPS_INS_CTC1, 1}, {MIPS_INS_CFC1, 1}, {MIPS_INS_RDHWR, 1},
+      {MIPS_INS_LDC2, 0}, {MIPS_INS_LWC2, 0}, {MIPS_INS_SDC2, 0},
+      {MIPS_INS_SWC2, 0},
+  };
+  if (specials.find({opcode, opno}) == specials.end())
+    return false;
+  os << "$" << (reg - MIPS_REG_0);
+  return true;
+}
+
 void Mips32PrettyPrinter::printOpRegdirect(std::ostream& os,
                                            const cs_insn& inst,
                                            uint64_t index) {
   const cs_mips_op& op = inst.detail->mips.operands[index];
-  os << getRegisterName(op.reg);
+  if (!printOpRegdirectSpecial(os, inst.id, index, op.reg))
+    os << getRegisterName(op.reg);
 }
 
 void Mips32PrettyPrinter::printOpImmediate(
