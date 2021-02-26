@@ -149,8 +149,7 @@ void PrettyPrinter::setDebug(bool do_debug) {
 
 bool PrettyPrinter::getDebug() const { return m_debug == DebugMessages; }
 
-boost::iterator_range<NamedPolicyIterator>
-PrettyPrinter::namedPolicies() const {
+boost::iterator_range<NamedPolicyIterator> PrettyPrinter::policyNames() const {
   auto It = getFactories().find(std::make_tuple(m_format, m_isa, m_syntax));
   if (It == getFactories().end()) {
     return {};

@@ -215,7 +215,7 @@ public:
   std::string getPolicyName() const { return PolicyName; }
   void setPolicyName(const std::string& Name) { PolicyName = Name; }
 
-  boost::iterator_range<NamedPolicyIterator> namedPolicies() const;
+  boost::iterator_range<NamedPolicyIterator> policyNames() const;
   bool namedPolicyExists(const std::string& Name) const;
   const PrintingPolicy& getPolicy(gtirb::Module& Module) const;
 

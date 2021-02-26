@@ -296,7 +296,7 @@ int main(int argc, char** argv) {
     if (Policy != "default" && !pp.namedPolicyExists(Policy)) {
       LOG_ERROR << "Unknown policy '" << Policy << "'. Available policies:\n";
       LOG_ERROR << "\tdefault\n";
-      for (const auto& Name : pp.namedPolicies()) {
+      for (const auto& Name : pp.policyNames()) {
         LOG_ERROR << "\t" << Name << "\n";
       }
       return EXIT_FAILURE;
