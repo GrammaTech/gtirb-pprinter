@@ -141,7 +141,7 @@ struct DEBLOAT_PRETTYPRINTER_EXPORT_API PrintingPolicy {
 
 using NamedPolicyMap = std::unordered_map<std::string, PrintingPolicy>;
 
-class NamedPolicyIteratorTransformer {
+class DEBLOAT_PRETTYPRINTER_EXPORT_API NamedPolicyIteratorTransformer {
 public:
   const std::string&
   operator()(NamedPolicyMap::const_iterator::reference Pair) const;
