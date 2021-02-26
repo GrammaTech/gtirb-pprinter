@@ -17,6 +17,7 @@
 #include "AttPrettyPrinter.hpp"
 #include "AuxDataSchema.hpp"
 #include "IntelPrettyPrinter.hpp"
+#include "MasmPrettyPrinter.hpp"
 #include "PrettyPrinter.hpp"
 #include <gtirb/gtirb.hpp>
 
@@ -29,12 +30,18 @@ void registerAuxDataTypes() {
   gtirb::AuxDataContainer::registerAuxDataType<SymbolForwarding>();
   gtirb::AuxDataContainer::registerAuxDataType<Encodings>();
   gtirb::AuxDataContainer::registerAuxDataType<ElfSectionProperties>();
+  gtirb::AuxDataContainer::registerAuxDataType<PeSectionProperties>();
   gtirb::AuxDataContainer::registerAuxDataType<CfiDirectives>();
   gtirb::AuxDataContainer::registerAuxDataType<Libraries>();
   gtirb::AuxDataContainer::registerAuxDataType<LibraryPaths>();
+  gtirb::AuxDataContainer::registerAuxDataType<PeImportedSymbols>();
+  gtirb::AuxDataContainer::registerAuxDataType<PeExportedSymbols>();
+  gtirb::AuxDataContainer::registerAuxDataType<ExportEntries>();
+  gtirb::AuxDataContainer::registerAuxDataType<ImportEntries>();
   gtirb::AuxDataContainer::registerAuxDataType<ElfSymbolInfo>();
   gtirb::AuxDataContainer::registerAuxDataType<SymbolicExpressionSizes>();
   gtirb::AuxDataContainer::registerAuxDataType<BinaryType>();
+  gtirb::AuxDataContainer::registerAuxDataType<PEResources>();
 }
 
 void registerPrettyPrinters() {
@@ -44,5 +51,7 @@ void registerPrettyPrinters() {
                   std::make_shared<AttPrettyPrinterFactory>());
   registerPrinter({"elf"}, {"arm64"}, {"arm64"},
                   std::make_shared<Arm64PrettyPrinterFactory>(), true);
+  registerPrinter({"pe"}, {"x86", "x64"}, {"masm"},
+                  std::make_shared<MasmPrettyPrinterFactory>(), true);
 }
 } // namespace gtirb_pprint

@@ -28,7 +28,7 @@ class TempFile {
   std::ofstream FileStream;
 
 public:
-  TempFile();
+  TempFile(const std::string extension = std::string(".s"));
   ~TempFile();
 
   bool isOpen() const { return static_cast<bool>(FileStream); }
@@ -38,6 +38,8 @@ public:
   operator std::ofstream&() { return FileStream; }
   const std::string& fileName() const { return Name; }
 };
+
+std::string replaceExtension(const std::string path, const std::string new_ext);
 
 // Helper functions to resolve symlinks and get a real path to a file.
 std::optional<std::string> resolveRegularFilePath(const std::string& path);

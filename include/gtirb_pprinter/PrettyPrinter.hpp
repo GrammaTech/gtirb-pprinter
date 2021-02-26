@@ -56,6 +56,7 @@ using string_range = boost::any_range<std::string, boost::forward_traversal_tag,
 /// \endcode
 ///
 /// \param formats    the (non-empty) formats produced by the factory
+/// \param isas       the (non-empty) ISAs produced by the factory
 /// \param syntaxes   the (non-empty) syntaxes produced by the factory
 /// \param f          the (non-empty) \link PrettyPrinterFactory object
 /// \param isDefault  optionally make this the default factory for the
@@ -82,7 +83,7 @@ getModuleFileFormat(const gtirb::Module& module);
 DEBLOAT_PRETTYPRINTER_EXPORT_API std::string
 getModuleISA(const gtirb::Module& module);
 
-/// Set the default syntax for a file format.
+/// Set the default syntax for a file format and isa.
 DEBLOAT_PRETTYPRINTER_EXPORT_API void
 setDefaultSyntax(const std::string& format, const std::string& isa,
                  const std::string& syntax);
@@ -133,13 +134,13 @@ public:
   /// Set the target for which to pretty print. It is the caller's
   /// responsibility to ensure that the target name has been registered.
   ///
-  /// \param target compound indentifier of target format and syntax
+  /// \param target compound indentifier of target format, isa, and syntax
   void
   setTarget(const std::tuple<std::string, std::string, std::string>& target);
 
   /// Set the file format for which to pretty print.
   ///
-  /// \param format indentifier of target format
+  /// \param format indentifier of target format and isa.
   void setFormat(const std::string& format, const std::string& isa);
 
   /// Enable or disable debugging messages inside the pretty-printed code.
@@ -267,6 +268,7 @@ protected:
   virtual void printBlockContents(std::ostream& os,
                                   const gtirb::DataBlock& block,
                                   uint64_t offset);
+  virtual void setDecodeMode(std::ostream& os, const gtirb::CodeBlock& x);
   virtual void printNonZeroDataBlock(std::ostream& os,
                                      const gtirb::DataBlock& dataObject,
                                      uint64_t offset);

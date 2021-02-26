@@ -41,6 +41,12 @@ struct ElfSectionProperties {
   typedef std::map<gtirb::UUID, std::tuple<uint64_t, uint64_t>> Type;
 };
 
+/// \brief Auxiliary data covering PE section properties.
+struct PeSectionProperties {
+  static constexpr const char* Name = "peSectionProperties";
+  typedef std::map<gtirb::UUID, uint64_t> Type;
+};
+
 /// \brief Auxiliary data covering cfi directives.
 struct CfiDirectives {
   static constexpr const char* Name = "cfiDirectives";
@@ -62,6 +68,24 @@ struct LibraryPaths {
   typedef std::vector<std::string> Type;
 };
 
+/// \brief Auxiliary data for Windows data directories.
+struct DataDirectories {
+  static constexpr const char* Name = "dataDirectories";
+  typedef std::vector<std::tuple<std::string, uint64_t, uint64_t>> Type;
+};
+
+/// \brief Auxiliary data for the UUIDs of imported symbols in a PE file.
+struct PeImportedSymbols {
+  static constexpr const char* Name = "peImportedSymbols";
+  typedef std::vector<gtirb::UUID> Type;
+};
+
+/// \brief Auxiliary data for the UUIDs of exported symbols in a PE file.
+struct PeExportedSymbols {
+  static constexpr const char* Name = "peExportedSymbols";
+  typedef std::vector<gtirb::UUID> Type;
+};
+
 /// \brief Auxiliary data for extra symbol info.
 struct ElfSymbolInfo {
   static constexpr const char* Name = "elfSymbolInfo";
@@ -80,6 +104,28 @@ struct SymbolicExpressionSizes {
 struct BinaryType {
   static constexpr const char* Name = "binaryType";
   typedef std::vector<std::string> Type;
+};
+
+/// \brief Auxiliary data representing the export table of a PE file.
+struct ExportEntries {
+  static constexpr const char* Name = "peExportEntries";
+  // Tuples of the form {Address, Ordinal, Name}.
+  typedef std::vector<std::tuple<uint64_t, int64_t, std::string>> Type;
+};
+
+/// \brief Auxiliary data representing the import table of a PE file.
+struct ImportEntries {
+  static constexpr const char* Name = "peImportEntries";
+  // Tuples of the form {Iat_address, Ordinal, Function, Library}.
+  typedef std::vector<std::tuple<uint64_t, int64_t, std::string, std::string>>
+      Type;
+};
+
+// \brief List on PE Resources in the form <header, data_offset, data_length
+struct PEResources {
+  static constexpr const char* Name = "peResources";
+  typedef std::vector<std::tuple<std::vector<uint8_t>, gtirb::Offset, uint64_t>>
+      Type;
 };
 
 } // namespace schema

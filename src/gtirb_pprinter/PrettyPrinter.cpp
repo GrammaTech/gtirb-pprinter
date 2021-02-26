@@ -102,10 +102,10 @@ std::string getModuleISA(const gtirb::Module& module) {
   switch (module.getISA()) {
   case gtirb::ISA::ARM64:
     return "arm64";
-  case gtirb::ISA::IA32:
-    return "x86";
   case gtirb::ISA::X64:
     return "x64";
+  case gtirb::ISA::IA32:
+    return "x86";
   default:
     return "undefined";
   }
@@ -181,7 +181,6 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
       debug(policy.debug == DebugMessages ? true : false), context(context_),
       module(module_), functionEntry(), functionLastBlock() {
 
-  // Set up cache for fast lookup of functions by address.
   if (const auto* functionEntries =
           module.getAuxData<gtirb::schema::FunctionEntries>()) {
     for (auto const& function : *functionEntries) {
@@ -296,7 +295,6 @@ void PrettyPrinterBase::printBlockContents(std::ostream& os,
 
   cs_insn* insn;
   cs_option(this->csHandle, CS_OPT_DETAIL, CS_OPT_ON);
-
   size_t count = cs_disasm(this->csHandle, x.rawBytes<uint8_t>() + offset,
                            x.getSize() - offset,
                            static_cast<uint64_t>(addr) + offset, 0, &insn);
@@ -316,6 +314,9 @@ void PrettyPrinterBase::printBlockContents(std::ostream& os,
   printCFIDirectives(os, blockOffset);
   printFunctionFooter(os, addr);
 }
+
+void PrettyPrinterBase::setDecodeMode(std::ostream& /*os*/,
+                                      const gtirb::CodeBlock& /*x*/) {}
 
 void PrettyPrinterBase::printSectionHeader(std::ostream& os,
                                            const gtirb::Section& section) {
@@ -512,6 +513,12 @@ void PrettyPrinterBase::printInstruction(std::ostream& os,
     return;
   }
 
+  // TODO: Add 'padding' aux data to skipEA logic to decide if we should skip
+  //       int3 padding blocks.
+  if (inst.id == X86_INS_INT3) {
+    return;
+  }
+
   // end special cases
   ////////////////////////////////////////////////////////////////////
 
@@ -574,7 +581,7 @@ void PrettyPrinterBase::printOperandList(std::ostream& os,
       printOperand(os, block, inst, i);
       os << '}';
       if (Op.avx_zero_opmask) {
-        os << "{z}";
+        os << " {z}";
       }
     } else {
       // print normal operand

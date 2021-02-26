@@ -25,6 +25,8 @@ public:
 
   const std::string& string() const override { return StringDirective; }
 
+  virtual const std::string& attributePrefix() const { return AttributePrefix; }
+
   const std::string& byteData() const override { return ByteDirective; }
   const std::string& longData() const override { return LongDirective; }
   const std::string& quadData() const override { return QuadDirective; }
@@ -54,6 +56,8 @@ private:
   const std::string CommentStyle{"#"};
 
   const std::string StringDirective{".string"};
+
+  const std::string AttributePrefix{"@"};
 
   const std::string ByteDirective{".byte"};
   const std::string LongDirective{".long"};

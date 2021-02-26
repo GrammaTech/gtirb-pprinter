@@ -12,8 +12,8 @@
 //  endorsement should be inferred.
 //
 //===----------------------------------------------------------------------===//
-#ifndef GTIRB_PP_NASM_PRINTER_H
-#define GTIRB_PP_NASM_PRINTER_H
+#ifndef GTIRB_PP_INTEL_PRINTER_H
+#define GTIRB_PP_INTEL_PRINTER_H
 
 #include "ElfPrettyPrinter.hpp"
 
@@ -59,4 +59,4 @@ public:
 
 } // namespace gtirb_pprint
 
-#endif /* GTIRB_PP_NASM_PRINTER_H */
+#endif /* GTIRB_PP_INTEL_PRINTER_H */

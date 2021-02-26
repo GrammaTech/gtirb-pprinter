@@ -17,7 +17,6 @@
 
 #include "PrettyPrinter.hpp"
 #include <gtirb/gtirb.hpp>
-
 #include <string>
 #include <vector>
 
@@ -48,7 +47,7 @@ public:
   virtual int assemble(const std::string& outputFilename,
                        gtirb::Context& context, gtirb::Module& mod) const = 0;
   virtual int link(const std::string& outputFilename, gtirb::Context& context,
-                   gtirb::IR& ir) const = 0;
+                   gtirb::IR& ir) = 0;
 };
 } // namespace gtirb_bprint
 

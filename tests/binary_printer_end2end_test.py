@@ -54,6 +54,7 @@ class TestBinaryGeneration(unittest.TestCase):
             subprocess.check_output(
                 [
                     "gcc",
+                    "-no-pie",
                     "/tmp/two_mods/foo.o",
                     "/tmp/two_mods/foo1.o",
                     "-o",
