@@ -306,9 +306,8 @@ ElfPrettyPrinterFactory::ElfPrettyPrinterFactory() {
            "register_tm_clones", "__libc_csu_fini", "__libc_csu_init"},
 
           /// Symbols to avoid printing.
-          {"__bss_start", "__data_start", "__dso_handle", "_edata", "_fp_hw",
-           "_IO_stdin_used", "program_invocation_name",
-           "program_invocation_short_name", "__TMC_END__"},
+          {"__bss_start", "__data_start", "__dso_handle", "_fp_hw",
+           "_IO_stdin_used", "__TMC_END__"},
 
           /// Sections to avoid printing.
           {".comment", ".eh_frame_hdr", ".eh_frame", ".fini", ".got",
