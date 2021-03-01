@@ -145,16 +145,17 @@ void PrettyPrinter::setDebug(bool do_debug) {
 
 bool PrettyPrinter::getDebug() const { return m_debug == DebugMessages; }
 
-boost::iterator_range<NamedPolicyIterator> PrettyPrinter::policyNames() const {
+std::set<std::string> PrettyPrinter::policyNames() const {
   auto It = getFactories().find(std::make_tuple(m_format, m_isa, m_syntax));
   if (It == getFactories().end()) {
-    return {};
+    return std::set<std::string>();
   }
-  return boost::make_iterator_range(
-      boost::make_transform_iterator(It->second->namedPolicies().begin(),
-                                     NamedPolicyIteratorTransformer()),
-      boost::make_transform_iterator(It->second->namedPolicies().end(),
-                                     NamedPolicyIteratorTransformer()));
+
+  std::set<std::string> result;
+  for (const auto& Pair : It->second->namedPolicies()) {
+    result.insert(Pair.first);
+  }
+  return result;
 }
 
 bool PrettyPrinter::namedPolicyExists(const std::string& Name) const {
@@ -234,11 +235,6 @@ void PrettyPrinterFactory::registerNamedPolicy(const std::string& Name,
 
 void PrettyPrinterFactory::deregisterNamedPolicy(const std::string& Name) {
   NamedPolicies.erase(Name);
-}
-
-const std::string& NamedPolicyIteratorTransformer::
-operator()(NamedPolicyMap::const_iterator::reference Pair) const {
-  return Pair.first;
 }
 
 PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
