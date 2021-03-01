@@ -327,7 +327,10 @@ std::ostream& PrettyPrinterBase::print(std::ostream& os) {
          << " may not have been correctly relocated\n";
       printIntegralSymbol(os, sym);
     }
-    if (!sym.getAddress() && !sym.hasReferent() && !shouldSkip(sym)) {
+    if (!sym.getAddress() &&
+        (!sym.hasReferent() ||
+         sym.getReferent<gtirb::ProxyBlock>() != nullptr) &&
+        !shouldSkip(sym)) {
       printUndefinedSymbol(os, sym);
     }
   }
