@@ -141,16 +141,6 @@ struct DEBLOAT_PRETTYPRINTER_EXPORT_API PrintingPolicy {
 
 using NamedPolicyMap = std::unordered_map<std::string, PrintingPolicy>;
 
-class DEBLOAT_PRETTYPRINTER_EXPORT_API NamedPolicyIteratorTransformer {
-public:
-  const std::string&
-  operator()(NamedPolicyMap::const_iterator::reference Pair) const;
-};
-
-using NamedPolicyIterator =
-    boost::transform_iterator<NamedPolicyIteratorTransformer,
-                              NamedPolicyMap::const_iterator>;
-
 /// The primary interface for pretty-printing GTIRB objects. The typical flow
 /// is to create a PrettyPrinter, configure it (e.g., set the output syntax,
 /// enable/disable debugging messages, etc.), then print one or more IR objects.
@@ -215,7 +205,7 @@ public:
   std::string getPolicyName() const { return PolicyName; }
   void setPolicyName(const std::string& Name) { PolicyName = Name; }
 
-  boost::iterator_range<NamedPolicyIterator> policyNames() const;
+  std::set<std::string> policyNames() const;
   bool namedPolicyExists(const std::string& Name) const;
   const PrintingPolicy& getPolicy(gtirb::Module& Module) const;
 
