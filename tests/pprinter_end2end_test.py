@@ -13,15 +13,15 @@ class TestPrintToStdout(unittest.TestCase):
         output = subprocess.check_output(
             ["gtirb-pprinter", "--ir", str(two_modules_gtirb), "-m", "0"]
         ).decode(sys.stdout.encoding)
-        self.assertTrue(".globl main" in output)
-        self.assertFalse(".globl fun" in output)
+        self.assertTrue("\nmain:" in output)
+        self.assertFalse("\nfun:" in output)
 
     def test_print_module1(self):
         output = subprocess.check_output(
             ["gtirb-pprinter", "--ir", str(two_modules_gtirb), "-m", "1"]
         ).decode(sys.stdout.encoding)
-        self.assertTrue(".globl fun" in output)
-        self.assertFalse(".globl main" in output)
+        self.assertTrue("\nfun:" in output)
+        self.assertFalse("\nmain" in output)
 
 
 class TestPrintToFile(unittest.TestCase):
