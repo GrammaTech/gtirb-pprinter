@@ -652,7 +652,7 @@ void PrettyPrinterBase::printOperandList(std::ostream& os,
       printOperand(os, block, inst, i);
       os << '}';
       if (Op.avx_zero_opmask) {
-        os << " {z}";
+        os << "{z}";
       }
     } else {
       // print normal operand
