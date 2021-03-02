@@ -345,7 +345,7 @@ void MasmPrettyPrinter::printSymbolDefinition(std::ostream& os,
     if (Exported) {
       os << syntax.global() << ' ' << getSymbolName(symbol) << '\n';
     }
-    os << getSymbolName(symbol) << ' ';
+    os << getSymbolName(symbol) << (symbol.getAtEnd() ? ":\n" : " ");
   } else {
     if (Exported) {
       os << symbol.getName() << ' ' << masmSyntax.proc() << " EXPORT\n"
