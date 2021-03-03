@@ -10,28 +10,6 @@ two_modules_gtirb = Path("tests", "two_modules.gtirb")
 
 
 class TestBinaryGeneration(unittest.TestCase):
-    def test_generate_binary(self):
-        if os.name == "nt":
-            return
-
-        subprocess.check_output(
-            [
-                "gtirb-pprinter",
-                "--ir",
-                str(two_modules_gtirb),
-                "-b",
-                "/tmp/two_modules",
-                "--compiler-args",
-                "-no-pie",
-                "--skip-symbol",
-                "_end",
-            ]
-        ).decode(sys.stdout.encoding)
-        output_bin = subprocess.check_output("/tmp/two_modules").decode(
-            sys.stdout.encoding
-        )
-        self.assertTrue("!!!Hello World!!!" in output_bin)
-
     def test_binaries(self):
         if os.name == "nt":
             return
@@ -44,10 +22,8 @@ class TestBinaryGeneration(unittest.TestCase):
                     "gtirb-pprinter",
                     "--ir",
                     str(two_modules_gtirb),
-                    "--binaries",
-                    "/tmp/two_mods/foo.o",
-                    "--skip-symbol",
-                    "_end",
+                    "--asm",
+                    "/tmp/two_mods/foo.s",
                 ]
             ).decode(sys.stdout.encoding)
 
@@ -55,8 +31,20 @@ class TestBinaryGeneration(unittest.TestCase):
                 [
                     "gcc",
                     "-no-pie",
-                    "/tmp/two_mods/foo.o",
-                    "/tmp/two_mods/foo1.o",
+                    "-shared",
+                    "/tmp/two_mods/foo1.s",
+                    "-o",
+                    "/tmp/two_mods/fun.so",
+                ]
+            ).decode(sys.stdout.encoding)
+
+            subprocess.check_output(
+                [
+                    "gcc",
+                    "-no-pie",
+                    "/tmp/two_mods/foo.s",
+                    "/tmp/two_mods/fun.so",
+                    "-Wl,-rpath,/tmp/two_mods",
                     "-o",
                     "/tmp/two_mods/a.out",
                 ]
