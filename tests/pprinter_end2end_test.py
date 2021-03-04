@@ -40,3 +40,19 @@ class TestPrintToFile(unittest.TestCase):
             self.assertTrue(".globl main" in f.read())
         with open(path.format("1"), "r") as f:
             self.assertTrue(".globl fun" in f.read())
+
+
+class TestPrettyPrinter(unittest.TestCase):
+    def test_avx512_att(self):
+        # This test ensures that we do not regress on the following issue:
+        # git.grammatech.com/rewriting/gtirb-pprinter/-/merge_requests/330
+        path = os.path.join(tempfile.mkdtemp(), "test_avx512_att.roundtrip")
+        subprocess.check_output(
+            [
+                "gtirb-pprinter",
+                "--ir",
+                "tests/test_avx512_att.gtirb",
+                "--binary",
+                path,
+            ]
+        ).decode(sys.stdout.encoding)
