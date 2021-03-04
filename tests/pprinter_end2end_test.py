@@ -51,8 +51,6 @@ class TestPrettyPrinter(unittest.TestCase):
             return
 
         temp_dir = tempfile.mkdtemp()
-        os.mkdir(temp_dir)
-
         try:
             # test if AVX512 instructions in assembly
             asm_path = os.path.join(temp_dir, "test_avx512_att.s")
