@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import shutil
 
 two_modules_gtirb = Path("tests", "two_modules.gtirb")
 
@@ -46,13 +47,37 @@ class TestPrettyPrinter(unittest.TestCase):
     def test_avx512_att(self):
         # This test ensures that we do not regress on the following issue:
         # git.grammatech.com/rewriting/gtirb-pprinter/-/merge_requests/330
-        path = os.path.join(tempfile.mkdtemp(), "test_avx512_att.roundtrip")
+        temp_dir = tempfile.mkdtemp()
+
+        # test if AVX512 instructions in assembly
+        asm_path = os.path.join(temp_dir, "test_avx512_att.s")
+        subprocess.check_output(
+            [
+                "gtirb-pprinter",
+                "--ir",
+                "tests/test_avx512_att.gtirb",
+                "--asm",
+                asm_path,
+                "--syntax",
+                "att",
+            ]
+        ).decode(sys.stdout.encoding)
+        with open(asm_path, "r") as f:
+            self.assertTrue("vpaddq" in f.read())
+
+        # test if assembly file can be compiled
+        bin_path = os.path.join(temp_dir, "test_avx512_att.roundtrip")
         subprocess.check_output(
             [
                 "gtirb-pprinter",
                 "--ir",
                 "tests/test_avx512_att.gtirb",
                 "--binary",
-                path,
+                bin_path,
+                "--syntax",
+                "att",
             ]
         ).decode(sys.stdout.encoding)
+
+        # clean up
+        shutil.rmtree(temp_dir, ignore_errors=True)
