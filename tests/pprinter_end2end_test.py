@@ -48,36 +48,38 @@ class TestPrettyPrinter(unittest.TestCase):
         # This test ensures that we do not regress on the following issue:
         # git.grammatech.com/rewriting/gtirb-pprinter/-/merge_requests/330
         temp_dir = tempfile.mkdtemp()
+        os.mkdir(temp_dir)
 
-        # test if AVX512 instructions in assembly
-        asm_path = os.path.join(temp_dir, "test_avx512_att.s")
-        subprocess.check_output(
-            [
-                "gtirb-pprinter",
-                "--ir",
-                "tests/test_avx512_att.gtirb",
-                "--asm",
-                asm_path,
-                "--syntax",
-                "att",
-            ]
-        ).decode(sys.stdout.encoding)
-        with open(asm_path, "r") as f:
-            self.assertTrue("vpaddq" in f.read())
+        try:
+            # test if AVX512 instructions in assembly
+            asm_path = os.path.join(temp_dir, "test_avx512_att.s")
+            subprocess.check_output(
+                [
+                    "gtirb-pprinter",
+                    "--ir",
+                    "tests/test_avx512_att.gtirb",
+                    "--asm",
+                    asm_path,
+                    "--syntax",
+                    "att",
+                ]
+            ).decode(sys.stdout.encoding)
+            with open(asm_path, "r") as f:
+                self.assertTrue("vpaddq" in f.read())
 
-        # test if assembly file can be compiled
-        bin_path = os.path.join(temp_dir, "test_avx512_att.roundtrip")
-        subprocess.check_output(
-            [
-                "gtirb-pprinter",
-                "--ir",
-                "tests/test_avx512_att.gtirb",
-                "--binary",
-                bin_path,
-                "--syntax",
-                "att",
-            ]
-        ).decode(sys.stdout.encoding)
-
-        # clean up
-        shutil.rmtree(temp_dir, ignore_errors=True)
+            # test if assembly file can be compiled
+            bin_path = os.path.join(temp_dir, "test_avx512_att.roundtrip")
+            subprocess.check_output(
+                [
+                    "gtirb-pprinter",
+                    "--ir",
+                    "tests/test_avx512_att.gtirb",
+                    "--binary",
+                    bin_path,
+                    "--syntax",
+                    "att",
+                ]
+            ).decode(sys.stdout.encoding)
+        finally:
+            # clean up
+            shutil.rmtree(temp_dir, ignore_errors=True)
