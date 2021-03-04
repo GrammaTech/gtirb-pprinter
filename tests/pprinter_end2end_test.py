@@ -47,6 +47,9 @@ class TestPrettyPrinter(unittest.TestCase):
     def test_avx512_att(self):
         # This test ensures that we do not regress on the following issue:
         # git.grammatech.com/rewriting/gtirb-pprinter/-/merge_requests/330
+        if sys.platform.startswith("win32"):
+            return
+
         temp_dir = tempfile.mkdtemp()
         os.mkdir(temp_dir)
 
