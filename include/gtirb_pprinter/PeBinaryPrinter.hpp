@@ -37,13 +37,7 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API PeBinaryPrinter : public BinaryPrinter {
   bool prepareDefFile(gtirb::IR& ir, TempFile& defFile) const;
   bool prepareResources(gtirb::IR& ir, gtirb::Context& ctx,
                         std::vector<std::string>& resourceFiles) const;
-  // TODO Remove importLibs.
-  // importLibs are not neccessary here since the asm has INCLUDE
-  // statement, however, since we don't have the PE header information in the
-  // IR, we use the list of dependencies to look for user32.dll to see if this
-  // is a GUI or CUI binary.
   void prepareLinkerArguments(gtirb::IR& ir,
-                              std::vector<std::string>& importLibs,
                               std::vector<std::string>& resourceFiles,
                               std::string defFile,
                               std::vector<std::string>& args) const;

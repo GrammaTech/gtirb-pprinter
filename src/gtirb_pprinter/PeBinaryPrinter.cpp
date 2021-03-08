@@ -239,8 +239,7 @@ bool PeBinaryPrinter::prepareImportLibs(
 }
 
 void PeBinaryPrinter::prepareLinkerArguments(
-    gtirb::IR& ir, std::vector<std::string>& importLibs,
-    std::vector<std::string>& resourceFiles, std::string defFile,
+    gtirb::IR& ir, std::vector<std::string>& resourceFiles, std::string defFile,
     std::vector<std::string>& args) const {
   // Start the linker arguments.
   args.push_back("/link");
@@ -278,23 +277,20 @@ void PeBinaryPrinter::prepareLinkerArguments(
       if (Iter->getISA() == gtirb::ISA::IA32 && Name.size() && Name[0] == '_') {
         Name = Name.substr(1);
       }
-      args.push_back("/entry:" + Name);
+      args.push_back("/ENTRY:" + Name);
     } else {
       args.push_back("/NOENTRY");
     }
 
-    // If we found a module with an entrypoint, we next want to determine if
-    // this is a console or GUI app to be able to set the subsystem PE header
-    // field correctly.  If the app depends on user32.dll it's likely a GUI
-    // app.
-    // FIXME : This should be based off the original PE header, but that's not
-    // yet available.
-    bool isGUI = std::find(importLibs.begin(), importLibs.end(),
-                           "user32.lib") != importLibs.end();
-    if (!isGUI)
-      args.push_back("/subsystem:console");
-    else
-      args.push_back("/subsystem:windows");
+    if (auto* Table = Iter->getAuxData<gtirb::schema::BinaryType>()) {
+      if (std::find(Table->begin(), Table->end(), "WINDOWS_GUI") !=
+          Table->end()) {
+        args.push_back("/SUBSYSTEM:windows");
+      } else if (std::find(Table->begin(), Table->end(), "WINDOWS_CUI") !=
+                 Table->end()) {
+        args.push_back("/SUBSYSTEM:console");
+      }
+    }
   }
 
   for (gtirb::Module& Module : ir.modules()) {
@@ -383,7 +379,7 @@ int PeBinaryPrinter::link(const std::string& outputFilename,
   prepareAssemblerArguments(tempFiles, outputFilename, {}, args);
 
   // Collect linker arguments
-  prepareLinkerArguments(ir, importLibs, resourceFiles, defFileName, args);
+  prepareLinkerArguments(ir, resourceFiles, defFileName, args);
 
   // Invoke the assembler.
   if (std::optional<int> ret = execute(compiler, args)) {
