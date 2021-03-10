@@ -147,15 +147,42 @@ void MasmPrettyPrinter::printExterns(std::ostream& os) {
 
 void MasmPrettyPrinter::printHeader(std::ostream& os) {
   if (module.getISA() == gtirb::ISA::IA32) {
-    // CAUTION: Omitting the calling convention will break symbol resolution.
-    os << ".MODEL FLAT\n";
-    os << "ASSUME FS:NOTHING\n";
-    os << ".686p\n";
-    os << ".XMM\n";
-    os << "\n";
+    os << ".686\n"
+       << ".XMM\n"
+       << ".MODEL FLAT\n"
+       << "ASSUME FS:NOTHING\n"
+       << "\n";
   }
   printIncludes(os);
   printExterns(os);
+}
+
+void MasmPrettyPrinter::printSectionHeader(std::ostream& os,
+                                           const gtirb::Section& section) {
+  std::string sectionName = section.getName();
+  os << '\n';
+  printBar(os);
+
+  printSectionHeaderDirective(os, section);
+  printSectionProperties(os, section);
+  os << '\n';
+
+  std::optional<uint64_t> alignment;
+  if (auto* table = module.getAuxData<gtirb::schema::Alignment>()) {
+    if (auto found = table->find(section.getUUID()); found != table->end()) {
+      alignment = found->second;
+    }
+  }
+  if (alignment) {
+    os << syntax.align() << ' ' << *alignment << '\n';
+  } else if (policy.arraySections.count(sectionName)) {
+    os << syntax.align() << " 8\n";
+  } else {
+    printAlignment(os, *section.getAddress());
+  }
+
+  printBar(os);
+  os << '\n';
 }
 
 void MasmPrettyPrinter::printSectionHeaderDirective(
@@ -163,6 +190,7 @@ void MasmPrettyPrinter::printSectionHeaderDirective(
   std::string section_name = syntax.formatSectionName(section.getName());
   os << section_name << ' ' << syntax.section();
 }
+
 void MasmPrettyPrinter::printSectionProperties(std::ostream& os,
                                                const gtirb::Section& section) {
   const auto* peSectionProperties =
@@ -197,14 +225,6 @@ void MasmPrettyPrinter::printSectionProperties(std::ostream& os,
 void MasmPrettyPrinter::printSectionFooterDirective(
     std::ostream& os, const gtirb::Section& section) {
   std::string section_name = syntax.formatSectionName(section.getName());
-
-  // Special .CODE .DATA and .DATA? directives do not need footers.
-  if (section_name == "_TEXT" || section_name == "_DATA" ||
-      section_name == "_BSS") {
-    os << syntax.comment() << ' ' << section_name << ' ' << masmSyntax.ends()
-       << '\n';
-    return;
-  }
 
   os << section_name << ' ' << masmSyntax.ends() << '\n';
 }
