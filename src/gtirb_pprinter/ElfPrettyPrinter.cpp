@@ -231,6 +231,10 @@ void ElfPrettyPrinter::printSymExprSuffix(std::ostream& OS,
   else if (Attrs.isFlagSet(gtirb::SymAttribute::Part2)) {
     OS << "@NTPOFF";
   }
+  // FIXME: Use appropriate TLS attribute when it is added to GTIRB.
+  else if (Attrs.isFlagSet(gtirb::SymAttribute::Part3)) {
+    OS << "@TLSGD";
+  }
 }
 
 void ElfPrettyPrinter::printSymbolDefinition(std::ostream& os,
