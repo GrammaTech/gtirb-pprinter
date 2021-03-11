@@ -147,7 +147,7 @@ void MasmPrettyPrinter::printExterns(std::ostream& os) {
 
 void MasmPrettyPrinter::printHeader(std::ostream& os) {
   if (module.getISA() == gtirb::ISA::IA32) {
-    os << ".686\n"
+    os << ".686p\n"
        << ".XMM\n"
        << ".MODEL FLAT\n"
        << "ASSUME FS:NOTHING\n"
