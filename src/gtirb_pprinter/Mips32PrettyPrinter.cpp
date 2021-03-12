@@ -21,35 +21,6 @@
 
 namespace gtirb_pprint {
 
-const PrintingPolicy& Mips32PrettyPrinterFactory::defaultPrintingPolicy(
-    gtirb::Module& /*Module*/) const {
-  static PrintingPolicy DefaultPolicy{
-      /// Functions to avoid printing.
-      {"_start", "__start", "deregister_tm_clones", "register_tm_clones",
-       "__do_global_dtors_aux", "__do_global_ctors_aux", "frame_dummy",
-       "__libc_csu_fini", "__libc_csu_init", "_dl_relocate_static_pie",
-       // Functions to avoid printing for sectionless binaries
-       "_init", "_fini"},
-
-      /// Symbols to avoid printing.
-      {"_IO_stdin_used", "__data_start", "__dso_handle", "__TMC_END__",
-       "_edata", "_fdata", "_DYNAMIC", "data_start", "__bss_start",
-       "program_invocation_name", "program_invocation_short_name",
-       // Include symbols in sections to avoid printing for sectionless binaries
-       "__gmon_start__", "_ITM_deregisterTMCloneTable",
-       "_ITM_registerTMCloneTable", "_Jv_RegisterClasses"},
-
-      /// Sections to avoid printing.
-      {".comment", ".plt", ".init", ".fini", ".got", ".plt.got", ".got.plt",
-       ".plt.sec", ".eh_frame_hdr", ".eh_frame", ".interp", ".MIPS.stubs",
-       ".ctors", ".dtors", ".rld_map", ".sdata"},
-
-      /// Sections with possible data object exclusion.
-      {".init_array", ".fini_array"},
-  };
-  return DefaultPolicy;
-}
-
 std::unique_ptr<PrettyPrinterBase>
 Mips32PrettyPrinterFactory::create(gtirb::Context& gtirb_context,
                                    gtirb::Module& module,
@@ -60,7 +31,24 @@ Mips32PrettyPrinterFactory::create(gtirb::Context& gtirb_context,
 }
 
 Mips32PrettyPrinterFactory::Mips32PrettyPrinterFactory() {
-  deregisterNamedPolicy("dynamic");
+  auto& DynamicPolicy = *findRegisteredNamedPolicy("dynamic");
+  DynamicPolicy.skipFunctions.erase("call_weak_fn");
+  DynamicPolicy.skipSymbols.erase("_fp_hw");
+  DynamicPolicy.skipSections.erase(".rela.dyn");
+  DynamicPolicy.skipSections.erase(".rela.plt");
+
+  DynamicPolicy.skipFunctions.insert(
+      {"__do_global_ctors_aux", "__start",
+       // Functions to avoid printing for sectionless binaries
+       "_fini", "_init"});
+  DynamicPolicy.skipSymbols.insert(
+      {"_DYNAMIC", "data_start",
+       // Include symbols in sections to avoid printing for sectionless binaries
+       "_ITM_deregisterTMCloneTable", "_ITM_registerTMCloneTable",
+       "_Jv_RegisterClasses", "__gmon_start__"});
+  DynamicPolicy.skipSections.insert(
+      {".MIPS.stubs", ".ctors", ".dtors", ".interp", ".rld_map", ".sdata"});
+
   deregisterNamedPolicy("static");
   deregisterNamedPolicy("complete");
 }
