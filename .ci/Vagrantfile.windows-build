@@ -40,17 +40,7 @@ Vagrant.configure("2") do |config|
     choco install -y cmake
     choco install -y ninja
     choco install -y python3
-    cd $HOME
-    Invoke-WebRequest "https://download.visualstudio.microsoft.com/download/pr/57d28351-e762-4ee1-aca4-16b6d3faaa33/9fd19a14823506bdbd249be8f519e4a17af494df5cd92e3dc65e110a744d6ebb/vs_Community.exe" -OutFile vs_community.exe
-    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
-    $startInfo.FileName = "C:\\Users\\vagrant\\vs_community.exe"
-    $startInfo.Arguments = "--installPath ""C:\\VS"" --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.VC.CoreBuildTools --add Microsoft.VisualStudio.Component.VC.Redist.14.Latest --add Microsoft.VisualStudio.Component.Windows10SDK --add Microsoft.VisualStudio.Component.Windows10SDK.18362 --includeRecommended --passive --wait"
-    $startInfo.UseShellExecute = $true
-    $startInfo.CreateNoWindow = $false
-    $process = New-Object System.Diagnostics.Process
-    $process.StartInfo = $startInfo
-    $process.Start()
-    $process.WaitForExit()
+    choco install -y visualstudio2019community --version=16.8.4.0 --package-parameters "--installPath ""C:\\VS""  --passive --wait --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.VC.CoreBuildTools --add Microsoft.VisualStudio.Component.VC.Redist.14.Latest --add Microsoft.VisualStudio.Component.Windows10SDK --add Microsoft.VisualStudio.Component.Windows10SDK.18362 --includeRecommended"
   SHELL
 
   config.vm.provision :reload
@@ -122,14 +112,14 @@ option.set keep-going : false ;
     cd capstone
     mkdir build-debug
     cd build-debug
-    cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && ""C:\\Program Files\\CMake\\bin\\cmake.exe"" -G ""Ninja""  -DCMAKE_INSTALL_PREFIX=C:\\capstone-debug .."
+    cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && ""C:\\Program Files\\CMake\\bin\\cmake.exe"" -G ""Ninja""  -DCMAKE_INSTALL_PREFIX=C:\\capstone-debug -DCAPSTONE_INSTALL=ON .."
     cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && ninja"
     cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && ninja install"
 
     cd ..
     mkdir build-release
     cd build-release
-    cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && ""C:\\Program Files\\CMake\\bin\\cmake.exe"" -G ""Ninja"" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=C:\\capstone-release .."
+    cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && ""C:\\Program Files\\CMake\\bin\\cmake.exe"" -G ""Ninja"" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=C:\\capstone-release -DCAPSTONE_INSTALL=ON .."
     cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && ninja"
     cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && ninja install"
   SHELL
