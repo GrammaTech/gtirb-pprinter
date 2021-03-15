@@ -49,6 +49,7 @@ public:
   const std::string& set() const { return SetDirective; }
   const std::string& hidden() const { return HiddenDirective; }
   const std::string& protected_() const { return ProtectedDirective; }
+  const std::string& internal() const { return InternalDirective; }
   const std::string& uleb128() const { return ULEB128Directive; }
   const std::string& sleb128() const { return SLEB128Directive; }
 
@@ -79,6 +80,7 @@ private:
   const std::string SetDirective{".set"};
   const std::string HiddenDirective{".hidden"};
   const std::string ProtectedDirective{".protected"};
+  const std::string InternalDirective{".internal"};
   const std::string ULEB128Directive{".uleb128"};
   const std::string SLEB128Directive{".sleb128"};
 };
