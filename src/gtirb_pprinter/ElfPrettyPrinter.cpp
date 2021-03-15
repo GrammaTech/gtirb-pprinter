@@ -191,6 +191,8 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
     os << elfSyntax.hidden() << ' ' << name << '\n';
   } else if (SymbolInfo.Visibility == "PROTECTED") {
     os << elfSyntax.protected_() << ' ' << name << '\n';
+  } else if (SymbolInfo.Visibility == "INTERNAL") {
+    os << elfSyntax.internal() << ' ' << name << '\n';
   } else {
     assert(!"unknown visibility in elfSymbolInfo!");
   }
