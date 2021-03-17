@@ -1,6 +1,6 @@
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
-  GTIRB_BRANCH: "master"
+  GTIRB_BRANCH: "release-1.10.3"
 
 default:
   tags: [cluster]
