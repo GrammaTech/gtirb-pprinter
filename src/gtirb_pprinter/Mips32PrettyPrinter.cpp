@@ -21,6 +21,12 @@
 
 namespace gtirb_pprint {
 
+const PrintingPolicy& Mips32PrettyPrinterFactory::defaultPrintingPolicy(
+    gtirb::Module& /*Module*/) const {
+  // Static binaries are not supported.
+  return *findNamedPolicy("dynamic");
+}
+
 std::unique_ptr<PrettyPrinterBase>
 Mips32PrettyPrinterFactory::create(gtirb::Context& gtirb_context,
                                    gtirb::Module& module,
