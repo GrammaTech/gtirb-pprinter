@@ -130,12 +130,7 @@ class GtirbPprinterConan(Properties, ConanFile):
             defs["Boost_USE_STATIC_LIBS"] = "ON"
         else:
             cmake = CMake(self, generator=None)
-            defs.update(
-                {
-                    "CMAKE_CXX_COMPILER": "g++-7",
-                    "GTIRB_PPRINTER_STRIP_DEBUG_SYMBOLS:BOOL": "ON",
-                }
-            )
+            defs.update({"GTIRB_PPRINTER_STRIP_DEBUG_SYMBOLS:BOOL": "ON"})
 
         cmake.configure(source_folder=".", defs=defs)
         cmake.build()
@@ -154,7 +149,7 @@ class GtirbPprinterConan(Properties, ConanFile):
 
     def build_requirements(self):
         if self.settings.os == "Windows":
-            self.build_requires("ninja_installer/1.9.0@bincrafters/stable")
+            self.build_requires("ninja/1.9.0")
 
     def package(self):
         self.copy("*.h", dst="include", src=self.name)
