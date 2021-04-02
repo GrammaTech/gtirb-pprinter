@@ -39,8 +39,6 @@ void AttPrettyPrinter::fixupInstruction(cs_insn& inst) {
   x86FixupInstruction(inst);
 }
 
-void AttPrettyPrinter::printHeader(std::ostream& /*os*/) {}
-
 std::string AttPrettyPrinter::getRegisterName(unsigned int reg) const {
   return std::string{"%"} +
          ascii_str_tolower(PrettyPrinterBase::getRegisterName(reg));

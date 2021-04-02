@@ -96,7 +96,9 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
                                    const ElfSyntax& syntax_,
                                    const PrintingPolicy& policy_)
     : PrettyPrinterBase(context_, module_, syntax_, policy_),
-      elfSyntax(syntax_) {
+      elfSyntax(syntax_) {}
+
+void ElfPrettyPrinter::printHeader(std::ostream& /*os*/) {
   if (auto* ElfTypes = module.getAuxData<gtirb::schema::BinaryType>()) {
     for (const std::string& ElfType : *ElfTypes) {
       if (ElfType == "DYN") {

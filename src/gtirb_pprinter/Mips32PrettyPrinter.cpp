@@ -89,6 +89,8 @@ Mips32PrettyPrinter::Mips32PrettyPrinter(gtirb::Context& context_,
 }
 
 void Mips32PrettyPrinter::printHeader(std::ostream& os) {
+  ElfPrettyPrinter::printHeader(os);
+
   // we already account for delay slots; don't let the assembler insert them
   os << ".set noreorder" << std::endl;
 }

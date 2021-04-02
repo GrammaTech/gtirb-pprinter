@@ -37,6 +37,8 @@ void IntelPrettyPrinter::fixupInstruction(cs_insn& inst) {
 }
 
 void IntelPrettyPrinter::printHeader(std::ostream& os) {
+  ElfPrettyPrinter::printHeader(os);
+
   this->printBar(os);
   os << ".intel_syntax noprefix\n";
   this->printBar(os);

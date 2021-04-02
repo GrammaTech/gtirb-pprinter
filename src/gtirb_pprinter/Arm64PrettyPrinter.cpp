@@ -37,6 +37,8 @@ Arm64PrettyPrinter::Arm64PrettyPrinter(gtirb::Context& context_,
 }
 
 void Arm64PrettyPrinter::printHeader(std::ostream& os) {
+  ElfPrettyPrinter::printHeader(os);
+
   this->printBar(os);
   os << ".arch armv8-a\n";
   this->printBar(os);

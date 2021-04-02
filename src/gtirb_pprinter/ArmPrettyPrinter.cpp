@@ -32,6 +32,8 @@ ArmPrettyPrinter::ArmPrettyPrinter(gtirb::Context& context_,
 }
 
 void ArmPrettyPrinter::printHeader(std::ostream& os) {
+  ElfPrettyPrinter::printHeader(os);
+
   os << "# ARM " << std::endl;
   os << ".syntax unified" << std::endl;
 }

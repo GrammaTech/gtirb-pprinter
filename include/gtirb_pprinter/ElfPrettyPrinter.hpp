@@ -125,7 +125,10 @@ protected:
       const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE,
       uint64_t Size, std::optional<std::string> Type) override;
 
-  void printSymbolHeader(std::ostream& os, const gtirb::Symbol& symbol);
+  virtual void printHeader(std::ostream& os) override;
+
+  void printSymbolHeader(std::ostream& os, const gtirb::Symbol& symbol,
+                         bool PrintAlignment = true);
 
   /// Called in the constructor when the binary shared object (Elf type DYN).
   /// This includes both shared libraries and PIE executables.
