@@ -24,9 +24,6 @@ RUN add-apt-repository ppa:mhier/libboost-latest && \
 COPY libcapstone-dev_*_amd64.deb ./
 RUN dpkg -i libcapstone-dev_*_amd64.deb
 
-# Install conan
-RUN python3 -m pip install conan
-
 # Install pre-commit
 RUN pip3 install "virtualenv<20.0.0"
 RUN pip3 install pre-commit
