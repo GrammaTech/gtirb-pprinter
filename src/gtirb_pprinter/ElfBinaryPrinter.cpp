@@ -126,7 +126,7 @@ ElfBinaryPrinter::buildCompilerArgs(std::string outputFilename,
       }
 
       if (pie) {
-        args.push_back("-pie");
+        args.push_back("-shared");
       }
       if (noPie) {
         args.push_back("-no-pie");

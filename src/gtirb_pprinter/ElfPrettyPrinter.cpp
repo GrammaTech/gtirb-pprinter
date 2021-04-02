@@ -85,6 +85,10 @@ struct ElfSymbolInfo {
       : Size(std::get<0>(tuple)), Type(std::get<1>(tuple)),
         Binding(std::get<2>(tuple)), Visibility(std::get<3>(tuple)),
         SectionIndex(std::get<4>(tuple)) {}
+
+  AuxDataType asAuxData() {
+    return AuxDataType{Size, Type, Binding, Visibility, SectionIndex};
+  }
 };
 
 ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
@@ -92,7 +96,138 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
                                    const ElfSyntax& syntax_,
                                    const PrintingPolicy& policy_)
     : PrettyPrinterBase(context_, module_, syntax_, policy_),
-      elfSyntax(syntax_) {}
+      elfSyntax(syntax_) {
+  if (auto* ElfTypes = module.getAuxData<gtirb::schema::BinaryType>()) {
+    for (const std::string& ElfType : *ElfTypes) {
+      if (ElfType == "DYN") {
+        fixupSharedObject();
+      }
+    }
+  }
+}
+
+void ElfPrettyPrinter::fixupSharedObject() {
+  // if this is a shared library or PIE executable, we need to
+  // ensure all global symbols being referenced in code blocks have a
+  // hidden alias
+  if (auto* ElfSymInfo = module.getAuxData<gtirb::schema::ElfSymbolInfo>()) {
+    // find the global symbols being referenced incorrectly
+    std::unordered_set<gtirb::Symbol*> SymbolsToAlias;
+    std::vector<gtirb::ByteInterval::SymbolicExpressionElement> SEEsToFix;
+
+    for (auto& CB : module.code_blocks()) {
+      if (shouldSkip(CB)) {
+        continue;
+      }
+
+      for (auto SEE : CB.getByteInterval()->findSymbolicExpressionsAtOffset(
+               CB.getOffset(), CB.getOffset() + CB.getSize())) {
+        std::vector<gtirb::Symbol*> SymsToCheck;
+
+        if (auto* SAC = std::get_if<gtirb::SymAddrConst>(
+                &SEE.getSymbolicExpression())) {
+          if (SAC->Attributes.isFlagSet(gtirb::SymAttribute::PltRef) ||
+              SAC->Attributes.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
+            continue; // PLT/GOT references are allowed in shared objects
+          }
+
+          SymsToCheck.push_back(SAC->Sym);
+        } else if (auto* SAA = std::get_if<gtirb::SymAddrAddr>(
+                       &SEE.getSymbolicExpression())) {
+          if (SAA->Attributes.isFlagSet(gtirb::SymAttribute::PltRef) ||
+              SAA->Attributes.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
+            continue; // PLT/GOT references are allowed in shared objects
+          }
+
+          SymsToCheck.push_back(SAA->Sym1);
+          SymsToCheck.push_back(SAA->Sym2);
+        } else {
+          assert(!"Unknown symbolic expression type!");
+        }
+
+        bool Found = false;
+        for (auto* Symbol : SymsToCheck) {
+          if (!Symbol->hasReferent() ||
+              Symbol->getReferent<gtirb::ProxyBlock>()) {
+            continue; // extern symbols need no fixup
+          }
+
+          if (auto It = ElfSymInfo->find(Symbol->getUUID());
+              It != ElfSymInfo->end()) {
+            if (ElfSymbolInfo Info{It->second};
+                Info.Binding != "LOCAL" && Info.Visibility == "DEFAULT") {
+              // direct references to global symbols are not allowed in
+              // shared objects
+              SymbolsToAlias.insert(Symbol);
+              if (!Found) {
+                SEEsToFix.push_back(SEE);
+                Found = true;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // make a hidden alias for every global symbol that is called
+    // directly by a code block
+    std::unordered_map<gtirb::Symbol*, gtirb::Symbol*> GlobalToHiddenSyms;
+
+    for (auto* Symbol : SymbolsToAlias) {
+      struct SetHiddenSymbolReferent {
+        gtirb::Symbol* S;
+        SetHiddenSymbolReferent(gtirb::Symbol* Sym) : S{Sym} {}
+        void operator()(gtirb::Addr A) { S->setAddress(A); }
+        void operator()(gtirb::CodeBlock* B) { S->setReferent(B); }
+        void operator()(gtirb::DataBlock* B) { S->setReferent(B); }
+        void operator()(gtirb::ProxyBlock* B) { S->setReferent(B); }
+      };
+
+      auto* HiddenSymbol = module.addSymbol(
+          context, ".gtirb_pprinter.hidden_alias." + Symbol->getName());
+      Symbol->visit(SetHiddenSymbolReferent(HiddenSymbol));
+      ElfSymbolInfo OldSymInfo{(*ElfSymInfo)[Symbol->getUUID()]};
+      ElfSymbolInfo NewSymInfo{OldSymInfo};
+      NewSymInfo.Visibility = "HIDDEN";
+      (*ElfSymInfo)[HiddenSymbol->getUUID()] = NewSymInfo.asAuxData();
+      GlobalToHiddenSyms[Symbol] = HiddenSymbol;
+    }
+
+    // reassign bad code block references to hidden symbols
+    for (auto SEE : SEEsToFix) {
+      if (auto* SAC =
+              std::get_if<gtirb::SymAddrConst>(&SEE.getSymbolicExpression())) {
+        if (SAC->Attributes.isFlagSet(gtirb::SymAttribute::PltRef) ||
+            SAC->Attributes.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
+          continue; // PLT/GOT references are allowed in shared objects
+        }
+
+        gtirb::SymAddrConst NewSAC{*SAC};
+        NewSAC.Sym = GlobalToHiddenSyms[SAC->Sym];
+        SEE.getByteInterval()->addSymbolicExpression(SEE.getOffset(), NewSAC);
+      } else if (auto* SAA = std::get_if<gtirb::SymAddrAddr>(
+                     &SEE.getSymbolicExpression())) {
+        if (SAA->Attributes.isFlagSet(gtirb::SymAttribute::PltRef) ||
+            SAA->Attributes.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
+          continue; // PLT/GOT references are allowed in shared objects
+        }
+
+        gtirb::SymAddrAddr NewSAA{*SAA};
+        if (auto It = GlobalToHiddenSyms.find(SAA->Sym1);
+            It != GlobalToHiddenSyms.end()) {
+          NewSAA.Sym1 = It->second;
+        }
+        if (auto It = GlobalToHiddenSyms.find(SAA->Sym2);
+            It != GlobalToHiddenSyms.end()) {
+          NewSAA.Sym2 = It->second;
+        }
+        SEE.getByteInterval()->addSymbolicExpression(SEE.getOffset(), NewSAA);
+      } else {
+        assert(!"Unknown symbolic expression type!");
+      }
+    }
+  }
+}
 
 void ElfPrettyPrinter::printSectionHeaderDirective(
     std::ostream& os, const gtirb::Section& section) {
