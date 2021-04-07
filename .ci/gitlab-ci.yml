@@ -53,7 +53,8 @@ build-conan-linux-gcc7:
     - conan profile new default --detect
     - conan profile update settings.compiler.libcxx=libstdc++11 default
     - conan remote add gitlab ${CI_API_V4_URL}/packages/conan
-    - conan user ci_user -r gitlab -p ${CI_JOB_TOKEN}
+    - export CONAN_PASSWORD="$CI_JOB_TOKEN"
+    - conan user ci_user -r gitlab
     - PYTHONPATH="$(pwd):$PYTHONPATH" python3 .ci/build.py
 
 build-conan-linux-gcc9:
