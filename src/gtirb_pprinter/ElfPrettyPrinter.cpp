@@ -359,20 +359,20 @@ ElfPrettyPrinterFactory::ElfPrettyPrinterFactory() {
                           /// Extra compiler arguments.
                           {"-static"},
                       });
-  registerNamedPolicy("complete",
-                      PrintingPolicy{
-                          /// Functions to avoid printing.
-                          {},
-                          /// Symbols to avoid printing.
-                          {},
-                          /// Sections to avoid printing.
-                          {".eh_frame_hdr", ".eh_frame", ".got", ".got.plt",
-                           ".plt", ".rela.dyn", ".rela.plt"},
-                          /// Sections with possible data object exclusion.
-                          {},
-                          /// Extra compiler arguments.
-                          {"-nostartfiles"},
-                      });
+  registerNamedPolicy(
+      "complete", PrintingPolicy{
+                      /// Functions to avoid printing.
+                      {},
+                      /// Symbols to avoid printing.
+                      {},
+                      /// Sections to avoid printing.
+                      {".eh_frame_hdr", ".eh_frame", ".got", ".got.plt", ".plt",
+                       ".plt.got", ".plt.sec", ".rela.dyn", ".rela.plt"},
+                      /// Sections with possible data object exclusion.
+                      {},
+                      /// Extra compiler arguments.
+                      {"-nostartfiles"},
+                  });
 }
 
 } // namespace gtirb_pprint
