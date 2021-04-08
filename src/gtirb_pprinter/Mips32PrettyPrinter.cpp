@@ -93,28 +93,15 @@ void Mips32PrettyPrinter::printHeader(std::ostream& os) {
   os << ".set noreorder" << std::endl;
 }
 
-void Mips32PrettyPrinter::printAlignment(std::ostream& os,
-                                         const gtirb::Addr addr) {
-  // Enforce maximum alignment
-  uint64_t x{addr};
-  int n = 0;
-  if (x % 16 == 0) {
-    n = 4;
-  } else if (x % 8 == 0) {
-    n = 3;
-  } else if (x % 4 == 0) {
-    n = 2;
-  } else if (x % 2 == 0) {
-    n = 1;
+void Mips32PrettyPrinter::printAlignment(std::ostream& OS, uint64_t Align) {
+  // In MIPS Assembly Language, `.align N` aligns the next element to multiple
+  // of 2^N. In other ISAs, `.align N` aligns the next element to N.
+  int X = Align, Log2X = 0;
+  while (X >>= 1) {
+    ++Log2X;
   }
 
-  if (n != 0) {
-    // MIPS Assembly Language: .align n: aligns next element to multiple of 2^N
-    // Other ISAs: .align n: aligns next element to n
-    if (module.getISA() != gtirb::ISA::MIPS32)
-      n = 1 << n;
-    os << syntax.align() << " " << n << std::endl;
-  }
+  ElfPrettyPrinter::printAlignment(OS, Log2X);
 }
 
 // Workaround for correct printing of the following instructions:

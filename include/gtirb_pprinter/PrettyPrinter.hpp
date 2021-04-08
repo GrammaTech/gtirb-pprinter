@@ -282,7 +282,9 @@ protected:
   virtual void printBar(std::ostream& os, bool heavy = true);
   virtual void printHeader(std::ostream& os) = 0;
   virtual void printFooter(std::ostream& os) = 0;
-  virtual void printAlignment(std::ostream& os, const gtirb::Addr addr);
+  virtual std::optional<uint64_t> getAlignment(const gtirb::CodeBlock& Block);
+  virtual std::optional<uint64_t> getAlignment(const gtirb::DataBlock& Block);
+  virtual void printAlignment(std::ostream& OS, uint64_t Alignment);
   virtual void printSection(std::ostream& os, const gtirb::Section& section);
   virtual void printSectionHeader(std::ostream& os,
                                   const gtirb::Section& section);
@@ -447,7 +449,10 @@ private:
   std::optional<gtirb::Addr> CFIStartProc;
 
   template <typename BlockType>
-  void printBlockImpl(std::ostream& os, BlockType& block);
+  void printBlockImpl(std::ostream& OS, BlockType& Block);
+
+  template <typename BlockType>
+  std::optional<uint64_t> getAlignmentImpl(const BlockType& Block);
 
 protected:
   std::string m_accum_comment;
