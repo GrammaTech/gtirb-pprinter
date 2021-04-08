@@ -167,20 +167,6 @@ void MasmPrettyPrinter::printSectionHeader(std::ostream& os,
   printSectionProperties(os, section);
   os << '\n';
 
-  std::optional<uint64_t> alignment;
-  if (auto* table = module.getAuxData<gtirb::schema::Alignment>()) {
-    if (auto found = table->find(section.getUUID()); found != table->end()) {
-      alignment = found->second;
-    }
-  }
-  if (alignment) {
-    os << syntax.align() << ' ' << *alignment << '\n';
-  } else if (policy.arraySections.count(sectionName)) {
-    os << syntax.align() << " 8\n";
-  } else {
-    printAlignment(os, *section.getAddress());
-  }
-
   printBar(os);
   os << '\n';
 }

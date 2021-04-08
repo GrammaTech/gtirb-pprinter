@@ -146,8 +146,7 @@ void ElfPrettyPrinter::printByte(std::ostream& os, std::byte byte) {
 void ElfPrettyPrinter::printFooter(std::ostream& /* os */){};
 
 void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
-                                         const gtirb::Symbol& sym,
-                                         bool PrintAlignment) {
+                                         const gtirb::Symbol& sym) {
   const auto* SymbolTypes = module.getAuxData<gtirb::schema::ElfSymbolInfo>();
   if (!SymbolTypes) {
     return;
@@ -164,14 +163,8 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
     return;
   }
 
-  auto ea = *sym.getAddress();
   auto name = getSymbolName(sym);
-
   printBar(os, false);
-  if (PrintAlignment) {
-    printAlignment(os, ea);
-  }
-
   bool unique = false;
   if (SymbolInfo.Binding == "GLOBAL") {
     os << syntax.global() << ' ' << name << '\n';
@@ -270,7 +263,7 @@ void ElfPrettyPrinter::printIntegralSymbol(std::ostream& os,
 
 void ElfPrettyPrinter::printUndefinedSymbol(std::ostream& os,
                                             const gtirb::Symbol& sym) {
-  printSymbolHeader(os, sym, false);
+  printSymbolHeader(os, sym);
 }
 
 void ElfPrettyPrinter::printSymbolicDataType(
@@ -284,6 +277,56 @@ void ElfPrettyPrinter::printSymbolicDataType(
   } else {
     PrettyPrinterBase::printSymbolicDataType(os, SEE, Size, Type);
   }
+}
+
+template <typename BlockType>
+std::optional<uint64_t>
+ElfPrettyPrinter::getAlignmentImpl(const BlockType& Block) {
+  if (auto Align = PrettyPrinterBase::getAlignment(Block)) {
+    return Align;
+  }
+
+  const auto* SymbolTypes = module.getAuxData<gtirb::schema::ElfSymbolInfo>();
+  if (!SymbolTypes) {
+    return std::nullopt;
+  }
+
+  for (const auto& Sym :
+       Block.getByteInterval()->getSection()->getModule()->findSymbols(Block)) {
+    auto SymTypeIt = SymbolTypes->find(Sym.getUUID());
+    if (SymTypeIt == SymbolTypes->end()) {
+      continue;
+    }
+
+    ElfSymbolInfo SymbolInfo{SymTypeIt->second};
+    if (SymbolInfo.Binding == "LOCAL" || SymbolInfo.Visibility != "DEFAULT") {
+      continue;
+    }
+
+    // exported symbol detected; ensure alignment is preserved
+    uint64_t Addr{*Block.getAddress()};
+    if (Addr % 16 == 0) {
+      return 16;
+    } else if (Addr % 8 == 0) {
+      return 8;
+    } else if (Addr % 4 == 0) {
+      return 4;
+    } else if (Addr % 2 == 0) {
+      return 2;
+    }
+  }
+
+  return std::nullopt;
+}
+
+std::optional<uint64_t>
+ElfPrettyPrinter::getAlignment(const gtirb::CodeBlock& Block) {
+  return getAlignmentImpl(Block);
+}
+
+std::optional<uint64_t>
+ElfPrettyPrinter::getAlignment(const gtirb::DataBlock& Block) {
+  return getAlignmentImpl(Block);
 }
 
 bool ElfPrettyPrinterFactory::isStaticBinary(gtirb::Module& Module) const {

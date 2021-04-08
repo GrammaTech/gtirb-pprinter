@@ -401,19 +401,6 @@ void PrettyPrinterBase::printSectionHeader(std::ostream& os,
     printSectionProperties(os, section);
     os << std::endl;
   }
-  std::optional<uint64_t> alignment;
-  if (auto* table = module.getAuxData<gtirb::schema::Alignment>()) {
-    if (auto found = table->find(section.getUUID()); found != table->end()) {
-      alignment = found->second;
-    }
-  }
-  if (alignment) {
-    os << syntax.align() << ' ' << *alignment << '\n';
-  } else if (policy.arraySections.count(sectionName)) {
-    os << syntax.align() << " 8\n";
-  } else {
-    printAlignment(os, *section.getAddress());
-  }
   printBar(os);
   os << '\n';
 }
@@ -725,6 +712,11 @@ void PrettyPrinterBase::printBlockImpl(std::ostream& os, BlockType& block) {
     // Normal symbol; print labels before block.
 
     offset = 0;
+
+    if (auto Align = getAlignment(block)) {
+      printAlignment(os, *Align);
+    }
+
     for (const auto& sym : module.findSymbols(block)) {
       if (!sym.getAtEnd() && !shouldSkip(sym)) {
         printSymbolDefinition(os, sym);
@@ -1200,25 +1192,90 @@ void PrettyPrinterBase::printAddend(std::ostream& os, int64_t number,
   os << "+" << number;
 }
 
-void PrettyPrinterBase::printAlignment(std::ostream& os, gtirb::Addr addr) {
-  // Enforce maximum alignment
-  uint64_t x{addr};
-  if (x % 16 == 0) {
-    os << syntax.align() << " 16\n";
-    return;
+template <typename BlockType>
+std::optional<uint64_t>
+PrettyPrinterBase::getAlignmentImpl(const BlockType& Block) {
+  bool FirstInBI = false,
+       FirstInSection =
+           &Block.getByteInterval()->getSection()->byte_intervals().front() ==
+           Block.getByteInterval();
+
+  for (const auto& Element : Block.getByteInterval()->blocks()) {
+    if (auto* CB = dyn_cast_or_null<gtirb::CodeBlock>(&Element);
+        CB && shouldSkip(*CB)) {
+      continue;
+    }
+    if (auto* DB = dyn_cast_or_null<gtirb::DataBlock>(&Element);
+        DB && shouldSkip(*DB)) {
+      continue;
+    }
+
+    if (&Element == &Block) {
+      FirstInBI = true;
+      break;
+    }
   }
-  if (x % 8 == 0) {
-    os << syntax.align() << " 8\n";
-    return;
+
+  // print alignment if block specified in aux data table
+  if (auto* Alignments = module.getAuxData<gtirb::schema::Alignment>()) {
+    if (auto It = Alignments->find(Block.getUUID()); It != Alignments->end()) {
+      return It->second;
+    }
+
+    // print alignment if byte interval specified in aux data table
+    if (FirstInBI) {
+      if (auto It = Alignments->find(Block.getByteInterval()->getUUID());
+          It != Alignments->end()) {
+        return It->second;
+      }
+
+      // print alignment if section specified in aux data table
+      if (FirstInBI && FirstInSection) {
+        if (auto It = Alignments->find(
+                Block.getByteInterval()->getSection()->getUUID());
+            It != Alignments->end()) {
+          return It->second;
+        }
+      }
+    }
   }
-  if (x % 4 == 0) {
-    os << syntax.align() << " 4\n";
-    return;
+
+  // if the section is an array section, print the ISA's array section width
+  if (policy.arraySections.count(
+          Block.getByteInterval()->getSection()->getName())) {
+    return 8;
   }
-  if (x % 2 == 0) {
-    os << syntax.align() << " 2\n";
-    return;
+
+  // if the block is first in the section, print alignment based on its address
+  if (FirstInBI && FirstInSection) {
+    uint64_t Addr{*Block.getAddress()};
+    if (Addr % 16 == 0) {
+      return 16;
+    } else if (Addr % 8 == 0) {
+      return 8;
+    } else if (Addr % 4 == 0) {
+      return 4;
+    } else if (Addr % 2 == 0) {
+      return 2;
+    }
   }
+
+  // else, no alignment needed
+  return std::nullopt;
+}
+
+std::optional<uint64_t>
+PrettyPrinterBase::getAlignment(const gtirb::CodeBlock& Block) {
+  return getAlignmentImpl(Block);
+}
+
+std::optional<uint64_t>
+PrettyPrinterBase::getAlignment(const gtirb::DataBlock& Block) {
+  return getAlignmentImpl(Block);
+}
+
+void PrettyPrinterBase::printAlignment(std::ostream& OS, uint64_t Alignment) {
+  OS << syntax.align() << ' ' << Alignment << '\n';
 }
 
 std::string PrettyPrinterBase::getFunctionName(gtirb::Addr x) const {
