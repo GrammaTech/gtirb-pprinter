@@ -279,9 +279,8 @@ void ElfPrettyPrinter::printSymbolicDataType(
   }
 }
 
-template <typename BlockType>
 std::optional<uint64_t>
-ElfPrettyPrinter::getAlignmentImpl(const BlockType& Block) {
+ElfPrettyPrinter::getAlignment(const gtirb::CodeBlock& Block) {
   if (auto Align = PrettyPrinterBase::getAlignment(Block)) {
     return Align;
   }
@@ -317,16 +316,6 @@ ElfPrettyPrinter::getAlignmentImpl(const BlockType& Block) {
   }
 
   return std::nullopt;
-}
-
-std::optional<uint64_t>
-ElfPrettyPrinter::getAlignment(const gtirb::CodeBlock& Block) {
-  return getAlignmentImpl(Block);
-}
-
-std::optional<uint64_t>
-ElfPrettyPrinter::getAlignment(const gtirb::DataBlock& Block) {
-  return getAlignmentImpl(Block);
 }
 
 bool ElfPrettyPrinterFactory::isStaticBinary(gtirb::Module& Module) const {
