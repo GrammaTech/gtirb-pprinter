@@ -1210,10 +1210,8 @@ PrettyPrinterBase::getAlignmentImpl(const BlockType& Block) {
       continue;
     }
 
-    if (&Element == &Block) {
-      FirstInBI = true;
-      break;
-    }
+    FirstInBI = (&Element == &Block);
+    break;
   }
 
   // print alignment if block specified in aux data table
