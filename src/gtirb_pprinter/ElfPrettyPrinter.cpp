@@ -281,6 +281,11 @@ void ElfPrettyPrinter::printSymbolicDataType(
 
 std::optional<uint64_t>
 ElfPrettyPrinter::getAlignment(const gtirb::CodeBlock& Block) {
+  // If the symbol is exported, ensure the block is aligned.
+  // This is currently implemented only for code blocks because sometimes
+  // data blocks occur inside other regions of data that must be contiguous,
+  // and alignment in the middle may break up these data blocks.
+
   if (auto Align = PrettyPrinterBase::getAlignment(Block)) {
     return Align;
   }
