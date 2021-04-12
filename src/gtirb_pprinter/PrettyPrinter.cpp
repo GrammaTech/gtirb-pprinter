@@ -1230,7 +1230,7 @@ PrettyPrinterBase::getAlignmentImpl(const BlockType& Block) {
       }
 
       // print alignment if section specified in aux data table
-      if (FirstInBI && FirstInSection) {
+      if (FirstInSection) {
         if (auto It = Alignments->find(
                 Block.getByteInterval()->getSection()->getUUID());
             It != Alignments->end()) {
