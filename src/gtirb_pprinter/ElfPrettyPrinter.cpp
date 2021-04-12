@@ -302,16 +302,7 @@ ElfPrettyPrinter::getAlignment(const gtirb::CodeBlock& Block) {
     }
 
     // exported symbol detected; ensure alignment is preserved
-    uint64_t Addr{*Block.getAddress()};
-    if (Addr % 16 == 0) {
-      return 16;
-    } else if (Addr % 8 == 0) {
-      return 8;
-    } else if (Addr % 4 == 0) {
-      return 4;
-    } else if (Addr % 2 == 0) {
-      return 2;
-    }
+    return PrettyPrinterBase::getAlignment(*Block.getAddress());
   }
 
   return std::nullopt;

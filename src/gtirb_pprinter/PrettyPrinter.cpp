@@ -1248,16 +1248,7 @@ PrettyPrinterBase::getAlignmentImpl(const BlockType& Block) {
 
   // if the block is first in the section, print alignment based on its address
   if (FirstInBI && FirstInSection) {
-    uint64_t Addr{*Block.getAddress()};
-    if (Addr % 16 == 0) {
-      return 16;
-    } else if (Addr % 8 == 0) {
-      return 8;
-    } else if (Addr % 4 == 0) {
-      return 4;
-    } else if (Addr % 2 == 0) {
-      return 2;
-    }
+    return getAlignment(*Block.getAddress());
   }
 
   // else, no alignment needed
@@ -1399,4 +1390,22 @@ uint64_t PrettyPrinterBase::getSymbolicExpressionSize(
   assert(!"Size of symbolic expression could not be determined!");
   return 0;
 }
+
+std::optional<uint64_t>
+PrettyPrinterBase::getAlignment(gtirb::Addr Addr) const {
+  auto A = uint64_t{Addr};
+
+  if (A % 16 == 0) {
+    return 16;
+  } else if (A % 8 == 0) {
+    return 8;
+  } else if (A % 4 == 0) {
+    return 4;
+  } else if (A % 2 == 0) {
+    return 2;
+  }
+
+  return std::nullopt;
+}
+
 } // namespace gtirb_pprint

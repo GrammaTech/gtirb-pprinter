@@ -441,6 +441,8 @@ protected:
   uint64_t getSymbolicExpressionSize(
       const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE) const;
 
+  std::optional<uint64_t> getAlignment(gtirb::Addr Addr) const;
+
 private:
   std::set<gtirb::Addr> functionEntry;
   std::set<gtirb::Addr> functionLastBlock;
