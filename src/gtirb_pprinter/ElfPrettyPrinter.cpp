@@ -290,8 +290,7 @@ ElfPrettyPrinter::getAlignment(const gtirb::CodeBlock& Block) {
     return std::nullopt;
   }
 
-  for (const auto& Sym :
-       Block.getByteInterval()->getSection()->getModule()->findSymbols(Block)) {
+  for (const auto& Sym : module.findSymbols(Block)) {
     auto SymTypeIt = SymbolTypes->find(Sym.getUUID());
     if (SymTypeIt == SymbolTypes->end()) {
       continue;
