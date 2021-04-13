@@ -350,11 +350,11 @@ test-make-install:
     - unzip gtirb-$OS-artifacts.zip
     - dpkg -i libgtirb.deb libgtirb-dev.deb
     - cd build
-    - cpack -G "DEB" -D CPACK_GTIRB_DEBIAN_PACKAGE=lib
-    - cpack -G "DEB" -D CPACK_GTIRB_DEBIAN_PACKAGE=lib-dbg
-    - cpack -G "DEB" -D CPACK_GTIRB_DEBIAN_PACKAGE=dev
-    - cpack -G "DEB" -D CPACK_GTIRB_DEBIAN_PACKAGE=driver
-    - cpack -G "DEB" -D CPACK_GTIRB_DEBIAN_PACKAGE=driver-dbg
+    - cpack -G "DEB" -D CPACK_GTIRB_PPRINTER_PACKAGE=lib
+    - cpack -G "DEB" -D CPACK_GTIRB_PPRINTER_PACKAGE=lib-dbg
+    - cpack -G "DEB" -D CPACK_GTIRB_PPRINTER_PACKAGE=dev
+    - cpack -G "DEB" -D CPACK_GTIRB_PPRINTER_PACKAGE=driver
+    - cpack -G "DEB" -D CPACK_GTIRB_PPRINTER_PACKAGE=driver-dbg
 
 build-ubuntu16-packages:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
