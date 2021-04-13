@@ -1195,24 +1195,10 @@ void PrettyPrinterBase::printAddend(std::ostream& os, int64_t number,
 template <typename BlockType>
 std::optional<uint64_t>
 PrettyPrinterBase::getAlignmentImpl(const BlockType& Block) {
-  bool FirstInBI = false,
+  bool FirstInBI = (Block.getOffset() == 0),
        FirstInSection =
-           &Block.getByteInterval()->getSection()->byte_intervals().front() ==
-           Block.getByteInterval();
-
-  for (const auto& Element : Block.getByteInterval()->blocks()) {
-    if (auto* CB = dyn_cast_or_null<gtirb::CodeBlock>(&Element);
-        CB && shouldSkip(*CB)) {
-      continue;
-    }
-    if (auto* DB = dyn_cast_or_null<gtirb::DataBlock>(&Element);
-        DB && shouldSkip(*DB)) {
-      continue;
-    }
-
-    FirstInBI = (&Element == &Block);
-    break;
-  }
+           (&Block.getByteInterval()->getSection()->byte_intervals().front() ==
+            Block.getByteInterval());
 
   // print alignment if block specified in aux data table
   if (auto* Alignments = module.getAuxData<gtirb::schema::Alignment>()) {
