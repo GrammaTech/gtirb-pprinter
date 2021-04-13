@@ -1232,7 +1232,20 @@ PrettyPrinterBase::getAlignmentImpl(const BlockType& Block) {
   // if the section is an array section, print the ISA's array section width
   if (policy.arraySections.count(
           Block.getByteInterval()->getSection()->getName())) {
-    return 8;
+    switch (module.getISA()) {
+    case gtirb::ISA::ARM:
+    case gtirb::ISA::IA32:
+    case gtirb::ISA::MIPS32:
+    case gtirb::ISA::PPC32:
+      return 4;
+    case gtirb::ISA::ARM64:
+    case gtirb::ISA::MIPS64:
+    case gtirb::ISA::PPC64:
+    case gtirb::ISA::X64:
+      return 8;
+    default:
+      return std::nullopt;
+    }
   }
 
   // if the block is first in the section, print alignment based on its address
