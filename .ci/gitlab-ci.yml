@@ -298,12 +298,12 @@ build-centos8-gcc-relwithdebuginfo:
     - mkdir build && cd build
     # download capstone & gtirb
     - curl -L https://git.grammatech.com/rewriting/extra-packages/-/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-rpm --output "capstone.zip"
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=package-centos8 --output "gtirb-$OS-artifacts.zip"
-    - unzip *.zip
+    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=package-centos8 --output "gtirb.zip"
+    - for pkg in gtirb capstone; do unzip $pkg.zip; done
     - dnf --nogpgcheck localinstall -y capstone-devel-*.rpm gtirb.rpm gtirb-devel.rpm
     - CAPSTONE_PKG_VERSION=$(ls capstone-devel-**.rpm | sed -n 's/capstone-devel-\(.*\).x86_64.rpm/\1/p')
     # Build
-    - cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBOOST_INCLUDEDIR='/usr/include/boost169' -DGTIRB_PPRINTER_STRIP_DEBUG_SYMBOLS=Off ..
+    - cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_PREFIX_PATH='/usr/lib64/boost169' -DBOOST_INCLUDEDIR='/usr/include/boost169' -DGTIRB_PPRINTER_STRIP_DEBUG_SYMBOLS=Off ..
     - make
     - cpack -G "RPM" -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PACKAGE=rpm-lib
     - cpack -G "RPM" -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PACKAGE=rpm-dev
