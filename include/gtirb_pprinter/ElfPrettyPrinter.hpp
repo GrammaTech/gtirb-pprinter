@@ -128,6 +128,11 @@ protected:
   void printSymbolHeader(std::ostream& os, const gtirb::Symbol& symbol);
 
   std::optional<uint64_t> getAlignment(const gtirb::CodeBlock& Block) override;
+  std::optional<uint64_t> getAlignment(const gtirb::DataBlock& Block) override;
+
+private:
+  template <typename BlockType>
+  std::optional<uint64_t> getAlignmentImpl(const BlockType& Block);
 };
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API ElfPrettyPrinterFactory
