@@ -93,7 +93,8 @@ void ArmPrettyPrinter::printInstruction(std::ostream& os,
     case ARM_CC_AL:
       return "al";
     default:
-      return "";
+      assert(!"Invalid arm_cc");
+      return "Invalid arm_cc";
     }
   };
 
