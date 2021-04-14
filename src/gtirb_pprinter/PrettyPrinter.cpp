@@ -1052,6 +1052,12 @@ void PrettyPrinterBase::printSymbolicExpression(std::ostream& os,
     os << ")/" << sexpr->Scale;
   }
 
+  if (sexpr->Offset != 0) {
+    if (sexpr->Offset > 0)
+      os << "+";
+    os << sexpr->Offset;
+  }
+
   printSymExprSuffix(os, sexpr->Attributes, IsNotBranch);
 }
 

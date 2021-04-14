@@ -26,8 +26,8 @@ ArmPrettyPrinter::ArmPrettyPrinter(gtirb::Context& context_,
     : ElfPrettyPrinter(context_, module_, syntax_, policy_),
       armSyntax(syntax_) {
   // Setup Capstone.
-  [[maybe_unused]] cs_err err =
-      cs_open(CS_ARCH_ARM, CS_MODE_ARM, &this->csHandle);
+  [[maybe_unused]] cs_err err = cs_open(
+      CS_ARCH_ARM, (cs_mode)(CS_MODE_ARM | CS_MODE_V8), &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
 }
 
@@ -41,10 +41,10 @@ void ArmPrettyPrinter::setDecodeMode(std::ostream& os,
   // 1 for THUMB 0 for regular ARM
   if (x.getDecodeMode()) {
     os << ".thumb" << std::endl;
-    cs_option(this->csHandle, CS_OPT_MODE, CS_MODE_THUMB);
+    cs_option(this->csHandle, CS_OPT_MODE, CS_MODE_THUMB | CS_MODE_V8);
   } else {
     os << ".arm" << std::endl;
-    cs_option(this->csHandle, CS_OPT_MODE, CS_MODE_ARM);
+    cs_option(this->csHandle, CS_OPT_MODE, CS_MODE_ARM | CS_MODE_V8);
   }
 }
 
@@ -60,7 +60,50 @@ void ArmPrettyPrinter::printInstruction(std::ostream& os,
   if (auto index = opcode.rfind(".w"); index != std::string::npos)
     opcode = opcode.substr(0, index);
 
-  os << "  " << opcode << ' ';
+  auto armCc2String = [](arm_cc cc) {
+    switch (cc) {
+    case ARM_CC_EQ:
+      return "eq";
+    case ARM_CC_NE:
+      return "ne";
+    case ARM_CC_HS:
+      return "hs";
+    case ARM_CC_LO:
+      return "lo";
+    case ARM_CC_MI:
+      return "mi";
+    case ARM_CC_PL:
+      return "pl";
+    case ARM_CC_VS:
+      return "vs";
+    case ARM_CC_VC:
+      return "vc";
+    case ARM_CC_HI:
+      return "hi";
+    case ARM_CC_LS:
+      return "ls";
+    case ARM_CC_GE:
+      return "ge";
+    case ARM_CC_LT:
+      return "lt";
+    case ARM_CC_GT:
+      return "gt";
+    case ARM_CC_LE:
+      return "le";
+    case ARM_CC_AL:
+      return "al";
+    default:
+      return "";
+    }
+  };
+
+  os << "  " << opcode;
+  if (opcode == "ite" || opcode == "it" || opcode == "itt" ||
+      opcode == "itte") {
+    std::string cc = armCc2String(inst.detail->arm.cc);
+    os << " " << cc;
+  }
+  os << ' ';
   // Make sure the initial m_accum_comment is empty.
   m_accum_comment.clear();
   printOperandList(os, block, inst);
@@ -90,12 +133,16 @@ void ArmPrettyPrinter::printOperandList(std::ostream& os,
     RegBitVectorIndex = 0;
 
   for (int i = 0; i < opCount; i++) {
-    if (i == RegBitVectorIndex)
-      os << "{ ";
     if (i != 0) {
       os << ", ";
     }
+    if (i == RegBitVectorIndex)
+      os << "{ ";
     printOperand(os, block, inst, i);
+    if (LdmSdm.find(static_cast<arm_insn>(inst.id)) != LdmSdm.end() && i == 0 &&
+        detail.writeback) {
+      os << "!";
+    }
   }
   if (RegBitVectorIndex != -1)
     os << " }";
@@ -133,13 +180,54 @@ void ArmPrettyPrinter::printOperand(std::ostream& os,
   }
 }
 
+void ArmPrettyPrinter::printSymExprSuffix(std::ostream& OS,
+                                          const gtirb::SymAttributeSet& Attrs,
+                                          bool /*IsNotBranch*/) {
+  if (Attrs.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
+    OS << "(GOT)";
+  }
+}
+
 void ArmPrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
                                         uint64_t index) {
+  auto armShifter2String = [](arm_shifter sft) {
+    switch (sft) {
+    case ARM_SFT_INVALID:
+      return "";
+    case ARM_SFT_ASR:
+      return "asr";
+    case ARM_SFT_LSL:
+      return "lsl";
+    case ARM_SFT_LSR:
+      return "lsr";
+    case ARM_SFT_ROR:
+      return "ror";
+    case ARM_SFT_RRX:
+      return "rrx";
+    case ARM_SFT_ASR_REG:
+      return "asr";
+    case ARM_SFT_LSL_REG:
+      return "lsl";
+    case ARM_SFT_LSR_REG:
+      return "lsr";
+    case ARM_SFT_ROR_REG:
+      return "ror";
+    case ARM_SFT_RRX_REG:
+      return "rrx";
+    default:
+      return "";
+    }
+  };
+
   const cs_arm_op& op = inst.detail->arm.operands[index];
   if (op.type == ARM_OP_SYSREG)
     os << "msr";
-  else
+  else {
     os << getRegisterName(op.reg);
+    std::string shift_type = armShifter2String(op.shift.type);
+    if (shift_type != "" && op.shift.value != 0)
+      os << ", " << shift_type << " #" << op.shift.value;
+  }
 }
 
 std::string ArmPrettyPrinter::getRegisterName(unsigned int reg) const {
@@ -174,7 +262,10 @@ void ArmPrettyPrinter::printOpIndirect(
          "printOpIndirect called without a memory operand");
 
   // PC-relative operand
-  if (op.mem.base == ARM_REG_PC) {
+  std::string opcode = ascii_str_tolower(inst.mnemonic);
+  // NOTE: For TBB and TBH (jump-table instructions),
+  //       print the PC-relative operand as it is.
+  if (op.mem.base == ARM_REG_PC && opcode != "tbb" && opcode != "tbh") {
     if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
       printSymbolicExpression(os, s, false);
     } else {
@@ -239,6 +330,15 @@ void ArmPrettyPrinter::printOpIndirect(
       os << ", #" << op.mem.disp;
   }
   os << ']';
+  if (detail.writeback) {
+    // If this operand has 'writeback', and it's the last operand,
+    // it can be assumed to be pre-indexed.
+    // NOTE: Is there a way of finding the info about pre/post-index in
+    // capstone??
+    if ((uint64_t)(detail.op_count - 1) == index) {
+      os << '!';
+    }
+  }
 }
 
 std::string ArmPrettyPrinter::getFunctionName(gtirb::Addr x) const {
@@ -256,6 +356,15 @@ std::string ArmPrettyPrinter::getFunctionName(gtirb::Addr x) const {
   return PrettyPrinterBase::getFunctionName(x);
 }
 
+bool ArmPrettyPrinter::printSymbolReference(std::ostream& OS,
+                                            const gtirb::Symbol* Symbol) {
+  if (Symbol->getName() == "_GLOBAL_OFFSET_TABLE_") {
+    OS << Symbol->getName();
+    return false;
+  }
+  return PrettyPrinterBase::printSymbolReference(OS, Symbol);
+}
+
 std::unique_ptr<PrettyPrinterBase>
 ArmPrettyPrinterFactory::create(gtirb::Context& gtirb_context,
                                 gtirb::Module& module,
@@ -270,5 +379,6 @@ ArmPrettyPrinterFactory::ArmPrettyPrinterFactory() {
   DynamicPolicy.arraySections.clear();
   DynamicPolicy.skipSections.emplace(".init_array");
   DynamicPolicy.skipSections.emplace(".fini_array");
+  DynamicPolicy.skipSections.emplace(".ARM.exidx");
 }
 } // namespace gtirb_pprint

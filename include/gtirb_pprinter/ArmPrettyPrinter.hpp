@@ -56,6 +56,10 @@ protected:
   void printOpIndirect(std::ostream& os,
                        const gtirb::SymbolicExpression* symbolic,
                        const cs_insn& inst, uint64_t index) override;
+  bool printSymbolReference(std::ostream& os,
+                            const gtirb::Symbol* symbol) override;
+  void printSymExprSuffix(std::ostream& OS, const gtirb::SymAttributeSet& Attrs,
+                          bool IsNotBranch = false) override;
 
   std::string getFunctionName(gtirb::Addr x) const override;
 };
