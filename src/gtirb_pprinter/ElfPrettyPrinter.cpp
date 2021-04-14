@@ -279,13 +279,9 @@ void ElfPrettyPrinter::printSymbolicDataType(
   }
 }
 
+template <typename BlockType>
 std::optional<uint64_t>
-ElfPrettyPrinter::getAlignment(const gtirb::CodeBlock& Block) {
-  // If the symbol is exported, ensure the block is aligned.
-  // This is currently implemented only for code blocks because sometimes
-  // data blocks occur inside other regions of data that must be contiguous,
-  // and alignment in the middle may break up these data blocks.
-
+ElfPrettyPrinter::getAlignmentImpl(const BlockType& Block) {
   if (auto Align = PrettyPrinterBase::getAlignment(Block)) {
     return Align;
   }
@@ -311,6 +307,16 @@ ElfPrettyPrinter::getAlignment(const gtirb::CodeBlock& Block) {
   }
 
   return std::nullopt;
+}
+
+std::optional<uint64_t>
+ElfPrettyPrinter::getAlignment(const gtirb::CodeBlock& Block) {
+  return getAlignmentImpl(Block);
+}
+
+std::optional<uint64_t>
+ElfPrettyPrinter::getAlignment(const gtirb::DataBlock& Block) {
+  return getAlignmentImpl(Block);
 }
 
 bool ElfPrettyPrinterFactory::isStaticBinary(gtirb::Module& Module) const {
