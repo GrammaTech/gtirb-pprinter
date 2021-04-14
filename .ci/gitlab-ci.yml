@@ -476,6 +476,44 @@ build-ubuntu20-packages:
     - apt-get update -y && apt-get install -y --allow-unauthenticated libgtirb-pprinter
     - ./test-install
 
+test-centos8-libgtirb-pprinter-devel:
+  stage: test-packages1
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/centos8
+  needs: ['build-centos8-gcc-relwithdebuginfo']
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
+    paths:
+      - test-install
+  script:
+    - pushd build
+    - dnf --nogpgcheck localinstall -y capstone-devel-*.rpm gtirb.rpm gtirb-devel.rpm libgtirb-pprinter.rpm libgtirb-pprinter-devel.rpm
+    - popd && rm -rf build
+    - ${CC} .ci/test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs
+    - ./test-install
+
+test-centos8-gtirb-pprinter:
+  stage: test-packages1
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/centos8
+  needs: ['build-centos8-gcc-relwithdebuginfo']
+  script:
+    - pushd build
+    - dnf --nogpgcheck localinstall -y capstone-devel-*.rpm gtirb.rpm libgtirb-pprinter.rpm gtirb-pprinter.rpm
+    - popd && rm -rf build
+    - gtirb-pprinter tests/two_modules.gtirb
+    - gtirb-layout tests/two_modules.gtirb --out output
+
+test-centos8-libgtirb-pprinter:
+  stage: test-packages2
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/centos8
+  needs:
+    - build-centos8-gcc-relwithdebuginfo
+    - test-centos8-libgtirb-pprinter-devel
+  script:
+    - pushd build
+    - dnf --nogpgcheck localinstall -y capstone-devel-*.rpm gtirb.rpm libgtirb-pprinter.rpm
+    - popd && rm -rf build
+    - ./test-install
+
 setup-ubuntu16-repo:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
   needs: ['build-ubuntu16-packages']
