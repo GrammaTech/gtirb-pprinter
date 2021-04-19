@@ -127,8 +127,7 @@ protected:
 
   virtual void printHeader(std::ostream& os) override;
 
-  void printSymbolHeader(std::ostream& os, const gtirb::Symbol& symbol,
-                         bool PrintAlignment = true);
+  void printSymbolHeader(std::ostream& os, const gtirb::Symbol& symbol);
 
   /// Called in the constructor when the binary shared object (Elf type DYN).
   /// This includes both shared libraries and PIE executables.
