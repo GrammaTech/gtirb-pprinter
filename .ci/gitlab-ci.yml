@@ -487,7 +487,8 @@ test-centos8-libgtirb-pprinter-devel:
   script:
     - pushd build
     - dnf --nogpgcheck localinstall -y capstone-devel-*.rpm libgtirb.rpm libgtirb-devel.rpm libgtirb-pprinter.rpm libgtirb-pprinter-devel.rpm
-    - popd && rm -rf build
+    - popd
+    - rm -rf build
     - g++ .ci/test-install.cpp -I/usr/include/boost169 -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs
     - ./test-install
 
@@ -498,7 +499,8 @@ test-centos8-gtirb-pprinter:
   script:
     - pushd build
     - dnf --nogpgcheck localinstall -y capstone-devel-*.rpm libgtirb.rpm libgtirb-pprinter.rpm gtirb-pprinter.rpm
-    - popd && rm -rf build
+    - popd
+    - rm -rf build
     - gtirb-pprinter tests/two_modules.gtirb
     - gtirb-layout tests/two_modules.gtirb --out output
 
@@ -511,7 +513,8 @@ test-centos8-libgtirb-pprinter:
   script:
     - pushd build
     - dnf --nogpgcheck localinstall -y capstone-devel-*.rpm libgtirb.rpm libgtirb-pprinter.rpm
-    - popd && rm -rf build
+    - popd
+    - rm -rf build
     - ./test-install
 
 setup-ubuntu16-repo:
