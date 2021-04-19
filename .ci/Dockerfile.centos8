@@ -15,7 +15,6 @@ RUN dnf install -y \
     gcc-c++ \
     git \
     glibc-langpack-en.x86_64 \
-    java \
     libtool \
     make \
     python3 \
