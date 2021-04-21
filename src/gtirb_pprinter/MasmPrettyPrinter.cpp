@@ -531,6 +531,18 @@ void MasmPrettyPrinter::printZeroDataBlock(std::ostream& os,
   os << "DB " << (dataObject.getSize() - offset) << " DUP(0)" << '\n';
 }
 
+bool MasmPrettyPrinter::printSymbolReference(std::ostream& Stream,
+                                             const gtirb::Symbol* Symbol) {
+  if (Symbol && Symbol->getReferent<gtirb::DataBlock>()) {
+    if (std::optional<std::string> Name = getForwardedSymbolName(Symbol)) {
+      Stream << "__imp_" << *Name;
+      return true;
+    }
+  }
+
+  return PrettyPrinterBase::printSymbolReference(Stream, Symbol);
+}
+
 void MasmPrettyPrinter::printString(std::ostream& os, const gtirb::DataBlock& x,
                                     uint64_t offset) {
 
