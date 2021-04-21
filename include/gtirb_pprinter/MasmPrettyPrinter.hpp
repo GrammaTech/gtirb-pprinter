@@ -150,6 +150,8 @@ protected:
   void printZeroDataBlock(std::ostream& os, const gtirb::DataBlock& dataObject,
                           uint64_t offset) override;
 
+  bool printSymbolReference(std::ostream& os,
+                            const gtirb::Symbol* symbol) override;
   void printString(std::ostream& os, const gtirb::DataBlock& x,
                    uint64_t offset) override;
 
