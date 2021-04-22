@@ -277,16 +277,16 @@ void ArmPrettyPrinter::printOpIndirect(
   std::string opcode = ascii_str_tolower(inst.mnemonic);
 
   auto isJumpTableBranch = [&]() {
-      // tbb [pc, rm] or tbh [pc, rm, lsl #N]
-      if ((opcode == "tbb" || opcode == "tbh") && op.mem.base == ARM_REG_PC)
-          return true;
-      // ldr pc, [pc, rn, lsl #N]
-      if (opcode.substr(0,3) == "ldr" && op.mem.base == ARM_REG_PC) {
-          const cs_arm_op& dst = detail.operands[0];
-          if (dst.reg == ARM_REG_PC)
-              return true;
-      }
-      return false;
+    // tbb [pc, rm] or tbh [pc, rm, lsl #N]
+    if ((opcode == "tbb" || opcode == "tbh") && op.mem.base == ARM_REG_PC)
+      return true;
+    // ldr pc, [pc, rn, lsl #N]
+    if (opcode.substr(0, 3) == "ldr" && op.mem.base == ARM_REG_PC) {
+      const cs_arm_op& dst = detail.operands[0];
+      if (dst.reg == ARM_REG_PC)
+        return true;
+    }
+    return false;
   };
 
   // NOTE: For jump-table instructions,
