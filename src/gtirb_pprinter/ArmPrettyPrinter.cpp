@@ -226,8 +226,19 @@ void ArmPrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
   else {
     os << getRegisterName(op.reg);
     std::string shift_type = armShifter2String(op.shift.type);
-    if (shift_type != "" && op.shift.value != 0)
-      os << ", " << shift_type << " #" << op.shift.value;
+    std::string opcode = ascii_str_tolower(inst.mnemonic);
+    opcode = opcode.substr(0, 3);
+    if (op.shift.value != 0) {
+      os << ", ";
+      // In case where opcode is the same as one of arm_shifters (e.g., lsl),
+      // do not print it again here.
+      if (shift_type != "" && shift_type != opcode)
+        os << shift_type << " ";
+      if (op.shift.value >= 32)
+        os << getRegisterName(op.shift.value);
+      else
+        os << "#" << op.shift.value;
+    }
   }
 }
 
@@ -264,9 +275,23 @@ void ArmPrettyPrinter::printOpIndirect(
 
   // PC-relative operand
   std::string opcode = ascii_str_tolower(inst.mnemonic);
-  // NOTE: For TBB and TBH (jump-table instructions),
+
+  auto isJumpTableBranch = [&]() {
+      // tbb [pc, rm] or tbh [pc, rm, lsl #N]
+      if ((opcode == "tbb" || opcode == "tbh") && op.mem.base == ARM_REG_PC)
+          return true;
+      // ldr pc, [pc, rn, lsl #N]
+      if (opcode.substr(0,3) == "ldr" && op.mem.base == ARM_REG_PC) {
+          const cs_arm_op& dst = detail.operands[0];
+          if (dst.reg == ARM_REG_PC)
+              return true;
+      }
+      return false;
+  };
+
+  // NOTE: For jump-table instructions,
   //       print the PC-relative operand as it is.
-  if (op.mem.base == ARM_REG_PC && opcode != "tbb" && opcode != "tbh") {
+  if (op.mem.base == ARM_REG_PC && !isJumpTableBranch()) {
     if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
       printSymbolicExpression(os, s, false);
     } else {
@@ -381,5 +406,7 @@ ArmPrettyPrinterFactory::ArmPrettyPrinterFactory() {
   DynamicPolicy.skipSections.emplace(".init_array");
   DynamicPolicy.skipSections.emplace(".fini_array");
   DynamicPolicy.skipSections.emplace(".ARM.exidx");
+
+  DynamicPolicy.skipSymbols.emplace("_fini");
 }
 } // namespace gtirb_pprint
