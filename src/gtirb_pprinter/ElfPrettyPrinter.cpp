@@ -367,17 +367,11 @@ void ElfPrettyPrinter::printSymExprSuffix(std::ostream& OS,
     }
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
     OS << "@GOTPCREL";
-  }
-  // FIXME: Use appropriate TLS attribute when it is added to GTIRB.
-  else if (Attrs.isFlagSet(gtirb::SymAttribute::Part0)) {
+  } else if (Attrs.isFlagSet(gtirb::SymAttribute::TPOFF)) {
     OS << "@TPOFF";
-  }
-  // FIXME: Use appropriate TLS attribute when it is added to GTIRB.
-  else if (Attrs.isFlagSet(gtirb::SymAttribute::Part2)) {
+  } else if (Attrs.isFlagSet(gtirb::SymAttribute::NTPOFF)) {
     OS << "@NTPOFF";
-  }
-  // FIXME: Use appropriate TLS attribute when it is added to GTIRB.
-  else if (Attrs.isFlagSet(gtirb::SymAttribute::Part3)) {
+  } else if (Attrs.isFlagSet(gtirb::SymAttribute::TLSGD)) {
     OS << "@TLSGD";
   }
 }
