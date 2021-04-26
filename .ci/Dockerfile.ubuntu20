@@ -9,7 +9,8 @@ RUN pip3 install pre-commit
 RUN apt-get -y install clang-format unzip \
     libboost-filesystem-dev libboost-filesystem1.71.0 \
     libboost-system-dev libboost-system1.71.0 \
-    libboost-program-options-dev libboost-program-options1.71.0
+    libboost-program-options-dev libboost-program-options1.71.0 \
+    gcovr
 
 # Install capstone
 COPY libcapstone-dev_*_amd64.deb ./

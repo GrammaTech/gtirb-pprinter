@@ -4,16 +4,15 @@ import os
 import shutil
 import subprocess
 import sys
-import tempfile
 
-two_modules_gtirb = Path("tests", "two_modules.gtirb")
+from pprinter_helpers import TESTS_DIR
+
+two_modules_gtirb = Path(TESTS_DIR, "two_modules.gtirb")
 
 
 class TestBinaryGeneration(unittest.TestCase):
+    @unittest.skipUnless(os.name == "posix", "only runs on Linux")
     def test_binaries(self):
-        if os.name == "nt":
-            return
-
         shutil.rmtree("/tmp/two_mods", ignore_errors=True)
         os.mkdir("/tmp/two_mods")
         try:
@@ -56,30 +55,3 @@ class TestBinaryGeneration(unittest.TestCase):
             self.assertTrue("!!!Hello World!!!" in output_bin)
         finally:
             shutil.rmtree("/tmp/two_mods")
-
-    def test_keep_function(self):
-        tmp = tempfile.NamedTemporaryFile(suffix=".s")
-        try:
-            tmp.close()
-
-            output = subprocess.check_output(
-                [
-                    "gtirb-pprinter",
-                    "--ir",
-                    str(two_modules_gtirb),
-                    "-a",
-                    tmp.name,
-                    "--keep-function",
-                    "_start",
-                ]
-            ).decode(sys.stdout.encoding)
-            self.assertTrue("assembly written to" in output)
-            with open(tmp.name) as assembly:
-                self.assertTrue("_start:" in assembly.read().splitlines())
-        finally:
-            tmp = Path(tmp.name)
-            if tmp.exists():
-                tmp.unlink()
-            extra = tmp.parent / (tmp.stem + "1" + tmp.suffix)
-            if extra.exists():
-                extra.unlink()

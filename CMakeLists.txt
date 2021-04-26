@@ -81,6 +81,23 @@ else()
   set(BUILD_SHARED_LIBS ON)
 endif()
 
+option(GTIRB_PPRINTER_CODE_COVERAGE
+       "Build with instrumentation for collecting code coverage" OFF)
+
+if(GTIRB_PPRINTER_CODE_COVERAGE)
+  if(${CMAKE_CXX_COMPILER_ID} STREQUAL GNU OR ${CMAKE_CXX_COMPILER_ID} STREQUAL
+                                              Clang)
+    add_compile_options(--coverage)
+    if(${CMAKE_VERSION} GREATER_EQUAL "3.13")
+      add_link_options(--coverage)
+    else()
+      link_libraries(--coverage)
+    endif()
+  else()
+    message(FATAL_ERROR "no support for code coverage on this target")
+  endif()
+endif()
+
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/src)
 if(WIN32)
@@ -480,6 +497,9 @@ if(GTIRB_PPRINTER_ENABLE_TESTS)
     NAME python_tests
     COMMAND Python3::Interpreter -m unittest discover tests "*_test.py"
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/")
+  set_tests_properties(
+    python_tests PROPERTIES ENVIRONMENT
+                            PATH=$<TARGET_FILE_DIR:gtirb-pprinter>:$ENV{PATH})
 endif()
 
 # ---------------------------------------------------------------------------

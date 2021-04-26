@@ -96,7 +96,7 @@ conan-windows:
     - '[ $OS != "arch" ] || pacman --noconfirm -U gtirb-git*.pkg.tar.*'
     - '[[ ! "$OS" =~ ubuntu[12][680] ]] || dpkg -i libgtirb.deb libgtirb-dev.deb'
     - mkdir build && cd build
-    - cmake ../ -DCMAKE_CXX_COMPILER=$COMPILER -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCPACK_DEBIAN_PACKAGE_RELEASE="$(lsb_release -sc)" -DGTIRB_PPRINTER_STRIP_DEBUG_SYMBOLS=On
+    - cmake ../ -DCMAKE_CXX_COMPILER=$COMPILER -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCPACK_DEBIAN_PACKAGE_RELEASE="$(lsb_release -sc)" -DGTIRB_PPRINTER_STRIP_DEBUG_SYMBOLS=On $EXTRA_CMAKE_ARGS
     - make -j
 
 .windows-build-template: &windows-build
@@ -202,6 +202,16 @@ build-ubuntu20-gcc:
     COMPILER: 'g++'
     BUILD_TYPE: 'RelWithDebInfo'
   <<: *build
+
+build-ubuntu20-gcc-gcov:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20:jranieri-gcov
+  variables:
+    OS: 'ubuntu20'
+    COMPILER: 'g++'
+    BUILD_TYPE: 'Debug'
+    EXTRA_CMAKE_ARGS: -DGTIRB_PPRINTER_CODE_COVERAGE=On
+  <<: *build
+
 
 build-static:
   stage: build
@@ -336,6 +346,25 @@ test-and-tag-ubuntu20-gcc:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
   needs: ['build-ubuntu20-gcc']
   <<: *test-and-tag
+
+test-and-tag-ubuntu20-gcc-gcov:
+  variables:
+    OS: 'ubuntu20'
+    COMPILER: 'gcc'
+    BUILD_TYPE: 'Debug'
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20:jranieri-gcov
+  needs: ['build-ubuntu20-gcc-gcov']
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
+    paths:
+      - 'build'
+  <<: *test-and-tag
+
+verify-code-coverage-ubuntu20-gcc-gcov:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20:jranieri-gcov
+  needs: ['test-and-tag-ubuntu20-gcc-gcov']
+  script:
+    - gcovr -e build --fail-under-line 40
 
 test-and-tag-arch-gcc-debug:
   allow_failure: true
