@@ -5,14 +5,14 @@ import subprocess
 import sys
 import tempfile
 
-pe32plus_gtirb = Path("tests", "ConsoleApplication1.exe.gtirb")
+from pprinter_helpers import TESTS_DIR
+
+pe32plus_gtirb = Path(TESTS_DIR, "ConsoleApplication1.exe.gtirb")
 
 
 class TestBinaryGeneration(unittest.TestCase):
+    @unittest.skipUnless(os.name == "nt", "only runs on Windows")
     def test_generate_binary(self):
-        if os.name != "nt":
-            return
-
         base_path = tempfile.mkdtemp()
         # This is a pe32+ console application that will load a resource test
         # string and display it on the console.
