@@ -11,7 +11,7 @@ KEY_TOOL_CWD = "cwd"
 
 
 def send_packet(sock: socket.socket, payload: dict) -> None:
-    sock.send(json.dumps(payload).encode() + b"\n")
+    sock.send(json.dumps(payload).encode("utf-8") + b"\n")
 
 
 def recv_packet(sock: socket.socket) -> dict:
@@ -23,7 +23,7 @@ def recv_packet(sock: socket.socket) -> dict:
 
         data += new_data
         if data[-1] == 10:
-            return json.loads(data)
+            return json.loads(data.decode("utf-8"))
 
 
 def main() -> None:

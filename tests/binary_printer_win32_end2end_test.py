@@ -5,7 +5,7 @@ import subprocess
 import sys
 import tempfile
 
-from pprinter_helpers import TESTS_DIR
+from pprinter_helpers import TESTS_DIR, pprinter_binary
 
 pe32plus_gtirb = Path(TESTS_DIR, "ConsoleApplication1.exe.gtirb")
 
@@ -19,7 +19,7 @@ class TestBinaryGeneration(unittest.TestCase):
         out_path = os.path.join(base_path, "ConsoleApplication1.exe")
         in_path = os.path.abspath(str(pe32plus_gtirb))
         subprocess.check_output(
-            ["gtirb-pprinter", "--ir", in_path, "--binary", out_path],
+            [pprinter_binary(), "--ir", in_path, "--binary", out_path],
             cwd=base_path,
         ).decode(sys.stdout.encoding)
         output = subprocess.check_output(out_path).decode(sys.stdout.encoding)

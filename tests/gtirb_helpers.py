@@ -25,7 +25,8 @@ def create_test_module(
     Creates a test GTIRB module and returns the IR object and module object.
     """
     ir = gtirb.IR()
-    m = gtirb.Module(isa=isa, file_format=file_format, name="test", ir=ir)
+    m = gtirb.Module(isa=isa, file_format=file_format, name="test")
+    m.ir = ir
 
     add_standard_aux_data_tables(m)
     if binary_type:
@@ -136,8 +137,10 @@ def add_section(
     """
     Adds a section to the module and creates a byte interval for it.
     """
-    s = gtirb.Section(name=name, flags=flags, module=m)
-    bi = gtirb.ByteInterval(contents=b"", address=address, section=s)
+    s = gtirb.Section(name=name, flags=flags)
+    s.module = m
+    bi = gtirb.ByteInterval(contents=b"", address=address)
+    bi.section = s
     return s, bi
 
 
@@ -200,11 +203,8 @@ def add_byte_block(
     Adds a block to a byte interval, setting up its contents and optionally
     its symbolic expressions.
     """
-    b = block_type(
-        offset=byte_interval.size,
-        size=len(content),
-        byte_interval=byte_interval,
-    )
+    b = block_type(offset=byte_interval.size, size=len(content))
+    b.byte_interval = byte_interval
     byte_interval.contents += content
     if symbolic_expressions:
         for off, expr in symbolic_expressions.items():
@@ -247,7 +247,9 @@ def add_symbol(
     """
     Creates a symbol and adds it to the module.
     """
-    return gtirb.Symbol(name, payload=payload, module=module)
+    sym = gtirb.Symbol(name, payload=payload)
+    sym.module = module
+    return sym
 
 
 def add_function(
