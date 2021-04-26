@@ -110,12 +110,14 @@ void ElfPrettyPrinter::printHeader(std::ostream& /*os*/) {
 
 void ElfPrettyPrinter::fixupSharedObject() {
   // if this is a shared library or PIE executable, we need to
-  // ensure all global symbols being referenced in code blocks have a
-  // hidden alias
+  // ensure all global symbols being referenced in code blocks either have a
+  // hidden alias or are referenced via GOT/PLT
   if (auto* ElfSymInfo = module.getAuxData<gtirb::schema::ElfSymbolInfo>()) {
     // find the global symbols being referenced incorrectly
     std::unordered_set<gtirb::Symbol*> SymbolsToAlias;
-    std::vector<gtirb::ByteInterval::SymbolicExpressionElement> SEEsToFix;
+    std::vector<gtirb::ByteInterval::SymbolicExpressionElement> SEEsToAlias,
+        SEEsToPLT;
+    auto* SymForwarding = module.getAuxData<gtirb::schema::SymbolForwarding>();
 
     for (auto& CB : module.code_blocks()) {
       if (shouldSkip(CB)) {
@@ -147,11 +149,9 @@ void ElfPrettyPrinter::fixupSharedObject() {
           assert(!"Unknown symbolic expression type!");
         }
 
-        bool Found = false;
         for (auto* Symbol : SymsToCheck) {
-          if (!Symbol->hasReferent() ||
-              Symbol->getReferent<gtirb::ProxyBlock>()) {
-            continue; // extern symbols need no fixup
+          if (!Symbol->hasReferent() && Symbol->getAddress()) {
+            continue; // integral symbols don't need fixed up
           }
 
           if (auto It = ElfSymInfo->find(Symbol->getUUID());
@@ -160,10 +160,16 @@ void ElfPrettyPrinter::fixupSharedObject() {
                 Info.Binding != "LOCAL" && Info.Visibility == "DEFAULT") {
               // direct references to global symbols are not allowed in
               // shared objects
-              SymbolsToAlias.insert(Symbol);
-              if (!Found) {
-                SEEsToFix.push_back(SEE);
-                Found = true;
+              if (!Symbol->hasReferent() ||
+                  Symbol->getReferent<gtirb::ProxyBlock>() ||
+                  (SymForwarding && SymForwarding->find(Symbol->getUUID()) !=
+                                        SymForwarding->end())) {
+                // need to turn into a PLT reference
+                SEEsToPLT.push_back(SEE);
+              } else {
+                // need to change to the hidden alias
+                SymbolsToAlias.insert(Symbol);
+                SEEsToAlias.push_back(SEE);
               }
             }
           }
@@ -196,24 +202,14 @@ void ElfPrettyPrinter::fixupSharedObject() {
     }
 
     // reassign bad code block references to hidden symbols
-    for (auto SEE : SEEsToFix) {
+    for (auto SEE : SEEsToAlias) {
       if (auto* SAC =
               std::get_if<gtirb::SymAddrConst>(&SEE.getSymbolicExpression())) {
-        if (SAC->Attributes.isFlagSet(gtirb::SymAttribute::PltRef) ||
-            SAC->Attributes.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
-          continue; // PLT/GOT references are allowed in shared objects
-        }
-
         gtirb::SymAddrConst NewSAC{*SAC};
         NewSAC.Sym = GlobalToHiddenSyms[SAC->Sym];
         SEE.getByteInterval()->addSymbolicExpression(SEE.getOffset(), NewSAC);
       } else if (auto* SAA = std::get_if<gtirb::SymAddrAddr>(
                      &SEE.getSymbolicExpression())) {
-        if (SAA->Attributes.isFlagSet(gtirb::SymAttribute::PltRef) ||
-            SAA->Attributes.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
-          continue; // PLT/GOT references are allowed in shared objects
-        }
-
         gtirb::SymAddrAddr NewSAA{*SAA};
         if (auto It = GlobalToHiddenSyms.find(SAA->Sym1);
             It != GlobalToHiddenSyms.end()) {
@@ -222,6 +218,42 @@ void ElfPrettyPrinter::fixupSharedObject() {
         if (auto It = GlobalToHiddenSyms.find(SAA->Sym2);
             It != GlobalToHiddenSyms.end()) {
           NewSAA.Sym2 = It->second;
+        }
+        SEE.getByteInterval()->addSymbolicExpression(SEE.getOffset(), NewSAA);
+      } else {
+        assert(!"Unknown symbolic expression type!");
+      }
+    }
+
+    // make bad code block references to extern symbols go through the PLT
+    for (auto SEE : SEEsToPLT) {
+      if (auto* SAC =
+              std::get_if<gtirb::SymAddrConst>(&SEE.getSymbolicExpression())) {
+        gtirb::SymAddrConst NewSAC{*SAC};
+        NewSAC.Attributes.addFlag(gtirb::SymAttribute::PltRef);
+        if (SymForwarding) {
+          if (auto It = SymForwarding->find(SAC->Sym->getUUID());
+              It != SymForwarding->end()) {
+            NewSAC.Sym = cast<gtirb::Symbol>(
+                gtirb::Node::getByUUID(context, It->second));
+          }
+        }
+        SEE.getByteInterval()->addSymbolicExpression(SEE.getOffset(), NewSAC);
+      } else if (auto* SAA = std::get_if<gtirb::SymAddrAddr>(
+                     &SEE.getSymbolicExpression())) {
+        gtirb::SymAddrAddr NewSAA{*SAA};
+        NewSAA.Attributes.addFlag(gtirb::SymAttribute::PltRef);
+        if (SymForwarding) {
+          if (auto It = SymForwarding->find(SAA->Sym1->getUUID());
+              It != SymForwarding->end()) {
+            NewSAA.Sym1 = cast<gtirb::Symbol>(
+                gtirb::Node::getByUUID(context, It->second));
+          }
+          if (auto It = SymForwarding->find(SAA->Sym2->getUUID());
+              It != SymForwarding->end()) {
+            NewSAA.Sym2 = cast<gtirb::Symbol>(
+                gtirb::Node::getByUUID(context, It->second));
+          }
         }
         SEE.getByteInterval()->addSymbolicExpression(SEE.getOffset(), NewSAA);
       } else {
