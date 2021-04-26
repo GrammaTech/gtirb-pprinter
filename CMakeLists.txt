@@ -88,6 +88,9 @@ if(GTIRB_PPRINTER_CODE_COVERAGE)
   if(${CMAKE_CXX_COMPILER_ID} STREQUAL GNU OR ${CMAKE_CXX_COMPILER_ID} STREQUAL
                                               Clang)
     add_compile_options(--coverage)
+    # Unfortunately using link_libraries for this triggers a warning about
+    # CMP0022 not being set inside of googletest. add_link_options does not
+    # trigger this warning, but is only available in CMake 3.13+.
     if(${CMAKE_VERSION} GREATER_EQUAL "3.13")
       add_link_options(--coverage)
     else()
@@ -499,7 +502,7 @@ if(GTIRB_PPRINTER_ENABLE_TESTS)
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/")
   set_tests_properties(
     python_tests PROPERTIES ENVIRONMENT
-                            PATH=$<TARGET_FILE_DIR:gtirb-pprinter>:$ENV{PATH})
+                            "PPRINTER_PATH=$<TARGET_FILE:gtirb-pprinter>")
 endif()
 
 # ---------------------------------------------------------------------------

@@ -5,7 +5,7 @@ import shutil
 import subprocess
 import sys
 
-from pprinter_helpers import TESTS_DIR
+from pprinter_helpers import TESTS_DIR, pprinter_binary
 
 two_modules_gtirb = Path(TESTS_DIR, "two_modules.gtirb")
 
@@ -18,7 +18,7 @@ class TestBinaryGeneration(unittest.TestCase):
         try:
             subprocess.check_output(
                 [
-                    "gtirb-pprinter",
+                    pprinter_binary(),
                     "--ir",
                     str(two_modules_gtirb),
                     "--asm",

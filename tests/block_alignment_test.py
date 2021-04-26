@@ -5,6 +5,7 @@ from gtirb_helpers import (
     add_data_block,
     add_data_section,
     add_section,
+    add_symbol,
     add_text_section,
     create_test_module,
 )
@@ -103,7 +104,7 @@ class BlockAlignmentTest(PPrinterTest):
         add_code_block(bi, b"\x90\x90")
         block = add_code_block(bi, b"\xC3")
 
-        sym = gtirb.Symbol(name="hello", payload=block, module=m)
+        sym = add_symbol(m, "hello", block)
         m.aux_data["elfSymbolInfo"].data[sym] = (
             1,
             "FUNC",
@@ -138,7 +139,7 @@ class BlockAlignmentTest(PPrinterTest):
         add_data_block(bi, b"\x01\x02")
         block = add_data_block(bi, b"\x03\x04")
 
-        sym = gtirb.Symbol(name="hello", payload=block, module=m)
+        sym = add_symbol(m, "hello", block)
         m.aux_data["elfSymbolInfo"].data[sym] = (
             2,
             "OBJECT",

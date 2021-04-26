@@ -2,9 +2,10 @@
 Utilities for testing gtirb-pprinter.
 """
 
-import concurrent
+import concurrent.futures
 import contextlib
 import os
+import os.path
 import socket
 import sys
 import subprocess
@@ -28,10 +29,9 @@ sys.path.append(_FAKEBIN_DIR)
 import fakeprog  # noqa: E402
 
 
-class ToolInvocation(NamedTuple):
-    name: str
-    args: List[str]
-    cwd: str
+ToolInvocation = NamedTuple(
+    "ToolInvocation", [("name", str), ("args", List[str]), ("cwd", str)]
+)
 
 
 def interesting_lines(s: str, comment_chars: str = "") -> List[str]:
@@ -75,6 +75,13 @@ def temp_directory(suffix=None, prefix=None, dir=None):
             yield tmpdir
 
 
+def pprinter_binary() -> str:
+    """
+    The binary to invoke to test the pretty-printer.
+    """
+    return os.environ.get("PPRINTER_PATH", "gtirb-pprinter")
+
+
 def can_mock_binaries() -> bool:
     """
     Determines if the binary pretty printer mock tests work on this platform.
@@ -95,7 +102,7 @@ def run_asm_pprinter(ir: gtirb.IR, args: Iterable[str] = ()) -> str:
 
         asm_path = os.path.join(tmpdir, "test.asm")
         subprocess.run(
-            ("gtirb-pprinter", gtirb_path, "--asm", asm_path, *args),
+            (pprinter_binary(), gtirb_path, "--asm", asm_path, *args),
             check=True,
             cwd=tmpdir,
         )
@@ -129,7 +136,7 @@ def run_binary_pprinter_mock(
 
             bin_path = os.path.join(tmpdir, "test")
             return subprocess.run(
-                ("gtirb-pprinter", gtirb_path, "--binary", bin_path, *args,),
+                (pprinter_binary(), gtirb_path, "--binary", bin_path, *args,),
                 env=env,
                 check=False,
                 cwd=tmpdir,

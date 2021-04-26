@@ -56,6 +56,7 @@ build-conan-linux-gcc7:
     - conan remote add gitlab ${CI_API_V4_URL}/packages/conan
     - export CONAN_PASSWORD="$CI_JOB_TOKEN"
     - conan user ci_user -r gitlab
+    - pip3 install -r tests/requirements.txt
     - PYTHONPATH="$(pwd):$PYTHONPATH" python3 .ci/build.py
 
 build-conan-linux-gcc9:
@@ -76,6 +77,7 @@ conan-windows:
     # Run build script
     - export PYTHONPATH="$(cygpath -w $(pwd))"
     - export PATH="$PATH;C:\\Program Files\\CMake\\bin"
+    - pip3 install -r tests/requirements.txt
     - python .ci/build.py
 
 .build-template: &build
@@ -131,6 +133,7 @@ conan-windows:
     - |
       if [ "$BUILD_TYPE" != 'Debug' ]; then
         PP_BIN=$(cygpath -w -a $(pwd)/bin)
+        pip3 install -r ../tests/requirements.txt
         PATH="$PATH;$PP_BIN" cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && C:\\PROGRA~1\\CMake\\bin\\ctest.exe -V -C $BUILD_TYPE"
       fi
 
@@ -147,6 +150,7 @@ conan-windows:
     - unzip gtirb-$OS-artifacts.zip
     - '[ $OS != "arch" ] || pacman --noconfirm -U gtirb-git*.pkg.tar.*'
     - '[[ ! "$OS" =~ ubuntu[12][680] ]] || dpkg -i libgtirb.deb'
+    - pip3 install -r tests/requirements.txt $EXTRA_PIP3_ARGS
     - cd build && PATH=$(pwd)/bin:$PATH ctest -V
 
 build-arch-gcc:
@@ -177,6 +181,7 @@ build-arch-gcc:
     - pacman --noconfirm -U *.pkg.tar.*
     - cp -r /tmp/aur/src/gtirb-pprinter/build $CI_PROJECT_DIR
     - cp *.pkg.tar.* $CI_PROJECT_DIR/build/
+    - pip3 install -r ${CI_PROJECT_DIR}/tests/requirements.txt
     - cd /tmp/aur/src/gtirb-pprinter/build && ctest -V
 
 build-ubuntu16-gcc:
@@ -205,17 +210,22 @@ build-ubuntu20-gcc:
 
 build-ubuntu20-gcc-gcov:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20:jranieri-gcov
-  variables:
-    OS: 'ubuntu20'
-    COMPILER: 'g++'
-    BUILD_TYPE: 'Debug'
-    EXTRA_CMAKE_ARGS: -DGTIRB_PPRINTER_CODE_COVERAGE=On
-  <<: *build
-
+  stage: build
+  script:
+    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-ubuntu20 --output "gtirb-artifacts.zip"
+    - unzip gtirb-artifacts.zip
+    - dpkg -i libgtirb.deb libgtirb-dev.deb
+    - pip3 install -r tests/requirements.txt
+    - mkdir build && cd build
+    - cmake .. -DCMAKE_BUILD_TYPE=Debug -DGTIRB_PPRINTER_CODE_COVERAGE=On
+    - make -j
+    - make test
+    - cd ..
+    - gcovr -e build --fail-under-line 40
 
 build-static:
   stage: build
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/static
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/static:jranieri-gcov
   script:
     - git clone https://git.grammatech.com/rewriting/gtirb.git
     - cd gtirb
@@ -230,11 +240,12 @@ build-static:
     - '[ -e lib/libgtirb_pprinter.a ]'
     - '[ ! -e lib/libgtirb_pprinter.so ]'
     # Run the regression tests.
+    - pip3 install -r ${CI_PROJECT_DIR}/tests/requirements.txt
     - PATH=$(pwd)/bin:$PATH ctest -V
 
 static-drivers:
   stage: deploy
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/static
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/static:jranieri-gcov
   needs: []
   artifacts:
     name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
@@ -251,6 +262,7 @@ static-drivers:
     - cmake ../ -DCMAKE_BUILD_TYPE=Debug -DGTIRB_PPRINTER_STATIC_DRIVERS=ON
     - make -j
     # Run the regression tests.
+    - pip3 install -r ${CI_PROJECT_DIR}/tests/requirements.txt
     - PATH=$(pwd)/bin:$PATH ctest -V
     # For verification purposes, print ldd of the driver here.
     - ldd bin/gtirb-pprinter
@@ -325,7 +337,8 @@ test-and-tag-ubuntu16-gcc:
     OS: 'ubuntu16'
     COMPILER: 'gcc'
     BUILD_TYPE: 'RelWithDebInfo'
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
+    EXTRA_PIP3_ARGS: 'networkx==2.4'
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16:jranieri-gcov
   needs: ['build-ubuntu16-gcc']
   <<: *test-and-tag
 
@@ -346,25 +359,6 @@ test-and-tag-ubuntu20-gcc:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
   needs: ['build-ubuntu20-gcc']
   <<: *test-and-tag
-
-test-and-tag-ubuntu20-gcc-gcov:
-  variables:
-    OS: 'ubuntu20'
-    COMPILER: 'gcc'
-    BUILD_TYPE: 'Debug'
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20:jranieri-gcov
-  needs: ['build-ubuntu20-gcc-gcov']
-  artifacts:
-    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
-    paths:
-      - 'build'
-  <<: *test-and-tag
-
-verify-code-coverage-ubuntu20-gcc-gcov:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20:jranieri-gcov
-  needs: ['test-and-tag-ubuntu20-gcc-gcov']
-  script:
-    - gcovr -e build --fail-under-line 40
 
 test-and-tag-arch-gcc-debug:
   allow_failure: true
@@ -400,6 +394,7 @@ test-make-install:
     - cp .ci/test-install.cpp test-install.cpp
     - g++ test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs
     - ./test-install
+    - pip3 install -r tests/requirements.txt
     - python3 -m unittest discover tests "*_test.py"
 
 test-centos8-libgtirb-pprinter-devel:
@@ -455,6 +450,7 @@ test-arch-package:
     - pacman --noconfirm -U build/*.pkg.tar.*
     - g++ .ci/test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs
     - ./test-install
+    - pip3 install -r tests/requirements.txt
     - python3 -m unittest discover tests "*_test.py"
 
 package-arch:
