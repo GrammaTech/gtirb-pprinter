@@ -131,7 +131,11 @@ def run_binary_pprinter_mock(
             # what the pretty-printer is invoking (as long as we have a
             # stub for everything it invokes).
             env = dict(os.environ)
-            env["PATH"] = "%s:%s" % (_FAKEBIN_DIR, env.get("PATH", ""))
+            env["PATH"] = "%s%s%s" % (
+                _FAKEBIN_DIR,
+                os.pathsep,
+                env.get("PATH", ""),
+            )
             env[fakeprog.PORT_ENV_VAR] = str(port)
 
             bin_path = os.path.join(tmpdir, "test")
