@@ -211,15 +211,13 @@ void Arm64PrettyPrinter::printSymExprPrefix(std::ostream& OS,
                                             const gtirb::SymAttributeSet& Attrs,
                                             bool /* IsNotBranch */) {
   if (Attrs.isFlagSet(gtirb::SymAttribute::GotRef)) {
-    OS << ":got:";
-  }
-  // FIXME: Replace Part0 with appropriate attribute when added to GTIRB.
-  else if (Attrs.isFlagSet(gtirb::SymAttribute::Part0)) {
+    if (Attrs.isFlagSet(gtirb::SymAttribute::Lo12)) {
+      OS << ":got_lo12:";
+    } else {
+      OS << ":got:";
+    }
+  } else if (Attrs.isFlagSet(gtirb::SymAttribute::Lo12)) {
     OS << ":lo12:";
-  }
-  // FIXME: Replace Part1 with appropriate attribute when added to GTIRB.
-  else if (Attrs.isFlagSet(gtirb::SymAttribute::Part1)) {
-    OS << ":got_lo12:";
   }
 }
 
