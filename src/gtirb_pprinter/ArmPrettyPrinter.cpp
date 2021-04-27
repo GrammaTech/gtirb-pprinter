@@ -98,9 +98,16 @@ void ArmPrettyPrinter::printInstruction(std::ostream& os,
     }
   };
 
+  auto isItInstr = [](const std::string& i) {
+    static std::vector<std::string> it_instrs{
+        "it",    "itt",   "ite",   "ittt",  "itte",  "itet",  "itee", "itttt",
+        "ittte", "ittet", "ittee", "itett", "itete", "iteet", "iteee"};
+    return (std::find(std::begin(it_instrs), std::end(it_instrs), i) !=
+            std::end(it_instrs));
+  };
+
   os << "  " << opcode;
-  if (opcode == "ite" || opcode == "it" || opcode == "itt" ||
-      opcode == "itte") {
+  if (isItInstr(opcode)) {
     std::string cc = armCc2String(inst.detail->arm.cc);
     os << " " << cc;
   }
