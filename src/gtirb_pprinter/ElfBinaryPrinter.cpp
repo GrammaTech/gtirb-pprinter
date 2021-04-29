@@ -102,37 +102,41 @@ ElfBinaryPrinter::buildCompilerArgs(std::string outputFilename,
       }
     }
   }
-  // add pie or no pie depending on the binary type
-  for (gtirb::Module& M : ir.modules()) {
-    if (const auto* BinType = M.getAuxData<gtirb::schema::BinaryType>()) {
-      // if DYN, pie. if EXEC, no-pie. if both, pie overrides no-pie. If none,
-      // do not specify either argument.
+  // add pie, no pie, or shared, depending on the binary type
+  if (Printer.getShared()) {
+    args.push_back("-shared");
+  } else {
+    for (gtirb::Module& M : ir.modules()) {
+      if (const auto* BinType = M.getAuxData<gtirb::schema::BinaryType>()) {
+        // if DYN, pie. if EXEC, no-pie. if both, pie overrides no-pie. If none,
+        // do not specify either argument.
 
-      bool pie = false;
-      bool noPie = false;
+        bool pie = false;
+        bool noPie = false;
 
-      for (const auto& BinTypeStr : *BinType) {
-        if (BinTypeStr == "DYN") {
-          pie = true;
-          noPie = false;
-        } else if (BinTypeStr == "EXEC") {
-          if (!pie) {
-            noPie = true;
-            pie = false;
+        for (const auto& BinTypeStr : *BinType) {
+          if (BinTypeStr == "DYN") {
+            pie = true;
+            noPie = false;
+          } else if (BinTypeStr == "EXEC") {
+            if (!pie) {
+              noPie = true;
+              pie = false;
+            }
+          } else {
+            assert(!"Unknown binary type!");
           }
-        } else {
-          assert(!"Unknown binary type!");
         }
-      }
 
-      if (pie) {
-        args.push_back("-shared");
-      }
-      if (noPie) {
-        args.push_back("-no-pie");
-      }
+        if (pie) {
+          args.push_back("-pie");
+        }
+        if (noPie) {
+          args.push_back("-no-pie");
+        }
 
-      break;
+        break;
+      }
     }
   }
   // add -m32 for x86 binaries

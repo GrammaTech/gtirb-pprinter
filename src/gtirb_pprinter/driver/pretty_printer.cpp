@@ -125,6 +125,8 @@ int main(int argc, char** argv) {
       "policy,p", po::value<std::string>(),
       "The default set of objects to skip when printing assembly. To modify "
       "this set further, use the --keep and --skip options.");
+  desc.add_options()("shared,S", "Output a shared library, or assembly "
+                                 "that can be compiled to a shared library.");
 
   desc.add_options()("keep-function",
                      po::value<std::vector<std::string>>()->multitoken(),
@@ -368,6 +370,10 @@ int main(int argc, char** argv) {
          vm["skip-array-section"].as<std::vector<std::string>>()) {
       pp.arraySectionPolicy().skip(S);
     }
+  }
+
+  if (vm.count("shared") != 0) {
+    pp.setShared(true);
   }
 
   // Write ASM to a file.

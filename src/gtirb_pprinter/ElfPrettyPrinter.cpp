@@ -99,12 +99,8 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
       elfSyntax(syntax_) {}
 
 void ElfPrettyPrinter::printHeader(std::ostream& /*os*/) {
-  if (auto* ElfTypes = module.getAuxData<gtirb::schema::BinaryType>()) {
-    for (const std::string& ElfType : *ElfTypes) {
-      if (ElfType == "DYN") {
-        fixupSharedObject();
-      }
-    }
+  if (policy.Shared) {
+    fixupSharedObject();
   }
 }
 

@@ -137,6 +137,7 @@ struct DEBLOAT_PRETTYPRINTER_EXPORT_API PrintingPolicy {
   std::unordered_set<std::string> compilerArguments{};
 
   DebugStyle debug = NoDebug;
+  bool Shared = false;
 };
 
 using NamedPolicyMap = std::unordered_map<std::string, PrintingPolicy>;
@@ -177,6 +178,12 @@ public:
   /// \c false.
   bool getDebug() const;
 
+  /// Set whether or not we print assembly for shared libraries.
+  void setShared(bool Value) { Shared = Value; }
+
+  /// Indicates whether or not we print assembly for shared libraries.
+  bool getShared() const { return Shared; }
+
   /// Pretty-print the IR module to a stream. The default output target is
   /// deduced from the file format of the IR if it is not explicitly set with
   /// \link setTarget.
@@ -216,6 +223,7 @@ private:
   DebugStyle m_debug;
   PolicyOptions FunctionPolicy, SymbolPolicy, SectionPolicy, ArraySectionPolicy;
   std::string PolicyName = "default";
+  bool Shared = false;
 
   PrettyPrinterFactory& getFactory(gtirb::Module& Module) const;
 };
