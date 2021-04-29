@@ -129,8 +129,7 @@ protected:
 
   void printSymbolHeader(std::ostream& os, const gtirb::Symbol& symbol);
 
-  /// Called in the constructor when the binary shared object (Elf type DYN).
-  /// This includes both shared libraries and PIE executables.
+  /// Called in the constructor when the --shared option was specified.
   /// By default, fixes up any direct references to global symbols, which
   /// are illegal relocations in shared objects. Override this if your
   /// ISA has differing procedures regarding relocations in shared objects.

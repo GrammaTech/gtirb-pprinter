@@ -192,6 +192,7 @@ std::error_condition PrettyPrinter::print(std::ostream& stream,
   // Configure printing policy.
   PrintingPolicy policy(getPolicy(module));
   policy.debug = m_debug;
+  policy.Shared = Shared;
   FunctionPolicy.apply(policy.skipFunctions);
   SymbolPolicy.apply(policy.skipSymbols);
   SectionPolicy.apply(policy.skipSections);
