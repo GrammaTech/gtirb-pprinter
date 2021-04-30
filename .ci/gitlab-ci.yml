@@ -15,7 +15,7 @@ stages:
   - test-packages1
   - test-packages2
   - deploy
-  - cleanup
+  - deploy-to-apt
 
 check-format:
   stage: check-format
@@ -662,3 +662,49 @@ package-arch:
       - '*gtirb-pprinter*.pkg.tar.*'
   script:
     - cp build/*.pkg.tar.* ./
+
+.apt-upload: &apt-upload
+  stage: deploy-to-apt
+  trigger:
+    project: rewriting/utility/package-uploader
+    strategy: depend
+
+public-bionic-unstable:
+  <<: *apt-upload
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+  variables:
+    ARTIFACT_URL: ${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_REF_NAME}/download?job=debian-installer-ubuntu18
+    APT_REPO: public
+    APT_REPO_CODENAME: bionic
+    APT_REPO_COMPONENT: unstable
+
+public-focal-unstable:
+  <<: *apt-upload
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+  variables:
+    ARTIFACT_URL: ${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_REF_NAME}/download?job=debian-installer-ubuntu20
+    APT_REPO: public
+    APT_REPO_CODENAME: focal
+    APT_REPO_COMPONENT: unstable
+
+public-bionic-stable:
+  <<: *apt-upload
+  rules:
+    - if: '$CI_COMMIT_REF_NAME =~ /^release-.*/'
+  variables:
+    ARTIFACT_URL: ${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_REF_NAME}/download?job=debian-installer-ubuntu18
+    APT_REPO: public
+    APT_REPO_CODENAME: bionic
+    APT_REPO_COMPONENT: stable
+
+public-focal-stable:
+  <<: *apt-upload
+  rules:
+    - if: '$CI_COMMIT_REF_NAME =~ /^release-.*/'
+  variables:
+    ARTIFACT_URL: ${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_REF_NAME}/download?job=debian-installer-ubuntu20
+    APT_REPO: public
+    APT_REPO_CODENAME: focal
+    APT_REPO_COMPONENT: stable
