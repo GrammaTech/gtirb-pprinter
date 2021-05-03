@@ -439,6 +439,7 @@ protected:
   virtual std::string getSymbolName(const gtirb::Symbol& symbol) const;
   virtual std::optional<std::string>
   getForwardedSymbolName(const gtirb::Symbol* symbol) const;
+  virtual gtirb::Symbol* getForwardedSymbol(const gtirb::Symbol* Sym) const;
 
   bool isAmbiguousSymbol(const std::string& ea) const;
 

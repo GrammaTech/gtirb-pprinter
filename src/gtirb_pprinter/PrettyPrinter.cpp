@@ -1310,17 +1310,26 @@ PrettyPrinterBase::getSymbolName(const gtirb::Symbol& symbol) const {
 
 std::optional<std::string>
 PrettyPrinterBase::getForwardedSymbolName(const gtirb::Symbol* symbol) const {
-  const auto* symbolForwarding =
+  if (auto* Result = getForwardedSymbol(symbol)) {
+    return getSymbolName(*Result);
+  } else {
+    return std::nullopt;
+  }
+}
+
+gtirb::Symbol*
+PrettyPrinterBase::getForwardedSymbol(const gtirb::Symbol* Symbol) const {
+  const auto* SymbolForwarding =
       module.getAuxData<gtirb::schema::SymbolForwarding>();
-  if (symbol && symbolForwarding) {
-    auto found = symbolForwarding->find(symbol->getUUID());
-    if (found != symbolForwarding->end()) {
-      if (auto* destSymbol =
-              nodeFromUUID<gtirb::Symbol>(context, found->second))
-        return getSymbolName(*destSymbol);
+
+  if (Symbol && SymbolForwarding) {
+    auto Found = SymbolForwarding->find(Symbol->getUUID());
+    if (Found != SymbolForwarding->end()) {
+      return nodeFromUUID<gtirb::Symbol>(context, Found->second);
     }
   }
-  return std::nullopt;
+
+  return nullptr;
 }
 
 bool PrettyPrinterBase::isAmbiguousSymbol(const std::string& name) const {
