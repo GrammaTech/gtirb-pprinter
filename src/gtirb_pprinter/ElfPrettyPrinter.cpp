@@ -124,26 +124,25 @@ void ElfPrettyPrinter::fixupSharedObject() {
                CB.getOffset(), CB.getOffset() + CB.getSize())) {
         std::vector<gtirb::Symbol*> SymsToCheck;
 
-        if (auto* SAC = std::get_if<gtirb::SymAddrConst>(
-                &SEE.getSymbolicExpression())) {
-          if (SAC->Attributes.isFlagSet(gtirb::SymAttribute::PltRef) ||
-              SAC->Attributes.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
-            continue; // PLT/GOT references are allowed in shared objects
-          }
+        auto SymsFound = std::visit(
+            [](const auto& SE) -> std::vector<gtirb::Symbol*> {
+              using T = std::decay_t<decltype(SE)>;
 
-          SymsToCheck.push_back(SAC->Sym);
-        } else if (auto* SAA = std::get_if<gtirb::SymAddrAddr>(
-                       &SEE.getSymbolicExpression())) {
-          if (SAA->Attributes.isFlagSet(gtirb::SymAttribute::PltRef) ||
-              SAA->Attributes.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
-            continue; // PLT/GOT references are allowed in shared objects
-          }
+              if (SE.Attributes.isFlagSet(gtirb::SymAttribute::PltRef) ||
+                  SE.Attributes.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
+                return {}; // PLT/GOT references are allowed in shared objects
+              }
 
-          SymsToCheck.push_back(SAA->Sym1);
-          SymsToCheck.push_back(SAA->Sym2);
-        } else {
-          assert(!"Unknown symbolic expression type!");
-        }
+              if constexpr (std::is_same_v<T, gtirb::SymAddrAddr>) {
+                return {SE.Sym1, SE.Sym2};
+              } else if (std::is_same_v<T, gtirb::SymAddrConst> ||
+                         std::is_same_v<T, gtirb::SymStackConst>) {
+                return {SE.Sym};
+              }
+            },
+            SEE.getSymbolicExpression());
+        SymsToCheck.insert(SymsToCheck.end(), SymsFound.begin(),
+                           SymsFound.end());
 
         for (auto* Symbol : SymsToCheck) {
           if (!Symbol->hasReferent() && Symbol->getAddress()) {
@@ -175,7 +174,9 @@ void ElfPrettyPrinter::fixupSharedObject() {
 
     // make a hidden alias for every global symbol that is called
     // directly by a code block
-    std::unordered_map<gtirb::Symbol*, gtirb::Symbol*> GlobalToHiddenSyms;
+    using GlobalToHiddenSymsType =
+        std::unordered_map<gtirb::Symbol*, gtirb::Symbol*>;
+    GlobalToHiddenSymsType GlobalToHiddenSyms;
 
     for (auto* Symbol : SymbolsToAlias) {
       struct SetHiddenSymbolReferent {
@@ -198,62 +199,116 @@ void ElfPrettyPrinter::fixupSharedObject() {
 
     // reassign bad code block references to hidden symbols
     for (auto SEE : SEEsToAlias) {
-      if (auto* SAC =
-              std::get_if<gtirb::SymAddrConst>(&SEE.getSymbolicExpression())) {
-        gtirb::SymAddrConst NewSAC{*SAC};
-        NewSAC.Sym = GlobalToHiddenSyms[SAC->Sym];
-        SEE.getByteInterval()->addSymbolicExpression(SEE.getOffset(), NewSAC);
-      } else if (auto* SAA = std::get_if<gtirb::SymAddrAddr>(
-                     &SEE.getSymbolicExpression())) {
-        gtirb::SymAddrAddr NewSAA{*SAA};
-        if (auto It = GlobalToHiddenSyms.find(SAA->Sym1);
-            It != GlobalToHiddenSyms.end()) {
-          NewSAA.Sym1 = It->second;
-        }
-        if (auto It = GlobalToHiddenSyms.find(SAA->Sym2);
-            It != GlobalToHiddenSyms.end()) {
-          NewSAA.Sym2 = It->second;
-        }
-        SEE.getByteInterval()->addSymbolicExpression(SEE.getOffset(), NewSAA);
-      } else {
-        assert(!"Unknown symbolic expression type!");
-      }
+      auto SEToAdd = std::visit(
+          [](const auto& SE, const GlobalToHiddenSymsType& GlobalToHiddenSyms_)
+              -> gtirb::SymbolicExpression {
+            using T = std::decay_t<decltype(SE)>;
+
+            if constexpr (std::is_same_v<T, gtirb::SymAddrAddr>) {
+              T NewSE{SE};
+              if (auto It = GlobalToHiddenSyms_.find(SE.Sym1);
+                  It != GlobalToHiddenSyms_.end()) {
+                NewSE.Sym1 = It->second;
+              }
+              if (auto It = GlobalToHiddenSyms_.find(SE.Sym2);
+                  It != GlobalToHiddenSyms_.end()) {
+                NewSE.Sym2 = It->second;
+              }
+              return {NewSE};
+            } else if (std::is_same_v<T, gtirb::SymAddrConst> ||
+                       std::is_same_v<T, gtirb::SymStackConst>) {
+              T NewSE{SE};
+              NewSE.Sym = GlobalToHiddenSyms_.at(SE.Sym);
+              return {NewSE};
+            }
+          },
+          SEE.getSymbolicExpression(),
+          std::variant<GlobalToHiddenSymsType>{GlobalToHiddenSyms});
+      SEE.getByteInterval()->addSymbolicExpression(SEE.getOffset(), SEToAdd);
     }
 
     // make bad code block references to extern symbols go through the PLT
     for (auto SEE : SEEsToPLT) {
-      if (auto* SAC =
-              std::get_if<gtirb::SymAddrConst>(&SEE.getSymbolicExpression())) {
-        gtirb::SymAddrConst NewSAC{*SAC};
-        NewSAC.Attributes.addFlag(gtirb::SymAttribute::PltRef);
-        if (SymForwarding) {
-          if (auto It = SymForwarding->find(SAC->Sym->getUUID());
-              It != SymForwarding->end()) {
-            NewSAC.Sym = cast<gtirb::Symbol>(
-                gtirb::Node::getByUUID(context, It->second));
-          }
-        }
-        SEE.getByteInterval()->addSymbolicExpression(SEE.getOffset(), NewSAC);
-      } else if (auto* SAA = std::get_if<gtirb::SymAddrAddr>(
-                     &SEE.getSymbolicExpression())) {
-        gtirb::SymAddrAddr NewSAA{*SAA};
-        NewSAA.Attributes.addFlag(gtirb::SymAttribute::PltRef);
-        if (SymForwarding) {
-          if (auto It = SymForwarding->find(SAA->Sym1->getUUID());
-              It != SymForwarding->end()) {
-            NewSAA.Sym1 = cast<gtirb::Symbol>(
-                gtirb::Node::getByUUID(context, It->second));
-          }
-          if (auto It = SymForwarding->find(SAA->Sym2->getUUID());
-              It != SymForwarding->end()) {
-            NewSAA.Sym2 = cast<gtirb::Symbol>(
-                gtirb::Node::getByUUID(context, It->second));
-          }
-        }
-        SEE.getByteInterval()->addSymbolicExpression(SEE.getOffset(), NewSAA);
-      } else {
-        assert(!"Unknown symbolic expression type!");
-      }
+      auto SEToAdd = std::visit(
+          [](const auto& SE,
+             const gtirb::schema::SymbolForwarding::Type* SymForwarding_,
+             gtirb::Context* Context) -> gtirb::SymbolicExpression {
+            using T = std::decay_t<decltype(SE)>;
+
+            if constexpr (std::is_same_v<T, gtirb::SymAddrAddr>) {
+              T NewSE{SE};
+
+              NewSE.Attributes.addFlag(gtirb::SymAttribute::PltRef);
+              if (SymForwarding_) {
+                if (auto It = SymForwarding_->find(SE.Sym1->getUUID());
+                    It != SymForwarding_->end()) {
+                  NewSE.Sym1 = cast<gtirb::Symbol>(
+                      gtirb::Node::getByUUID(*Context, It->second));
+                }
+                if (auto It = SymForwarding_->find(SE.Sym2->getUUID());
+                    It != SymForwarding_->end()) {
+                  NewSE.Sym2 = cast<gtirb::Symbol>(
+                      gtirb::Node::getByUUID(*Context, It->second));
+                }
+              }
+
+              return {NewSE};
+            } else if (std::is_same_v<T, gtirb::SymAddrConst> ||
+                       std::is_same_v<T, gtirb::SymStackConst>) {
+              T NewSE{SE};
+
+              NewSE.Attributes.addFlag(gtirb::SymAttribute::PltRef);
+              if (SymForwarding_) {
+                if (auto It = SymForwarding_->find(SE.Sym->getUUID());
+                    It != SymForwarding_->end()) {
+                  NewSE.Sym = cast<gtirb::Symbol>(
+                      gtirb::Node::getByUUID(*Context, It->second));
+                }
+              }
+
+              return {NewSE};
+            }
+          },
+          SEE.getSymbolicExpression(),
+          std::variant<gtirb::schema::SymbolForwarding::Type*>{SymForwarding},
+          std::variant<gtirb::Context*>{&context});
+      SEE.getByteInterval()->addSymbolicExpression(SEE.getOffset(), SEToAdd);
+
+      // if (auto* SAC =
+      //         std::get_if<gtirb::SymAddrConst>(&SEE.getSymbolicExpression()))
+      //         {
+      //   gtirb::SymAddrConst NewSAC{*SAC};
+      //   NewSAC.Attributes.addFlag(gtirb::SymAttribute::PltRef);
+      //   if (SymForwarding) {
+      //     if (auto It = SymForwarding->find(SAC->Sym->getUUID());
+      //         It != SymForwarding->end()) {
+      //       NewSAC.Sym = cast<gtirb::Symbol>(
+      //           gtirb::Node::getByUUID(context, It->second));
+      //     }
+      //   }
+      //   SEE.getByteInterval()->addSymbolicExpression(SEE.getOffset(),
+      //   NewSAC);
+      // } else if (auto* SAA = std::get_if<gtirb::SymAddrAddr>(
+      //                &SEE.getSymbolicExpression())) {
+      //   gtirb::SymAddrAddr NewSAA{*SAA};
+      //   NewSAA.Attributes.addFlag(gtirb::SymAttribute::PltRef);
+      //   if (SymForwarding) {
+      //     if (auto It = SymForwarding->find(SAA->Sym1->getUUID());
+      //         It != SymForwarding->end()) {
+      //       NewSAA.Sym1 = cast<gtirb::Symbol>(
+      //           gtirb::Node::getByUUID(context, It->second));
+      //     }
+      //     if (auto It = SymForwarding->find(SAA->Sym2->getUUID());
+      //         It != SymForwarding->end()) {
+      //       NewSAA.Sym2 = cast<gtirb::Symbol>(
+      //           gtirb::Node::getByUUID(context, It->second));
+      //     }
+      //   }
+      //   SEE.getByteInterval()->addSymbolicExpression(SEE.getOffset(),
+      //   NewSAA);
+      // } else {
+      //   assert(!"Unknown symbolic expression type!");
+      // }
     }
   }
 }
