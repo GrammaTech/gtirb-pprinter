@@ -190,8 +190,7 @@ void ElfPrettyPrinter::fixupSharedObject() {
       auto* HiddenSymbol = module.addSymbol(
           context, ".gtirb_pprinter.hidden_alias." + Symbol->getName());
       Symbol->visit(SetHiddenSymbolReferent(HiddenSymbol));
-      ElfSymbolInfo OldSymInfo{(*ElfSymInfo)[Symbol->getUUID()]};
-      ElfSymbolInfo NewSymInfo{OldSymInfo};
+      ElfSymbolInfo NewSymInfo{(*ElfSymInfo)[Symbol->getUUID()]};
       NewSymInfo.Visibility = "HIDDEN";
       (*ElfSymInfo)[HiddenSymbol->getUUID()] = NewSymInfo.asAuxData();
       GlobalToHiddenSyms[Symbol] = HiddenSymbol;
