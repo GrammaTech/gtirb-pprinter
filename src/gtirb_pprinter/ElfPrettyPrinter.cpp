@@ -200,9 +200,9 @@ void ElfPrettyPrinter::fixupSharedObject() {
           [](const auto& SE, const GlobalToHiddenSymsType& GlobalToHiddenSyms_)
               -> gtirb::SymbolicExpression {
             using T = std::decay_t<decltype(SE)>;
+            T NewSE{SE};
 
             if constexpr (std::is_same_v<T, gtirb::SymAddrAddr>) {
-              T NewSE{SE};
               if (auto It = GlobalToHiddenSyms_.find(SE.Sym1);
                   It != GlobalToHiddenSyms_.end()) {
                 NewSE.Sym1 = It->second;
@@ -211,13 +211,12 @@ void ElfPrettyPrinter::fixupSharedObject() {
                   It != GlobalToHiddenSyms_.end()) {
                 NewSE.Sym2 = It->second;
               }
-              return {NewSE};
             } else if (std::is_same_v<T, gtirb::SymAddrConst> ||
                        std::is_same_v<T, gtirb::SymStackConst>) {
-              T NewSE{SE};
               NewSE.Sym = GlobalToHiddenSyms_.at(SE.Sym);
-              return {NewSE};
             }
+
+            return {NewSE};
           },
           SEE.getSymbolicExpression(),
           std::variant<GlobalToHiddenSymsType>{GlobalToHiddenSyms});
@@ -230,30 +229,24 @@ void ElfPrettyPrinter::fixupSharedObject() {
           [](const auto& SE,
              ElfPrettyPrinter* This) -> gtirb::SymbolicExpression {
             using T = std::decay_t<decltype(SE)>;
+            T NewSE{SE};
+            NewSE.Attributes.addFlag(gtirb::SymAttribute::PltRef);
 
             if constexpr (std::is_same_v<T, gtirb::SymAddrAddr>) {
-              T NewSE{SE};
-
-              NewSE.Attributes.addFlag(gtirb::SymAttribute::PltRef);
               if (auto Target = This->getForwardedSymbol(SE.Sym1)) {
                 NewSE.Sym1 = Target;
               }
               if (auto Target = This->getForwardedSymbol(SE.Sym2)) {
                 NewSE.Sym2 = Target;
               }
-
-              return {NewSE};
             } else if (std::is_same_v<T, gtirb::SymAddrConst> ||
                        std::is_same_v<T, gtirb::SymStackConst>) {
-              T NewSE{SE};
-
-              NewSE.Attributes.addFlag(gtirb::SymAttribute::PltRef);
               if (auto Target = This->getForwardedSymbol(SE.Sym)) {
                 NewSE.Sym = Target;
               }
-
-              return {NewSE};
             }
+
+            return {NewSE};
           },
           SEE.getSymbolicExpression(), std::variant<ElfPrettyPrinter*>{this});
       SEE.getByteInterval()->addSymbolicExpression(SEE.getOffset(), SEToAdd);
