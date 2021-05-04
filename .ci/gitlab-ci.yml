@@ -663,6 +663,17 @@ package-arch:
   script:
     - cp build/*.pkg.tar.* ./
 
+package-centos8:
+  stage: deploy
+  image: $DOCKER_REGISTRY/rewriting/gtirb/centos8
+  needs: ['build-centos8-gcc-relwithdebuginfo', 'test-centos8-libgtirb-pprinter']
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
+    paths:
+      - '*.rpm'
+  script:
+    - cp build/*.rpm ./
+
 .apt-upload: &apt-upload
   stage: deploy-to-apt
   trigger:
