@@ -683,7 +683,7 @@ package-centos8:
 internal-bionic-unstable:
   <<: *apt-upload
   rules:
-    - if: '$CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_COMMIT_BRANCH == "windows-support"'
   variables:
     ARTIFACT_URL: ${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_REF_NAME}/download?job=debian-installer-ubuntu18
     APT_REPO: internal
@@ -693,7 +693,7 @@ internal-bionic-unstable:
 internal-focal-unstable:
   <<: *apt-upload
   rules:
-    - if: '$CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_COMMIT_BRANCH == "windows-support"'
   variables:
     ARTIFACT_URL: ${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_REF_NAME}/download?job=debian-installer-ubuntu20
     APT_REPO: internal
