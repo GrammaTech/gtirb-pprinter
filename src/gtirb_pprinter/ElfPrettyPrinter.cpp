@@ -133,8 +133,8 @@ void ElfPrettyPrinter::fixupSharedObject() {
 
               if constexpr (std::is_same_v<T, gtirb::SymAddrAddr>) {
                 return {SE.Sym1, SE.Sym2};
-              } else if (std::is_same_v<T, gtirb::SymAddrConst> ||
-                         std::is_same_v<T, gtirb::SymStackConst>) {
+              } else if constexpr (std::is_same_v<T, gtirb::SymAddrConst> ||
+                                   std::is_same_v<T, gtirb::SymStackConst>) {
                 return {SE.Sym};
               }
             },
@@ -197,58 +197,55 @@ void ElfPrettyPrinter::fixupSharedObject() {
     // reassign bad code block references to hidden symbols
     for (auto SEE : SEEsToAlias) {
       auto SEToAdd = std::visit(
-          [](const auto& SE, const GlobalToHiddenSymsType& GlobalToHiddenSyms_)
-              -> gtirb::SymbolicExpression {
+          [&GlobalToHiddenSyms](const auto& SE) -> gtirb::SymbolicExpression {
             using T = std::decay_t<decltype(SE)>;
             T NewSE{SE};
 
             if constexpr (std::is_same_v<T, gtirb::SymAddrAddr>) {
-              if (auto It = GlobalToHiddenSyms_.find(SE.Sym1);
-                  It != GlobalToHiddenSyms_.end()) {
+              if (auto It = GlobalToHiddenSyms.find(SE.Sym1);
+                  It != GlobalToHiddenSyms.end()) {
                 NewSE.Sym1 = It->second;
               }
-              if (auto It = GlobalToHiddenSyms_.find(SE.Sym2);
-                  It != GlobalToHiddenSyms_.end()) {
+              if (auto It = GlobalToHiddenSyms.find(SE.Sym2);
+                  It != GlobalToHiddenSyms.end()) {
                 NewSE.Sym2 = It->second;
               }
-            } else if (std::is_same_v<T, gtirb::SymAddrConst> ||
-                       std::is_same_v<T, gtirb::SymStackConst>) {
-              NewSE.Sym = GlobalToHiddenSyms_.at(SE.Sym);
+            } else if constexpr (std::is_same_v<T, gtirb::SymAddrConst> ||
+                                 std::is_same_v<T, gtirb::SymStackConst>) {
+              NewSE.Sym = GlobalToHiddenSyms.at(SE.Sym);
             }
 
             return {NewSE};
           },
-          SEE.getSymbolicExpression(),
-          std::variant<GlobalToHiddenSymsType>{GlobalToHiddenSyms});
+          SEE.getSymbolicExpression());
       SEE.getByteInterval()->addSymbolicExpression(SEE.getOffset(), SEToAdd);
     }
 
     // make bad code block references to extern symbols go through the PLT
     for (auto SEE : SEEsToPLT) {
       auto SEToAdd = std::visit(
-          [](const auto& SE,
-             ElfPrettyPrinter* This) -> gtirb::SymbolicExpression {
+          [this](const auto& SE) -> gtirb::SymbolicExpression {
             using T = std::decay_t<decltype(SE)>;
             T NewSE{SE};
             NewSE.Attributes.addFlag(gtirb::SymAttribute::PltRef);
 
             if constexpr (std::is_same_v<T, gtirb::SymAddrAddr>) {
-              if (auto Target = This->getForwardedSymbol(SE.Sym1)) {
+              if (auto Target = this->getForwardedSymbol(SE.Sym1)) {
                 NewSE.Sym1 = Target;
               }
-              if (auto Target = This->getForwardedSymbol(SE.Sym2)) {
+              if (auto Target = this->getForwardedSymbol(SE.Sym2)) {
                 NewSE.Sym2 = Target;
               }
-            } else if (std::is_same_v<T, gtirb::SymAddrConst> ||
-                       std::is_same_v<T, gtirb::SymStackConst>) {
-              if (auto Target = This->getForwardedSymbol(SE.Sym)) {
+            } else if constexpr (std::is_same_v<T, gtirb::SymAddrConst> ||
+                                 std::is_same_v<T, gtirb::SymStackConst>) {
+              if (auto Target = this->getForwardedSymbol(SE.Sym)) {
                 NewSE.Sym = Target;
               }
             }
 
             return {NewSE};
           },
-          SEE.getSymbolicExpression(), std::variant<ElfPrettyPrinter*>{this});
+          SEE.getSymbolicExpression());
       SEE.getByteInterval()->addSymbolicExpression(SEE.getOffset(), SEToAdd);
     }
   }
