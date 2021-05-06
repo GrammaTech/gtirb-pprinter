@@ -120,9 +120,7 @@ void ElfPrettyPrinter::fixupSharedObject() {
 
       for (auto SEE : CB.getByteInterval()->findSymbolicExpressionsAtOffset(
                CB.getOffset(), CB.getOffset() + CB.getSize())) {
-        std::vector<gtirb::Symbol*> SymsToCheck;
-
-        auto SymsFound = std::visit(
+        auto SymsToCheck = std::visit(
             [](const auto& SE) -> std::vector<gtirb::Symbol*> {
               using T = std::decay_t<decltype(SE)>;
 
@@ -139,8 +137,6 @@ void ElfPrettyPrinter::fixupSharedObject() {
               }
             },
             SEE.getSymbolicExpression());
-        SymsToCheck.insert(SymsToCheck.end(), SymsFound.begin(),
-                           SymsFound.end());
 
         for (auto* Symbol : SymsToCheck) {
           if (!Symbol->hasReferent() && Symbol->getAddress()) {
