@@ -373,6 +373,86 @@ test-make-install:
     - ./test-install
     - python3 -m unittest discover tests "*_test.py"
 
+test-centos8-libgtirb-pprinter-devel:
+  stage: test-packages1
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/centos8
+  needs: ['build-centos8-gcc-relwithdebuginfo']
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
+    paths:
+      - test-install
+  script:
+    - pushd build
+    - dnf --nogpgcheck localinstall -y capstone-devel-*.rpm libgtirb.rpm libgtirb-devel.rpm libgtirb-pprinter.rpm libgtirb-pprinter-devel.rpm
+    - popd
+    - rm -rf build
+    - g++ .ci/test-install.cpp -I/usr/include/boost169 -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs
+    - ./test-install
+
+test-centos8-gtirb-pprinter:
+  stage: test-packages1
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/centos8
+  needs: ['build-centos8-gcc-relwithdebuginfo']
+  script:
+    - pushd build
+    - dnf --nogpgcheck localinstall -y capstone-devel-*.rpm libgtirb.rpm libgtirb-pprinter.rpm gtirb-pprinter.rpm
+    - popd
+    - rm -rf build
+    - gtirb-pprinter tests/two_modules.gtirb
+    - gtirb-layout tests/two_modules.gtirb --out output
+
+test-centos8-libgtirb-pprinter:
+  stage: test-packages2
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/centos8
+  needs:
+    - build-centos8-gcc-relwithdebuginfo
+    - test-centos8-libgtirb-pprinter-devel
+  script:
+    - pushd build
+    - dnf --nogpgcheck localinstall -y capstone-devel-*.rpm libgtirb.rpm libgtirb-pprinter.rpm
+    - popd
+    - rm -rf build
+    - ./test-install
+
+test-arch-package:
+  allow_failure: true
+  stage: test-packages1
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/arch
+  needs: ['build-arch-gcc']
+  script:
+    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=package-arch --output "gtirb-arch-artifacts.zip"
+    - unzip gtirb-arch-artifacts.zip
+    - pacman --noconfirm -U gtirb-git*.pkg.tar.*
+    - pacman --noconfirm -U build/*.pkg.tar.*
+    - g++ .ci/test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs
+    - ./test-install
+    - python3 -m unittest discover tests "*_test.py"
+
+package-arch:
+  allow_failure: true
+  stage: deploy
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/arch
+  needs: ['build-arch-gcc', 'test-arch-package']
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
+    paths:
+      - '*gtirb-pprinter*.pkg.tar.*'
+  script:
+    - cp build/*.pkg.tar.* ./
+
+package-centos8:
+  stage: deploy
+  image: $DOCKER_REGISTRY/rewriting/gtirb/centos8
+  needs: ['build-centos8-gcc-relwithdebuginfo', 'test-centos8-libgtirb-pprinter']
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
+    paths:
+      - '*gtirb-pprinter*.rpm'
+  script:
+    - cp build/*.rpm ./
+
+
+# APT packaging related jobs
 .build-ubuntu-packages-template: &build-ubuntu-packages
   stage: build-packages
   artifacts:
@@ -476,47 +556,6 @@ build-ubuntu20-packages:
     - apt-get update -y && apt-get install -y --allow-unauthenticated libgtirb-pprinter
     - ./test-install
 
-test-centos8-libgtirb-pprinter-devel:
-  stage: test-packages1
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/centos8
-  needs: ['build-centos8-gcc-relwithdebuginfo']
-  artifacts:
-    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
-    paths:
-      - test-install
-  script:
-    - pushd build
-    - dnf --nogpgcheck localinstall -y capstone-devel-*.rpm libgtirb.rpm libgtirb-devel.rpm libgtirb-pprinter.rpm libgtirb-pprinter-devel.rpm
-    - popd
-    - rm -rf build
-    - g++ .ci/test-install.cpp -I/usr/include/boost169 -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs
-    - ./test-install
-
-test-centos8-gtirb-pprinter:
-  stage: test-packages1
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/centos8
-  needs: ['build-centos8-gcc-relwithdebuginfo']
-  script:
-    - pushd build
-    - dnf --nogpgcheck localinstall -y capstone-devel-*.rpm libgtirb.rpm libgtirb-pprinter.rpm gtirb-pprinter.rpm
-    - popd
-    - rm -rf build
-    - gtirb-pprinter tests/two_modules.gtirb
-    - gtirb-layout tests/two_modules.gtirb --out output
-
-test-centos8-libgtirb-pprinter:
-  stage: test-packages2
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/centos8
-  needs:
-    - build-centos8-gcc-relwithdebuginfo
-    - test-centos8-libgtirb-pprinter-devel
-  script:
-    - pushd build
-    - dnf --nogpgcheck localinstall -y capstone-devel-*.rpm libgtirb.rpm libgtirb-pprinter.rpm
-    - popd
-    - rm -rf build
-    - ./test-install
-
 setup-ubuntu16-repo:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
   needs: ['build-ubuntu16-packages']
@@ -613,20 +652,6 @@ test-ubuntu20-libgtirb-pprinter:
   needs: ['setup-ubuntu20-repo', 'test-ubuntu20-libgtirb-pprinter-dev']
   <<: *test-ubuntu-libgtirb-pprinter
 
-test-arch-package:
-  allow_failure: true
-  stage: test-packages1
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/arch
-  needs: ['build-arch-gcc']
-  script:
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=package-arch --output "gtirb-arch-artifacts.zip"
-    - unzip gtirb-arch-artifacts.zip
-    - pacman --noconfirm -U gtirb-git*.pkg.tar.*
-    - pacman --noconfirm -U build/*.pkg.tar.*
-    - g++ .ci/test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs
-    - ./test-install
-    - python3 -m unittest discover tests "*_test.py"
-
 .deploy-debian-installer: &deploy-debian-installer
   stage: deploy
   artifacts:
@@ -650,29 +675,6 @@ debian-installer-ubuntu20:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
   needs: ['build-ubuntu20-packages']
   <<: *deploy-debian-installer
-
-package-arch:
-  allow_failure: true
-  stage: deploy
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/arch
-  needs: ['build-arch-gcc', 'test-arch-package']
-  artifacts:
-    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
-    paths:
-      - '*gtirb-pprinter*.pkg.tar.*'
-  script:
-    - cp build/*.pkg.tar.* ./
-
-package-centos8:
-  stage: deploy
-  image: $DOCKER_REGISTRY/rewriting/gtirb/centos8
-  needs: ['build-centos8-gcc-relwithdebuginfo', 'test-centos8-libgtirb-pprinter']
-  artifacts:
-    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
-    paths:
-      - '*gtirb-pprinter*.rpm'
-  script:
-    - cp build/*.rpm ./
 
 .apt-upload: &apt-upload
   stage: deploy-to-apt
