@@ -1,3 +1,9 @@
+"""
+Implements a command line program that just sends its arguments and
+environment to the gtirb-pprinter test harness. This is used for monitoring
+what the binary pretty-printer invokes.
+"""
+
 import json
 import sys
 import os

@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+from tests.gtirb_helpers import add_function
 
 import gtirb
 
@@ -8,7 +9,6 @@ from gtirb_helpers import (
     add_standard_aux_data_tables,
     add_code_block,
     add_text_section,
-    add_symbol,
 )
 from pprinter_helpers import PPrinterTest, temp_directory, pprinter_binary
 
@@ -25,14 +25,7 @@ class MultiModuleTests(PPrinterTest):
         m1.ir = ir
         add_standard_aux_data_tables(m1)
         _, bi1 = add_text_section(m1)
-        sym1 = add_symbol(m1, "main", add_code_block(bi1, b"\xC3"))
-        m1.aux_data["elfSymbolInfo"].data[sym1] = (
-            1,
-            "FUNC",
-            "GLOBAL",
-            "DEFAULT",
-            0,
-        )
+        add_function(m1, "main", add_code_block(bi1, b"\xC3"))
 
         m2 = gtirb.Module(
             name="fun.so",
@@ -42,14 +35,7 @@ class MultiModuleTests(PPrinterTest):
         m2.ir = ir
         add_standard_aux_data_tables(m2)
         _, bi2 = add_text_section(m2)
-        sym2 = add_symbol(m2, "fun", add_code_block(bi2, b"\xC3"))
-        m2.aux_data["elfSymbolInfo"].data[sym2] = (
-            1,
-            "FUNC",
-            "GLOBAL",
-            "DEFAULT",
-            0,
-        )
+        add_function(m2, "fun", add_code_block(bi2, b"\xC3"))
 
         return ir
 
