@@ -252,6 +252,27 @@ def add_symbol(
     return sym
 
 
+def add_elf_symbol_info(
+    module: gtirb.Module,
+    sym: gtirb.Symbol,
+    size: int,
+    type: str,
+    binding: str = "GLOBAL",
+    visibility: str = "DEFAULT",
+    section_index: int = 0,
+) -> None:
+    """
+    Adds an entry to the elfSymbolInfo aux data table.
+    """
+    module.aux_data["elfSymbolInfo"].data[sym] = (
+        size,
+        type,
+        binding,
+        visibility,
+        section_index,
+    )
+
+
 def add_function(
     module: gtirb.Module,
     sym_or_name: Union[str, gtirb.Symbol],
@@ -277,12 +298,6 @@ def add_function(
     module.aux_data["functionBlocks"].data[func_uuid] = all_blocks
 
     if module.file_format == gtirb.Module.FileFormat.ELF:
-        module.aux_data["elfSymbolInfo"].data[func_sym] = (
-            0,
-            "FUNC",
-            "GLOBAL",
-            "DEFAULT",
-            0,
-        )
+        add_elf_symbol_info(module, func_sym, 0, "FUNC")
 
     return func_uuid

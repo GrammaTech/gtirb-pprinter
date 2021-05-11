@@ -96,7 +96,7 @@ conan-windows:
     - unzip gtirb-$OS-artifacts.zip
     - dpkg -i libgtirb.deb libgtirb-dev.deb
     - mkdir build && cd build
-    - cmake ../ -DCMAKE_CXX_COMPILER=$COMPILER -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCPACK_DEBIAN_PACKAGE_RELEASE="$(lsb_release -sc)" -DGTIRB_PPRINTER_STRIP_DEBUG_SYMBOLS=On $EXTRA_CMAKE_ARGS
+    - cmake ../ -DCMAKE_CXX_COMPILER=$COMPILER -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCPACK_DEBIAN_PACKAGE_RELEASE="$(lsb_release -sc)" -DGTIRB_PPRINTER_STRIP_DEBUG_SYMBOLS=On
     - make -j
 
 .windows-build-template: &windows-build

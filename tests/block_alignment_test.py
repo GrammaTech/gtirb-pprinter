@@ -4,6 +4,7 @@ from gtirb_helpers import (
     add_code_block,
     add_data_block,
     add_data_section,
+    add_elf_symbol_info,
     add_section,
     add_symbol,
     add_text_section,
@@ -105,13 +106,7 @@ class BlockAlignmentTest(PPrinterTest):
         block = add_code_block(bi, b"\xC3")
 
         sym = add_symbol(m, "hello", block)
-        m.aux_data["elfSymbolInfo"].data[sym] = (
-            1,
-            "FUNC",
-            "GLOBAL",
-            "DEFAULT",
-            0,
-        )
+        add_elf_symbol_info(m, sym, block.size, "FUNC")
 
         asm = run_asm_pprinter(ir)
         self.assertContains(
@@ -140,13 +135,7 @@ class BlockAlignmentTest(PPrinterTest):
         block = add_data_block(bi, b"\x03\x04")
 
         sym = add_symbol(m, "hello", block)
-        m.aux_data["elfSymbolInfo"].data[sym] = (
-            2,
-            "OBJECT",
-            "GLOBAL",
-            "DEFAULT",
-            0,
-        )
+        add_elf_symbol_info(m, sym, block.size, "OBJECT")
 
         asm = run_asm_pprinter(ir)
         self.assertContains(
