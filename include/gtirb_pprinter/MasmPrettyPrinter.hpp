@@ -104,7 +104,8 @@ protected:
   void printHeader(std::ostream& os) override;
   void printFooter(std::ostream& os) override;
 
-  void printSectionHeader(std::ostream& os, const gtirb::Section& section);
+  void printSectionHeader(std::ostream& os,
+                          const gtirb::Section& section) override;
   void printSectionHeaderDirective(std::ostream& os,
                                    const gtirb::Section& section) override;
   void printSectionProperties(std::ostream& os,
