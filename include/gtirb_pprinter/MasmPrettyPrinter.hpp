@@ -159,6 +159,7 @@ protected:
 private:
   gtirb::Addr BaseAddress;
   gtirb::Symbol* ImageBase;
+  std::optional<gtirb::Symbol*> EntryPoint;
   std::unordered_set<gtirb::UUID> Imports;
   std::unordered_set<gtirb::UUID> Exports;
 };
