@@ -71,15 +71,15 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
 
   if (gtirb::CodeBlock* Block = module.getEntryPoint();
       Block && Block->getAddress()) {
-    auto entry_syms = module.findSymbols(*Block->getAddress());
-    if (entry_syms.empty()) {
-      auto* EntryPoint = gtirb::Symbol::Create(context, *(Block->getAddress()),
-                                               "__EntryPoint");
-      EntryPoint->setReferent<gtirb::CodeBlock>(Block);
-      module.addSymbol(EntryPoint);
-      Exports.insert(EntryPoint->getUUID());
+    if (auto It = module.findSymbols(*Block->getAddress()); !It.empty()) {
+      // Use an existing symbol to the entry block.
+      EntryPoint = &*It.begin();
     } else {
-      Exports.insert((&*entry_syms.begin())->getUUID());
+      // Create a new symbol for the entry block.
+      EntryPoint =
+          gtirb::Symbol::Create(context, *Block->getAddress(), "__EntryPoint");
+      (*EntryPoint)->setReferent<gtirb::CodeBlock>(Block);
+      module.addSymbol(*EntryPoint);
     }
   }
 
@@ -155,6 +155,9 @@ void MasmPrettyPrinter::printHeader(std::ostream& os) {
   }
   printIncludes(os);
   printExterns(os);
+  if (EntryPoint) {
+    os << masmSyntax.global() << " " << (*EntryPoint)->getName() << "\n";
+  }
 }
 
 void MasmPrettyPrinter::printSectionHeader(std::ostream& os,
