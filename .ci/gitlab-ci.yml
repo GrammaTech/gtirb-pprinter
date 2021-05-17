@@ -174,7 +174,7 @@ build-ubuntu20-gcc:
   <<: *build
 
 build-ubuntu20-gcc-gcov:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20:jranieri-gcov
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
   stage: build
   script:
     - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-ubuntu20 --output "gtirb-artifacts.zip"
@@ -206,7 +206,7 @@ build-ubuntu20-clang-debug:
 
 build-static:
   stage: build
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/static:jranieri-gcov
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/static
   script:
     - git clone https://git.grammatech.com/rewriting/gtirb.git
     - cd gtirb
@@ -226,7 +226,7 @@ build-static:
 
 static-drivers:
   stage: deploy
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/static:jranieri-gcov
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/static
   needs: []
   artifacts:
     name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
@@ -301,7 +301,7 @@ test-and-tag-ubuntu16-gcc:
     COMPILER: 'gcc'
     BUILD_TYPE: 'RelWithDebInfo'
     EXTRA_PIP3_ARGS: 'networkx==2.4'
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16:jranieri-gcov
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
   needs: ['build-ubuntu16-gcc']
   <<: *test-and-tag
 
