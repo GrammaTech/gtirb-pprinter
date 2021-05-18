@@ -1,7 +1,6 @@
 import os
 import subprocess
 import sys
-from tests.gtirb_helpers import add_function
 
 import gtirb
 
@@ -9,6 +8,7 @@ from gtirb_helpers import (
     add_standard_aux_data_tables,
     add_code_block,
     add_text_section,
+    add_function,
 )
 from pprinter_helpers import PPrinterTest, temp_directory, pprinter_binary
 
