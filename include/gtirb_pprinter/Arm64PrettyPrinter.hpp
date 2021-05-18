@@ -30,6 +30,10 @@ public:
 protected:
   std::string getRegisterName(unsigned int reg) const override;
 
+  void printInstruction(std::ostream& os, const gtirb::CodeBlock& block,
+                        const cs_insn& inst,
+                        const gtirb::Offset& offset) override;
+
   void printHeader(std::ostream& os) override;
   void printOperandList(std::ostream& os, const gtirb::CodeBlock& block,
                         const cs_insn& inst) override;

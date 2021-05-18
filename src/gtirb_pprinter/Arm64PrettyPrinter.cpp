@@ -19,6 +19,7 @@
 
 #include "Arm64PrettyPrinter.hpp"
 #include "AuxDataSchema.hpp"
+#include "string_utils.hpp"
 
 #include <capstone/capstone.h>
 
@@ -46,6 +47,48 @@ std::string Arm64PrettyPrinter::getRegisterName(unsigned int reg) const {
   return reg == ARM64_REG_INVALID ? "" : cs_reg_name(this->csHandle, reg);
 }
 
+void Arm64PrettyPrinter::printInstruction(std::ostream& os,
+                                          const gtirb::CodeBlock& block,
+                                          const cs_insn& inst,
+                                          const gtirb::Offset& offset) {
+  gtirb::Addr ea(inst.address);
+  printComments(os, offset, inst.size);
+  printCFIDirectives(os, offset);
+  printEA(os, ea);
+
+  ////////////////////////////////////////////////////////////////////
+  // special cases
+
+  if (inst.id == ARM64_INS_NOP) {
+    os << "  " << syntax.nop();
+    for (uint64_t i = 1; i < inst.size; ++i) {
+      ea += 1;
+      os << '\n';
+      printEA(os, ea);
+      os << "  " << syntax.nop();
+    }
+    os << '\n';
+    return;
+  }
+
+  // end special cases
+  ////////////////////////////////////////////////////////////////////
+
+  std::string opcode = ascii_str_tolower(inst.mnemonic);
+  os << "  " << opcode << ' ';
+
+  // Make sure the initial m_accum_comment is empty.
+  m_accum_comment.clear();
+  printOperandList(os, block, inst);
+  if (!m_accum_comment.empty()) {
+    os << '\n' << syntax.comment() << " ";
+    printEA(os, ea);
+    os << ": " << m_accum_comment;
+    m_accum_comment.clear();
+  }
+  os << '\n';
+}
+
 void Arm64PrettyPrinter::printOperandList(std::ostream& os,
                                           const gtirb::CodeBlock& block,
                                           const cs_insn& inst) {
@@ -57,6 +100,58 @@ void Arm64PrettyPrinter::printOperandList(std::ostream& os,
       os << ',';
     }
     printOperand(os, block, inst, i);
+  }
+
+  auto arm64Cc2String = [](arm64_cc cc) {
+    switch (cc) {
+    case ARM64_CC_EQ:
+      return "eq";
+    case ARM64_CC_NE:
+      return "ne";
+    case ARM64_CC_HS:
+      return "hs";
+    case ARM64_CC_LO:
+      return "lo";
+    case ARM64_CC_MI:
+      return "mi";
+    case ARM64_CC_PL:
+      return "pl";
+    case ARM64_CC_VS:
+      return "vs";
+    case ARM64_CC_VC:
+      return "vc";
+    case ARM64_CC_HI:
+      return "hi";
+    case ARM64_CC_LS:
+      return "ls";
+    case ARM64_CC_GE:
+      return "ge";
+    case ARM64_CC_LT:
+      return "lt";
+    case ARM64_CC_GT:
+      return "gt";
+    case ARM64_CC_LE:
+      return "le";
+    case ARM64_CC_AL:
+      return "al";
+    default:
+      assert(!"Invalid arm64_cc");
+      return "Invalid arm64_cc";
+    }
+  };
+
+  auto isCondInstr = [](const std::string& opcode) {
+    static std::vector<std::string> cond_instrs{
+        "ccmn", "ccmp",  "cinc",  "cinv",  "cneg", "csel",
+        "cset", "csetm", "csinc", "csinv", "csneg"};
+    return (std::find(std::begin(cond_instrs), std::end(cond_instrs), opcode) !=
+            std::end(cond_instrs));
+  };
+
+  std::string opcode = ascii_str_tolower(inst.mnemonic);
+  if (isCondInstr(opcode) && inst.detail->arm64.cc != ARM64_CC_INVALID) {
+    std::string cc = arm64Cc2String(inst.detail->arm64.cc);
+    os << ',' << cc;
   }
 }
 
@@ -93,7 +188,7 @@ void Arm64PrettyPrinter::printOperand(std::ostream& os,
     printOpIndirect(os, symbolic, inst, index);
     return;
   case ARM64_OP_FP:
-    os << "#" << op.fp;
+    os << "#" << std::scientific << std::setprecision(18) << op.fp;
     return;
   case ARM64_OP_CIMM:
   case ARM64_OP_REG_MRS:
@@ -212,7 +307,11 @@ void Arm64PrettyPrinter::printOpIndirect(
   if (op.shift.type != ARM64_SFT_INVALID && op.shift.value != 0) {
     os << ",";
     assert(!first && "unexpected shift operator");
-    printShift(os, op.shift.type, op.shift.value);
+    if (op.shift.type == ARM64_SFT_LSL && op.ext != ARM64_EXT_INVALID) {
+      printExtender(os, op.ext, op.shift.type, op.shift.value);
+    } else {
+      printShift(os, op.shift.type, op.shift.value);
+    }
   }
 
   os << "]";
