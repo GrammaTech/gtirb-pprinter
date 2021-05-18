@@ -10,7 +10,12 @@ from gtirb_helpers import (
     add_text_section,
     add_function,
 )
-from pprinter_helpers import PPrinterTest, temp_directory, pprinter_binary
+from pprinter_helpers import (
+    PPrinterTest,
+    temp_directory,
+    pprinter_binary,
+    should_print_subprocess_output,
+)
 
 
 class MultiModuleTests(PPrinterTest):
@@ -55,6 +60,7 @@ class MultiModuleTests(PPrinterTest):
                 ),
                 check=True,
                 cwd=tmpdir,
+                capture_output=not should_print_subprocess_output(),
             )
             with open(asm_path_template.format(""), "r") as f:
                 self.assertIn(".globl main", f.read())

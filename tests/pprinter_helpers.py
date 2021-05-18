@@ -18,6 +18,7 @@ from typing import (
     NamedTuple,
     List,
     Sequence,
+    Tuple,
 )
 
 import gtirb
@@ -82,6 +83,26 @@ def pprinter_binary() -> str:
     return os.environ.get("PPRINTER_PATH", "gtirb-pprinter")
 
 
+def running_in_pytest() -> bool:
+    """
+    Determines if the test is running under pytest.
+    """
+    return "pytest" in sys.modules
+
+
+def should_print_subprocess_output() -> bool:
+    """
+    Should subprocess output be printed to stdout?
+    """
+    env = os.environ.get("PPRINTER_VERBOSE_OUTPUT")
+    if env is not None:
+        return strtobool(env)
+
+    # Pytest hides a test's stdout unless it fails, so feel free to write
+    # potentially useful information if we're running under it.
+    return running_in_pytest()
+
+
 def can_mock_binaries() -> bool:
     """
     Determines if the binary pretty printer mock tests work on this platform.
@@ -96,19 +117,38 @@ def run_asm_pprinter(ir: gtirb.IR, args: Iterable[str] = ()) -> str:
     :param args: Any additional arguments for the pretty printer.
     :returns: The assembly string.
     """
+    asm, _ = run_asm_pprinter_with_outputput(ir, args)
+    return asm
+
+
+def run_asm_pprinter_with_outputput(
+    ir: gtirb.IR, args: Iterable[str] = ()
+) -> Tuple[str, str]:
+    """
+    Runs the pretty-printer to generate an assembly output.
+    :param ir: The IR object to print.
+    :param args: Any additional arguments for the pretty printer.
+    :returns: The assembly string and the contents of stdout/stderr.
+    """
     with temp_directory() as tmpdir:
         gtirb_path = os.path.join(tmpdir, "test.gtirb")
         ir.save_protobuf(gtirb_path)
 
         asm_path = os.path.join(tmpdir, "test.asm")
-        subprocess.run(
+        proc = subprocess.run(
             (pprinter_binary(), gtirb_path, "--asm", asm_path, *args),
-            check=True,
+            check=False,
             cwd=tmpdir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
         )
 
+        if should_print_subprocess_output():
+            sys.stdout.buffer.write(proc.stdout)
+        proc.check_returncode()
+
         with open(asm_path, "r") as f:
-            return f.read()
+            return f.read(), proc.stdout.decode('ascii')
 
 
 def run_binary_pprinter_mock(
@@ -144,6 +184,7 @@ def run_binary_pprinter_mock(
                 env=env,
                 check=False,
                 cwd=tmpdir,
+                capture_output=not should_print_subprocess_output(),
             )
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
