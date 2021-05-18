@@ -465,6 +465,8 @@ private:
   template <typename BlockType>
   std::optional<uint64_t> getAlignmentImpl(const BlockType& Block);
 
+  static bool x86InstHasMoffsetEncoding(const cs_insn& inst);
+
 protected:
   std::string m_accum_comment;
   static std::string s_symaddr_0_warning(uint64_t symAddr);

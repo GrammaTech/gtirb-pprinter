@@ -671,18 +671,42 @@ void PrettyPrinterBase::printOperand(std::ostream& os,
     printOpRegdirect(os, inst, index);
     return;
   case X86_OP_IMM:
-    symbolic = block.getByteInterval()->getSymbolicExpression(
-        ea + immOffset - *block.getByteInterval()->getAddress());
+    if (immOffset) {
+      symbolic = block.getByteInterval()->getSymbolicExpression(
+          ea + immOffset - *block.getByteInterval()->getAddress());
+    } else {
+      std::cerr << "WARNING:" << ea
+                << ": instruction with X86_OP_IMM has a immediate offset of 0\n";
+    }
     printOpImmediate(os, symbolic, inst, index);
     return;
   case X86_OP_MEM:
-    // FIXME: Capstone frequently populates instruction details incorrectly with
-    // a displacement offset of 0. We use the same incorrect offset in ddisasm
-    // to populate the symbolic expressions, so we find the corresponding
-    // symbolic by coincidence, but the addresses are incorrect.
-    // We should fix Capstone and check `dispOffset > 0` here.
-    symbolic = block.getByteInterval()->getSymbolicExpression(
-        ea + dispOffset - *block.getByteInterval()->getAddress());
+    if (dispOffset > 0) {
+      symbolic = block.getByteInterval()->getSymbolicExpression(
+          ea + dispOffset - *block.getByteInterval()->getAddress());
+      // We had a bug where Capstone gave us a displacement offset of 0 for
+      // instructions using moffset operand encoding. For backwards
+      // compatibility, look there for a symbolic expression.
+      if (!symbolic && x86InstHasMoffsetEncoding(inst)) {
+        static_assert(GTIRB_PROTOBUF_VERSION == 2,
+                      "Remove this when bumping versions");
+        symbolic = block.getByteInterval()->getSymbolicExpression(
+            ea - *block.getByteInterval()->getAddress());
+        if (symbolic) {
+          static bool warned;
+          if (!warned) {
+            std::cerr
+                << "WARNING: using symbolic expression at offset 0 for "
+                   "compatibility; recreate your gtirb file with newer tools\n";
+            warned = true;
+          }
+        }
+      }
+    } else {
+      std::cerr
+          << "WARNING:" << ea
+          << ": instruction with X86_OP_MEM has a displacement offset of 0\n";
+    }
     printOpIndirect(os, symbolic, inst, index);
     return;
   case X86_OP_INVALID:
@@ -1424,6 +1448,21 @@ PrettyPrinterBase::getAlignment(gtirb::Addr Addr) const {
   }
 
   return std::nullopt;
+}
+
+bool PrettyPrinterBase::x86InstHasMoffsetEncoding(const cs_insn& inst) {
+  static_assert(GTIRB_PROTOBUF_VERSION == 2,
+                "Remove this when bumping versions");
+
+  // The moffset operand encoding is only used by a handful of mov
+  // instructions.
+  return (inst.detail->x86.opcode[0] == 0xA0 ||
+          inst.detail->x86.opcode[0] == 0xA1 ||
+          inst.detail->x86.opcode[0] == 0xA2 ||
+          inst.detail->x86.opcode[0] == 0xA3) &&
+         inst.detail->x86.opcode[1] == 0x00 &&
+         inst.detail->x86.opcode[2] == 0x00 &&
+         inst.detail->x86.opcode[3] == 0x00;
 }
 
 } // namespace gtirb_pprint
