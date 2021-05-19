@@ -168,12 +168,6 @@ void Arm64PrettyPrinter::printOperand(std::ostream& os,
   switch (op.type) {
   case ARM64_OP_REG:
     printOpRegdirect(os, inst, index);
-
-    // Add extender if needed.
-    if (op.ext != ARM64_EXT_INVALID) {
-      os << ", ";
-      printExtender(os, op.ext, op.shift.type, op.shift.value);
-    }
     return;
   case ARM64_OP_IMM:
     if (finalOp) {
@@ -241,6 +235,46 @@ void Arm64PrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
   assert(op.type == ARM64_OP_REG &&
          "printOpRegdirect called without a register operand");
   os << getRegisterName(op.reg);
+
+  auto arm64Shifter2String = [](arm64_shifter sft) {
+    switch (sft) {
+    case ARM64_SFT_INVALID:
+      return "";
+    case ARM64_SFT_ASR:
+      return "asr";
+    case ARM64_SFT_LSL:
+      return "lsl";
+    case ARM64_SFT_LSR:
+      return "lsr";
+    case ARM64_SFT_MSL:
+      return "msl";
+    case ARM64_SFT_ROR:
+      return "ror";
+    default:
+      return "";
+    }
+  };
+
+  // Add extender if needed.
+  if (op.ext != ARM64_EXT_INVALID) {
+    os << ", ";
+    printExtender(os, op.ext, op.shift.type, op.shift.value);
+  } else {
+    std::string opcode = ascii_str_tolower(inst.mnemonic);
+    opcode = opcode.substr(0, 3);
+    if (op.shift.type != ARM64_SFT_INVALID && op.shift.value != 0) {
+      os << ", ";
+      // In case where opcode is the same as one of arm64_shifters (e.g., lsl),
+      // do not print it again here.
+      std::string shift_type = arm64Shifter2String(op.shift.type);
+      if (shift_type != opcode)
+        os << shift_type << " ";
+      if (op.shift.value >= 64)
+        os << getRegisterName(op.shift.value);
+      else
+        os << "#" << op.shift.value;
+    }
+  }
 }
 
 void Arm64PrettyPrinter::printOpImmediate(
