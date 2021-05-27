@@ -675,8 +675,9 @@ void PrettyPrinterBase::printOperand(std::ostream& os,
       symbolic = block.getByteInterval()->getSymbolicExpression(
           ea + immOffset - *block.getByteInterval()->getAddress());
     } else {
-      std::cerr << "WARNING:" << ea
-                << ": instruction with X86_OP_IMM has a immediate offset of 0\n";
+      std::cerr
+          << "WARNING:" << ea
+          << ": instruction with X86_OP_IMM has a immediate offset of 0\n";
     }
     printOpImmediate(os, symbolic, inst, index);
     return;

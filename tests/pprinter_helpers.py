@@ -148,7 +148,7 @@ def run_asm_pprinter_with_outputput(
         proc.check_returncode()
 
         with open(asm_path, "r") as f:
-            return f.read(), proc.stdout.decode('ascii')
+            return f.read(), proc.stdout.decode("ascii")
 
 
 def run_binary_pprinter_mock(

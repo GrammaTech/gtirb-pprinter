@@ -1,4 +1,11 @@
-from gtirb_helpers import *
+import gtirb
+
+from gtirb_helpers import (
+    create_test_module,
+    add_text_section,
+    add_symbol,
+    add_code_block,
+)
 from pprinter_helpers import (
     asm_lines,
     PPrinterTest,
@@ -101,10 +108,7 @@ class TestMoffsetCompat(PPrinterTest):
         self.assertNotIn(self.COMPAT_WARNING_MESSAGE, output)
         self.assertContains(
             asm_lines(asm),
-            (
-                "mov RAX,QWORD PTR [hello]",
-                "mov QWORD PTR [hello],RAX",
-            ),
+            ("mov RAX,QWORD PTR [hello]", "mov QWORD PTR [hello],RAX",),
         )
 
     def test_moffset_mov_x64_compat(self):
@@ -128,10 +132,7 @@ class TestMoffsetCompat(PPrinterTest):
         self.assertEqual(output.count(self.COMPAT_WARNING_MESSAGE), 1)
         self.assertContains(
             asm_lines(asm),
-            (
-                "mov RAX,QWORD PTR [hello]",
-                "mov QWORD PTR [hello],RAX",
-            ),
+            ("mov RAX,QWORD PTR [hello]", "mov QWORD PTR [hello],RAX",),
         )
 
     def test_nonmoffset_mov(self):
