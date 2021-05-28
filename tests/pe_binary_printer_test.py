@@ -8,6 +8,8 @@ from pprinter_helpers import (
     can_mock_binaries,
     interesting_lines,
     run_binary_pprinter_mock,
+    run_asm_pprinter,
+    asm_lines,
 )
 
 
@@ -86,3 +88,26 @@ class WindowsBinaryPrinterTests(PPrinterTest):
                 break
         else:
             self.fail("did not see a lib.exe execution")
+
+
+class WindowsBinaryPrinterTests_NoMock(PPrinterTest):
+    def test_windows_includelib(self):
+        ir, m = create_test_module(
+            file_format=gtirb.Module.FileFormat.PE,
+            isa=gtirb.Module.ISA.X64,
+            binary_type=["EXEC", "EXE", "WINDOWS_CUI"],
+        )
+
+        _, bi = add_text_section(m)
+        m.aux_data["libraries"].data.append(("WINSPOOL.DRV"))
+        m.aux_data["libraries"].data.append(("USER32.DLL"))
+
+        asm = run_asm_pprinter(ir)
+        with open("foo.log", "w+") as f:
+            f.write(asm)
+
+        self.assertContains(asm_lines(asm), ["INCLUDELIB WINSPOOL.lib"])
+        self.assertContains(asm_lines(asm), ["INCLUDELIB USER32.lib"])
+
+        self.assertNotContains(asm_lines(asm), ["INCLUDELIB WINSPOOL.DRV"])
+        self.assertNotContains(asm_lines(asm), ["INCLUDELIB USER32.DLL"])
