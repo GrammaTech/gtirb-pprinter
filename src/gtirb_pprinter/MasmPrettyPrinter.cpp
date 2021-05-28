@@ -16,6 +16,7 @@
 #include "MasmPrettyPrinter.hpp"
 
 #include "AuxDataSchema.hpp"
+#include "file_utils.hpp"
 #include "regex"
 #include "string_utils.hpp"
 #include <boost/algorithm/string/replace.hpp>
@@ -105,8 +106,9 @@ void MasmPrettyPrinter::printIncludes(std::ostream& os) {
   if (libraries) {
     for (const auto& library : *libraries) {
       // Include import libs later generated using synthesized DEF files passed
-      // through lib.exe
-      os << "INCLUDELIB " << boost::ireplace_last_copy(library, ".dll", ".lib")
+      // through lib.exe.  Have observed .dll and .drv files
+      std::cout << "including library: " << library;
+      os << "INCLUDELIB " << gtirb_bprint::replaceExtension(library, ".lib")
          << '\n';
     }
   }
