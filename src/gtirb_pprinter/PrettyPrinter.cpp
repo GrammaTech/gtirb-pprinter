@@ -689,8 +689,6 @@ void PrettyPrinterBase::printOperand(std::ostream& os,
       // instructions using moffset operand encoding. For backwards
       // compatibility, look there for a symbolic expression.
       if (!symbolic && x86InstHasMoffsetEncoding(inst)) {
-        static_assert(GTIRB_PROTOBUF_VERSION == 2,
-                      "Remove this when bumping versions");
         symbolic = block.getByteInterval()->getSymbolicExpression(
             ea - *block.getByteInterval()->getAddress());
         if (symbolic) {
@@ -698,7 +696,10 @@ void PrettyPrinterBase::printOperand(std::ostream& os,
           if (!warned) {
             std::cerr
                 << "WARNING: using symbolic expression at offset 0 for "
-                   "compatibility; recreate your gtirb file with newer tools\n";
+                   "compatibility; recreate your gtirb file with newer "
+                   "tools that put expressions at the correct offset. "
+                   "Starting in early 2022, newer versions of the pretty "
+                   "printer will not use expressions at offset 0.\n";
             warned = true;
           }
         }
@@ -1452,9 +1453,6 @@ PrettyPrinterBase::getAlignment(gtirb::Addr Addr) const {
 }
 
 bool PrettyPrinterBase::x86InstHasMoffsetEncoding(const cs_insn& inst) {
-  static_assert(GTIRB_PROTOBUF_VERSION == 2,
-                "Remove this when bumping versions");
-
   // The moffset operand encoding is only used by a handful of mov
   // instructions.
   return (inst.detail->x86.opcode[0] == 0xA0 ||
