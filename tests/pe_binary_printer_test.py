@@ -103,8 +103,6 @@ class WindowsBinaryPrinterTests_NoMock(PPrinterTest):
         m.aux_data["libraries"].data.append(("USER32.DLL"))
 
         asm = run_asm_pprinter(ir)
-        with open("foo.log", "w+") as f:
-            f.write(asm)
 
         self.assertContains(asm_lines(asm), ["INCLUDELIB WINSPOOL.lib"])
         self.assertContains(asm_lines(asm), ["INCLUDELIB USER32.lib"])
