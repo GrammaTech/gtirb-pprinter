@@ -16,7 +16,9 @@ from pprinter_helpers import (
 class TestMoffsetCompat(PPrinterTest):
     COMPAT_WARNING_MESSAGE = (
         "WARNING: using symbolic expression at offset 0 for compatibility; "
-        "recreate your gtirb file with newer tools"
+        "recreate your gtirb file with newer tools that put expressions at "
+        "the correct offset. Starting in early 2022, newer versions of the "
+        "pretty printer will not use expressions at offset 0."
     )
 
     def test_moffset_mov_ia32_correct(self):
