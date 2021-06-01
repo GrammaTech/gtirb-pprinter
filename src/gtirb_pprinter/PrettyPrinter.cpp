@@ -694,12 +694,11 @@ void PrettyPrinterBase::printOperand(std::ostream& os,
         if (symbolic) {
           static bool warned;
           if (!warned) {
-            std::cerr
-                << "WARNING: using symbolic expression at offset 0 for "
-                   "compatibility; recreate your gtirb file with newer "
-                   "tools that put expressions at the correct offset. "
-                   "Starting in early 2022, newer versions of the pretty "
-                   "printer will not use expressions at offset 0.\n";
+            std::cerr << "WARNING: using symbolic expression at offset 0 for "
+                         "compatibility; recreate your gtirb file with newer "
+                         "tools that put expressions at the correct offset. "
+                         "Starting in early 2022, newer versions of the pretty "
+                         "printer will not use expressions at offset 0.\n";
             warned = true;
           }
         }
