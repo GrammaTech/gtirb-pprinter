@@ -213,7 +213,7 @@ build-static:
     - mkdir build && cd build
     - cmake ../ -DCMAKE_BUILD_TYPE=RelWithDebInfo -DGTIRB_BUILD_SHARED_LIBS=OFF -DGTIRB_PY_API=OFF
     - make -j
-    - cd ..
+    - cd ../..
     - mkdir build && cd build
     - cmake ../ -DCMAKE_BUILD_TYPE=RelWithDebInfo -DGTIRB_PPRINTER_BUILD_SHARED_LIBS=OFF
     - make -j
