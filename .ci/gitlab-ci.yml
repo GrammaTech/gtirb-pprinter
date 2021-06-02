@@ -88,7 +88,6 @@ conan-windows:
       - 'build'
   script:
     - case $OS in
-       ubuntu16) JOB_NAME='debian-installer-ubuntu16' ;;
        ubuntu18) JOB_NAME='debian-installer-ubuntu18' ;;
        ubuntu20) JOB_NAME='debian-installer-ubuntu20' ;;
        esac
@@ -139,7 +138,6 @@ conan-windows:
   stage: test-and-tag
   script:
     - case $OS in
-       ubuntu16) JOB_NAME='debian-installer-ubuntu16' ;;
        ubuntu18) JOB_NAME='debian-installer-ubuntu18' ;;
        ubuntu20) JOB_NAME='debian-installer-ubuntu20' ;;
        esac
@@ -148,14 +146,6 @@ conan-windows:
     - dpkg -i libgtirb.deb
     - pip3 install -r tests/requirements.txt $EXTRA_PIP3_ARGS
     - cd build && PATH=$(pwd)/bin:$PATH ctest -V
-
-build-ubuntu16-gcc:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
-  variables:
-    OS: 'ubuntu16'
-    COMPILER: 'g++-7'
-    BUILD_TYPE: 'RelWithDebInfo'
-  <<: *build
 
 build-ubuntu18-gcc:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
@@ -295,16 +285,6 @@ build-centos8-gcc-relwithdebuginfo:
     - cpack -G "RPM" -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PPRINTER_PACKAGE=rpm-driver
     - cd ../ && mv build ../build
 
-test-and-tag-ubuntu16-gcc:
-  variables:
-    OS: 'ubuntu16'
-    COMPILER: 'gcc'
-    BUILD_TYPE: 'RelWithDebInfo'
-    EXTRA_PIP3_ARGS: 'networkx==2.4'
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
-  needs: ['build-ubuntu16-gcc']
-  <<: *test-and-tag
-
 test-and-tag-ubuntu18-gcc:
   variables:
     OS: 'ubuntu18'
@@ -411,13 +391,6 @@ package-centos8:
     - cpack -G "DEB" -D CPACK_GTIRB_PPRINTER_PACKAGE=deb-driver
     - cpack -G "DEB" -D CPACK_GTIRB_PPRINTER_PACKAGE=deb-driver-dbg
 
-build-ubuntu16-packages:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
-  needs: [build-ubuntu16-gcc]
-  variables:
-    OS: ubuntu16
-  <<: *build-ubuntu-packages
-
 build-ubuntu18-packages:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
   needs: [build-ubuntu18-gcc]
@@ -456,8 +429,7 @@ build-ubuntu20-packages:
     - if [ $(lsb_release -sc) == "focal" ]; then TRUSTED="[trusted=yes]"; fi
     - echo -e "\ndeb $TRUSTED file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - apt-get update -y && apt-get install -y --allow-unauthenticated libgtirb-pprinter-dev
-    - if [ $(lsb_release -sc) == "xenial" ]; then CC=g++-7; else CC=g++; fi
-    - ${CC} .ci/test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs
+    - g++ .ci/test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs
     - ./test-install
 
 .test-ubuntu-gtirb-pprinter: &test-ubuntu-gtirb-pprinter
@@ -496,38 +468,6 @@ build-ubuntu20-packages:
     - echo -e "\ndeb $TRUSTED file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - apt-get update -y && apt-get install -y --allow-unauthenticated libgtirb-pprinter
     - ./test-install
-
-setup-ubuntu16-repo:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
-  needs: ['build-ubuntu16-packages']
-  variables:
-    OS: ubuntu16
-  <<: *setup-test-apt-repo
-
-test-ubuntu16-libgtirb-pprinter-dev:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
-  needs: ['setup-ubuntu16-repo']
-  <<: *test-ubuntu-libgtirb-pprinter-dev
-
-test-ubuntu16-gtirb-pprinter:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
-  needs: ['setup-ubuntu16-repo']
-  <<: *test-ubuntu-gtirb-pprinter
-
-test-ubuntu16-libgtirb-pprinter-dbg:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
-  needs: ['setup-ubuntu16-repo']
-  <<: *test-ubuntu-libgtirb-pprinter-dbg
-
-test-ubuntu16-gtirb-pprinter-dbg:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
-  needs: ['setup-ubuntu16-repo']
-  <<: *test-ubuntu-gtirb-pprinter-dbg
-
-test-ubuntu16-libgtirb-pprinter:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
-  needs: ['setup-ubuntu16-repo', 'test-ubuntu16-libgtirb-pprinter-dev']
-  <<: *test-ubuntu-libgtirb-pprinter
 
 setup-ubuntu18-repo:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
@@ -601,11 +541,6 @@ test-ubuntu20-libgtirb-pprinter:
       - '*gtirb-pprinter*.deb'
   script:
     - cp build/*.deb ./
-
-debian-installer-ubuntu16:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu16
-  needs: ['build-ubuntu16-packages']
-  <<: *deploy-debian-installer
 
 debian-installer-ubuntu18:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
