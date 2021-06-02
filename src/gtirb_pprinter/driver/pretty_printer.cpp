@@ -114,7 +114,7 @@ int main(int argc, char** argv) {
                      "standard output.");
   desc.add_options()("format,f", po::value<std::string>(),
                      "The format of the target binary object.");
-  desc.add_options()("isa,i", po::value<std::string>(),
+  desc.add_options()("isa,I", po::value<std::string>(),
                      "The ISA of the target binary object.");
   desc.add_options()("syntax,s", po::value<std::string>(),
                      "The syntax of the assembly file to generate.");
