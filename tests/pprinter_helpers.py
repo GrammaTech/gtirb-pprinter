@@ -179,12 +179,18 @@ def run_binary_pprinter_mock(
             env[fakeprog.PORT_ENV_VAR] = str(port)
 
             bin_path = os.path.join(tmpdir, "test")
+
+            capture_output_args = {}
+            if not should_print_subprocess_output():
+                capture_output_args["stdout"] = subprocess.PIPE
+                capture_output_args["stderr"] = subprocess.PIPE
+
             return subprocess.run(
                 (pprinter_binary(), gtirb_path, "--binary", bin_path, *args,),
                 env=env,
                 check=False,
                 cwd=tmpdir,
-                capture_output=not should_print_subprocess_output(),
+                **capture_output_args,
             )
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
