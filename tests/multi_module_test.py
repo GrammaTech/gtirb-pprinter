@@ -50,6 +50,12 @@ class MultiModuleTests(PPrinterTest):
             self.create_multi_module_ir().save_protobuf(gtirb_path)
 
             asm_path_template = os.path.join(tmpdir, "two_modules{}.s")
+
+            capture_output_args = {}
+            if not should_print_subprocess_output():
+                capture_output_args["stdout"] = subprocess.PIPE
+                capture_output_args["stderr"] = subprocess.PIPE
+
             subprocess.run(
                 (
                     pprinter_binary(),
@@ -60,7 +66,7 @@ class MultiModuleTests(PPrinterTest):
                 ),
                 check=True,
                 cwd=tmpdir,
-                capture_output=not should_print_subprocess_output(),
+                **capture_output_args,
             )
             with open(asm_path_template.format(""), "r") as f:
                 self.assertIn(".globl main", f.read())
