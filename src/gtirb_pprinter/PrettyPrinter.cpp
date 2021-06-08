@@ -667,42 +667,35 @@ void PrettyPrinterBase::printOperand(std::ostream& os,
     printOpRegdirect(os, inst, index);
     return;
   case X86_OP_IMM:
-    if (immOffset) {
-      symbolic = block.getByteInterval()->getSymbolicExpression(
-          ea + immOffset - *block.getByteInterval()->getAddress());
-    } else {
-      std::cerr
-          << "WARNING:" << ea
-          << ": instruction with X86_OP_IMM has a immediate offset of 0\n";
-    }
+    symbolic = block.getByteInterval()->getSymbolicExpression(
+        ea + immOffset - *block.getByteInterval()->getAddress());
     printOpImmediate(os, symbolic, inst, index);
     return;
   case X86_OP_MEM:
-    if (dispOffset > 0) {
+    // FIXME: Capstone frequently populates instruction details incorrectly with
+    // a displacement offset of 0. We use the same incorrect offset in ddisasm
+    // to populate the symbolic expressions, so we find the corresponding
+    // symbolic by coincidence, but the addresses are incorrect.
+    // We should fix Capstone and check `dispOffset > 0` here.
+    symbolic = block.getByteInterval()->getSymbolicExpression(
+        ea + dispOffset - *block.getByteInterval()->getAddress());
+    // We had a bug where Capstone gave us a displacement offset of 0 for
+    // instructions using moffset operand encoding. For backwards
+    // compatibility, look there for a symbolic expression.
+    if (!symbolic && x86InstHasMoffsetEncoding(inst)) {
       symbolic = block.getByteInterval()->getSymbolicExpression(
-          ea + dispOffset - *block.getByteInterval()->getAddress());
-      // We had a bug where Capstone gave us a displacement offset of 0 for
-      // instructions using moffset operand encoding. For backwards
-      // compatibility, look there for a symbolic expression.
-      if (!symbolic && x86InstHasMoffsetEncoding(inst)) {
-        symbolic = block.getByteInterval()->getSymbolicExpression(
-            ea - *block.getByteInterval()->getAddress());
-        if (symbolic) {
-          static bool warned;
-          if (!warned) {
-            std::cerr << "WARNING: using symbolic expression at offset 0 for "
-                         "compatibility; recreate your gtirb file with newer "
-                         "tools that put expressions at the correct offset. "
-                         "Starting in early 2022, newer versions of the pretty "
-                         "printer will not use expressions at offset 0.\n";
-            warned = true;
-          }
+          ea - *block.getByteInterval()->getAddress());
+      if (symbolic) {
+        static bool warned;
+        if (!warned) {
+          std::cerr << "WARNING: using symbolic expression at offset 0 for "
+                       "compatibility; recreate your gtirb file with newer "
+                       "tools that put expressions at the correct offset. "
+                       "Starting in early 2022, newer versions of the pretty "
+                       "printer will not use expressions at offset 0.\n";
+          warned = true;
         }
       }
-    } else {
-      std::cerr
-          << "WARNING:" << ea
-          << ": instruction with X86_OP_MEM has a displacement offset of 0\n";
     }
     printOpIndirect(os, symbolic, inst, index);
     return;
