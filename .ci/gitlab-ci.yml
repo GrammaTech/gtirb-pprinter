@@ -91,9 +91,11 @@ conan-windows:
        ubuntu18) JOB_NAME='debian-installer-ubuntu18' ;;
        ubuntu20) JOB_NAME='debian-installer-ubuntu20' ;;
        esac
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=${JOB_NAME} --output "gtirb-$OS-artifacts.zip"
-    - unzip gtirb-$OS-artifacts.zip
-    - dpkg -i libgtirb.deb libgtirb-dev.deb
+    # download capstone & gtirb
+    - curl -L https://git.grammatech.com/rewriting/extra-packages/-/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
+    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=${JOB_NAME} --output "gtirb.zip"
+    - for pkg in gtirb capstone; do unzip $pkg.zip; done
+    - dpkg -i libcapstone-dev.deb libgtirb.deb libgtirb-dev.deb
     - mkdir build && cd build
     - cmake ../ -DCMAKE_CXX_COMPILER=$COMPILER -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCPACK_DEBIAN_PACKAGE_RELEASE="$(lsb_release -sc)" -DGTIRB_PPRINTER_STRIP_DEBUG_SYMBOLS=On
     - make -j
@@ -167,9 +169,10 @@ build-ubuntu20-gcc-gcov:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
   stage: build
   script:
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-ubuntu20 --output "gtirb-artifacts.zip"
-    - unzip gtirb-artifacts.zip
-    - dpkg -i libgtirb.deb libgtirb-dev.deb
+    - curl -L https://git.grammatech.com/rewriting/extra-packages/-/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
+    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-ubuntu20 --output "gtirb.zip"
+    - for pkg in gtirb capstone; do unzip $pkg.zip; done
+    - dpkg -i libcapstone-dev.deb libgtirb.deb libgtirb-dev.deb
     - pip3 install -r tests/requirements.txt
     - mkdir build && cd build
     - cmake .. -DCMAKE_BUILD_TYPE=Debug -DGTIRB_PPRINTER_CODE_COVERAGE=On
@@ -198,6 +201,9 @@ build-static:
   stage: build
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/static
   script:
+    - curl -L https://git.grammatech.com/rewriting/extra-packages/-/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
+    - unzip capstone.zip
+    - dpkg -i libcapstone-dev.deb
     - git clone https://git.grammatech.com/rewriting/gtirb.git
     - cd gtirb
     - mkdir build && cd build
@@ -223,6 +229,9 @@ static-drivers:
     paths:
       - build/bin
   script:
+    - curl -L https://git.grammatech.com/rewriting/extra-packages/-/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
+    - unzip capstone.zip
+    - dpkg -i libcapstone-dev.deb
     - git clone https://git.grammatech.com/rewriting/gtirb.git
     - cd gtirb
     - mkdir build && cd build
