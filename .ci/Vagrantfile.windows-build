@@ -100,27 +100,4 @@ option.set keep-going : false ;
     cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && ninja"
     cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && ninja install"
   SHELL
-
-  config.vm.provision "build-capstone", type: "shell", inline: <<-SHELL
-    cd $HOME
-
-    git clone -b next https://github.com/GrammaTech/capstone
-
-    mkdir /cygdrive/C/capstone-debug
-    mkdir /cygdrive/C/capstone-release
-
-    cd capstone
-    mkdir build-debug
-    cd build-debug
-    cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && ""C:\\Program Files\\CMake\\bin\\cmake.exe"" -G ""Ninja""  -DCMAKE_INSTALL_PREFIX=C:\\capstone-debug -DCAPSTONE_INSTALL=ON .."
-    cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && ninja"
-    cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && ninja install"
-
-    cd ..
-    mkdir build-release
-    cd build-release
-    cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && ""C:\\Program Files\\CMake\\bin\\cmake.exe"" -G ""Ninja"" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=C:\\capstone-release -DCAPSTONE_INSTALL=ON .."
-    cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && ninja"
-    cmd.exe /C "C:\\VS\\VC\\Auxiliary\\Build\\vcvars64.bat && ninja install"
-  SHELL
 end
