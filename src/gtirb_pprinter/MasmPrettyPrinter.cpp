@@ -261,6 +261,7 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
   //   e.g  fmul st(1)  needs to be  fmul st(0),st(1)
   switch (inst.id) {
   case X86_INS_FDIV:
+  case X86_INS_FDIVR:
   case X86_INS_FSUB:
   case X86_INS_FMUL:
     if (Detail.op_count == 1) {
@@ -330,6 +331,14 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
         Op.reg = X86_REG_K1;
       }
     }
+  }
+
+  // Change ATT-specific mnemonics PUSHAL/POPAL.
+  if (inst.id == X86_INS_PUSHAL) {
+    strcpy(inst.mnemonic, "pushad");
+  }
+  if (inst.id == X86_INS_POPAL) {
+    strcpy(inst.mnemonic, "popad");
   }
 
   x86FixupInstruction(inst);
