@@ -12,10 +12,6 @@ RUN apt-get -y install clang-format unzip \
     libboost-program-options-dev libboost-program-options1.71.0 \
     gcovr
 
-# Install capstone
-COPY libcapstone-dev_*_amd64.deb ./
-RUN dpkg -i libcapstone-dev_*_amd64.deb
-
 # Run pre-commit once so the hooks are installed
 COPY . /gt/gtirb-pprinter
 WORKDIR /gt/gtirb-pprinter

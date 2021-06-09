@@ -20,10 +20,6 @@ RUN add-apt-repository ppa:mhier/libboost-latest && \
     apt-get -y update && \
     apt-get -y install libboost${BOOST_VERSION}-dev libprotobuf-dev protobuf-compiler
 
-# Install capstone
-COPY libcapstone-dev_*_amd64.deb ./
-RUN dpkg -i libcapstone-dev_*_amd64.deb
-
 # Install pre-commit
 RUN pip3 install "virtualenv<20.0.0"
 RUN pip3 install pre-commit
