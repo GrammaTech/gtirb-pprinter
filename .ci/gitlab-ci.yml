@@ -390,15 +390,17 @@ package-centos8:
     paths:
       - build
   script:
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-$OS --output "gtirb-$OS-artifacts.zip"
-    - unzip gtirb-$OS-artifacts.zip
-    - dpkg -i libgtirb.deb libgtirb-dev.deb
+    - curl -L https://git.grammatech.com/rewriting/extra-packages/-/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
+    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-$OS --output "gtirb.zip"
+    - for pkg in gtirb capstone; do unzip $pkg.zip; done
+    - dpkg -i libcapstone-dev.deb libgtirb.deb libgtirb-dev.deb
     - cd build
-    - cpack -G "DEB" -D CPACK_GTIRB_PPRINTER_PACKAGE=deb-lib
-    - cpack -G "DEB" -D CPACK_GTIRB_PPRINTER_PACKAGE=deb-lib-dbg
-    - cpack -G "DEB" -D CPACK_GTIRB_PPRINTER_PACKAGE=deb-dev
-    - cpack -G "DEB" -D CPACK_GTIRB_PPRINTER_PACKAGE=deb-driver
-    - cpack -G "DEB" -D CPACK_GTIRB_PPRINTER_PACKAGE=deb-driver-dbg
+    - 'CAPSTONE_PKG_VERSION=$(apt-cache policy libcapstone-dev | sed -n "s/  Installed: \([0-9\.]*-gt[[:digit:]]*\)/\1/p")'
+    - cpack -G "DEB" -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PPRINTER_PACKAGE=deb-lib
+    - cpack -G "DEB" -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PPRINTER_PACKAGE=deb-lib-dbg
+    - cpack -G "DEB" -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PPRINTER_PACKAGE=deb-dev
+    - cpack -G "DEB" -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PPRINTER_PACKAGE=deb-driver
+    - cpack -G "DEB" -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PPRINTER_PACKAGE=deb-driver-dbg
 
 build-ubuntu18-packages:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18

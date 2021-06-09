@@ -13,11 +13,11 @@ if("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "deb-lib")
   set(CPACK_COMPONENTS_ALL ${LIB_COMPONENTS})
   if("${CPACK_DEBIAN_PACKAGE_RELEASE}" STREQUAL "focal")
     set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "libstdc++6, libc6, libgcc1, libgtirb (>=${CPACK_GTIRB_VERSION}), libgtirb (<<${CPACK_GTIRB_VERSION_UPPER_BOUND}), libboost-filesystem1.71.0, libcapstone-dev (=1:4.0.1-gt4)"
+        "libstdc++6, libc6, libgcc1, libgtirb (>=${CPACK_GTIRB_VERSION}), libgtirb (<<${CPACK_GTIRB_VERSION_UPPER_BOUND}), libboost-filesystem1.71.0, libcapstone-dev (=1:${CPACK_CAPSTONE_PKG_VERSION})"
     )
   else()
     set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "libstdc++6, libc6, libgcc1, libgtirb (>=${CPACK_GTIRB_VERSION}), libgtirb (<<${CPACK_GTIRB_VERSION_UPPER_BOUND}), libboost (>=1.67) | libboost1.67, libcapstone-dev (=1:4.0.1-gt4)"
+        "libstdc++6, libc6, libgcc1, libgtirb (>=${CPACK_GTIRB_VERSION}), libgtirb (<<${CPACK_GTIRB_VERSION_UPPER_BOUND}), libboost (>=1.67) | libboost1.67, libcapstone-dev (=1:${CPACK_CAPSTONE_PKG_VERSION})"
     )
   endif()
 elseif("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "deb-lib-dbg")
@@ -33,11 +33,11 @@ elseif("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "deb-dev")
   set(CPACK_COMPONENTS_ALL ${DEV_COMPONENTS})
   if("${CPACK_DEBIAN_PACKAGE_RELEASE}" STREQUAL "focal")
     set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "libstdc++6, libc6, libgcc1, libgtirb-dev (>=${CPACK_GTIRB_VERSION}), libgtirb-dev (<<${CPACK_GTIRB_VERSION_UPPER_BOUND}), libgtirb-pprinter (=${CPACK_GTIRB_PPRINTER_VERSION}-${CPACK_DEBIAN_PACKAGE_RELEASE}), libboost-dev, libcapstone-dev (=1:4.0.1-gt4)"
+        "libstdc++6, libc6, libgcc1, libgtirb-dev (>=${CPACK_GTIRB_VERSION}), libgtirb-dev (<<${CPACK_GTIRB_VERSION_UPPER_BOUND}), libgtirb-pprinter (=${CPACK_GTIRB_PPRINTER_VERSION}-${CPACK_DEBIAN_PACKAGE_RELEASE}), libboost-dev, libcapstone-dev (=1:${CPACK_CAPSTONE_PKG_VERSION})"
     )
   else()
     set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "libstdc++6, libc6, libgcc1, libgtirb-dev (>=${CPACK_GTIRB_VERSION}), libgtirb-dev (<<${CPACK_GTIRB_VERSION_UPPER_BOUND}), libgtirb-pprinter (=${CPACK_GTIRB_PPRINTER_VERSION}-${CPACK_DEBIAN_PACKAGE_RELEASE}), libboost-dev (>=1.67) | libboost1.67-dev, libcapstone-dev (=1:4.0.1-gt4)"
+        "libstdc++6, libc6, libgcc1, libgtirb-dev (>=${CPACK_GTIRB_VERSION}), libgtirb-dev (<<${CPACK_GTIRB_VERSION_UPPER_BOUND}), libgtirb-pprinter (=${CPACK_GTIRB_PPRINTER_VERSION}-${CPACK_DEBIAN_PACKAGE_RELEASE}), libboost-dev (>=1.67) | libboost1.67-dev, libcapstone-dev (=1:${CPACK_CAPSTONE_PKG_VERSION})"
     )
   endif()
 
@@ -47,11 +47,11 @@ elseif("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "deb-driver")
   set(CPACK_COMPONENTS_ALL ${DRIVER_COMPONENTS})
   if("${CPACK_DEBIAN_PACKAGE_RELEASE}" STREQUAL "focal")
     set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "libstdc++6, libc6, libgcc1, libgtirb (>=${CPACK_GTIRB_VERSION}), libgtirb (<<${CPACK_GTIRB_VERSION_UPPER_BOUND}), libgtirb-pprinter (=${CPACK_GTIRB_PPRINTER_VERSION}-${CPACK_DEBIAN_PACKAGE_RELEASE}), libboost-filesystem1.71.0, libboost-program-options1.71.0, libcapstone-dev (=1:4.0.1-gt4)"
+        "libstdc++6, libc6, libgcc1, libgtirb (>=${CPACK_GTIRB_VERSION}), libgtirb (<<${CPACK_GTIRB_VERSION_UPPER_BOUND}), libgtirb-pprinter (=${CPACK_GTIRB_PPRINTER_VERSION}-${CPACK_DEBIAN_PACKAGE_RELEASE}), libboost-filesystem1.71.0, libboost-program-options1.71.0, libcapstone-dev (=1:${CPACK_CAPSTONE_PKG_VERSION})"
     )
   else()
     set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "libstdc++6, libc6, libgcc1, libgtirb (>=${CPACK_GTIRB_VERSION}), libgtirb (<<${CPACK_GTIRB_VERSION_UPPER_BOUND}), libgtirb-pprinter (=${CPACK_GTIRB_PPRINTER_VERSION}-${CPACK_DEBIAN_PACKAGE_RELEASE}), libboost (>=1.67) | libboost1.67, libcapstone-dev (=1:4.0.1-gt4)"
+        "libstdc++6, libc6, libgcc1, libgtirb (>=${CPACK_GTIRB_VERSION}), libgtirb (<<${CPACK_GTIRB_VERSION_UPPER_BOUND}), libgtirb-pprinter (=${CPACK_GTIRB_PPRINTER_VERSION}-${CPACK_DEBIAN_PACKAGE_RELEASE}), libboost (>=1.67) | libboost1.67, libcapstone-dev (=1:${CPACK_CAPSTONE_PKG_VERSION})"
     )
   endif()
 elseif("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "deb-driver-dbg")
