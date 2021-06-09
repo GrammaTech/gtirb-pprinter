@@ -5,7 +5,3 @@ RUN apt-get -y update && apt-get -y install libboost-system-dev libboost-filesys
 
 # Install pip
 RUN apt-get -y update && apt-get -y install python3-pip
-
-# Install capstone
-COPY libcapstone-dev_*_amd64.deb ./
-RUN dpkg -i libcapstone-dev_*_amd64.deb
