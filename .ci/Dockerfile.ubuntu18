@@ -28,10 +28,13 @@ RUN dpkg -i libcapstone-dev_*_amd64.deb
 RUN pip3 install "virtualenv<20.0.0"
 RUN pip3 install pre-commit
 
-# Run pre-commit once so the hooks are installed
+
+# Some of the pre-commit formatters complain if these environments variables
+# aren't set:
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 
+# Run pre-commit once so the hooks are installed
 COPY . /gt/gtirb-pprinter
 WORKDIR /gt/gtirb-pprinter
 RUN pre-commit run --all-files
