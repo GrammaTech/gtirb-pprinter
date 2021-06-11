@@ -395,7 +395,7 @@ package-centos8:
     - for pkg in gtirb capstone; do unzip $pkg.zip; done
     - dpkg -i libcapstone-dev.deb libgtirb.deb libgtirb-dev.deb
     - cd build
-    - 'CAPSTONE_PKG_VERSION=$(apt-cache policy libcapstone-dev | sed -n "s/  Installed: \([0-9\.]*-gt[[:digit:]]*\)/\1/p")'
+    - 'CAPSTONE_PKG_VERSION=$(apt-cache policy libcapstone-dev | sed -n "s/  Installed:[[:space:]]*\(.*\)/\1/p")'
     - cpack -G "DEB" -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PPRINTER_PACKAGE=deb-lib
     - cpack -G "DEB" -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PPRINTER_PACKAGE=deb-lib-dbg
     - cpack -G "DEB" -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PPRINTER_PACKAGE=deb-dev
