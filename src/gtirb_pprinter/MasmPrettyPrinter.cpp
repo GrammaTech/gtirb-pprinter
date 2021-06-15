@@ -163,6 +163,13 @@ void MasmPrettyPrinter::printHeader(std::ostream& os) {
   if (EntryPoint) {
     os << masmSyntax.global() << " " << (*EntryPoint)->getName() << "\n";
   }
+  if (auto It = module.findSymbols("KUSER_SHARED_DATA"); !It.empty()) {
+    gtirb::Symbol* Symbol = &*It.begin();
+    if (!Symbol->getReferent<gtirb::Node>()) {
+      Symbol->setReferent(module.addProxyBlock(context));
+      os << "KUSER_SHARED_DATA = 7FFE0000H\n";
+    }
+  }
 }
 
 void MasmPrettyPrinter::printSectionHeader(std::ostream& os,
@@ -424,7 +431,7 @@ void MasmPrettyPrinter::printOpImmediate(
     // The operand is symbolic.
 
     // Symbols for skipped addresses degrade to literals.
-    if (!is_call && !is_jump && !shouldSkip(*s->Sym))
+    if (!is_call && !is_jump && !shouldSkip(*s->Sym) && !s->Offset)
       os << masmSyntax.offset() << ' ';
 
     printSymbolicExpression(os, s, !is_call && !is_jump);
