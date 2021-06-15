@@ -163,13 +163,6 @@ void MasmPrettyPrinter::printHeader(std::ostream& os) {
   if (EntryPoint) {
     os << masmSyntax.global() << " " << (*EntryPoint)->getName() << "\n";
   }
-  if (auto It = module.findSymbols("KUSER_SHARED_DATA"); !It.empty()) {
-    gtirb::Symbol* Symbol = &*It.begin();
-    if (!Symbol->getReferent<gtirb::Node>()) {
-      Symbol->setReferent(module.addProxyBlock(context));
-      os << "KUSER_SHARED_DATA = 7FFE0000H\n";
-    }
-  }
 }
 
 void MasmPrettyPrinter::printSectionHeader(std::ostream& os,
@@ -406,7 +399,8 @@ void MasmPrettyPrinter::printIntegralSymbol(std::ostream& os,
   if (*symbol.getAddress() == gtirb::Addr(0)) {
     return;
   }
-  os << getSymbolName(symbol) << " = " << *symbol.getAddress() << '\n';
+  os << getSymbolName(symbol) << " = " << std::hex
+     << static_cast<uint64_t>(*symbol.getAddress()) << "H\n";
 }
 
 void MasmPrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
