@@ -280,9 +280,10 @@ test-make-install:
   needs: ['build-ubuntu18-gcc']
   script:
     - export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-ubuntu18 --output "gtirb-ubuntu18-artifacts.zip"
-    - unzip gtirb-ubuntu18-artifacts.zip
-    - dpkg -i libgtirb.deb libgtirb-dev.deb
+    - curl -L https://git.grammatech.com/rewriting/extra-packages/-/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
+    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-ubuntu18 --output "gtirb.zip"
+    - for pkg in gtirb capstone; do unzip $pkg.zip; done
+    - dpkg -i libgtirb.deb libgtirb-dev.deb libcapstone-dev.deb
     - cd build && make install && cd ..
     - rm -rf build
     - cp .ci/test-install.cpp test-install.cpp
