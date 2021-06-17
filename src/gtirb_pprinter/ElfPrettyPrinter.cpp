@@ -131,8 +131,7 @@ void ElfPrettyPrinter::fixupSharedObject() {
 
               if constexpr (std::is_same_v<T, gtirb::SymAddrAddr>) {
                 return {SE.Sym1, SE.Sym2};
-              } else if constexpr (std::is_same_v<T, gtirb::SymAddrConst> ||
-                                   std::is_same_v<T, gtirb::SymStackConst>) {
+              } else if constexpr (std::is_same_v<T, gtirb::SymAddrConst>) {
                 return {SE.Sym};
               }
             },
@@ -206,8 +205,7 @@ void ElfPrettyPrinter::fixupSharedObject() {
                   It != GlobalToHiddenSyms.end()) {
                 NewSE.Sym2 = It->second;
               }
-            } else if constexpr (std::is_same_v<T, gtirb::SymAddrConst> ||
-                                 std::is_same_v<T, gtirb::SymStackConst>) {
+            } else if constexpr (std::is_same_v<T, gtirb::SymAddrConst>) {
               NewSE.Sym = GlobalToHiddenSyms.at(SE.Sym);
             }
 
@@ -232,8 +230,7 @@ void ElfPrettyPrinter::fixupSharedObject() {
               if (auto Target = this->getForwardedSymbol(SE.Sym2)) {
                 NewSE.Sym2 = Target;
               }
-            } else if constexpr (std::is_same_v<T, gtirb::SymAddrConst> ||
-                                 std::is_same_v<T, gtirb::SymStackConst>) {
+            } else if constexpr (std::is_same_v<T, gtirb::SymAddrConst>) {
               if (auto Target = this->getForwardedSymbol(SE.Sym)) {
                 NewSE.Sym = Target;
               }
