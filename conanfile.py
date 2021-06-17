@@ -149,7 +149,7 @@ class GtirbPprinterConan(Properties, ConanFile):
 
     def build_requirements(self):
         if self.settings.os == "Windows":
-            self.build_requires("ninja/1.9.0")
+            self.build_requires("ninja/1.10.2")
 
     def package(self):
         self.copy("*.h", dst="include", src=self.name)
