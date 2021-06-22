@@ -53,6 +53,8 @@ cd build
 make
 ```
 
+## Installing
+See the [GTIRB readme](https://github.com/GrammaTech/gtirb/#installing).
 
 ## Usage
 
