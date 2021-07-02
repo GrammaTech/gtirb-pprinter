@@ -425,7 +425,7 @@ void MasmPrettyPrinter::printOpImmediate(
     // The operand is symbolic.
 
     // Symbols for skipped addresses degrade to literals.
-    if (!is_call && !is_jump && !shouldSkip(*s->Sym) && !s->Offset)
+    if (!is_call && !is_jump && !shouldSkip(*s->Sym))
       os << masmSyntax.offset() << ' ';
 
     printSymbolicExpression(os, s, !is_call && !is_jump);
