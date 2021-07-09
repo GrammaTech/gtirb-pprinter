@@ -31,6 +31,9 @@ ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 
 # Run pre-commit once so the hooks are installed
+ENV LC_ALL=C.UTF-8
+ENV LANG=C.UTF-8
+
 COPY . /gt/gtirb-pprinter
 WORKDIR /gt/gtirb-pprinter
 RUN pre-commit run --all-files

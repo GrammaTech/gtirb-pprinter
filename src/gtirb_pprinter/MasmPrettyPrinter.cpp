@@ -123,7 +123,11 @@ void MasmPrettyPrinter::printExterns(std::ostream& os) {
       if (const auto* symbol = dyn_cast_or_null<gtirb::Symbol>(
               gtirb::Node::getByUUID(context, forward.second))) {
         std::string Name = getSymbolName(*symbol);
-        Externs.insert(module.getISA() == gtirb::ISA::IA32 ? "_" + Name : Name);
+        // This is not completely understood why, but link.exe (msvc) mangles
+        // differently.  We'll apply this heuristic until it's fully understood.
+        Externs.insert(module.getISA() == gtirb::ISA::IA32 && Name[0] != '?'
+                           ? "_" + Name
+                           : Name);
       }
     }
     for (auto& Name : Externs) {
@@ -344,7 +348,9 @@ std::optional<std::string>
 MasmPrettyPrinter::getForwardedSymbolName(const gtirb::Symbol* symbol) const {
   if (std::optional<std::string> Name =
           PrettyPrinterBase::getForwardedSymbolName(symbol)) {
-    return module.getISA() == gtirb::ISA::IA32 ? "_" + *Name : Name;
+    return module.getISA() == gtirb::ISA::IA32 && (*Name)[0] != '?'
+               ? "_" + *Name
+               : Name;
   }
   return std::nullopt;
 }

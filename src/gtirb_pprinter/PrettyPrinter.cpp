@@ -102,10 +102,14 @@ std::string getModuleISA(const gtirb::Module& module) {
   switch (module.getISA()) {
   case gtirb::ISA::ARM64:
     return "arm64";
+  case gtirb::ISA::ARM:
+    return "arm";
   case gtirb::ISA::X64:
     return "x64";
   case gtirb::ISA::IA32:
     return "x86";
+  case gtirb::ISA::MIPS32:
+    return "mips32";
   default:
     return "undefined";
   }
@@ -781,6 +785,7 @@ void PrettyPrinterBase::printBlock(std::ostream& os,
 
 void PrettyPrinterBase::printBlock(std::ostream& os,
                                    const gtirb::CodeBlock& block) {
+  setDecodeMode(os, block);
   printBlockImpl(os, block);
 }
 
@@ -1064,6 +1069,12 @@ void PrettyPrinterBase::printSymbolicExpression(std::ostream& os,
 
   if (sexpr->Scale > 1) {
     os << ")/" << sexpr->Scale;
+  }
+
+  if (sexpr->Offset != 0) {
+    if (sexpr->Offset > 0)
+      os << "+";
+    os << sexpr->Offset;
   }
 
   printSymExprSuffix(os, sexpr->Attributes, IsNotBranch);

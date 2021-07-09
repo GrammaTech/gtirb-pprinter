@@ -12,6 +12,7 @@ set(${PROJECT_NAME}_H
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/PrettyPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Syntax.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Arm64PrettyPrinter.hpp
+    ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ArmPrettyPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/AttPrettyPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ElfBinaryPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ElfPrettyPrinter.hpp
@@ -20,10 +21,12 @@ set(${PROJECT_NAME}_H
     ${CMAKE_BINARY_DIR}/include/gtirb_pprinter/version.h
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/MasmPrettyPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/PeBinaryPrinter.hpp
-    ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/PePrettyPrinter.hpp)
+    ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/PePrettyPrinter.hpp
+    ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Mips32PrettyPrinter.hpp)
 
 # sources
 set(${PROJECT_NAME}_SRC
+    ArmPrettyPrinter.cpp
     Arm64PrettyPrinter.cpp
     AttPrettyPrinter.cpp
     BinaryPrinter.cpp
@@ -37,7 +40,8 @@ set(${PROJECT_NAME}_SRC
     Syntax.cpp
     MasmPrettyPrinter.cpp
     PeBinaryPrinter.cpp
-    PePrettyPrinter.cpp)
+    PePrettyPrinter.cpp
+    Mips32PrettyPrinter.cpp)
 
 add_library(${PROJECT_NAME} ${${PROJECT_NAME}_H} ${${PROJECT_NAME}_SRC})
 
