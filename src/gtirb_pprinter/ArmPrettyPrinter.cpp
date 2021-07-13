@@ -36,6 +36,7 @@ void ArmPrettyPrinter::printHeader(std::ostream& os) {
 
   os << "# ARM " << std::endl;
   os << ".syntax unified" << std::endl;
+  os << ".arch_extension idiv" << std::endl;
 }
 
 void ArmPrettyPrinter::setDecodeMode(std::ostream& os,
