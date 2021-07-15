@@ -63,12 +63,11 @@ build-conan-linux-gcc7:
 .windows-conan-template: &windows-conan
   stage: build
   tags: [gtirb-pprinter-windows]
-  variables:
-    CONAN_PASSWORD: $CI_JOB_TOKEN
   script:
     - systeminfo
     # Set up user and remote
     - conan remote add gitlab ${CI_API_V4_URL}/packages/conan
+    - export CONAN_PASSWORD=$CI_JOB_TOKEN
     - conan user ci_user -r gitlab -p
     # Run build script
     - export PYTHONPATH="$(cygpath -w $(pwd))"
