@@ -414,7 +414,9 @@ void MasmPrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
 void MasmPrettyPrinter::printOpImmediate(
     std::ostream& os, const gtirb::SymbolicExpression* symbolic,
     const cs_insn& inst, uint64_t index) {
-  const cs_x86_op& op = inst.detail->x86.operands[index];
+  cs_x86& detail = inst.detail->x86;
+  const cs_x86_op& op = detail.operands[index];
+
   assert(op.type == X86_OP_IMM &&
          "printOpImmediate called without an immediate operand");
 
@@ -423,10 +425,31 @@ void MasmPrettyPrinter::printOpImmediate(
 
   if (const gtirb::SymAddrConst* s = this->getSymbolicImmediate(symbolic)) {
     // The operand is symbolic.
+    gtirb::Symbol& sym = *(s->Sym);
 
-    // Symbols for skipped addresses degrade to literals.
-    if (!is_call && !is_jump && !shouldSkip(*s->Sym))
-      os << masmSyntax.offset() << ' ';
+    if (!is_call && !is_jump && !shouldSkip(sym)) {
+
+      // MASM variables are given a 64-bit type for PE32+, which results in an
+      // error when the symbol is written to a 32-bit register.
+      bool omit = false;
+      if (module.getISA() == gtirb::ISA::X64) {
+        if (auto addr = sym.getAddress(); addr && !sym.hasReferent()) {
+          // Integral symbol ...
+          for (int i = 0; i < detail.op_count; i++) {
+            if (detail.operands[i].size == 4 &&
+                detail.operands[i].access == CS_AC_WRITE) {
+              // written to a 32-bit operand.
+              omit = true;
+              break;
+            }
+          }
+        }
+      }
+
+      if (!omit) {
+        os << masmSyntax.offset() << ' ';
+      }
+    }
 
     printSymbolicExpression(os, s, !is_call && !is_jump);
   } else {
