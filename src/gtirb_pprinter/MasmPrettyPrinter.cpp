@@ -295,7 +295,7 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
 
   //  FUCOMPI has an implicit first operand and a different mnemonic.
   //   e.g. fucompi ST(1)  should be  fucomip ST(0),ST(1)
-  if (inst.id == X86_INS_FUCOMPI)
+  if (inst.id == X86_INS_FUCOMPI || inst.id == X86_INS_FUCOMI)
     if (Detail.op_count == 1) {
       cs_x86_op& Op = Detail.operands[0];
       if (Op.type == X86_OP_REG && Op.reg == X86_REG_ST1) {
