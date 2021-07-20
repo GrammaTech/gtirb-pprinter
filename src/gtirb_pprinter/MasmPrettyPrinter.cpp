@@ -277,10 +277,11 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
   // Floating point one-operand operations with an implicit SECOND operand.
   //   e.g  faddp st(2)  needs to be  faddp st(2),st(0)
   switch (inst.id) {
-  case X86_INS_FSUBP:
   case X86_INS_FADD:
   case X86_INS_FMULP:
   case X86_INS_FDIVP:
+  case X86_INS_FSUBR:
+  case X86_INS_FSUBP:
   case X86_INS_FSUBRP:
   case X86_INS_FDIVRP:
     if (Detail.op_count == 1) {
