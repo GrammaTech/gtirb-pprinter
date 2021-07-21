@@ -33,7 +33,23 @@ IntelPrettyPrinter::IntelPrettyPrinter(gtirb::Context& context_,
 }
 
 void IntelPrettyPrinter::fixupInstruction(cs_insn& inst) {
+  ElfPrettyPrinter::fixupInstruction(inst);
   x86FixupInstruction(inst);
+  auto& Detail = inst.detail->x86;
+
+  // vpgatherdd/vpgatherqd have some issues where the middle operand will be the
+  // wrong width when using Intel syntax.
+  // TODO: this fixup works for gas, but causes issues with clang-as, as
+  // clang-as expects the operand to be the size Capstone reports.
+  // TODO: any other instructions with a similar problem?
+  switch (inst.id) {
+  case X86_INS_VPGATHERDD:
+    Detail.operands[1].size = 4;
+    break;
+  case X86_INS_VPGATHERQD:
+    Detail.operands[1].size = 8;
+    break;
+  }
 }
 
 void IntelPrettyPrinter::printHeader(std::ostream& os) {
