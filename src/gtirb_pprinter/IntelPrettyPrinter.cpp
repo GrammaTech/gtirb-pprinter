@@ -44,10 +44,8 @@ void IntelPrettyPrinter::fixupInstruction(cs_insn& inst) {
   // TODO: any other instructions with a similar problem?
   switch (inst.id) {
   case X86_INS_VPGATHERDD:
-    Detail.operands[1].size = 4;
-    break;
   case X86_INS_VPGATHERQD:
-    Detail.operands[1].size = 8;
+    Detail.operands[1].size = 4;
     break;
   }
 }
