@@ -43,6 +43,10 @@ ElfBinaryPrinter::findLibrary(const std::string& library,
   return std::nullopt;
 }
 
+static std::unordered_set<std::string> BlacklistedLibraries{{
+    "ld-linux-x86-64.so.2",
+}};
+
 std::vector<std::string>
 ElfBinaryPrinter::buildCompilerArgs(std::string outputFilename,
                                     const std::vector<TempFile>& asmPaths,
@@ -70,6 +74,10 @@ ElfBinaryPrinter::buildCompilerArgs(std::string outputFilename,
   for (gtirb::Module& module : ir.modules()) {
     if (const auto* libraries = module.getAuxData<gtirb::schema::Libraries>()) {
       for (const auto& library : *libraries) {
+        // if they're a blacklisted name, skip them
+        if (BlacklistedLibraries.count(library)) {
+          continue;
+        }
         // if they match the lib*.so pattern we let the compiler look for them
         std::optional<std::string> infixLibraryName =
             getInfixLibraryName(library);
