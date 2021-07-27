@@ -8,11 +8,12 @@ import sys
 from pprinter_helpers import TESTS_DIR, pprinter_binary
 
 two_modules_gtirb = Path(TESTS_DIR, "two_modules.gtirb")
+use_ldlinux_gtirb = Path(TESTS_DIR, "ipcmk.gtirb")
 
 
 class TestBinaryGeneration(unittest.TestCase):
     @unittest.skipUnless(os.name == "posix", "only runs on Linux")
-    def test_binaries(self):
+    def test_two_modules(self):
         shutil.rmtree("/tmp/two_mods", ignore_errors=True)
         os.mkdir("/tmp/two_mods")
         try:
@@ -55,3 +56,19 @@ class TestBinaryGeneration(unittest.TestCase):
             self.assertTrue("!!!Hello World!!!" in output_bin)
         finally:
             shutil.rmtree("/tmp/two_mods")
+
+    @unittest.skipUnless(os.name == "posix", "only runs on Linux")
+    def test_ldlinux_dep(self):
+        # Check that a binary with a known dependence on ld-linux.so does
+        # not try to explicity link with it, as the link should be implicit.
+        # Just check that the binary causes no compiler errors; this binary
+        # was made on CentOS and thus may not run on all systems.
+        subprocess.check_output(
+            [
+                pprinter_binary(),
+                "--ir",
+                str(use_ldlinux_gtirb),
+                "--binary",
+                "/dev/null",
+            ]
+        ).decode(sys.stdout.encoding)
