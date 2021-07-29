@@ -39,6 +39,7 @@ struct PeLibOptions {
 struct PeAssembleOptions {
   const std::string& Compiland; // .ASM
   const std::string& OutputFile;
+  const std::optional<std::string> Machine;
   const std::vector<std::string>& ExtraCompileArgs;
   const std::vector<std::string>& LibraryPaths;
 };
@@ -53,6 +54,7 @@ struct PeLinkOptions {
 
   const std::optional<std::string>& EntryPoint; // /ENTRY:
   const std::optional<std::string>& Subsystem;  // /SUBYSTEM:
+  const std::optional<std::string> Machine;     // /MACHINE:
 
   const bool Dll;
 

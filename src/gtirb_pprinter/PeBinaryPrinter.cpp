@@ -30,16 +30,21 @@ namespace bp = boost::process;
 namespace {
 
 // Map GTIRB ISA to MSVC /MACHINE: strings.
+std::optional<std::string> getPeMachine(const gtirb::Module& Module) {
+  switch (Module.getISA()) {
+  case gtirb::ISA::IA32:
+    return "X86";
+  case gtirb::ISA::X64:
+    return "X64";
+  default:
+    break;
+  }
+  return std::nullopt;
+}
+
 std::optional<std::string> getPeMachine(const gtirb::IR& IR) {
   for (const gtirb::Module& Module : IR.modules()) {
-    switch (Module.getISA()) {
-    case gtirb::ISA::IA32:
-      return "X86";
-    case gtirb::ISA::X64:
-      return "X64";
-    default:
-      break;
-    }
+    return getPeMachine(Module);
   }
   return std::nullopt;
 }
@@ -179,6 +184,7 @@ bool PeBinaryPrinter::prepareImportLibs(
     return false;
   }
 
+  // Find the target platform.
   std::optional<std::string> Machine = getPeMachine(IR);
 
   // Generate `.LIB' files from `.DEF' files with the lib utility.
@@ -336,8 +342,11 @@ int PeBinaryPrinter::assemble(const std::string& Path, gtirb::Context& Context,
     return -1;
   }
 
-  const auto& [Assembler, Args] =
-      assembleCommand({Asm.fileName(), Path, ExtraCompileArgs, LibraryPaths});
+  // Find the target platform.
+  std::optional<std::string> Machine = getPeMachine(Module);
+
+  const auto& [Assembler, Args] = assembleCommand(
+      {Asm.fileName(), Path, Machine, ExtraCompileArgs, LibraryPaths});
 
   // Invoke the assembler.
   if (std::optional<int> Rc = execute(Assembler, Args)) {
@@ -387,13 +396,16 @@ int PeBinaryPrinter::link(const std::string& OutputFile,
   // Find the PE subsystem.
   std::optional<std::string> Subsystem = getPeSubsystem(IR);
 
+  // Find the target platform.
+  std::optional<std::string> Machine = getPeMachine(IR);
+
   // Find the PE binary type.
   bool Dll = isPeDll(IR);
 
   // Build the command-line.
   const auto& [Assembler, Args] =
       linkCommand({OutputFile, Compilands, Resources, ExportDef, EntryPoint,
-                   Subsystem, Dll, ExtraCompileArgs, LibraryPaths});
+                   Subsystem, Machine, Dll, ExtraCompileArgs, LibraryPaths});
 
   // Invoke the assembler or linker.
   if (std::optional<int> Rc = execute(Assembler, Args)) {
@@ -435,11 +447,14 @@ msvcAssemble(const PeAssembleOptions& Options) {
   std::copy(Options.ExtraCompileArgs.begin(), Options.ExtraCompileArgs.end(),
             std::back_inserter(Args));
 
-  return {"ml64.exe", Args};
+  const std::string& Assembler =
+      Options.Machine == "X64" ? "ml64.exe" : "ml.exe";
+
+  return {Assembler, Args};
 }
 
 std::pair<std::string, std::vector<std::string>>
-msvcAssembleLinkCommand(const PeLinkOptions& Options) {
+msvcAssembleLink(const PeLinkOptions& Options) {
 
   // Build the assembler command-line arguments.
   std::vector<std::string> Args;
@@ -493,7 +508,15 @@ msvcAssembleLinkCommand(const PeLinkOptions& Options) {
     Args.push_back("/DLL");
   }
 
-  return {"ml64.exe", Args};
+  // Add user-specified library paths.
+  for (const std::string& Path : Options.LibraryPaths) {
+    Args.push_back("/LIBPATH:" + Path);
+  }
+
+  const std::string& Assembler =
+      Options.Machine == "X64" ? "ml64.exe" : "ml.exe";
+
+  return {Assembler, Args};
 }
 
 std::pair<std::string, std::vector<std::string>>
@@ -501,7 +524,7 @@ llvmDllTool(const PeLibOptions& Options) {
   std::vector<std::string> Args = {
       "-d", Options.DefFile,
       "-l", Options.LibFile,
-      "-m", Options.Machine == "x86" ? "i386" : "i386:x86-64"};
+      "-m", Options.Machine == "X86" ? "i386" : "i386:x86-64"};
   return {"llvm-dlltool", Args};
 }
 
@@ -515,6 +538,23 @@ llvmLink(const PeLibOptions& Options) {
     Args.push_back("/MACHINE:" + *Options.Machine);
   }
   return {"lld-link", Args};
+}
+
+std::pair<std::string, std::vector<std::string>>
+uasmAssemble(const PeAssembleOptions& Options) {
+  std::vector<std::string> Args = {// Set output format.
+                                   Options.Machine == "X86" ? "-coff"
+                                                            : "-win64",
+                                   // Set object file name.
+                                   "-Fo", Options.OutputFile,
+                                   // Lastly, specify assembly file.
+                                   Options.Compiland};
+
+  // Copy in any user-supplied, command-line arguments.
+  std::copy(Options.ExtraCompileArgs.begin(), Options.ExtraCompileArgs.end(),
+            std::back_inserter(Args));
+
+  return {"uasm", Args};
 }
 
 PeLibCommand findPeLibCommand() {
@@ -547,8 +587,30 @@ PeLibCommand findPeLibCommand() {
   return msvcLib;
 }
 
-PeAssembleCommand findPeAssembleCommand() { return msvcAssemble; }
+PeAssembleCommand findPeAssembleCommand() {
+  // Prefer MSVC assembler.
+  fs::path Path = bp::search_path("cl");
+  if (!Path.empty()) {
+    return msvcAssemble;
+  }
 
-PeLinkCommand findPeLinkCommand() { return msvcAssembleLinkCommand; }
+  // Fallback to UASM.
+  Path = bp::search_path("uasm");
+  if (!Path.empty()) {
+    return uasmAssemble;
+  }
+
+  return msvcAssemble;
+}
+
+PeLinkCommand findPeLinkCommand() {
+  // Prefer MSVC assembler.
+  fs::path Path = bp::search_path("cl");
+  if (!Path.empty()) {
+    return msvcAssembleLink;
+  }
+
+  return msvcAssembleLink;
+}
 
 } // namespace gtirb_bprint
