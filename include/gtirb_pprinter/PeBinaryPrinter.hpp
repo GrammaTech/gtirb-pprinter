@@ -25,6 +25,7 @@
 #include <vector>
 
 namespace gtirb_bprint {
+
 class TempFile;
 
 // Command-line argument wrapper for `lib.exe' or alternate library utility.
@@ -101,21 +102,21 @@ protected:
   bool prepareResources(gtirb::IR& IR, gtirb::Context& Context,
                         std::vector<std::string>& Resources) const;
 
-  // Locate LIB utility and construct the command-line.
+  // Locate a LIB utility and construct the command-line.
   std::pair<std::string, std::vector<std::string>>
   libCommand(const PeLibOptions& Options) const {
     auto LibTool = findPeLibCommand();
     return LibTool(Options);
   }
 
-  // Locate assembler and construct the "assemble" command-line.
+  // Locate an assembler and construct the "assemble" command-line.
   std::pair<std::string, std::vector<std::string>>
   assembleCommand(const PeAssembleOptions& Options) const {
     auto Assemble = findPeAssembleCommand();
     return Assemble(Options);
   }
 
-  // Locate assembler and construct the "assemble and link" command line.
+  // Locate an assembler and construct the "assemble and link" command line.
   std::pair<std::string, std::vector<std::string>>
   linkCommand(const PeLinkOptions& Options) const {
     auto AssembleLink = findPeLinkCommand();

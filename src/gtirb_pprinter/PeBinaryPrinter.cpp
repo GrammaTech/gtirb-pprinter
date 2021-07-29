@@ -105,19 +105,19 @@ bool isPeDll(const gtirb::IR& IR) {
   return false;
 }
 
-// // Read LLVM bin directory path from `llvm-config --bindir'.
-// std::optional<std::string> llvmBinDir() {
-//   bp::ipstream InputStream;
-//   bp::child Child(bp::search_path("llvm-config"), "--bindir",
-//                   bp::std_out > InputStream);
+// Read LLVM bin directory path from `llvm-config --bindir'.
+std::optional<std::string> llvmBinDir() {
+  bp::ipstream InputStream;
+  bp::child Child(bp::search_path("llvm-config"), "--bindir",
+                  bp::std_out > InputStream);
 
-//   std::string Line;
-//   if (Child.running() && std::getline(InputStream, Line) && !Line.empty()) {
-//     return Line;
-//   }
+  std::string Line;
+  if (Child.running() && std::getline(InputStream, Line) && !Line.empty()) {
+    return Line;
+  }
 
-//   return std::nullopt;
-// }
+  return std::nullopt;
+}
 
 } // namespace
 
@@ -496,8 +496,59 @@ msvcAssembleLinkCommand(const PeLinkOptions& Options) {
   return {"ml64.exe", Args};
 }
 
-PeLibCommand findPeLibCommand() { return msvcLib; }
+std::pair<std::string, std::vector<std::string>>
+llvmDllTool(const PeLibOptions& Options) {
+  std::vector<std::string> Args = {
+      "-d", Options.DefFile,
+      "-l", Options.LibFile,
+      "-m", Options.Machine == "x86" ? "i386" : "i386:x86-64"};
+  return {"llvm-dlltool", Args};
+}
+
+std::pair<std::string, std::vector<std::string>>
+llvmLink(const PeLibOptions& Options) {
+  std::vector<std::string> Args = {
+      "/DEF:" + Options.DefFile,
+      "/OUT:" + Options.LibFile,
+  };
+  if (Options.Machine) {
+    Args.push_back("/MACHINE:" + *Options.Machine);
+  }
+  return {"lld-link", Args};
+}
+
+PeLibCommand findPeLibCommand() {
+  // Prefer MSVC `lib.exe'.
+  fs::path Path = bp::search_path("lib.exe");
+  if (!Path.empty()) {
+    return msvcLib;
+  }
+
+  // Add LLVM bin directory to PATH.
+  if (std::optional<std::string> Dir = llvmBinDir()) {
+    auto Env = boost::this_process::environment();
+    Env["PATH"] += ":" + *Dir;
+  }
+
+  // Fallback to `llvm-dlltool'.
+  Path = bp::search_path("llvm-dlltool");
+  if (!Path.empty()) {
+    return llvmDllTool;
+  }
+
+  // Fallback to `lld-link':
+  // When `link.exe' is invoked with `/DEF:' and no input files, it behaves as
+  // `lib.exe' would. LLVM's `lld-link' emulates this behavior.
+  Path = bp::search_path("lld-link");
+  if (!Path.empty()) {
+    return llvmLink;
+  }
+
+  return msvcLib;
+}
+
 PeAssembleCommand findPeAssembleCommand() { return msvcAssemble; }
+
 PeLinkCommand findPeLinkCommand() { return msvcAssembleLinkCommand; }
 
 } // namespace gtirb_bprint
