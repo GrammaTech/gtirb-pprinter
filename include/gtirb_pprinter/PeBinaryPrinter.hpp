@@ -27,7 +27,23 @@
 namespace gtirb_bprint {
 class TempFile;
 
-struct PeBinaryOptions {
+// Command-line argument wrapper for `lib.exe' or alternate library utility.
+struct PeLibOptions {
+  const std::string& DefFile;               // .DEF
+  const std::string& LibFile;               // .LIB
+  const std::optional<std::string> Machine; // /MACHINE:
+};
+
+// Command-line argument wrapper for `ml64.exe' or alternate assembler.
+struct PeAssembleOptions {
+  const std::string& Compiland; // .ASM
+  const std::string& OutputFile;
+  const std::vector<std::string>& ExtraCompileArgs;
+  const std::vector<std::string>& LibraryPaths;
+};
+
+// Command-line argument wrapper for `ml64.exe' and `link.exe' or alternatives.
+struct PeLinkOptions {
   const std::string& OutputFile;
 
   const std::vector<TempFile>& Compilands;     // .ASM
@@ -38,7 +54,21 @@ struct PeBinaryOptions {
   const std::optional<std::string>& Subsystem;  // /SUBYSTEM:
 
   const bool Dll;
+
+  const std::vector<std::string>& ExtraCompileArgs;
+  const std::vector<std::string>& LibraryPaths;
 };
+
+// Type helpers for dynamic assemble and link command resolution.
+using PeCommand = std::pair<std::string, std::vector<std::string>>;
+
+using PeLibCommand = std::function<PeCommand(const PeLibOptions&)>;
+using PeAssembleCommand = std::function<PeCommand(const PeAssembleOptions&)>;
+using PeLinkCommand = std::function<PeCommand(const PeLinkOptions&)>;
+
+PeLibCommand findPeLibCommand();
+PeAssembleCommand findPeAssembleCommand();
+PeLinkCommand findPeLinkCommand();
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API PeBinaryPrinter : public BinaryPrinter {
 public:
@@ -71,19 +101,26 @@ protected:
   bool prepareResources(gtirb::IR& IR, gtirb::Context& Context,
                         std::vector<std::string>& Resources) const;
 
-  // Locate LIB utility and generate the command-line.
+  // Locate LIB utility and construct the command-line.
   std::pair<std::string, std::vector<std::string>>
-  libCommand(const std::string& DefFile, const std::string& LibFile,
-             const std::optional<std::string> Machine) const;
+  libCommand(const PeLibOptions& Options) const {
+    auto LibTool = findPeLibCommand();
+    return LibTool(Options);
+  }
 
-  // Locate assembler and generate the "assemble" command-line.
+  // Locate assembler and construct the "assemble" command-line.
   std::pair<std::string, std::vector<std::string>>
-  assembleCommand(const std::string& AssemblyFile,
-                  const std::string& OutputFile) const;
+  assembleCommand(const PeAssembleOptions& Options) const {
+    auto Assemble = findPeAssembleCommand();
+    return Assemble(Options);
+  }
 
-  // Locate assembler and generate the "assemble and link" command line.
+  // Locate assembler and construct the "assemble and link" command line.
   std::pair<std::string, std::vector<std::string>>
-  linkCommand(const PeBinaryOptions& Options) const;
+  linkCommand(const PeLinkOptions& Options) const {
+    auto AssembleLink = findPeLinkCommand();
+    return AssembleLink(Options);
+  }
 };
 
 } // namespace gtirb_bprint

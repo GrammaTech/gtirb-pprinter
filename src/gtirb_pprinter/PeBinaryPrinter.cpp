@@ -16,10 +16,20 @@
 #include "AuxDataSchema.hpp"
 #include "driver/Logger.h"
 #include "file_utils.hpp"
+
 #include <iostream>
+
+#include <boost/filesystem.hpp>
+#include <boost/process/io.hpp>
+#include <boost/process/search_path.hpp>
+#include <boost/process/system.hpp>
+
+namespace fs = boost::filesystem;
+namespace bp = boost::process;
 
 namespace {
 
+// Map GTIRB ISA to MSVC /MACHINE: strings.
 std::optional<std::string> getPeMachine(const gtirb::IR& IR) {
   for (const gtirb::Module& Module : IR.modules()) {
     switch (Module.getISA()) {
@@ -95,6 +105,20 @@ bool isPeDll(const gtirb::IR& IR) {
   return false;
 }
 
+// // Read LLVM bin directory path from `llvm-config --bindir'.
+// std::optional<std::string> llvmBinDir() {
+//   bp::ipstream InputStream;
+//   bp::child Child(bp::search_path("llvm-config"), "--bindir",
+//                   bp::std_out > InputStream);
+
+//   std::string Line;
+//   if (Child.running() && std::getline(InputStream, Line) && !Line.empty()) {
+//     return Line;
+//   }
+
+//   return std::nullopt;
+// }
+
 } // namespace
 
 namespace gtirb_bprint {
@@ -162,7 +186,7 @@ bool PeBinaryPrinter::prepareImportLibs(
     std::string DefFile = Temp->fileName();
     std::string LibFile = replaceExtension(Import, ".lib");
 
-    const auto& [LibTool, Args] = libCommand(DefFile, LibFile, Machine);
+    const auto& [LibTool, Args] = libCommand({DefFile, LibFile, Machine});
 
     if (std::optional<int> Rc = execute(LibTool, Args)) {
       if (*Rc) {
@@ -312,7 +336,8 @@ int PeBinaryPrinter::assemble(const std::string& Path, gtirb::Context& Context,
     return -1;
   }
 
-  const auto& [Assembler, Args] = assembleCommand(Asm.fileName(), Path);
+  const auto& [Assembler, Args] =
+      assembleCommand({Asm.fileName(), Path, ExtraCompileArgs, LibraryPaths});
 
   // Invoke the assembler.
   if (std::optional<int> Rc = execute(Assembler, Args)) {
@@ -366,9 +391,9 @@ int PeBinaryPrinter::link(const std::string& OutputFile,
   bool Dll = isPeDll(IR);
 
   // Build the command-line.
-  const PeBinaryOptions& Options = {
-      OutputFile, Compilands, Resources, ExportDef, EntryPoint, Subsystem, Dll};
-  const auto& [Assembler, Args] = linkCommand(Options);
+  const auto& [Assembler, Args] =
+      linkCommand({OutputFile, Compilands, Resources, ExportDef, EntryPoint,
+                   Subsystem, Dll, ExtraCompileArgs, LibraryPaths});
 
   // Invoke the assembler or linker.
   if (std::optional<int> Rc = execute(Assembler, Args)) {
@@ -382,42 +407,39 @@ int PeBinaryPrinter::link(const std::string& OutputFile,
 }
 
 std::pair<std::string, std::vector<std::string>>
-PeBinaryPrinter::libCommand(const std::string& DefFile,
-                            const std::string& LibFile,
-                            const std::optional<std::string> Machine) const {
+msvcLib(const PeLibOptions& Options) {
   std::vector<std::string> Args = {
       "/NOLOGO",
-      "/DEF:" + DefFile,
-      "/OUT:" + LibFile,
+      "/DEF:" + Options.DefFile,
+      "/OUT:" + Options.LibFile,
   };
-  if (Machine) {
-    Args.push_back("/MACHINE:" + *Machine);
+  if (Options.Machine) {
+    Args.push_back("/MACHINE:" + *Options.Machine);
   }
   return {"lib.exe", Args};
 }
 
 std::pair<std::string, std::vector<std::string>>
-PeBinaryPrinter::assembleCommand(const std::string& AssemblyFile,
-                                 const std::string& OutputFile) const {
+msvcAssemble(const PeAssembleOptions& Options) {
   std::vector<std::string> Args = {
       // Disable the banner for the assembler.
       "/nologo",
       // Set one-time options like the output file name.
-      "/Fe", OutputFile,
+      "/Fe", Options.OutputFile,
       // Set per-compiland options, if any.
-      "/c", "/Fo", OutputFile,
+      "/c", "/Fo", Options.OutputFile,
       // Set the file to be assembled.
-      AssemblyFile};
+      Options.Compiland};
 
   // Copy in any user-supplied, command-line arguments.
-  std::copy(ExtraCompileArgs.begin(), ExtraCompileArgs.end(),
+  std::copy(Options.ExtraCompileArgs.begin(), Options.ExtraCompileArgs.end(),
             std::back_inserter(Args));
 
   return {"ml64.exe", Args};
 }
 
 std::pair<std::string, std::vector<std::string>>
-PeBinaryPrinter::linkCommand(const PeBinaryOptions& Options) const {
+msvcAssembleLinkCommand(const PeLinkOptions& Options) {
 
   // Build the assembler command-line arguments.
   std::vector<std::string> Args;
@@ -432,7 +454,7 @@ PeBinaryPrinter::linkCommand(const PeBinaryOptions& Options) const {
   // Set per-compiland options, if any.
   for (const TempFile& Compiland : Options.Compilands) {
     // Copy in any user-supplied, command-line arguments.
-    std::copy(ExtraCompileArgs.begin(), ExtraCompileArgs.end(),
+    std::copy(Options.ExtraCompileArgs.begin(), Options.ExtraCompileArgs.end(),
               std::back_inserter(Args));
     // The last thing before the next compiland is the file to be assembled.
     Args.push_back(Compiland.fileName());
@@ -473,5 +495,9 @@ PeBinaryPrinter::linkCommand(const PeBinaryOptions& Options) const {
 
   return {"ml64.exe", Args};
 }
+
+PeLibCommand findPeLibCommand() { return msvcLib; }
+PeAssembleCommand findPeAssembleCommand() { return msvcAssemble; }
+PeLinkCommand findPeLinkCommand() { return msvcAssembleLinkCommand; }
 
 } // namespace gtirb_bprint
