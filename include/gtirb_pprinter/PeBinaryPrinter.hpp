@@ -63,15 +63,37 @@ struct PeLinkOptions {
 };
 
 // Type helpers for dynamic assemble and link command resolution.
-using PeCommand = std::pair<std::string, std::vector<std::string>>;
+using CommandList =
+    std::vector<std::pair<std::string, std::vector<std::string>>>;
 
-using PeLibCommand = std::function<PeCommand(const PeLibOptions&)>;
-using PeAssembleCommand = std::function<PeCommand(const PeAssembleOptions&)>;
-using PeLinkCommand = std::function<PeCommand(const PeLinkOptions&)>;
+using PeLibCommand = std::function<CommandList(const PeLibOptions&)>;
+using PeAssembleCommand = std::function<CommandList(const PeAssembleOptions&)>;
+using PeLinkCommand = std::function<CommandList(const PeLinkOptions&)>;
 
 PeLibCommand findPeLibCommand();
 PeAssembleCommand findPeAssembleCommand();
 PeLinkCommand findPeLinkCommand();
+
+int executeCommands(const CommandList& Commands) {
+  for (const auto& [Command, Args] : Commands) {
+    if (std::optional<int> Rc = execute(Command, Args)) {
+      if (*Rc) {
+        std::cerr << "ERROR: " << Command << ": non-zero exit code: " << *Rc
+                  << "\n";
+        return -1;
+      }
+      continue;
+    }
+    std::cerr << "ERROR: could not find the `" << Command << "' on the PATH.\n";
+    return -1;
+  }
+  return 0;
+}
+
+void appendCommands(CommandList& T, CommandList& U) {
+  T.insert(T.end(), std::make_move_iterator(U.begin()),
+           std::make_move_iterator(U.end()));
+}
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API PeBinaryPrinter : public BinaryPrinter {
 public:
@@ -80,11 +102,11 @@ public:
                   const std::vector<std::string>& LibraryPaths);
 
   // Assemble do not link the first module.
-  int assemble(const std::string& Path, gtirb::Context& Context,
+  int assemble(const std::string& OutputFile, gtirb::Context& Context,
                gtirb::Module& Module) const override;
 
   // Assemble and link all modules.
-  int link(const std::string& Path, gtirb::Context& Context,
+  int link(const std::string& OutputFile, gtirb::Context& Context,
            gtirb::IR& IR) const override;
 
 protected:
@@ -104,23 +126,20 @@ protected:
   bool prepareResources(gtirb::IR& IR, gtirb::Context& Context,
                         std::vector<std::string>& Resources) const;
 
-  // Locate a LIB utility and construct the command-line.
-  std::pair<std::string, std::vector<std::string>>
-  libCommand(const PeLibOptions& Options) const {
+  // Locate a LIB utility and build a list of commands.
+  CommandList libCommands(const PeLibOptions& Options) const {
     auto LibTool = findPeLibCommand();
     return LibTool(Options);
   }
 
-  // Locate an assembler and construct the "assemble" command-line.
-  std::pair<std::string, std::vector<std::string>>
-  assembleCommand(const PeAssembleOptions& Options) const {
+  // Locate an assembler and construct the "assemble" command list.
+  CommandList assembleCommands(const PeAssembleOptions& Options) const {
     auto Assemble = findPeAssembleCommand();
     return Assemble(Options);
   }
 
-  // Locate an assembler and construct the "assemble and link" command line.
-  std::pair<std::string, std::vector<std::string>>
-  linkCommand(const PeLinkOptions& Options) const {
+  // Locate an assembler and construct the "assemble and link" command list.
+  CommandList linkCommands(const PeLinkOptions& Options) const {
     auto AssembleLink = findPeLinkCommand();
     return AssembleLink(Options);
   }

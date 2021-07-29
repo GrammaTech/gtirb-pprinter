@@ -192,18 +192,7 @@ bool PeBinaryPrinter::prepareImportLibs(
     std::string DefFile = Temp->fileName();
     std::string LibFile = replaceExtension(Import, ".lib");
 
-    const auto& [LibTool, Args] = libCommand({DefFile, LibFile, Machine});
-
-    if (std::optional<int> Rc = execute(LibTool, Args)) {
-      if (*Rc) {
-        std::cerr << "ERROR: lib returned: " << *Rc << "\n";
-        return false;
-      } else {
-        std::cout << "Generated " << LibFile << "\n";
-      }
-      ImportLibs.push_back(LibFile);
-    } else {
-      std::cerr << "ERROR: Unable to find `" << LibTool << "'\n";
+    if (executeCommands(libCommands({DefFile, LibFile, Machine})) != 0) {
       return false;
     }
 
@@ -345,23 +334,12 @@ int PeBinaryPrinter::assemble(const std::string& Path, gtirb::Context& Context,
   // Find the target platform.
   std::optional<std::string> Machine = getPeMachine(Module);
 
-  const auto& [Assembler, Args] = assembleCommand(
-      {Asm.fileName(), Path, Machine, ExtraCompileArgs, LibraryPaths});
-
-  // Invoke the assembler.
-  if (std::optional<int> Rc = execute(Assembler, Args)) {
-    if (*Rc)
-      std::cerr << "ERROR: assembler returned: " << *Rc << "\n";
-    return *Rc;
-  }
-  std::cerr << "ERROR: could not find the assembler '" << Assembler
-            << "' on the PATH.\n";
-  return -1;
+  return executeCommands(assembleCommands(
+      {Asm.fileName(), Path, Machine, ExtraCompileArgs, LibraryPaths}));
 }
 
 int PeBinaryPrinter::link(const std::string& OutputFile,
                           gtirb::Context& Context, gtirb::IR& IR) const {
-
   // Prepare all ASM sources (temp files).
   std::vector<TempFile> Compilands;
   if (!prepareSources(Context, IR, Compilands)) {
@@ -369,10 +347,10 @@ int PeBinaryPrinter::link(const std::string& OutputFile,
     return -1;
   }
 
-  // Generate LIB import libraries for the linker.
-  std::vector<std::string> ImportLibs;
-  if (!prepareImportLibs(IR, ImportLibs)) {
-    std::cerr << "ERROR: Unable to generate import `.LIB' files.";
+  // Prepare DEF import definition files.
+  std::map<std::string, std::unique_ptr<TempFile>> ImportDefs;
+  if (!prepareImportDefs(IR, ImportDefs)) {
+    std::cerr << "ERROR: Unable to write import `.DEF' files.";
     return -1;
   }
 
@@ -402,24 +380,29 @@ int PeBinaryPrinter::link(const std::string& OutputFile,
   // Find the PE binary type.
   bool Dll = isPeDll(IR);
 
-  // Build the command-line.
-  const auto& [Assembler, Args] =
-      linkCommand({OutputFile, Compilands, Resources, ExportDef, EntryPoint,
-                   Subsystem, Machine, Dll, ExtraCompileArgs, LibraryPaths});
+  // Build list of commands.
+  CommandList Commands;
 
-  // Invoke the assembler or linker.
-  if (std::optional<int> Rc = execute(Assembler, Args)) {
-    if (*Rc)
-      std::cerr << "ERROR: assembler returned: " << *Rc << "\n";
-    return *Rc;
+  // Add commands to generate `.LIB' files from import `.DEF' files.
+  for (auto& [Import, Temp] : ImportDefs) {
+    std::string Def = Temp->fileName();
+    std::string Lib = replaceExtension(Import, ".lib");
+
+    CommandList LibCommands = libCommands({Def, Lib, Machine});
+    appendCommands(Commands, LibCommands);
   }
-  std::cerr << "ERROR: could not find the assembler '" << Assembler
-            << "' on the PATH.\n";
-  return -1;
+
+  // Add assemble-link commands.
+  CommandList LinkCommands =
+      linkCommands({OutputFile, Compilands, Resources, ExportDef, EntryPoint,
+                    Subsystem, Machine, Dll, ExtraCompileArgs, LibraryPaths});
+  appendCommands(Commands, LinkCommands);
+
+  // Execute the assemble-link command list.
+  return executeCommands(Commands);
 }
 
-std::pair<std::string, std::vector<std::string>>
-msvcLib(const PeLibOptions& Options) {
+CommandList msvcLib(const PeLibOptions& Options) {
   std::vector<std::string> Args = {
       "/NOLOGO",
       "/DEF:" + Options.DefFile,
@@ -428,11 +411,10 @@ msvcLib(const PeLibOptions& Options) {
   if (Options.Machine) {
     Args.push_back("/MACHINE:" + *Options.Machine);
   }
-  return {"lib.exe", Args};
+  return {{"lib.exe", Args}};
 }
 
-std::pair<std::string, std::vector<std::string>>
-msvcAssemble(const PeAssembleOptions& Options) {
+CommandList msvcAssemble(const PeAssembleOptions& Options) {
   std::vector<std::string> Args = {
       // Disable the banner for the assembler.
       "/nologo",
@@ -450,11 +432,10 @@ msvcAssemble(const PeAssembleOptions& Options) {
   const std::string& Assembler =
       Options.Machine == "X64" ? "ml64.exe" : "ml.exe";
 
-  return {Assembler, Args};
+  return {{Assembler, Args}};
 }
 
-std::pair<std::string, std::vector<std::string>>
-msvcAssembleLink(const PeLinkOptions& Options) {
+CommandList msvcAssembleLink(const PeLinkOptions& Options) {
 
   // Build the assembler command-line arguments.
   std::vector<std::string> Args;
@@ -466,14 +447,14 @@ msvcAssembleLink(const PeLinkOptions& Options) {
   Args.push_back("/Fe");
   Args.push_back(Options.OutputFile);
 
-  // Set per-compiland options, if any.
+  // Add all Module assembly sources (temp files).
   for (const TempFile& Compiland : Options.Compilands) {
-    // Copy in any user-supplied, command-line arguments.
-    std::copy(Options.ExtraCompileArgs.begin(), Options.ExtraCompileArgs.end(),
-              std::back_inserter(Args));
-    // The last thing before the next compiland is the file to be assembled.
     Args.push_back(Compiland.fileName());
   }
+
+  // Add user-supplied command-line arguments.
+  std::copy(Options.ExtraCompileArgs.begin(), Options.ExtraCompileArgs.end(),
+            std::back_inserter(Args));
 
   // Build the linker command-line arguments.
   Args.push_back("/link");
@@ -516,20 +497,18 @@ msvcAssembleLink(const PeLinkOptions& Options) {
   const std::string& Assembler =
       Options.Machine == "X64" ? "ml64.exe" : "ml.exe";
 
-  return {Assembler, Args};
+  return {{Assembler, Args}};
 }
 
-std::pair<std::string, std::vector<std::string>>
-llvmDllTool(const PeLibOptions& Options) {
+CommandList llvmDllTool(const PeLibOptions& Options) {
   std::vector<std::string> Args = {
       "-d", Options.DefFile,
       "-l", Options.LibFile,
       "-m", Options.Machine == "X86" ? "i386" : "i386:x86-64"};
-  return {"llvm-dlltool", Args};
+  return {{"llvm-dlltool", Args}};
 }
 
-std::pair<std::string, std::vector<std::string>>
-llvmLink(const PeLibOptions& Options) {
+CommandList llvmLink(const PeLibOptions& Options) {
   std::vector<std::string> Args = {
       "/DEF:" + Options.DefFile,
       "/OUT:" + Options.LibFile,
@@ -537,14 +516,15 @@ llvmLink(const PeLibOptions& Options) {
   if (Options.Machine) {
     Args.push_back("/MACHINE:" + *Options.Machine);
   }
-  return {"lld-link", Args};
+  return {{"lld-link", Args}};
 }
 
-std::pair<std::string, std::vector<std::string>>
-uasmAssemble(const PeAssembleOptions& Options) {
-  std::vector<std::string> Args = {// Set output format.
-                                   Options.Machine == "X86" ? "-coff"
-                                                            : "-win64",
+CommandList uasmAssemble(const PeAssembleOptions& Options) {
+  // Map PE machine target to UASM output format.
+  const std::string& Format = Options.Machine == "X64" ? "-win64" : "-coff";
+
+  std::vector<std::string> Args = {// Disable the banner for the assembler.
+                                   "-nologo",
                                    // Set object file name.
                                    "-Fo", Options.OutputFile,
                                    // Lastly, specify assembly file.
@@ -554,7 +534,23 @@ uasmAssemble(const PeAssembleOptions& Options) {
   std::copy(Options.ExtraCompileArgs.begin(), Options.ExtraCompileArgs.end(),
             std::back_inserter(Args));
 
-  return {"uasm", Args};
+  return {{"uasm", Args}};
+}
+
+CommandList uasmAssembleLink(const PeLinkOptions& Options) {
+  // Map PE machine target to UASM output format.
+  const std::string& Format = Options.Machine == "X64" ? "-win64" : "-coff";
+
+  std::vector<std::string> Args = {// Disable the banner for the assembler.
+                                   "-nologo",
+                                   // Set output format.
+                                   Format};
+
+  for (const TempFile& Compiland : Options.Compilands) {
+    Args.push_back(Compiland.fileName());
+  }
+
+  return {{"uasm", Args}};
 }
 
 PeLibCommand findPeLibCommand() {
