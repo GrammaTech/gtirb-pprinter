@@ -18,7 +18,214 @@
 #include "file_utils.hpp"
 #include <iostream>
 
+namespace {
+
+std::optional<std::string> getPeMachine(const gtirb::IR& IR) {
+  for (const gtirb::Module& Module : IR.modules()) {
+    switch (Module.getISA()) {
+    case gtirb::ISA::IA32:
+      return "X86";
+    case gtirb::ISA::X64:
+      return "X64";
+    default:
+      break;
+    }
+  }
+  return std::nullopt;
+}
+
+// Find an entrypoint symbol defined in any Module.
+// NOTE: `ml64.exe' cannot automatically determine what the entrypoint is.
+std::optional<std::string> getEntrySymbol(const gtirb::IR& IR) {
+  // Find the first Module with an entry point.
+  auto Found = std::find_if(
+      IR.modules_begin(), IR.modules_end(),
+      [](const gtirb::Module& M) { return M.getEntryPoint() != nullptr; });
+
+  // Find first symbol referencing the entry CodeBlock.
+  if (Found != IR.modules_end()) {
+    const gtirb::CodeBlock* Block = Found->getEntryPoint();
+    if (Block && Block->getAddress()) {
+      auto It = Found->findSymbols(*Block->getAddress());
+
+      std::string Name = (&*It.begin())->getName();
+
+      // ML (PE32) will implicitly prefix the symbol with an additional '_', so
+      // we remove one for the command-line option.
+      if (Found->getISA() == gtirb::ISA::IA32 && Name.size() &&
+          Name[0] == '_') {
+        Name = Name.substr(1);
+      }
+
+      return Name;
+    }
+  }
+  return std::nullopt;
+}
+
+std::optional<std::string> getPeSubsystem(const gtirb::IR& IR) {
+
+  // Find the first Module with an entry point.
+  auto Found = std::find_if(
+      IR.modules_begin(), IR.modules_end(),
+      [](const gtirb::Module& M) { return M.getEntryPoint() != nullptr; });
+
+  // Reference the Module's `binaryType' AuxData table for the subsystem label.
+  if (Found != IR.modules_end()) {
+    if (auto* T = Found->getAuxData<gtirb::schema::BinaryType>()) {
+      if (std::find(T->begin(), T->end(), "WINDOWS_GUI") != T->end()) {
+        return "windows";
+      } else if (std::find(T->begin(), T->end(), "WINDOWS_CUI") != T->end()) {
+        return "console";
+      }
+    }
+  }
+
+  return std::nullopt;
+}
+
+bool isPeDll(const gtirb::IR& IR) {
+  for (const gtirb::Module& Module : IR.modules()) {
+    if (auto* Table = Module.getAuxData<gtirb::schema::BinaryType>()) {
+      if (std::find(Table->begin(), Table->end(), "DLL") != Table->end()) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+} // namespace
+
 namespace gtirb_bprint {
+
+bool PeBinaryPrinter::prepareImportDefs(
+    const gtirb::IR& IR,
+    std::map<std::string, std::unique_ptr<TempFile>>& ImportDefs) const {
+
+  std::cerr << "Preparing Import libs...\n";
+  for (const gtirb::Module& Module : IR.modules()) {
+
+    std::cerr << "Module: " << Module.getBinaryPath() << "\n";
+    auto* PeImports = Module.getAuxData<gtirb::schema::ImportEntries>();
+    if (!PeImports) {
+      LOG_INFO << "\tNo import entries.\n";
+      continue;
+    }
+
+    // For each import in the AuxData table.
+    for (const auto& [Addr, Ordinal, Name, Import] : *PeImports) {
+      (void)Addr; // unused binding
+
+      auto It = ImportDefs.find(Import);
+
+      if (It == ImportDefs.end()) {
+        // Create a new (temporary) DEF file.
+        ImportDefs[Import] = std::make_unique<TempFile>(".def");
+        It = ImportDefs.find(Import);
+        std::ostream& Stream = static_cast<std::ostream&>(*(It->second));
+        Stream << "LIBRARY \"" << It->first << "\"\n\nEXPORTS\n";
+      }
+
+      // Write the entry to the DEF file.
+      std::ostream& Stream = static_cast<std::ostream&>(*(It->second));
+      if (Ordinal != -1) {
+        Stream << Name << " @ " << Ordinal << " NONAME\n";
+      } else {
+        Stream << Name << "\n";
+      }
+    }
+  }
+
+  // Close the temporary files.
+  for (auto& It : ImportDefs) {
+    It.second->close();
+  }
+
+  return true;
+}
+
+bool PeBinaryPrinter::prepareImportLibs(
+    const gtirb::IR& IR, std::vector<std::string>& ImportLibs) const {
+
+  // Prepare `.DEF' import definition files.
+  std::map<std::string, std::unique_ptr<TempFile>> ImportDefs;
+  if (!prepareImportDefs(IR, ImportDefs)) {
+    std::cerr << "ERROR: Unable to write import `.DEF' files.";
+    return false;
+  }
+
+  std::optional<std::string> Machine = getPeMachine(IR);
+
+  // Generate `.LIB' files from `.DEF' files with the lib utility.
+  for (auto& [Import, Temp] : ImportDefs) {
+    std::string DefFile = Temp->fileName();
+    std::string LibFile = replaceExtension(Import, ".lib");
+
+    const auto& [LibTool, Args] = libCommand(DefFile, LibFile, Machine);
+
+    if (std::optional<int> Rc = execute(LibTool, Args)) {
+      if (*Rc) {
+        std::cerr << "ERROR: lib returned: " << *Rc << "\n";
+        return false;
+      } else {
+        std::cout << "Generated " << LibFile << "\n";
+      }
+      ImportLibs.push_back(LibFile);
+    } else {
+      std::cerr << "ERROR: Unable to find `" << LibTool << "'\n";
+      return false;
+    }
+
+    ImportLibs.push_back(LibFile);
+  }
+
+  return true;
+}
+
+bool PeBinaryPrinter::prepareExportDef(gtirb::IR& IR, TempFile& Def) const {
+  std::vector<std::string> Exports;
+
+  for (const gtirb::Module& Module : IR.modules()) {
+    std::cerr << "Generating export DEF file ...\n";
+
+    auto* PeExports = Module.getAuxData<gtirb::schema::ExportEntries>();
+    if (!PeExports) {
+      std::cerr << "\tNo export entries.\n";
+      continue;
+    }
+
+    for (const auto& [Addr, Ordinal, Name] : *PeExports) {
+      (void)Addr; // unused binding
+
+      std::string Extra;
+      auto It = Module.findSymbols(Name);
+      if (It.begin()->getReferent<gtirb::DataBlock>()) {
+        Extra = " DATA";
+      }
+
+      std::stringstream Stream;
+      if (Ordinal != -1) {
+        Stream << Name << " @ " << Ordinal << Extra << "\n";
+      } else {
+        Stream << Name << Extra << "\n";
+      }
+      Exports.push_back(Stream.str());
+    }
+  }
+
+  if (!Exports.empty()) {
+    std::ostream& Stream = static_cast<std::ostream&>(Def);
+    Stream << "\nEXPORTS\n";
+    for (std::string& Export : Exports) {
+      Stream << Export;
+    }
+  }
+
+  Def.close();
+  return !Exports.empty();
+}
+
 bool PeBinaryPrinter::prepareResources(
     gtirb::IR& ir, gtirb::Context& ctx,
     std::vector<std::string>& resourceFiles) const {
@@ -90,291 +297,181 @@ bool PeBinaryPrinter::prepareResources(
   return true;
 }
 
-bool PeBinaryPrinter::prepareDefFile(gtirb::IR& ir, TempFile& defFile) const {
-
-  std::vector<std::string> export_defs;
-
-  for (gtirb::Module& m : ir.modules()) {
-    LOG_INFO << "Preparing DEF file...\n";
-    auto* pe_exports = m.getAuxData<gtirb::schema::ExportEntries>();
-    if (!pe_exports) {
-      LOG_INFO << "\tNo export entries.\n";
-      continue;
-    }
-
-    for (const auto& [addr, ordinal, fnName] : *pe_exports) {
-      std::string extra;
-      (void)addr; // silence unused var warning in MSVC < 15.7
-      auto syms = m.findSymbols(fnName);
-      if (syms.begin()->getReferent<gtirb::DataBlock>())
-        extra = " DATA";
-
-      std::stringstream ss;
-      if (ordinal != -1) {
-        ss << fnName << " @ " << ordinal << extra << "\n";
-      } else {
-        ss << fnName << extra << "\n";
-      }
-      export_defs.push_back(ss.str());
-    }
-  }
-
-  if (!export_defs.empty()) {
-    std::ostream& os = static_cast<std::ostream&>(defFile);
-    os << "\nEXPORTS\n";
-    for (auto& export_def : export_defs) {
-      os << export_def;
-    }
-  }
-
-  defFile.close();
-  return !export_defs.empty();
-}
-
-// Generate DEF files for imported libaries (temp files).
-bool PeBinaryPrinter::prepareImportDefs(
-    const gtirb::IR& IR,
-    std::map<std::string, std::unique_ptr<TempFile>>& ImportDefs) const {
-
-  LOG_INFO << "Preparing Import libs...\n";
-  for (const gtirb::Module& M : IR.modules()) {
-
-    LOG_INFO << "Module: " << M.getBinaryPath() << "\n";
-    auto* PeImports = M.getAuxData<gtirb::schema::ImportEntries>();
-    if (!PeImports) {
-      LOG_INFO << "\tNo import entries.\n";
-      continue;
-    }
-
-    // For each import in the AuxData table.
-    for (const auto& [Addr, Ordinal, Name, Import] : *PeImports) {
-      (void)Addr; // unused binding
-
-      auto It = ImportDefs.find(Import);
-
-      if (It == ImportDefs.end()) {
-        // Create a new (temporary) DEF file.
-        ImportDefs[Import] = std::make_unique<TempFile>(".def");
-        It = ImportDefs.find(Import);
-        std::ostream& Stream = static_cast<std::ostream&>(*(It->second));
-        Stream << "LIBRARY \"" << It->first << "\"\n\nEXPORTS\n";
-      }
-
-      // Write the entry to the DEF file.
-      std::ostream& Stream = static_cast<std::ostream&>(*(It->second));
-      if (Ordinal != -1) {
-        Stream << Name << " @ " << Ordinal << " NONAME\n";
-      } else {
-        Stream << Name << "\n";
-      }
-    }
-  }
-
-  // Close the temporary files.
-  for (auto& It : ImportDefs) {
-    It.second->close();
-  }
-
-  return true;
-}
-
-bool PeBinaryPrinter::prepareImportLibs(
-    const gtirb::IR& IR, std::vector<std::string>& ImportLibs) const {
-
-  // Prepare `.DEF' import definition files.
-  std::map<std::string, std::unique_ptr<TempFile>> ImportDefs;
-  if (!prepareImportDefs(IR, ImportDefs)) {
-    std::cerr << "ERROR: Unable to write import `.DEF' files.";
-    return false;
-  }
-
-  // Generate `.LIB' files from `.DEF' files with the lib utility.
-  for (auto& [Import, Temp] : ImportDefs) {
-    std::string Def = Temp->fileName();
-    std::string Lib = replaceExtension(Import, ".lib");
-    if (Library->lib(Def, Lib)) {
-      return false;
-    }
-    ImportLibs.push_back(Lib);
-  }
-
-  return true;
-}
-
-void PeBinaryPrinter::prepareLinkerArguments(
-    gtirb::IR& ir, std::vector<std::string>& resourceFiles, std::string defFile,
-    std::vector<std::string>& args) const {
-  // Start the linker arguments.
-  args.push_back("/link");
-
-  // Disable the banner for the linker.
-  args.push_back("/nologo");
-
-  // Add def file
-  if (!defFile.empty()) {
-    args.push_back("/DEF:" + defFile);
-  }
-
-  // If the user specified additional library paths, tell the linker about
-  // them now. Note, there is no way to do this for ml, as it does not
-  // accept linker command line arguments.
-  for (const std::string& libPath : LibraryPaths)
-    args.push_back("/LIBPATH:" + libPath);
-
-  // Add resource files
-  for (const std::string& resfile : resourceFiles)
-    args.push_back(resfile);
-
-  // If there's an entrypoint defined in any module, specify it on the
-  // command line. This works around the fact that ml64 cannot automatically
-  // determine what the entrypoint is.
-  if (auto Iter = std::find_if(
-          ir.modules_begin(), ir.modules_end(),
-          [](const gtirb::Module& M) { return M.getEntryPoint() != nullptr; });
-      Iter != ir.modules_end()) {
-
-    if (gtirb::CodeBlock* Block = Iter->getEntryPoint();
-        Block && Block->getAddress()) {
-      auto entry_syms = Iter->findSymbols(*Block->getAddress());
-      std::string Name = (&*entry_syms.begin())->getName();
-      if (Iter->getISA() == gtirb::ISA::IA32 && Name.size() && Name[0] == '_') {
-        Name = Name.substr(1);
-      }
-      args.push_back("/ENTRY:" + Name);
-    } else {
-      args.push_back("/NOENTRY");
-    }
-
-    if (auto* Table = Iter->getAuxData<gtirb::schema::BinaryType>()) {
-      if (std::find(Table->begin(), Table->end(), "WINDOWS_GUI") !=
-          Table->end()) {
-        args.push_back("/SUBSYSTEM:windows");
-      } else if (std::find(Table->begin(), Table->end(), "WINDOWS_CUI") !=
-                 Table->end()) {
-        args.push_back("/SUBSYSTEM:console");
-      }
-    }
-  }
-
-  for (gtirb::Module& Module : ir.modules()) {
-    if (auto* Table = Module.getAuxData<gtirb::schema::BinaryType>()) {
-      if (std::find(Table->begin(), Table->end(), "DLL") != Table->end()) {
-        args.push_back("/DLL");
-        break;
-      }
-    }
-  }
-}
-
-static std::unique_ptr<PeAssembler>
-getPeAssembler(const std::vector<std::string>& ExtraArgs) {
-  return std::make_unique<Ml64Assembler>(ExtraArgs);
-}
-
-static std::unique_ptr<PeLibrary>
-getPeLibrary(const std::vector<std::string>& LibraryPaths) {
-  return std::make_unique<MsvcLib>(LibraryPaths);
-}
-
-int MsvcAssembler::assemble(const std::string& I, const std::string& O) {
-  std::vector<std::string> Args = {
-      // Disable the banner for the assembler.
-      "/nologo",
-      // Set one-time options like the output file name.
-      "/Fe", O,
-      // Set compiland arguments.
-      "/c", "/Fo", O};
-
-  // Copy in any user-supplied command line arguments.
-  std::copy(ExtraArgs.begin(), ExtraArgs.end(), std::back_inserter(Args));
-
-  // The last thing before the next file is the file to be assembled.
-  Args.push_back(I);
-
-  // Execute `ml.exe' or `ml64.exe'.
-  return run(Args);
-};
-
-int MsvcLib::lib(const std::string& Def, const std::string& Lib) {
-  // Prepare `lib.exe' command-line arguments.
-  std::vector<std::string> Args = {
-      "/nologo",
-      "/DEF:" + Def,
-      "/OUT:" + Lib,
-  };
-
-  // Execute `lib.exe'.
-  return run(Args);
-}
-
 PeBinaryPrinter::PeBinaryPrinter(
-    const gtirb_pprint::PrettyPrinter& prettyPrinter,
-    const std::vector<std::string>& extraCompileArgs,
-    const std::vector<std::string>& libraryPaths)
-    : BinaryPrinter(prettyPrinter, extraCompileArgs, libraryPaths),
-      Assembler(getPeAssembler(extraCompileArgs)),
-      Library(getPeLibrary(libraryPaths)) {}
+    const gtirb_pprint::PrettyPrinter& Printer_,
+    const std::vector<std::string>& ExtraCompileArgs_,
+    const std::vector<std::string>& LibraryPaths_)
+    : BinaryPrinter(Printer_, ExtraCompileArgs_, LibraryPaths_) {}
 
 int PeBinaryPrinter::assemble(const std::string& Path, gtirb::Context& Context,
                               gtirb::Module& Module) const {
+  // Print the Module to a temporary assembly file.
   TempFile Asm;
   if (!prepareSource(Context, Module, Asm)) {
     std::cerr << "ERROR: Could not write assembly into a temporary file.\n";
     return -1;
   }
-  return Assembler->assemble(Asm.fileName(), Path);
+
+  const auto& [Assembler, Args] = assembleCommand(Asm.fileName(), Path);
+
+  // Invoke the assembler.
+  if (std::optional<int> Rc = execute(Assembler, Args)) {
+    if (*Rc)
+      std::cerr << "ERROR: assembler returned: " << *Rc << "\n";
+    return *Rc;
+  }
+  std::cerr << "ERROR: could not find the assembler '" << Assembler
+            << "' on the PATH.\n";
+  return -1;
 }
 
-int PeBinaryPrinter::link(const std::string& /* outputFilename */,
-                          gtirb::Context& ctx, gtirb::IR& ir) {
+int PeBinaryPrinter::link(const std::string& OutputFile,
+                          gtirb::Context& Context, gtirb::IR& IR) const {
 
-  for (const auto& Module : ir.modules()) {
-    if (Module.getISA() == gtirb::ISA::IA32) {
-      compiler = "ml";
-      break;
-    }
-  }
-
-  // Prepare all of the files we're going to generate assembly into.
-  std::vector<TempFile> tempFiles;
-  if (!prepareSources(ctx, ir, tempFiles)) {
+  // Prepare all ASM sources (temp files).
+  std::vector<TempFile> Compilands;
+  if (!prepareSources(Context, IR, Compilands)) {
     std::cerr << "ERROR: Could not write assembly into a temporary file.\n";
     return -1;
   }
 
-  // Generate import libraries for the linker.
+  // Generate LIB import libraries for the linker.
   std::vector<std::string> ImportLibs;
-  if (!prepareImportLibs(ir, ImportLibs)) {
+  if (!prepareImportLibs(IR, ImportLibs)) {
     std::cerr << "ERROR: Unable to generate import `.LIB' files.";
     return -1;
   }
 
-  TempFile defFile(".def");
-  std::string defFileName;
-  if (prepareDefFile(ir, defFile)) {
-    defFileName = defFile.fileName();
+  // Generate a DEF file for all exports.
+  TempFile DefFile(".def");
+  std::optional<std::string> ExportDef;
+  if (prepareExportDef(IR, DefFile)) {
+    ExportDef = DefFile.fileName();
   }
 
-  // Prepare resource files for the linker
-  std::vector<std::string> resourceFiles;
-  if (!prepareResources(ir, ctx, resourceFiles)) {
+  // Prepare RES resource files for the linker.
+  std::vector<std::string> Resources;
+  if (!prepareResources(IR, Context, Resources)) {
     std::cerr << "ERROR: Unable to generate resource files.";
     return -1;
   }
 
-  // Collect linker arguments
-  std::vector<std::string> args;
-  prepareLinkerArguments(ir, resourceFiles, defFileName, args);
+  // Find a named symbol for the entry point.
+  std::optional<std::string> EntryPoint = getEntrySymbol(IR);
 
-  // Invoke the assembler.
-  if (std::optional<int> ret = execute(compiler, args)) {
-    if (*ret)
-      std::cerr << "ERROR: assembler returned: " << *ret << "\n";
-    return *ret;
+  // Find the PE subsystem.
+  std::optional<std::string> Subsystem = getPeSubsystem(IR);
+
+  // Find the PE binary type.
+  bool Dll = isPeDll(IR);
+
+  // Build the command-line.
+  const PeBinaryOptions& Options = {
+      OutputFile, Compilands, Resources, ExportDef, EntryPoint, Subsystem, Dll};
+  const auto& [Assembler, Args] = linkCommand(Options);
+
+  // Invoke the assembler or linker.
+  if (std::optional<int> Rc = execute(Assembler, Args)) {
+    if (*Rc)
+      std::cerr << "ERROR: assembler returned: " << *Rc << "\n";
+    return *Rc;
   }
-  std::cerr << "ERROR: could not find the assembler '" << compiler
+  std::cerr << "ERROR: could not find the assembler '" << Assembler
             << "' on the PATH.\n";
   return -1;
+}
+
+std::pair<std::string, std::vector<std::string>>
+PeBinaryPrinter::libCommand(const std::string& DefFile,
+                            const std::string& LibFile,
+                            const std::optional<std::string> Machine) const {
+  std::vector<std::string> Args = {
+      "/NOLOGO",
+      "/DEF:" + DefFile,
+      "/OUT:" + LibFile,
+  };
+  if (Machine) {
+    Args.push_back("/MACHINE:" + *Machine);
+  }
+  return {"lib.exe", Args};
+}
+
+std::pair<std::string, std::vector<std::string>>
+PeBinaryPrinter::assembleCommand(const std::string& AssemblyFile,
+                                 const std::string& OutputFile) const {
+  std::vector<std::string> Args = {
+      // Disable the banner for the assembler.
+      "/nologo",
+      // Set one-time options like the output file name.
+      "/Fe", OutputFile,
+      // Set per-compiland options, if any.
+      "/c", "/Fo", OutputFile,
+      // Set the file to be assembled.
+      AssemblyFile};
+
+  // Copy in any user-supplied, command-line arguments.
+  std::copy(ExtraCompileArgs.begin(), ExtraCompileArgs.end(),
+            std::back_inserter(Args));
+
+  return {"ml64.exe", Args};
+}
+
+std::pair<std::string, std::vector<std::string>>
+PeBinaryPrinter::linkCommand(const PeBinaryOptions& Options) const {
+
+  // Build the assembler command-line arguments.
+  std::vector<std::string> Args;
+
+  // Disable the banner for the assembler.
+  Args.push_back("/nologo");
+
+  // Set one-time options like the output file name.
+  Args.push_back("/Fe");
+  Args.push_back(Options.OutputFile);
+
+  // Set per-compiland options, if any.
+  for (const TempFile& Compiland : Options.Compilands) {
+    // Copy in any user-supplied, command-line arguments.
+    std::copy(ExtraCompileArgs.begin(), ExtraCompileArgs.end(),
+              std::back_inserter(Args));
+    // The last thing before the next compiland is the file to be assembled.
+    Args.push_back(Compiland.fileName());
+  }
+
+  // Build the linker command-line arguments.
+  Args.push_back("/link");
+
+  // Disable the banner for the linker.
+  Args.push_back("/nologo");
+
+  // Add exports DEF file.
+  if (Options.ExportDef) {
+    Args.push_back("/DEF:" + *Options.ExportDef);
+  }
+
+  // Add RES resource files.
+  for (const std::string& Resource : Options.Resources) {
+    Args.push_back(Resource);
+  }
+
+  // Add PE entry point.
+  if (Options.EntryPoint) {
+    Args.push_back("/ENTRY:" + *Options.EntryPoint);
+  } else {
+    Args.push_back("/NOENTRY");
+  }
+
+  // Add PE subsystem.
+  if (Options.Subsystem) {
+    Args.push_back("/SUBSYSTEM:" + *Options.Subsystem);
+  }
+
+  // Add shared library flag.
+  if (Options.Dll) {
+    Args.push_back("/DLL");
+  }
+
+  return {"ml64.exe", Args};
 }
 
 } // namespace gtirb_bprint

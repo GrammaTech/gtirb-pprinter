@@ -24,130 +24,66 @@
 #include <string>
 #include <vector>
 
-/// \brief PeBinary-print GTIRB representations.
 namespace gtirb_bprint {
 class TempFile;
 
-class PeAssembler {
-public:
-  PeAssembler(const std::string& Name_,
-              const std::vector<std::string>& ExtraArgs_)
-      : Name(Name_), ExtraArgs(ExtraArgs_){};
+struct PeBinaryOptions {
+  const std::string& OutputFile;
 
-  virtual ~PeAssembler() = default;
+  const std::vector<TempFile>& Compilands;     // .ASM
+  const std::vector<std::string>& Resources;   // .RES
+  const std::optional<std::string>& ExportDef; // .DEF
 
-  virtual int assemble(const std::string& I, const std::string& O) = 0;
+  const std::optional<std::string>& EntryPoint; // /ENTRY:
+  const std::optional<std::string>& Subsystem;  // /SUBYSTEM:
 
-protected:
-  int run(const std::vector<std::string>& Args) {
-    // Invoke the assembler.
-    if (std::optional<int> Rc = execute(Name, Args)) {
-      if (*Rc) {
-        std::cerr << "ERROR: assembler returned: " << *Rc << "\n";
-      }
-      return *Rc;
-    }
-    std::cerr << "ERROR: could not find the assembler '" << Name
-              << "' on the PATH.\n";
-    return -1;
-  }
-
-  const std::string Name;
-  const std::vector<std::string> ExtraArgs;
-};
-
-class MsvcAssembler : public PeAssembler {
-public:
-  MsvcAssembler(const std::string Name_,
-                const std::vector<std::string>& ExtraArgs_)
-      : PeAssembler(Name_, ExtraArgs_) {}
-
-  int assemble(const std::string& I, const std::string& O) override;
-};
-
-class Ml64Assembler : public MsvcAssembler {
-public:
-  Ml64Assembler(const std::vector<std::string>& ExtraArgs_)
-      : MsvcAssembler("ml64.exe", ExtraArgs_) {}
-};
-
-class MlAssembler : public MsvcAssembler {
-public:
-  MlAssembler(const std::vector<std::string>& ExtraArgs_)
-      : MsvcAssembler("ml.exe", ExtraArgs_) {}
-};
-
-// class PeLinker {
-// public:
-//   int link(const std::string File) = 0;
-// };
-
-class PeLibrary {
-public:
-  PeLibrary(const std::string& Name_,
-            const std::vector<std::string>& LibraryPaths_)
-      : Name(Name_), LibraryPaths(LibraryPaths_){};
-
-  virtual ~PeLibrary() = default;
-
-  virtual int lib(const std::string& I, const std::string& O) = 0;
-
-protected:
-  int run(const std::vector<std::string>& Args) {
-    // Invoke the assembler.
-    if (std::optional<int> Rc = execute(Name, Args)) {
-      if (*Rc)
-        std::cerr << "ERROR: LIB utility returned: " << *Rc << "\n";
-      return *Rc;
-    }
-    std::cerr << "ERROR: could not find the LIB utility '" << Name
-              << "' on the PATH.\n";
-    return -1;
-  }
-
-  const std::string Name;
-  const std::vector<std::string> LibraryPaths;
-};
-
-class MsvcLib : public PeLibrary {
-public:
-  MsvcLib(const std::vector<std::string>& LibraryPaths_)
-      : PeLibrary("lib.exe", LibraryPaths_) {}
-
-  int lib(const std::string& I, const std::string& O) override;
+  const bool Dll;
 };
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API PeBinaryPrinter : public BinaryPrinter {
-  std::string compiler;
-
 public:
-  PeBinaryPrinter(const gtirb_pprint::PrettyPrinter& prettyPrinter,
-                  const std::vector<std::string>& extraCompileArgs,
-                  const std::vector<std::string>& libraryPaths);
+  PeBinaryPrinter(const gtirb_pprint::PrettyPrinter& Printer,
+                  const std::vector<std::string>& ExtraCompileArgs,
+                  const std::vector<std::string>& LibraryPaths);
 
-  int assemble(const std::string& outputFilename, gtirb::Context& context,
-               gtirb::Module& mod) const override;
-  int link(const std::string& outputFilename, gtirb::Context& context,
-           gtirb::IR& ir) override;
+  // Assemble do not link the first module.
+  int assemble(const std::string& Path, gtirb::Context& Context,
+               gtirb::Module& Module) const override;
+
+  // Assemble and link all modules.
+  int link(const std::string& Path, gtirb::Context& Context,
+           gtirb::IR& IR) const override;
 
 protected:
-  std::unique_ptr<PeAssembler> Assembler;
-  // std::unique_ptr<PeLinker> Linker;
-  std::unique_ptr<PeLibrary> Library;
-
-  virtual bool prepareImportDefs(
+  // Generate DEF files for imported libaries (temp files).
+  bool prepareImportDefs(
       const gtirb::IR& IR,
       std::map<std::string, std::unique_ptr<TempFile>>& ImportDefs) const;
-  virtual bool prepareImportLibs(const gtirb::IR& IR,
-                                 std::vector<std::string>& ImportLibs) const;
 
-  virtual bool prepareDefFile(gtirb::IR& ir, TempFile& defFile) const;
-  virtual bool prepareResources(gtirb::IR& ir, gtirb::Context& ctx,
-                                std::vector<std::string>& resourceFiles) const;
-  virtual void prepareLinkerArguments(gtirb::IR& ir,
-                                      std::vector<std::string>& resourceFiles,
-                                      std::string defFile,
-                                      std::vector<std::string>& args) const;
+  // Generate LIB files from DEF files with `lib.exe' or alternative utility.
+  bool prepareImportLibs(const gtirb::IR& IR,
+                         std::vector<std::string>& ImportLibs) const;
+
+  // Generated a DEF file with all exports in this file.
+  bool prepareExportDef(gtirb::IR& IR, TempFile& Def) const;
+
+  // Generate RES files for all embeded PE resources.
+  bool prepareResources(gtirb::IR& IR, gtirb::Context& Context,
+                        std::vector<std::string>& Resources) const;
+
+  // Locate LIB utility and generate the command-line.
+  std::pair<std::string, std::vector<std::string>>
+  libCommand(const std::string& DefFile, const std::string& LibFile,
+             const std::optional<std::string> Machine) const;
+
+  // Locate assembler and generate the "assemble" command-line.
+  std::pair<std::string, std::vector<std::string>>
+  assembleCommand(const std::string& AssemblyFile,
+                  const std::string& OutputFile) const;
+
+  // Locate assembler and generate the "assemble and link" command line.
+  std::pair<std::string, std::vector<std::string>>
+  linkCommand(const PeBinaryOptions& Options) const;
 };
 
 } // namespace gtirb_bprint
