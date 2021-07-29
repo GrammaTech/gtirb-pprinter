@@ -19,44 +19,6 @@
 #include <iostream>
 
 namespace gtirb_bprint {
-void PeBinaryPrinter::prepareAssemblerArguments(
-    const std::vector<TempFile>& compilands, const std::string& outputFilename,
-    const std::vector<std::string>& perCompilandExtraArgs,
-    std::vector<std::string>& args) const {
-  // FIXME: various improvements left to be made:
-  // * gtirb-pprinter doesn't currently support x86, so support for the ml
-  // assembler is incomplete.
-  // * GTIRB does not yet provide access to the PE32 header, so there's no way
-  // to determine whether the module was an executable or a DLL, what subsystem
-  // the module was compiled for, what the stack size is, etc. We are currently
-  // treating everything as an executable unless it has no entrypoint, and are
-  // using symbols in the module to guess whether it's a console application
-  // or not.
-  // * The user can specify command line arguments, but there's no way to
-  // distinguish between options to ml64.exe per compiland or options to
-  // link.exe for the whole executable.
-
-  // Disable the banner for the assembler.
-  args.push_back("/nologo");
-
-  // Set one-time options like the output file name.
-  args.push_back("/Fe");
-  args.push_back(outputFilename);
-
-  // Set per-compiland options, if any.
-  for (const TempFile& compiland : compilands) {
-    // Copy in any program-supplied command line arguments.
-    std::copy(perCompilandExtraArgs.begin(), perCompilandExtraArgs.end(),
-              std::back_inserter(args));
-    // Copy in any user-supplied command line arguments.
-    std::copy(ExtraCompileArgs.begin(), ExtraCompileArgs.end(),
-              std::back_inserter(args));
-
-    // The last thing before the next file is the file to be assembled.
-    args.push_back(compiland.fileName());
-  }
-}
-
 bool PeBinaryPrinter::prepareResources(
     gtirb::IR& ir, gtirb::Context& ctx,
     std::vector<std::string>& resourceFiles) const {
@@ -169,70 +131,71 @@ bool PeBinaryPrinter::prepareDefFile(gtirb::IR& ir, TempFile& defFile) const {
   return !export_defs.empty();
 }
 
-// Generate import def files (temp files), and build into lib files returned
-// in importLibs to be linked.
-bool PeBinaryPrinter::prepareImportLibs(
-    gtirb::IR& ir, std::vector<std::string>& importLibs) const {
-  std::map<std::string, std::vector<std::string>> importDefs;
+// Generate DEF files for imported libaries (temp files).
+bool PeBinaryPrinter::prepareImportDefs(
+    const gtirb::IR& IR,
+    std::map<std::string, std::unique_ptr<TempFile>>& ImportDefs) const {
 
   LOG_INFO << "Preparing Import libs...\n";
-  for (gtirb::Module& m : ir.modules()) {
-    // For each import in the AuxData table.
-    LOG_INFO << "Module: " << m.getBinaryPath() << "\n";
-    auto* pe_imports = m.getAuxData<gtirb::schema::ImportEntries>();
-    if (!pe_imports) {
+  for (const gtirb::Module& M : IR.modules()) {
+
+    LOG_INFO << "Module: " << M.getBinaryPath() << "\n";
+    auto* PeImports = M.getAuxData<gtirb::schema::ImportEntries>();
+    if (!PeImports) {
       LOG_INFO << "\tNo import entries.\n";
       continue;
     }
-    for (const auto& [addr, ordinal, fnName, libName] : *pe_imports) {
-      (void)addr; // unused binding
-      std::map<std::string, std::vector<std::string>>::iterator itImportDef =
-          importDefs.find(libName);
-      if (itImportDef == importDefs.end()) {
-        importDefs[libName] = std::vector<std::string>();
-        itImportDef = importDefs.find(libName);
-      }
-      std::stringstream ss;
-      if (ordinal != -1) {
-        ss << fnName << " @ " << ordinal << " NONAME"
-           << "\n";
-      } else {
-        ss << fnName << "\n";
-      }
-      itImportDef->second.push_back(ss.str());
-    }
 
-    for (auto& itLib : importDefs) {
-      TempFile tf(".def");
-      std::ostream& os = static_cast<std::ostream&>(tf);
-      os << "LIBRARY \"" << itLib.first << "\"\n\nEXPORTS\n";
-      for (auto& entry : itLib.second) {
-        os << entry;
-      }
-      tf.close();
+    // For each import in the AuxData table.
+    for (const auto& [Addr, Ordinal, Name, Import] : *PeImports) {
+      (void)Addr; // unused binding
 
-      std::vector<std::string> args;
-      std::string libTool = "lib.exe";
-      std::string libName = replaceExtension(itLib.first, ".lib");
-      std::string Machine = m.getISA() == gtirb::ISA::IA32 ? "X86" : "X64";
-      args.push_back(std::string("/DEF:") + tf.fileName());
-      args.push_back(std::string("/OUT:") + libName);
-      args.push_back(std::string("/MACHINE:" + Machine));
-      if (std::optional<int> ret = execute(libTool, args)) {
-        if (*ret) {
-          std::cerr << "ERROR: lib returned: " << *ret << "\n";
-          return false;
-        } else {
-          std::cout << "Generated " << replaceExtension(itLib.first, ".lib")
-                    << "\n";
-        }
-        importLibs.push_back(libName);
+      auto It = ImportDefs.find(Import);
+
+      if (It == ImportDefs.end()) {
+        // Create a new (temporary) DEF file.
+        ImportDefs[Import] = std::make_unique<TempFile>(".def");
+        It = ImportDefs.find(Import);
+        std::ostream& Stream = static_cast<std::ostream&>(*(It->second));
+        Stream << "LIBRARY \"" << It->first << "\"\n\nEXPORTS\n";
+      }
+
+      // Write the entry to the DEF file.
+      std::ostream& Stream = static_cast<std::ostream&>(*(It->second));
+      if (Ordinal != -1) {
+        Stream << Name << " @ " << Ordinal << " NONAME\n";
       } else {
-        std::cerr << "ERROR: Unable to find lib.exe\n";
-        return false;
+        Stream << Name << "\n";
       }
     }
-    // Sort by import name and generate a def file for each import name.
+  }
+
+  // Close the temporary files.
+  for (auto& It : ImportDefs) {
+    It.second->close();
+  }
+
+  return true;
+}
+
+bool PeBinaryPrinter::prepareImportLibs(
+    const gtirb::IR& IR, std::vector<std::string>& ImportLibs) const {
+
+  // Prepare `.DEF' import definition files.
+  std::map<std::string, std::unique_ptr<TempFile>> ImportDefs;
+  if (!prepareImportDefs(IR, ImportDefs)) {
+    std::cerr << "ERROR: Unable to write import `.DEF' files.";
+    return false;
+  }
+
+  // Generate `.LIB' files from `.DEF' files with the lib utility.
+  for (auto& [Import, Temp] : ImportDefs) {
+    std::string Def = Temp->fileName();
+    std::string Lib = replaceExtension(Import, ".lib");
+    if (Library->lib(Def, Lib)) {
+      return false;
+    }
+    ImportLibs.push_back(Lib);
   }
 
   return true;
@@ -303,40 +266,66 @@ void PeBinaryPrinter::prepareLinkerArguments(
   }
 }
 
+static std::unique_ptr<PeAssembler>
+getPeAssembler(const std::vector<std::string>& ExtraArgs) {
+  return std::make_unique<Ml64Assembler>(ExtraArgs);
+}
+
+static std::unique_ptr<PeLibrary>
+getPeLibrary(const std::vector<std::string>& LibraryPaths) {
+  return std::make_unique<MsvcLib>(LibraryPaths);
+}
+
+int MsvcAssembler::assemble(const std::string& I, const std::string& O) {
+  std::vector<std::string> Args = {
+      // Disable the banner for the assembler.
+      "/nologo",
+      // Set one-time options like the output file name.
+      "/Fe", O,
+      // Set compiland arguments.
+      "/c", "/Fo", O};
+
+  // Copy in any user-supplied command line arguments.
+  std::copy(ExtraArgs.begin(), ExtraArgs.end(), std::back_inserter(Args));
+
+  // The last thing before the next file is the file to be assembled.
+  Args.push_back(I);
+
+  // Execute `ml.exe' or `ml64.exe'.
+  return run(Args);
+};
+
+int MsvcLib::lib(const std::string& Def, const std::string& Lib) {
+  // Prepare `lib.exe' command-line arguments.
+  std::vector<std::string> Args = {
+      "/nologo",
+      "/DEF:" + Def,
+      "/OUT:" + Lib,
+  };
+
+  // Execute `lib.exe'.
+  return run(Args);
+}
+
 PeBinaryPrinter::PeBinaryPrinter(
     const gtirb_pprint::PrettyPrinter& prettyPrinter,
     const std::vector<std::string>& extraCompileArgs,
     const std::vector<std::string>& libraryPaths)
     : BinaryPrinter(prettyPrinter, extraCompileArgs, libraryPaths),
-      compiler("ml64") {}
+      Assembler(getPeAssembler(extraCompileArgs)),
+      Library(getPeLibrary(libraryPaths)) {}
 
-int PeBinaryPrinter::assemble(const std::string& outputFilename,
-                              gtirb::Context& context,
-                              gtirb::Module& mod) const {
-  std::vector<TempFile> tempFiles(1);
-  if (!prepareSource(context, mod, tempFiles[0])) {
+int PeBinaryPrinter::assemble(const std::string& Path, gtirb::Context& Context,
+                              gtirb::Module& Module) const {
+  TempFile Asm;
+  if (!prepareSource(Context, Module, Asm)) {
     std::cerr << "ERROR: Could not write assembly into a temporary file.\n";
     return -1;
   }
-
-  // Collect the arguments for invoking the assembler.
-  std::vector<std::string> args;
-  prepareAssemblerArguments(tempFiles, outputFilename,
-                            {"/c", "/Fo", outputFilename}, args);
-
-  // Invoke the assembler.
-  if (std::optional<int> ret = execute(compiler, args)) {
-    if (*ret)
-      std::cerr << "ERROR: assembler returned: " << *ret << "\n";
-    return *ret;
-  }
-
-  std::cerr << "ERROR: could not find the assembler '" << compiler
-            << "' on the PATH.\n";
-  return -1;
+  return Assembler->assemble(Asm.fileName(), Path);
 }
 
-int PeBinaryPrinter::link(const std::string& outputFilename,
+int PeBinaryPrinter::link(const std::string& /* outputFilename */,
                           gtirb::Context& ctx, gtirb::IR& ir) {
 
   for (const auto& Module : ir.modules()) {
@@ -353,11 +342,10 @@ int PeBinaryPrinter::link(const std::string& outputFilename,
     return -1;
   }
 
-  // Prepare import definition files and generate import libraries for the
-  // linker
-  std::vector<std::string> importLibs;
-  if (!prepareImportLibs(ir, importLibs)) {
-    std::cerr << "ERROR: Unable to generate import libs.";
+  // Generate import libraries for the linker.
+  std::vector<std::string> ImportLibs;
+  if (!prepareImportLibs(ir, ImportLibs)) {
+    std::cerr << "ERROR: Unable to generate import `.LIB' files.";
     return -1;
   }
 
@@ -374,11 +362,8 @@ int PeBinaryPrinter::link(const std::string& outputFilename,
     return -1;
   }
 
-  // Collect the arguments for invoking the assembler.
-  std::vector<std::string> args;
-  prepareAssemblerArguments(tempFiles, outputFilename, {}, args);
-
   // Collect linker arguments
+  std::vector<std::string> args;
   prepareLinkerArguments(ir, resourceFiles, defFileName, args);
 
   // Invoke the assembler.
