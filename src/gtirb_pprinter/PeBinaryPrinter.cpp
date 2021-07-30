@@ -385,7 +385,7 @@ int PeBinaryPrinter::link(const std::string& OutputFile,
   // Build the list of commands.
   CommandList Commands;
 
-  // Add commands to generate `.LIB' files from import `.DEF' files.
+  // Add commands to generate .LIB files from import .DEF files.
   for (auto& [Import, Temp] : ImportDefs) {
     std::string Def = Temp->fileName();
     std::string Lib = replaceExtension(Import, ".lib");
@@ -404,7 +404,7 @@ int PeBinaryPrinter::link(const std::string& OutputFile,
   return executeCommands(Commands);
 }
 
-// lib.exe /DEF:X.def /OUT/X.lib
+// lib.exe /DEF:X.def /OUT:X.lib
 // Input: DEF  Output: LIB
 CommandList msvcLib(const PeLibOptions& Options) {
   std::vector<std::string> Args = {
