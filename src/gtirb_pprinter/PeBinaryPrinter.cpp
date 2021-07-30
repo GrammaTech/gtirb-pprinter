@@ -43,8 +43,8 @@ std::optional<std::string> getPeMachine(const gtirb::Module& Module) {
 }
 
 std::optional<std::string> getPeMachine(const gtirb::IR& IR) {
-  for (const gtirb::Module& Module : IR.modules()) {
-    return getPeMachine(Module);
+  if (const auto& It = IR.modules(); !It.empty()) {
+    return getPeMachine(*It.begin());
   }
   return std::nullopt;
 }
