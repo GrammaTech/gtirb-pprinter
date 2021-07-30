@@ -380,7 +380,7 @@ int PeBinaryPrinter::link(const std::string& OutputFile,
   // Find the PE binary type.
   bool Dll = isPeDll(IR);
 
-  // Build list of commands.
+  // Build the list of commands.
   CommandList Commands;
 
   // Add commands to generate `.LIB' files from import `.DEF' files.
@@ -402,6 +402,8 @@ int PeBinaryPrinter::link(const std::string& OutputFile,
   return executeCommands(Commands);
 }
 
+// lib.exe /DEF:X.def /OUT/X.lib
+// Input: DEF  Output: LIB
 CommandList msvcLib(const PeLibOptions& Options) {
   std::vector<std::string> Args = {
       "/NOLOGO",
@@ -414,6 +416,8 @@ CommandList msvcLib(const PeLibOptions& Options) {
   return {{"lib.exe", Args}};
 }
 
+// ml64.exe/ml.exe /c ...
+// Input: ASM  Output: OBJ
 CommandList msvcAssemble(const PeAssembleOptions& Options) {
   std::vector<std::string> Args = {
       // Disable the banner for the assembler.
@@ -435,6 +439,56 @@ CommandList msvcAssemble(const PeAssembleOptions& Options) {
   return {{Assembler, Args}};
 }
 
+// link.exe
+// Input: OBJ  Output: PE32(+)
+CommandList msvcLink(const PeLinkOptions& Options) {
+  std::vector<std::string> Args = {
+      // Disable the banner for the assembler.
+      "/NOLOGO",
+      // Set one-time options like the output file name.
+      "/OUT:" + Options.OutputFile,
+  };
+
+  // Add exports DEF file.
+  if (Options.ExportDef) {
+    Args.push_back("/DEF:" + *Options.ExportDef);
+  }
+
+  // Add PE entry point.
+  if (Options.EntryPoint) {
+    Args.push_back("/ENTRY:" + *Options.EntryPoint);
+  } else {
+    Args.push_back("/NOENTRY");
+  }
+
+  // Add PE subsystem.
+  if (Options.Subsystem) {
+    Args.push_back("/SUBSYSTEM:" + *Options.Subsystem);
+  }
+
+  // Add shared library flag.
+  if (Options.Dll) {
+    Args.push_back("/DLL");
+  }
+
+  // Add user-specified library paths.
+  for (const std::string& Path : Options.LibraryPaths) {
+    Args.push_back("/LIBPATH:" + Path);
+  }
+
+  // Add all OBJ files.
+  for (const TempFile& Compiland : Options.Compilands) {
+    std::string File = fs::path(Compiland.fileName()).filename().string();
+    File = replaceExtension(File, ".obj");
+    Args.push_back(File);
+  }
+
+  return {{"link.exe", Args}};
+}
+
+// Single-command assemble and link:
+// ml64.exe/ml.exe ... /link ...
+// Input: .ASM  Output: PE32(+)
 CommandList msvcAssembleLink(const PeLinkOptions& Options) {
 
   // Build the assembler command-line arguments.
@@ -500,6 +554,8 @@ CommandList msvcAssembleLink(const PeLinkOptions& Options) {
   return {{Assembler, Args}};
 }
 
+// llvm-dlltool -dX.def -lX.lib ...
+// Input: DEF  Output: LIB
 CommandList llvmDllTool(const PeLibOptions& Options) {
   std::vector<std::string> Args = {
       "-d", Options.DefFile,
@@ -508,7 +564,9 @@ CommandList llvmDllTool(const PeLibOptions& Options) {
   return {{"llvm-dlltool", Args}};
 }
 
-CommandList llvmLink(const PeLibOptions& Options) {
+// lld-link /DEF:X.def /OUT:X.lib ...
+// Input: DEF  Output: LIB
+CommandList llvmLib(const PeLibOptions& Options) {
   std::vector<std::string> Args = {
       "/DEF:" + Options.DefFile,
       "/OUT:" + Options.LibFile,
@@ -519,38 +577,108 @@ CommandList llvmLink(const PeLibOptions& Options) {
   return {{"lld-link", Args}};
 }
 
+// lld-link
+// Input: OBJ  Output: PE32(+)
+CommandList llvmLink(const PeLinkOptions& Options) {
+
+  std::vector<std::string> Args = {
+      // Disable the banner for the assembler.
+      "/nologo",
+      // Set one-time options like the output file name.
+      "/out:" + Options.OutputFile,
+  };
+
+  // Add exports DEF file.
+  if (Options.ExportDef) {
+    Args.push_back("/def:" + *Options.ExportDef);
+  }
+
+  // Add PE entry point.
+  if (Options.EntryPoint) {
+    Args.push_back("/entry:" + *Options.EntryPoint);
+  }
+
+  // Add PE subsystem.
+  if (Options.Subsystem) {
+    Args.push_back("/subsystem:" + *Options.Subsystem);
+  }
+
+  // Add shared library flag.
+  if (Options.Dll) {
+    Args.push_back("/dll");
+  }
+
+  if (Options.Machine) {
+    Args.push_back("/machine:" + *Options.Machine);
+  }
+
+  // Add user-specified library paths.
+  for (const std::string& Path : Options.LibraryPaths) {
+    Args.push_back("/libpath:" + Path);
+  }
+
+  // Add all OBJ files.
+  for (const TempFile& Compiland : Options.Compilands) {
+    std::string File = fs::path(Compiland.fileName()).filename().string();
+    File = replaceExtension(File, ".obj");
+    Args.push_back(File);
+  }
+
+  return {{"lld-link", Args}};
+}
+
+// uasm -win64/-coff -Fo ...
+// Input: ASM  Output: OBJ
 CommandList uasmAssemble(const PeAssembleOptions& Options) {
   // Map PE machine target to UASM output format.
   const std::string& Format = Options.Machine == "X64" ? "-win64" : "-coff";
 
   std::vector<std::string> Args = {// Disable the banner for the assembler.
-                                   "-nologo",
+                                   "-nologo", "-less",
                                    // Set object file name.
                                    "-Fo", Options.OutputFile,
                                    // Lastly, specify assembly file.
                                    Options.Compiland};
 
-  // Copy in any user-supplied, command-line arguments.
+  // Add user-supplied, command-line arguments.
   std::copy(Options.ExtraCompileArgs.begin(), Options.ExtraCompileArgs.end(),
             std::back_inserter(Args));
 
   return {{"uasm", Args}};
 }
 
+// uasm -win64/-coff ...
+// <LINK>
+// Input: ASM  Output: PE32(+)
 CommandList uasmAssembleLink(const PeLinkOptions& Options) {
   // Map PE machine target to UASM output format.
   const std::string& Format = Options.Machine == "X64" ? "-win64" : "-coff";
 
   std::vector<std::string> Args = {// Disable the banner for the assembler.
-                                   "-nologo",
+                                   "-nologo", "-less",
                                    // Set output format.
                                    Format};
 
+  // Add user-supplied, command-line arguments.
+  std::copy(Options.ExtraCompileArgs.begin(), Options.ExtraCompileArgs.end(),
+            std::back_inserter(Args));
+
   for (const TempFile& Compiland : Options.Compilands) {
+    std::string File = fs::path(Compiland.fileName()).filename().string();
+    File = replaceExtension(File, ".obj");
+    Args.push_back("-Fo");
+    Args.push_back(std::move(File));
     Args.push_back(Compiland.fileName());
   }
 
-  return {{"uasm", Args}};
+  CommandList Commands = {{"uasm", Args}};
+
+  // Find linker and add link commands.
+  auto Link = findPeLinkCommand();
+  CommandList LinkCommands = Link(Options);
+  appendCommands(Commands, LinkCommands);
+
+  return Commands;
 }
 
 PeLibCommand findPeLibCommand() {
@@ -577,10 +705,26 @@ PeLibCommand findPeLibCommand() {
   // `lib.exe' would. LLVM's `lld-link' emulates this behavior.
   Path = bp::search_path("lld-link");
   if (!Path.empty()) {
-    return llvmLink;
+    return llvmLib;
   }
 
   return msvcLib;
+}
+
+PeLinkCommand findPeLinkCommand() {
+  // Prefer MSVC `link.exe'.
+  fs::path Path = bp::search_path("link.exe");
+  if (!Path.empty()) {
+    return msvcLink;
+  }
+
+  // Fallback to `lld-link'.
+  Path = bp::search_path("lld-link");
+  if (!Path.empty()) {
+    return llvmLink;
+  }
+
+  return msvcLink;
 }
 
 PeAssembleCommand findPeAssembleCommand() {
@@ -599,11 +743,16 @@ PeAssembleCommand findPeAssembleCommand() {
   return msvcAssemble;
 }
 
-PeLinkCommand findPeLinkCommand() {
+PeAssembleLinkCommand findPeAssembleLinkCommand() {
   // Prefer MSVC assembler.
   fs::path Path = bp::search_path("cl");
   if (!Path.empty()) {
     return msvcAssembleLink;
+  }
+
+  Path = bp::search_path("uasm");
+  if (!Path.empty()) {
+    return uasmAssembleLink;
   }
 
   return msvcAssembleLink;

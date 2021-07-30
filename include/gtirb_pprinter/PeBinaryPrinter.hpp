@@ -69,10 +69,12 @@ using CommandList =
 using PeLibCommand = std::function<CommandList(const PeLibOptions&)>;
 using PeAssembleCommand = std::function<CommandList(const PeAssembleOptions&)>;
 using PeLinkCommand = std::function<CommandList(const PeLinkOptions&)>;
+using PeAssembleLinkCommand = std::function<CommandList(const PeLinkOptions&)>;
 
 PeLibCommand findPeLibCommand();
 PeAssembleCommand findPeAssembleCommand();
 PeLinkCommand findPeLinkCommand();
+PeAssembleLinkCommand findPeAssembleLinkCommand();
 
 int executeCommands(const CommandList& Commands) {
   for (const auto& [Command, Args] : Commands) {
@@ -119,7 +121,7 @@ protected:
   bool prepareImportLibs(const gtirb::IR& IR,
                          std::vector<std::string>& ImportLibs) const;
 
-  // Generated a DEF file with all exports in this file.
+  // Generated a DEF file with all exports.
   bool prepareExportDef(gtirb::IR& IR, TempFile& Def) const;
 
   // Generate RES files for all embeded PE resources.
@@ -140,7 +142,7 @@ protected:
 
   // Locate an assembler and construct the "assemble and link" command list.
   CommandList linkCommands(const PeLinkOptions& Options) const {
-    auto AssembleLink = findPeLinkCommand();
+    auto AssembleLink = findPeAssembleLinkCommand();
     return AssembleLink(Options);
   }
 };
