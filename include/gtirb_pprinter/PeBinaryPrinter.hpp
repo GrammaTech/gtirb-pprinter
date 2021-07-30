@@ -20,7 +20,6 @@
 
 #include <gtirb/gtirb.hpp>
 
-#include <iostream>
 #include <string>
 #include <vector>
 
@@ -30,14 +29,14 @@ class TempFile;
 
 // Command-line argument wrapper for `lib.exe' or alternate library utility.
 struct PeLibOptions {
-  const std::string& DefFile;               // .DEF
-  const std::string& LibFile;               // .LIB
-  const std::optional<std::string> Machine; // /MACHINE:
+  const std::string& DefFile;
+  const std::string& LibFile;
+  const std::optional<std::string> Machine;
 };
 
 // Command-line argument wrapper for `ml64.exe' or alternate assembler.
 struct PeAssembleOptions {
-  const std::string& Compiland; // .ASM
+  const std::string& Compiland;
   const std::string& OutputFile;
   const std::optional<std::string> Machine;
   const std::vector<std::string>& ExtraCompileArgs;
@@ -48,13 +47,13 @@ struct PeAssembleOptions {
 struct PeLinkOptions {
   const std::string& OutputFile;
 
-  const std::vector<TempFile>& Compilands;     // .ASM
-  const std::vector<std::string>& Resources;   // .RES
-  const std::optional<std::string>& ExportDef; // .DEF
+  const std::vector<TempFile>& Compilands;
+  const std::vector<std::string>& Resources;
+  const std::optional<std::string>& ExportDef;
 
-  const std::optional<std::string>& EntryPoint; // /ENTRY:
-  const std::optional<std::string>& Subsystem;  // /SUBYSTEM:
-  const std::optional<std::string> Machine;     // /MACHINE:
+  const std::optional<std::string>& EntryPoint;
+  const std::optional<std::string>& Subsystem;
+  const std::optional<std::string> Machine;
 
   const bool Dll;
 
@@ -62,40 +61,20 @@ struct PeLinkOptions {
   const std::vector<std::string>& LibraryPaths;
 };
 
-// Type helpers for dynamic assemble and link command resolution.
+// Type helpers for command lookup and command-line argument builders.
 using CommandList =
     std::vector<std::pair<std::string, std::vector<std::string>>>;
 
-using PeLibCommand = std::function<CommandList(const PeLibOptions&)>;
-using PeAssembleCommand = std::function<CommandList(const PeAssembleOptions&)>;
-using PeLinkCommand = std::function<CommandList(const PeLinkOptions&)>;
-using PeAssembleLinkCommand = std::function<CommandList(const PeLinkOptions&)>;
+using PeLib = std::function<CommandList(const PeLibOptions&)>;
+using PeAssemble = std::function<CommandList(const PeAssembleOptions&)>;
+using PeLink = std::function<CommandList(const PeLinkOptions&)>;
+using PeAssembleLink = std::function<CommandList(const PeLinkOptions&)>;
 
-PeLibCommand findPeLibCommand();
-PeAssembleCommand findPeAssembleCommand();
-PeLinkCommand findPeLinkCommand();
-PeAssembleLinkCommand findPeAssembleLinkCommand();
-
-int executeCommands(const CommandList& Commands) {
-  for (const auto& [Command, Args] : Commands) {
-    if (std::optional<int> Rc = execute(Command, Args)) {
-      if (*Rc) {
-        std::cerr << "ERROR: " << Command << ": non-zero exit code: " << *Rc
-                  << "\n";
-        return -1;
-      }
-      continue;
-    }
-    std::cerr << "ERROR: could not find the `" << Command << "' on the PATH.\n";
-    return -1;
-  }
-  return 0;
-}
-
-void appendCommands(CommandList& T, CommandList& U) {
-  T.insert(T.end(), std::make_move_iterator(U.begin()),
-           std::make_move_iterator(U.end()));
-}
+// Tool lookup helpers.
+PeLib peLib();
+PeAssemble peAssemble();
+PeLink peLink();
+PeAssembleLink peAssembleLink();
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API PeBinaryPrinter : public BinaryPrinter {
 public:
@@ -103,7 +82,7 @@ public:
                   const std::vector<std::string>& ExtraCompileArgs,
                   const std::vector<std::string>& LibraryPaths);
 
-  // Assemble do not link the first module.
+  // Assemble a module but do not link the object.
   int assemble(const std::string& OutputFile, gtirb::Context& Context,
                gtirb::Module& Module) const override;
 
@@ -117,32 +96,28 @@ protected:
       const gtirb::IR& IR,
       std::map<std::string, std::unique_ptr<TempFile>>& ImportDefs) const;
 
-  // Generate LIB files from DEF files with `lib.exe' or alternative utility.
-  bool prepareImportLibs(const gtirb::IR& IR,
-                         std::vector<std::string>& ImportLibs) const;
-
   // Generated a DEF file with all exports.
   bool prepareExportDef(gtirb::IR& IR, TempFile& Def) const;
 
-  // Generate RES files for all embeded PE resources.
+  // Generate RES files for all embedded PE resources.
   bool prepareResources(gtirb::IR& IR, gtirb::Context& Context,
                         std::vector<std::string>& Resources) const;
 
-  // Locate a LIB utility and build a list of commands.
+  // Locate a PE library utility and build a command list.
   CommandList libCommands(const PeLibOptions& Options) const {
-    auto LibTool = findPeLibCommand();
-    return LibTool(Options);
+    PeLib Lib = peLib();
+    return Lib(Options);
   }
 
-  // Locate an assembler and construct the "assemble" command list.
+  // Locate an assembler and construct the "assemble only" command list.
   CommandList assembleCommands(const PeAssembleOptions& Options) const {
-    auto Assemble = findPeAssembleCommand();
+    PeAssemble Assemble = peAssemble();
     return Assemble(Options);
   }
 
   // Locate an assembler and construct the "assemble and link" command list.
   CommandList linkCommands(const PeLinkOptions& Options) const {
-    auto AssembleLink = findPeAssembleLinkCommand();
+    PeAssembleLink AssembleLink = peAssembleLink();
     return AssembleLink(Options);
   }
 };

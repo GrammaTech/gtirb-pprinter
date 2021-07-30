@@ -128,17 +128,46 @@ std::optional<std::string> llvmBinDir() {
 
 namespace gtirb_bprint {
 
+int executeCommands(const CommandList& Commands) {
+  for (const auto& [Command, Args] : Commands) {
+    {
+      std::stringstream Stream;
+      Stream << "Execute: " << Command;
+      for (const auto& Arg : Args) {
+        Stream << " " << Arg;
+      }
+      LOG_INFO << Stream.str() << "\n";
+    }
+
+    if (std::optional<int> Rc = execute(Command, Args)) {
+      if (*Rc) {
+        LOG_ERROR << Command << ": non-zero exit code: " << *Rc << "\n";
+        return -1;
+      }
+      continue;
+    }
+    LOG_ERROR << "could not find `" << Command << "' on the PATH.\n";
+    return -1;
+  }
+  return 0;
+}
+
+inline void appendCommands(CommandList& T, CommandList& U) {
+  T.insert(T.end(), std::make_move_iterator(U.begin()),
+           std::make_move_iterator(U.end()));
+}
+
 bool PeBinaryPrinter::prepareImportDefs(
     const gtirb::IR& IR,
     std::map<std::string, std::unique_ptr<TempFile>>& ImportDefs) const {
 
-  std::cerr << "Preparing Import libs...\n";
+  LOG_INFO << "Preparing import LIB files...\n";
   for (const gtirb::Module& Module : IR.modules()) {
 
-    std::cerr << "Module: " << Module.getBinaryPath() << "\n";
     auto* PeImports = Module.getAuxData<gtirb::schema::ImportEntries>();
     if (!PeImports) {
-      LOG_INFO << "\tNo import entries.\n";
+      LOG_INFO << "Module: " << Module.getBinaryPath()
+               << ": No import entries.\n";
       continue;
     }
 
@@ -174,43 +203,16 @@ bool PeBinaryPrinter::prepareImportDefs(
   return true;
 }
 
-bool PeBinaryPrinter::prepareImportLibs(
-    const gtirb::IR& IR, std::vector<std::string>& ImportLibs) const {
-
-  // Prepare `.DEF' import definition files.
-  std::map<std::string, std::unique_ptr<TempFile>> ImportDefs;
-  if (!prepareImportDefs(IR, ImportDefs)) {
-    std::cerr << "ERROR: Unable to write import `.DEF' files.";
-    return false;
-  }
-
-  // Find the target platform.
-  std::optional<std::string> Machine = getPeMachine(IR);
-
-  // Generate `.LIB' files from `.DEF' files with the lib utility.
-  for (auto& [Import, Temp] : ImportDefs) {
-    std::string DefFile = Temp->fileName();
-    std::string LibFile = replaceExtension(Import, ".lib");
-
-    if (executeCommands(libCommands({DefFile, LibFile, Machine})) != 0) {
-      return false;
-    }
-
-    ImportLibs.push_back(LibFile);
-  }
-
-  return true;
-}
-
 bool PeBinaryPrinter::prepareExportDef(gtirb::IR& IR, TempFile& Def) const {
   std::vector<std::string> Exports;
 
   for (const gtirb::Module& Module : IR.modules()) {
-    std::cerr << "Generating export DEF file ...\n";
+    LOG_INFO << "Preparing exports DEF file...\n";
 
     auto* PeExports = Module.getAuxData<gtirb::schema::ExportEntries>();
     if (!PeExports) {
-      std::cerr << "\tNo export entries.\n";
+      LOG_INFO << "Module: " << Module.getBinaryPath()
+               << ": No export entries.\n";
       continue;
     }
 
@@ -246,73 +248,73 @@ bool PeBinaryPrinter::prepareExportDef(gtirb::IR& IR, TempFile& Def) const {
 }
 
 bool PeBinaryPrinter::prepareResources(
-    gtirb::IR& ir, gtirb::Context& ctx,
-    std::vector<std::string>& resourceFiles) const {
+    gtirb::IR& IR, gtirb::Context& Context,
+    std::vector<std::string>& Resources) const {
 
-  for (gtirb::Module& m : ir.modules()) {
-    // For each import in the AuxData table.
-    auto* pe_resources = m.getAuxData<gtirb::schema::PEResources>();
-    if (!pe_resources) {
+  LOG_INFO << "Preparing resource RES files...\n";
+  for (gtirb::Module& Module : IR.modules()) {
+
+    auto* Table = Module.getAuxData<gtirb::schema::PEResources>();
+    if (!Table) {
+      LOG_INFO << "Module: " << Module.getBinaryPath() << ": No resources.\n";
       continue;
     }
 
-    std::ofstream resfile;
-    std::string resfilename = replaceExtension(m.getBinaryPath(), ".res");
-    resfile.open(resfilename, std::ios::binary | std::ios::trunc);
-    if (!resfile.is_open()) {
-      LOG_ERROR << "Unable to open resource file: " << resfilename << "\n";
+    std::ofstream Stream;
+    std::string Filename = replaceExtension(Module.getBinaryPath(), ".res");
+    Stream.open(Filename, std::ios::binary | std::ios::trunc);
+    if (!Stream.is_open()) {
+      LOG_ERROR << "Unable to open resource file: " << Filename << "\n";
       return false;
     }
 
-    // File header
-    const uint8_t file_header[] = {
+    // RES file header ...
+    const uint8_t FileHeader[] = {
         0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0xff, 0xff, 0x00,
         0x00, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-#define WR(tf, d, n) tf.write(reinterpret_cast<const char*>(d), n)
+    Stream.write(reinterpret_cast<const char*>(&FileHeader), 32);
 
-    WR(resfile, &file_header, 32);
+    // ... followed by a list of header/data blocks.
+    for (const auto& [Header, Offset, Size] : *Table) {
+      // Write resource header.
+      Stream.write(reinterpret_cast<const char*>(Header.data()), Header.size());
 
-    // .. followed by a list of header/data blocks
-    for (const auto& [header, offset, data_len] : *pe_resources) {
-      // resource header
-      WR(resfile, header.data(), header.size());
+      const gtirb::ByteInterval* ByteInterval =
+          dyn_cast_or_null<gtirb::ByteInterval>(
+              gtirb::Node::getByUUID(Context, Offset.ElementId));
 
-      const auto* bi = dyn_cast_or_null<gtirb::ByteInterval>(
-          gtirb::Node::getByUUID(ctx, offset.ElementId));
+      if (ByteInterval) {
+        // Write resource data.
+        auto Data =
+            ByteInterval->rawBytes<const uint8_t>() + Offset.Displacement;
 
-      uint64_t bi_offset = offset.Displacement;
-
-      if (bi) {
-        // resource data
-        const uint8_t* resource_data =
-            reinterpret_cast<const uint8_t*>(bi->rawBytes<const uint8_t*>()) +
-            bi_offset;
-        if (bi_offset + data_len > bi->getSize()) {
-          std::cout << "[WARNING] PE - Insufficient data in byte interval for "
-                       "resource.\n";
+        if (Offset.Displacement + Size > ByteInterval->getSize()) {
+          LOG_DEBUG << "Insufficient data in byte interval for PE resource.\n";
         }
 
-        // data longer than the bi provides.
-        if (resource_data) {
-          WR(resfile, resource_data, data_len);
-        } else
-          std::cout << "[WARNING] PE - Unable to get resource data\n";
+        // Data is longer than the ByteInterval provides.
+        if (Data) {
+          Stream.write(reinterpret_cast<const char*>(Data), Size);
+        } else {
+          LOG_DEBUG << "Unable to get PE resource data\n";
+        }
 
-        // padding to align subsequent headers
-        if (data_len % 4 != 0) {
+        // Write padding to align subsequent headers.
+        if (Size % 4 != 0) {
           uint32_t tmp = 0x0000;
-          WR(resfile, &tmp, 4 - data_len % 4);
+          Stream.write(reinterpret_cast<const char*>(&tmp), 4 - Size % 4);
         }
-      } else
-        std::cout << "[WARNING] PE - Could not find byte interval for resource "
-                     "data\n";
+      } else {
+        LOG_DEBUG << "Could not find byte interval for PE resource data.\n";
+      }
     }
 
-    resfile.close();
-    resourceFiles.push_back(resfilename);
+    Stream.close();
+    Resources.push_back(Filename);
   }
+
   return true;
 }
 
@@ -327,7 +329,7 @@ int PeBinaryPrinter::assemble(const std::string& Path, gtirb::Context& Context,
   // Print the Module to a temporary assembly file.
   TempFile Asm;
   if (!prepareSource(Context, Module, Asm)) {
-    std::cerr << "ERROR: Could not write assembly into a temporary file.\n";
+    LOG_ERROR << "Failed to write assembly to temporary file.\n";
     return -1;
   }
 
@@ -343,14 +345,14 @@ int PeBinaryPrinter::link(const std::string& OutputFile,
   // Prepare all ASM sources (temp files).
   std::vector<TempFile> Compilands;
   if (!prepareSources(Context, IR, Compilands)) {
-    std::cerr << "ERROR: Could not write assembly into a temporary file.\n";
+    LOG_ERROR << "Failed to write assembly to temporary file.\n";
     return -1;
   }
 
   // Prepare DEF import definition files.
   std::map<std::string, std::unique_ptr<TempFile>> ImportDefs;
   if (!prepareImportDefs(IR, ImportDefs)) {
-    std::cerr << "ERROR: Unable to write import `.DEF' files.";
+    LOG_ERROR << "Failed to write import .DEF files.";
     return -1;
   }
 
@@ -364,7 +366,7 @@ int PeBinaryPrinter::link(const std::string& OutputFile,
   // Prepare RES resource files for the linker.
   std::vector<std::string> Resources;
   if (!prepareResources(IR, Context, Resources)) {
-    std::cerr << "ERROR: Unable to generate resource files.";
+    LOG_ERROR << "Failed to write resource .RES files.";
     return -1;
   }
 
@@ -624,6 +626,11 @@ CommandList llvmLink(const PeLinkOptions& Options) {
     Args.push_back(File);
   }
 
+  // Add RES resource files.
+  for (const std::string& Resource : Options.Resources) {
+    Args.push_back(Resource);
+  }
+
   return {{"lld-link", Args}};
 }
 
@@ -635,6 +642,10 @@ CommandList uasmAssemble(const PeAssembleOptions& Options) {
 
   std::vector<std::string> Args = {// Disable the banner for the assembler.
                                    "-nologo", "-less",
+                                   // Set output format.
+                                   Format,
+                                   // Add common options.
+                                   "-safeseh",
                                    // Set object file name.
                                    "-Fo", Options.OutputFile,
                                    // Lastly, specify assembly file.
@@ -656,6 +667,8 @@ CommandList uasmAssembleLink(const PeLinkOptions& Options) {
 
   std::vector<std::string> Args = {// Disable the banner for the assembler.
                                    "-nologo", "-less",
+                                   // Add common options.
+                                   "-safeseh",
                                    // Set output format.
                                    Format};
 
@@ -674,14 +687,15 @@ CommandList uasmAssembleLink(const PeLinkOptions& Options) {
   CommandList Commands = {{"uasm", Args}};
 
   // Find linker and add link commands.
-  auto Link = findPeLinkCommand();
+  auto Link = peLink();
   CommandList LinkCommands = Link(Options);
   appendCommands(Commands, LinkCommands);
 
   return Commands;
 }
 
-PeLibCommand findPeLibCommand() {
+// Locate `lib.exe' or alternative PE library tool.
+PeLib peLib() {
   // Prefer MSVC `lib.exe'.
   fs::path Path = bp::search_path("lib.exe");
   if (!Path.empty()) {
@@ -711,7 +725,8 @@ PeLibCommand findPeLibCommand() {
   return msvcLib;
 }
 
-PeLinkCommand findPeLinkCommand() {
+// Locate `link.exe' or alternative PE linker.
+PeLink peLink() {
   // Prefer MSVC `link.exe'.
   fs::path Path = bp::search_path("link.exe");
   if (!Path.empty()) {
@@ -727,7 +742,8 @@ PeLinkCommand findPeLinkCommand() {
   return msvcLink;
 }
 
-PeAssembleCommand findPeAssembleCommand() {
+// Locate MSVC `ml' or `uasm' MASM assembler.
+PeAssemble peAssemble() {
   // Prefer MSVC assembler.
   fs::path Path = bp::search_path("cl");
   if (!Path.empty()) {
@@ -743,13 +759,15 @@ PeAssembleCommand findPeAssembleCommand() {
   return msvcAssemble;
 }
 
-PeAssembleLinkCommand findPeAssembleLinkCommand() {
-  // Prefer MSVC assembler.
+// Locate "assemble and link" tools.
+PeAssembleLink peAssembleLink() {
+  // Prefer single, compound MSVC command.
   fs::path Path = bp::search_path("cl");
   if (!Path.empty()) {
     return msvcAssembleLink;
   }
 
+  // Fallback to UASM and a subsequent link command.
   Path = bp::search_path("uasm");
   if (!Path.empty()) {
     return uasmAssembleLink;
