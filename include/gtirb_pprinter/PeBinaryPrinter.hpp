@@ -90,6 +90,12 @@ public:
   int link(const std::string& OutputFile, gtirb::Context& Context,
            gtirb::IR& IR) const override;
 
+  // Generate LIB files for all imports.
+  int libs(const gtirb::IR& IR) const;
+
+  // Generate RES files for all resources.
+  int resources(const gtirb::IR& IR, const gtirb::Context& Context) const;
+
 protected:
   // Generate DEF files for imported libaries (temp files).
   bool prepareImportDefs(
@@ -100,7 +106,7 @@ protected:
   bool prepareExportDef(gtirb::IR& IR, TempFile& Def) const;
 
   // Generate RES files for all embedded PE resources.
-  bool prepareResources(gtirb::IR& IR, gtirb::Context& Context,
+  bool prepareResources(const gtirb::IR& IR, const gtirb::Context& Context,
                         std::vector<std::string>& Resources) const;
 
   // Locate a PE library utility and build a command list.

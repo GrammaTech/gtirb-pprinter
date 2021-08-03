@@ -248,11 +248,11 @@ bool PeBinaryPrinter::prepareExportDef(gtirb::IR& IR, TempFile& Def) const {
 }
 
 bool PeBinaryPrinter::prepareResources(
-    gtirb::IR& IR, gtirb::Context& Context,
+    const gtirb::IR& IR, const gtirb::Context& Context,
     std::vector<std::string>& Resources) const {
 
   LOG_INFO << "Preparing resource RES files...\n";
-  for (gtirb::Module& Module : IR.modules()) {
+  for (const gtirb::Module& Module : IR.modules()) {
 
     auto* Table = Module.getAuxData<gtirb::schema::PEResources>();
     if (!Table) {
@@ -349,7 +349,7 @@ int PeBinaryPrinter::link(const std::string& OutputFile,
     return -1;
   }
 
-  // Prepare DEF import definition files.
+  // Prepare DEF import definition files (temp files).
   std::map<std::string, std::unique_ptr<TempFile>> ImportDefs;
   if (!prepareImportDefs(IR, ImportDefs)) {
     LOG_ERROR << "Failed to write import .DEF files.";
@@ -402,6 +402,44 @@ int PeBinaryPrinter::link(const std::string& OutputFile,
 
   // Execute the assemble-link command list.
   return executeCommands(Commands);
+}
+
+int PeBinaryPrinter::libs(const gtirb::IR& IR) const {
+  // Prepare DEF import definition files (temp files).
+  std::map<std::string, std::unique_ptr<TempFile>> ImportDefs;
+  if (!prepareImportDefs(IR, ImportDefs)) {
+    LOG_ERROR << "Failed to write import .DEF files.";
+    return -1;
+  }
+
+  // Find the target platform.
+  std::optional<std::string> Machine = getPeMachine(IR);
+
+  // Build the list of commands.
+  CommandList Commands;
+
+  // Add commands to generate .LIB files from import .DEF files.
+  for (auto& [Import, Temp] : ImportDefs) {
+    std::string Def = Temp->fileName();
+    std::string Lib = replaceExtension(Import, ".lib");
+
+    CommandList LibCommands = libCommands({Def, Lib, Machine});
+    appendCommands(Commands, LibCommands);
+  }
+
+  return executeCommands(Commands);
+}
+
+int PeBinaryPrinter::resources(const gtirb::IR& IR,
+                               const gtirb::Context& Context) const {
+  // Prepare RES resource files for the linker.
+  std::vector<std::string> Resources;
+  if (!prepareResources(IR, Context, Resources)) {
+    LOG_ERROR << "Failed to write resource .RES files.";
+    return -1;
+  }
+
+  return 0;
 }
 
 // lib.exe /DEF:X.def /OUT:X.lib
