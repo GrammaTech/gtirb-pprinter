@@ -342,6 +342,17 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
     strcpy(inst.mnemonic, "popad");
   }
 
+  // Omit LODSD operands.
+  if (inst.id == X86_INS_LODSD || inst.id == X86_INS_LODSB) {
+    Detail.op_count = 0;
+  }
+
+  // BOUND does not have a 64-bit mode.
+  if (inst.id == X86_INS_BOUND && Detail.op_count == 2 &&
+      Detail.operands[1].size == 8) {
+    Detail.operands[1].size = 4;
+  }
+
   x86FixupInstruction(inst);
 }
 
