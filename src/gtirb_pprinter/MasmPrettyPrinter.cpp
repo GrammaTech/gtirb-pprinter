@@ -34,6 +34,8 @@ std::string MasmSyntax::formatFunctionName(const std::string& x) const {
   std::string name(x);
   if (name[0] == '.')
     name[0] = '$';
+  if (name[0] == '/')
+    name[0] = '_';
   return name;
 }
 
@@ -182,6 +184,13 @@ void MasmPrettyPrinter::printSectionHeader(std::ostream& os,
 void MasmPrettyPrinter::printSectionHeaderDirective(
     std::ostream& os, const gtirb::Section& section) {
   std::string section_name = syntax.formatSectionName(section.getName());
+  if (section_name.empty()) {
+    // TODO: Write a rename routine.
+    os << "unnamed_section_" << section.getSize().value_or(0) << '_'
+       << +section.getAddress().value_or(gtirb::Addr(0)) << ' '
+       << syntax.section();
+    return;
+  }
   os << section_name << ' ' << syntax.section();
 }
 
@@ -219,7 +228,13 @@ void MasmPrettyPrinter::printSectionProperties(std::ostream& os,
 void MasmPrettyPrinter::printSectionFooterDirective(
     std::ostream& os, const gtirb::Section& section) {
   std::string section_name = syntax.formatSectionName(section.getName());
-
+  if (section_name.empty()) {
+    // TODO: Write a rename routine.
+    os << "unnamed_section_" << section.getSize().value_or(0) << '_'
+       << +section.getAddress().value_or(gtirb::Addr(0)) << ' '
+       << syntax.section();
+    return;
+  }
   os << section_name << ' ' << masmSyntax.ends() << '\n';
 }
 
@@ -308,13 +323,12 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
       }
     }
 
-  // The first argument for SCASB is implied.
-  if (inst.id == X86_INS_SCASB) {
-    if (Detail.op_count == 2 && Detail.operands[0].type == X86_OP_REG &&
-        Detail.operands[0].reg == X86_REG_AL) {
-      Detail.operands[0] = Detail.operands[1];
-      Detail.op_count = 1;
-    }
+  // Omit implicit operands for scan string instructions.
+  switch (inst.id) {
+  case X86_INS_SCASB:
+  case X86_INS_SCASW:
+  case X86_INS_SCASD:
+    Detail.op_count = 0;
   }
 
   // The k1 register from AVX512 instructions is frequently set to NULL.
@@ -351,6 +365,15 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
   if (inst.id == X86_INS_BOUND && Detail.op_count == 2 &&
       Detail.operands[1].size == 8) {
     Detail.operands[1].size = 4;
+  }
+
+  if (inst.id == X86_INS_BNDSTX || inst.id == X86_INS_BNDLDX) {
+    // Fix incorrect operand sizes.
+    for (int i = 0; i < Detail.op_count; i++) {
+      if (Detail.operands[i].size == 16) {
+        Detail.operands[i].size = 4;
+      }
+    }
   }
 
   x86FixupInstruction(inst);
