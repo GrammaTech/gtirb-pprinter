@@ -392,8 +392,8 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
     Detail.operands[1].size = 4;
   }
 
+  // BNDSTX and BNDLDX do not have 128-bit registers.
   if (inst.id == X86_INS_BNDSTX || inst.id == X86_INS_BNDLDX) {
-    // Fix incorrect operand sizes.
     for (int i = 0; i < Detail.op_count; i++) {
       if (Detail.operands[i].size == 16) {
         Detail.operands[i].size = 4;
