@@ -23,19 +23,45 @@
 
 namespace gtirb_pprint {
 
-std::string MasmSyntax::formatSectionName(const std::string& x) const {
-  std::string name(x);
-  if (name[0] == '.')
-    name[0] = '_';
-  return ascii_str_toupper(name);
+std::string MasmSyntax::formatSectionName(const std::string& S) const {
+  // Valid MASM identifiers are describe as ...
+  // Max Length:                                            247
+  //    Grammar:          id ::= alpha | id alpha | id decdigit
+  //                    alpa ::= a-z | A-Z | @ _ $ ?
+  //                decdigit ::= 0-9
+  std::string Name(S);
+  // Rewrite standard dot-prefixed names by convention,
+  //   e.g.  '.text` to `_TEXT'
+  if (Name[0] == '.') {
+    Name[0] = '_';
+    Name = ascii_str_toupper(Name);
+  }
+  // Truncate long section Names.
+  if (Name.length() > 247) {
+    Name.resize(247);
+  }
+  // Replace non-alpha characters with '?' characters.
+  for (size_t I = 0; I < Name.size(); I++) {
+    switch (Name[I]) {
+    case '@':
+    case '_':
+    case '$':
+    case '?':
+      continue;
+    default:
+      if (!std::isalnum(Name[I])) {
+        Name[I] = '?';
+      }
+      continue;
+    }
+  }
+  return Name;
 }
 
 std::string MasmSyntax::formatFunctionName(const std::string& x) const {
   std::string name(x);
   if (name[0] == '.')
     name[0] = '$';
-  if (name[0] == '/')
-    name[0] = '_';
   return name;
 }
 
@@ -182,16 +208,19 @@ void MasmPrettyPrinter::printSectionHeader(std::ostream& os,
 }
 
 void MasmPrettyPrinter::printSectionHeaderDirective(
-    std::ostream& os, const gtirb::Section& section) {
-  std::string section_name = syntax.formatSectionName(section.getName());
-  if (section_name.empty()) {
-    // TODO: Write a rename routine.
-    os << "unnamed_section_" << section.getSize().value_or(0) << '_'
-       << +section.getAddress().value_or(gtirb::Addr(0)) << ' '
-       << syntax.section();
-    return;
+    std::ostream& Stream, const gtirb::Section& Section) {
+  std::string Name = syntax.formatSectionName(Section.getName());
+
+  if (Name.empty()) {
+    gtirb::UUID UUID = Section.getUUID();
+    if (!RenamedSections.count(UUID)) {
+      size_t N = RenamedSections.size() + 1;
+      RenamedSections[UUID] = "unnamed_section_" + std::to_string(N);
+    }
+    Name = RenamedSections[UUID];
   }
-  os << section_name << ' ' << syntax.section();
+
+  Stream << Name << ' ' << syntax.section();
 }
 
 void MasmPrettyPrinter::printSectionProperties(std::ostream& os,
@@ -226,16 +255,12 @@ void MasmPrettyPrinter::printSectionProperties(std::ostream& os,
 };
 
 void MasmPrettyPrinter::printSectionFooterDirective(
-    std::ostream& os, const gtirb::Section& section) {
-  std::string section_name = syntax.formatSectionName(section.getName());
-  if (section_name.empty()) {
-    // TODO: Write a rename routine.
-    os << "unnamed_section_" << section.getSize().value_or(0) << '_'
-       << +section.getAddress().value_or(gtirb::Addr(0)) << ' '
-       << syntax.section();
-    return;
+    std::ostream& Stream, const gtirb::Section& Section) {
+  std::string Name = syntax.formatSectionName(Section.getName());
+  if (RenamedSections.count(Section.getUUID())) {
+    Name = RenamedSections[Section.getUUID()];
   }
-  os << section_name << ' ' << masmSyntax.ends() << '\n';
+  Stream << Name << ' ' << masmSyntax.ends() << '\n';
 }
 
 void MasmPrettyPrinter::printFunctionHeader(std::ostream& /* os */,

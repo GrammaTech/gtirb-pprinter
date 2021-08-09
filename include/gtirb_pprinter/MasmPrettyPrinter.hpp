@@ -162,6 +162,7 @@ private:
   std::optional<gtirb::Symbol*> EntryPoint;
   std::unordered_set<gtirb::UUID> Imports;
   std::unordered_set<gtirb::UUID> Exports;
+  std::unordered_map<gtirb::UUID, std::string> RenamedSections;
 };
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API MasmPrettyPrinterFactory
