@@ -464,7 +464,7 @@ ElfPrettyPrinter::getAlignment(const gtirb::CodeBlock& Block) {
 }
 
 bool ElfPrettyPrinterFactory::isStaticBinary(gtirb::Module& Module) const {
-  return Module.findSections(".dynamic") == Module.sections_by_name_end();
+  return Module.findSections(".dynamic").empty();
 }
 
 const PrintingPolicy&

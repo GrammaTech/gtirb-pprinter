@@ -85,12 +85,11 @@ static ByteInterval* getPredecessorByteInterval(ByteInterval& TargetBI) {
 bool ::gtirb_layout::layoutRequired(Module& M) {
   // If the module has no sections, we don't care that it has no address.
   if (!M.sections().empty()) {
-    if (!M.getAddress()) {
-      // The pretty-printer requires that every section must have an address.
-      return true;
-    }
-
     for (auto SecIt = M.sections_begin(); SecIt != M.sections_end(); ++SecIt) {
+      if (!SecIt->getAddress()) {
+        // The pretty-printer requires that every section must have an address.
+        return true;
+      }
       if (auto Next = std::next(SecIt); Next != M.sections_end()) {
         // There is a section following this one. Because the module has an
         // address, we know all of the sections have addresses.
