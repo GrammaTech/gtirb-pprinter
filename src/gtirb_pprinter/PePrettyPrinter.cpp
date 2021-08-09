@@ -33,7 +33,7 @@ PePrettyPrinterFactory::defaultPrintingPolicy(gtirb::Module& /*Module*/) const {
       {},
 
       /// Sections to avoid printing.
-      {".pdata", ".reloc"},
+      {".pdata", ".reloc", ".rsrc"},
 
       /// Sections with possible data object exclusion.
       {},
