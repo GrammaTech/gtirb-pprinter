@@ -184,6 +184,7 @@ void MasmPrettyPrinter::printHeader(std::ostream& os) {
        << ".XMM\n"
        << ".MODEL FLAT\n"
        << "ASSUME FS:NOTHING\n"
+       << "ASSUME GS:NOTHING\n"
        << "\n";
   }
   printIncludes(os);
