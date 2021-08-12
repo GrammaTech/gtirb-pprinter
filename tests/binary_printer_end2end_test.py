@@ -71,6 +71,7 @@ class TestBinaryGeneration(unittest.TestCase):
                 "--binary",
                 "/dev/null",
             ],
+            stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
         ).stdout.decode(sys.stdout.encoding)
 
