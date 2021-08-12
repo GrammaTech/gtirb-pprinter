@@ -63,12 +63,16 @@ class TestBinaryGeneration(unittest.TestCase):
         # not try to explicity link with it, as the link should be implicit.
         # Just check that the binary causes no compiler errors; this binary
         # was made on CentOS and thus may not run on all systems.
-        subprocess.check_output(
+        output = subprocess.run(
             [
                 pprinter_binary(),
                 "--ir",
                 str(use_ldlinux_gtirb),
                 "--binary",
                 "/dev/null",
-            ]
-        ).decode(sys.stdout.encoding)
+            ],
+            stderr=subprocess.STDOUT,
+        ).stdout.decode(sys.stdout.encoding)
+
+        self.assertIn("Compiler arguments:", output)
+        self.assertNotIn("ld-linux", output)
