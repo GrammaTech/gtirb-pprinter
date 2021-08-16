@@ -376,13 +376,13 @@ void ElfPrettyPrinter::printSymExprSuffix(std::ostream& OS,
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::TlsGd)) {
     OS << "@TLSGD";
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::Part0)) {
-    LOG_ERROR << "Deprecated use of co-opted expression attribute: Part0\n";
+    DEPRECATED_SYMATTRIBUTE_WARNING(Part0, TpOff)
     OS << "@TPOFF";
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::Part2)) {
-    LOG_ERROR << "Deprecated use of co-opted expression attribute: Part2\n";
+    DEPRECATED_SYMATTRIBUTE_WARNING(Part2, NtpOff)
     OS << "@NTPOFF";
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::Part3)) {
-    LOG_ERROR << "Deprecated use of co-opted expression attribute: Part3\n";
+    DEPRECATED_SYMATTRIBUTE_WARNING(Part3, TlsGd)
     OS << "@TLSGD";
   }
 }
