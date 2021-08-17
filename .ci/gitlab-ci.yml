@@ -356,7 +356,7 @@ package-centos8:
     - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-$OS --output "gtirb.zip"
     - for pkg in gtirb capstone; do unzip $pkg.zip; done
     - dpkg -i libcapstone-dev.deb libgtirb.deb libgtirb-dev.deb
-    - 'CAPSTONE_PKG_VERSION=$(dpkg --info libcapstone-dev.deb | sed -n "s/Version: //p" | tr -d "[[:space:]]")'
+    - 'CAPSTONE_PKG_VERSION=$(dpkg -f libcapstone-dev.deb version | sed -E "s/[[:digit:]]+://g")'
     - echo $CAPSTONE_PKG_VERSION
     - cd build
     - CPACK_GTIRB_PPRINTER_STABLE_PKG_NAME=OFF
