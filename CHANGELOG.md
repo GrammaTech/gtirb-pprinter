@@ -1,3 +1,15 @@
+1.7.0 (Unreleased)
+
+  * Added support for MIPS and ARM32
+  * Added support for MinGW for PE32+
+  * Fixed bad operand size in COMISS instructions
+  * Use PUBLIC entrypoint instead of EXPORT
+  * Handle linking to DRV files in PE32 binaries
+  * Change "isa" short option from -i to -I (-i is ir)
+  * Add special KUSER_SHARED_DATA symbol
+  * Handle ld-linux included as a required library
+  * Fix Intel syntax for vpgatherdd
+
 1.6.0
 
   * Add PE support.
