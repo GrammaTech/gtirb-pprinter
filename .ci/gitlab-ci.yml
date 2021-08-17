@@ -50,8 +50,7 @@ check-format:
       EOF
       ) && exit 1)
 
-build-conan-linux-gcc7:
-  image: conanio/gcc7
+.linux-conan-template: &linux-conan
   stage: build
   needs: [check-format]
   variables:
@@ -63,6 +62,14 @@ build-conan-linux-gcc7:
     - conan user ci_user -r gitlab -p
     - pip3 install -r tests/requirements.txt
     - PYTHONPATH="$(pwd):$PYTHONPATH" python3 .ci/build.py
+
+build-conan-linux-gcc7:
+  image: conanio/gcc7
+  <<: *linux-conan
+
+build-conan-linux-gcc9:
+  image: conanio/gcc9
+  <<: *linux-conan
 
 .windows-conan-template: &windows-conan
   stage: build
