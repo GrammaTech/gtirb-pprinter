@@ -1,3 +1,5 @@
+1.8.0 (Unreleased)
+
 1.7.0
 
   * Added support for MIPS and ARM32
