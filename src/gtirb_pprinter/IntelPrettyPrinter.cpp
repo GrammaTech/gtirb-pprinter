@@ -155,7 +155,7 @@ void IntelPrettyPrinter::printSymbolicExpression(std::ostream& OS,
   if (SE->Attributes.isFlagSet(gtirb::SymAttribute::GotOff) ||
       SE->Attributes.isFlagSet(gtirb::SymAttribute::Part1)) {
     if (SE->Attributes.isFlagSet(gtirb::SymAttribute::Part1)) {
-      DEPRECATED_SYMATTRIBUTE_WARNING(Part1, Got)
+      LOG_ERROR << "Deprecated use of co-opted expression attribute: Part1\n";
     }
     OS << "+";
     printSymbolReference(OS, SE->Sym1);

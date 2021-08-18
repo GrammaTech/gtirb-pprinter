@@ -220,10 +220,10 @@ void Arm64PrettyPrinter::printSymExprPrefix(std::ostream& OS,
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::Lo12)) {
     OS << ":lo12:";
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::Part0)) {
-    DEPRECATED_SYMATTRIBUTE_WARNING(Part0, Lo12)
+    LOG_ERROR << "Deprecated use of co-opted expression attribute: Part0\n";
     OS << ":lo12:";
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::Part1)) {
-    DEPRECATED_SYMATTRIBUTE_WARNING(Part1, Lo12)
+    LOG_ERROR << "Deprecated use of co-opted expression attribute: Part1\n";
     OS << ":got_lo12:";
   }
 }
