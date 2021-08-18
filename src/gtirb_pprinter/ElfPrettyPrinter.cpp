@@ -15,8 +15,6 @@
 #include "ElfPrettyPrinter.hpp"
 
 #include "AuxDataSchema.hpp"
-#include "driver/Logger.h"
-
 #define SHT_NULL 0
 #define SHT_PROGBITS 1
 #define SHT_SYMTAB 2
@@ -374,15 +372,6 @@ void ElfPrettyPrinter::printSymExprSuffix(std::ostream& OS,
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::NtpOff)) {
     OS << "@NTPOFF";
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::TlsGd)) {
-    OS << "@TLSGD";
-  } else if (Attrs.isFlagSet(gtirb::SymAttribute::Part0)) {
-    LOG_ERROR << "Deprecated use of co-opted expression attribute: Part0\n";
-    OS << "@TPOFF";
-  } else if (Attrs.isFlagSet(gtirb::SymAttribute::Part2)) {
-    LOG_ERROR << "Deprecated use of co-opted expression attribute: Part2\n";
-    OS << "@NTPOFF";
-  } else if (Attrs.isFlagSet(gtirb::SymAttribute::Part3)) {
-    LOG_ERROR << "Deprecated use of co-opted expression attribute: Part3\n";
     OS << "@TLSGD";
   }
 }

@@ -14,7 +14,6 @@
 //===----------------------------------------------------------------------===//
 
 #include "IntelPrettyPrinter.hpp"
-#include "driver/Logger.h"
 
 namespace gtirb_pprint {
 
@@ -152,11 +151,7 @@ void IntelPrettyPrinter::printSymbolicExpression(std::ostream& OS,
 
   // We replace the GOT-Label, symbol-minus-symbol, with Label@GOTOFF or
   // Label@GOT that will be resolved to the equivalent GOT-relative value.
-  if (SE->Attributes.isFlagSet(gtirb::SymAttribute::GotOff) ||
-      SE->Attributes.isFlagSet(gtirb::SymAttribute::Part1)) {
-    if (SE->Attributes.isFlagSet(gtirb::SymAttribute::Part1)) {
-      LOG_ERROR << "Deprecated use of co-opted expression attribute: Part1\n";
-    }
+  if (SE->Attributes.isFlagSet(gtirb::SymAttribute::GotOff)) {
     OS << "+";
     printSymbolReference(OS, SE->Sym1);
     if (SE->Attributes.isFlagSet(gtirb::SymAttribute::GotRef)) {

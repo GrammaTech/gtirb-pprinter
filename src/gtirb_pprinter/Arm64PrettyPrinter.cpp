@@ -19,7 +19,6 @@
 
 #include "Arm64PrettyPrinter.hpp"
 #include "AuxDataSchema.hpp"
-#include "driver/Logger.h"
 #include "string_utils.hpp"
 
 #include <capstone/capstone.h>
@@ -219,12 +218,6 @@ void Arm64PrettyPrinter::printSymExprPrefix(std::ostream& OS,
     }
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::Lo12)) {
     OS << ":lo12:";
-  } else if (Attrs.isFlagSet(gtirb::SymAttribute::Part0)) {
-    LOG_ERROR << "Deprecated use of co-opted expression attribute: Part0\n";
-    OS << ":lo12:";
-  } else if (Attrs.isFlagSet(gtirb::SymAttribute::Part1)) {
-    LOG_ERROR << "Deprecated use of co-opted expression attribute: Part1\n";
-    OS << ":got_lo12:";
   }
 }
 
