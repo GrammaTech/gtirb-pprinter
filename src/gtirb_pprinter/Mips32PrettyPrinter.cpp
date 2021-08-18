@@ -253,10 +253,10 @@ void Mips32PrettyPrinter::printSymExprPrefix(
     bool /*IsNotBranch*/) {
   for (const auto& Attr : Attrs) {
     switch (Attr) {
-    case gtirb::SymAttribute::Part0: {
+    case gtirb::SymAttribute::Lo: {
       OS << "%lo(";
     } break;
-    case gtirb::SymAttribute::Part1: {
+    case gtirb::SymAttribute::Hi: {
       OS << "%hi(";
     } break;
     case gtirb::SymAttribute::AddrRelGot: {
@@ -273,8 +273,8 @@ void Mips32PrettyPrinter::printSymExprSuffix(
     bool /*IsNotBranch*/) {
   for (const auto& Attr : Attrs) {
     switch (Attr) {
-    case gtirb::SymAttribute::Part0:
-    case gtirb::SymAttribute::Part1:
+    case gtirb::SymAttribute::Lo:
+    case gtirb::SymAttribute::Hi:
     case gtirb::SymAttribute::AddrRelGot: {
       OS << ")";
     } break;
