@@ -120,7 +120,7 @@ build-conan-linux-gcc9:
     - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=${JOB_NAME} --output "gtirb.zip"
     - for pkg in gtirb capstone; do unzip $pkg.zip; done
     - dpkg -i libgtirb.deb libcapstone-dev.deb
-    - pip3 install --upgrade pip
+    - pip3 install --user --upgrade pip
     - pip3 install -r tests/requirements.txt $EXTRA_INDEX_URL
     - cd build && PATH=$(pwd)/bin:$PATH ctest -V
 
