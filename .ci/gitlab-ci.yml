@@ -13,6 +13,7 @@ default:
 stages:
   - check-format
   - build
+  - xform
   - test-and-tag
   - build-packages
   - test-packages-setup
@@ -267,6 +268,28 @@ build-centos8-gcc-relwithdebuginfo:
     - cpack -G "RPM" -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PPRINTER_PACKAGE=rpm-dev
     - cpack -G "RPM" -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PPRINTER_PACKAGE=rpm-driver
     - cd ../ && mv build ../build
+
+stack-stamp-ubuntu18:
+  stage: xform
+  image: docker.grammatech.com/rewriting/gtirb-server:service-8080
+  needs:
+    - job: build-ubuntu18-gcc
+      artifacts: true
+  artifacts:
+    paths:
+      - build
+      - gtirb-pprinter.stack-stamp
+  services:
+    - name: docker.grammatech.com/rewriting/gtirb-server:service-8080
+      alias: gtirb-server
+  script:
+    - ls -lR build
+    - add-apt-repository ppa:mhier/libboost-latest
+    - apt-get -y update
+    - apt-get -y install libboost1.67-dev libboost-system1.67-dev libboost-filesystem1.67-dev libboost-program-options1.67-dev
+    - gtirb-client http://gtirb-server:8080 ddisasm --input "binary=build/bin/gtirb-pprinter" --output "gtirb=gtirb-pprinter.gtirb"
+    - gtirb-client http://gtirb-server:8080 stack-stamp --input "gtirb=gtirb-pprinter.gtirb" --output "gtirb=gtirb-pprinter.stack-stamp.gtirb"
+    - gtirb-pprinter --ir gtirb-pprinter.stack-stamp.gtirb --binary gtirb-pprinter.stack-stamp
 
 test-and-tag-ubuntu18-gcc:
   variables:
