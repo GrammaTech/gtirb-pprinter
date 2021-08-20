@@ -60,6 +60,7 @@ check-format:
     - conan profile update settings.compiler.libcxx=libstdc++11 default
     - conan remote add gitlab ${CI_API_V4_URL}/packages/conan
     - conan user ci_user -r gitlab -p
+    - pip3 install --upgrade pip
     - pip3 install -r tests/requirements.txt $EXTRA_INDEX_URL
     - PYTHONPATH="$(pwd):$PYTHONPATH" python3 .ci/build.py
 
@@ -83,6 +84,7 @@ build-conan-linux-gcc9:
     # Run build script
     - export PYTHONPATH="$(cygpath -w $(pwd))"
     - export PATH="$PATH;C:\\Program Files\\CMake\\bin"
+    - pip3 install --upgrade pip
     - pip3 install -r tests/requirements.txt $EXTRA_INDEX_URL
     - python .ci/build.py -s build_type=$BUILD_TYPE
 
@@ -118,6 +120,7 @@ build-conan-linux-gcc9:
     - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=${JOB_NAME} --output "gtirb.zip"
     - for pkg in gtirb capstone; do unzip $pkg.zip; done
     - dpkg -i libgtirb.deb libcapstone-dev.deb
+    - pip3 install --upgrade pip
     - pip3 install -r tests/requirements.txt $EXTRA_INDEX_URL
     - cd build && PATH=$(pwd)/bin:$PATH ctest -V
 
@@ -155,6 +158,7 @@ build-ubuntu20-gcc-gcov:
     - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-ubuntu20 --output "gtirb.zip"
     - for pkg in gtirb capstone; do unzip $pkg.zip; done
     - dpkg -i libcapstone-dev.deb libgtirb.deb libgtirb-dev.deb
+    - pip3 install --upgrade pip
     - pip3 install -r tests/requirements.txt $EXTRA_INDEX_URL
     - mkdir build && cd build
     - cmake .. -DCMAKE_BUILD_TYPE=Debug -DGTIRB_PPRINTER_CODE_COVERAGE=On
@@ -199,6 +203,7 @@ build-static:
     - '[ -e lib/libgtirb_pprinter.a ]'
     - '[ ! -e lib/libgtirb_pprinter.so ]'
     # Run the regression tests.
+    - pip3 install --upgrade pip
     - pip3 install -r ${CI_PROJECT_DIR}/tests/requirements.txt $EXTRA_INDEX_URL
     - PATH=$(pwd)/bin:$PATH ctest -V
 
@@ -224,6 +229,7 @@ static-drivers:
     - cmake ../ -DCMAKE_BUILD_TYPE=Debug -DGTIRB_PPRINTER_STATIC_DRIVERS=ON
     - make -j
     # Run the regression tests.
+    - pip3 install --upgrade pip
     - pip3 install -r ${CI_PROJECT_DIR}/tests/requirements.txt $EXTRA_INDEX_URL
     - PATH=$(pwd)/bin:$PATH ctest -V
     # For verification purposes, print ldd of the driver here.
@@ -295,6 +301,7 @@ test-make-install:
     - cp .ci/test-install.cpp test-install.cpp
     - g++ test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs
     - ./test-install
+    - pip3 install --upgrade pip
     - pip3 install -r tests/requirements.txt $EXTRA_INDEX_URL
     - python3 -m unittest discover tests "*_test.py"
 
