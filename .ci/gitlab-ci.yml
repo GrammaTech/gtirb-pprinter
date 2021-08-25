@@ -90,13 +90,9 @@ build-conan-linux-gcc9:
     - pip3 install -r tests/requirements.txt $EXTRA_INDEX_URL
     - python .ci/build.py -s build_type=$BUILD_TYPE
 
-.build-template: &build
-  stage: build
-  artifacts:
-    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
-    paths:
-      - 'build'
-  script:
+.setup-dependencies:
+  ubuntu-deps:
+    &ubuntu-deps
     - case $OS in
        ubuntu18) JOB_NAME='debian-installer-ubuntu18' ;;
        ubuntu20) JOB_NAME='debian-installer-ubuntu20' ;;
@@ -106,6 +102,22 @@ build-conan-linux-gcc9:
     - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=${JOB_NAME} --output "gtirb.zip"
     - for pkg in gtirb capstone; do unzip $pkg.zip; done
     - dpkg -i libcapstone-dev.deb libgtirb.deb libgtirb-dev.deb
+  centos-deps:
+    &centos-deps
+    # download capstone & gtirb
+    - curl -L https://git.grammatech.com/rewriting/extra-packages/-/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-rpm --output "capstone.zip"
+    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=package-centos8 --output "gtirb.zip"
+    - for pkg in gtirb capstone; do unzip $pkg.zip; done
+    - dnf --nogpgcheck localinstall -y capstone-devel-*.rpm libgtirb.rpm libgtirb-devel.rpm
+
+.build-template: &build
+  stage: build
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
+    paths:
+      - 'build'
+  script:
+    - *ubuntu-deps
     - mkdir build && cd build
     - cmake ../ -DCMAKE_CXX_COMPILER=$COMPILER -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCPACK_DEBIAN_PACKAGE_RELEASE="$(lsb_release -sc)" -DGTIRB_PPRINTER_STRIP_DEBUG_SYMBOLS=On
     - make -j
@@ -113,15 +125,7 @@ build-conan-linux-gcc9:
 .test-and-tag-template: &test-and-tag
   stage: test-and-tag
   script:
-    - case $OS in
-       ubuntu18) JOB_NAME='debian-installer-ubuntu18' ;;
-       ubuntu20) JOB_NAME='debian-installer-ubuntu20' ;;
-       esac
-    # download capstone & gtirb
-    - curl -L https://git.grammatech.com/rewriting/extra-packages/-/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=${JOB_NAME} --output "gtirb.zip"
-    - for pkg in gtirb capstone; do unzip $pkg.zip; done
-    - dpkg -i libgtirb.deb libcapstone-dev.deb
+    - *ubuntu-deps
     - pip3 install --upgrade pip
     - pip3 install -r tests/requirements.txt $EXTRA_INDEX_URL
     - cd build && PATH=$(pwd)/bin:$PATH ctest -V
@@ -155,11 +159,10 @@ build-ubuntu20-gcc:
 build-ubuntu20-gcc-gcov:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
   stage: build
+  variables:
+    OS: 'ubuntu20'
   script:
-    - curl -L https://git.grammatech.com/rewriting/extra-packages/-/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-ubuntu20 --output "gtirb.zip"
-    - for pkg in gtirb capstone; do unzip $pkg.zip; done
-    - dpkg -i libcapstone-dev.deb libgtirb.deb libgtirb-dev.deb
+    - *ubuntu-deps
     - pip3 install --upgrade pip
     - pip3 install -r tests/requirements.txt $EXTRA_INDEX_URL
     - mkdir build && cd build
@@ -256,11 +259,7 @@ build-centos8-gcc-relwithdebuginfo:
     - mkdir $PADDED_DIR && cd $PADDED_DIR
     - git clone .. .
     - mkdir build && cd build
-    # download capstone & gtirb
-    - curl -L https://git.grammatech.com/rewriting/extra-packages/-/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-rpm --output "capstone.zip"
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=package-centos8 --output "gtirb.zip"
-    - for pkg in gtirb capstone; do unzip $pkg.zip; done
-    - dnf --nogpgcheck localinstall -y capstone-devel-*.rpm libgtirb.rpm libgtirb-devel.rpm
+    - *centos-deps
     - CAPSTONE_PKG_VERSION=$(ls capstone-devel-*.rpm | sed -n 's/capstone-devel-\(.*\).x86_64.rpm/\1/p')
     # Build
     - cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_PREFIX_PATH='/usr/lib64/boost169' -DBOOST_INCLUDEDIR='/usr/include/boost169' -DGTIRB_PPRINTER_STRIP_DEBUG_SYMBOLS=Off ..
@@ -285,18 +284,15 @@ build-centos8-gcc-relwithdebuginfo:
     - gtirb-client http://gtirb-server:8080 stack-stamp --input "gtirb=gtirb-pprinter.gtirb" --output "gtirb=gtirb-pprinter.stack-stamp.gtirb"
     - ./build/bin/gtirb-pprinter --ir gtirb-pprinter.stack-stamp.gtirb --binary gtirb-pprinter.stack-stamp -c "-L$(pwd)/build/lib"
 
-
 stack-stamp-ubuntu18:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
   needs:
     - job: build-ubuntu18-gcc
       artifacts: true
+  variables:
+    OS: ubuntu18
   before_script:
-    # download capstone & gtirb
-    - curl -L https://git.grammatech.com/rewriting/extra-packages/-/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-ubuntu18 --output "gtirb.zip"
-    - for pkg in gtirb capstone; do unzip $pkg.zip; done
-    - dpkg -i libcapstone-dev.deb libgtirb.deb libgtirb-dev.deb
+    - *ubuntu-deps
   <<: *stack-stamp
 
 stack-stamp-ubuntu20:
@@ -304,12 +300,21 @@ stack-stamp-ubuntu20:
   needs:
     - job: build-ubuntu20-gcc
       artifacts: true
+  variables:
+    OS: ubuntu20
   before_script:
-    # download capstone & gtirb
-    - curl -L https://git.grammatech.com/rewriting/extra-packages/-/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-ubuntu20 --output "gtirb.zip"
-    - for pkg in gtirb capstone; do unzip $pkg.zip; done
-    - dpkg -i libcapstone-dev.deb libgtirb.deb libgtirb-dev.deb
+    - *ubuntu-deps
+  <<: *stack-stamp
+
+stack-stamp-ubuntu20-clang:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
+  needs:
+    - job: build-ubuntu20-gcc
+      artifacts: true
+  variables:
+    OS: ubuntu20
+  before_script:
+    - *ubuntu-deps
   <<: *stack-stamp
 
 stack-stamp-centos8:
@@ -318,19 +323,13 @@ stack-stamp-centos8:
     - job: build-centos8-gcc-relwithdebuginfo
       artifacts: true
   before_script:
-    # download capstone & gtirb
-    - curl -L https://git.grammatech.com/rewriting/extra-packages/-/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-rpm --output "capstone.zip"
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=package-centos8 --output "gtirb.zip"
-    - for pkg in gtirb capstone; do unzip $pkg.zip; done
-    - dnf --nogpgcheck localinstall -y capstone-devel-*.rpm libgtirb.rpm libgtirb-devel.rpm
+    - *centos-deps
     - export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/build/lib"
   <<: *stack-stamp
 
-test-and-tag-stack-stamp:
+test-and-tag-stack-stamp-ubuntu18:
   variables:
     OS: 'ubuntu18'
-    COMPILER: 'gcc'
-    BUILD_TYPE: 'RelWithDebInfo'
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
   needs: ['stack-stamp-ubuntu18']
   before_script:
@@ -359,12 +358,11 @@ test-make-install:
   stage: test-and-tag
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
   needs: ['build-ubuntu18-gcc']
+  variables:
+    OS: 'ubuntu18'
   script:
     - export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-    - curl -L https://git.grammatech.com/rewriting/extra-packages/-/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-ubuntu18 --output "gtirb.zip"
-    - for pkg in gtirb capstone; do unzip $pkg.zip; done
-    - dpkg -i libgtirb.deb libgtirb-dev.deb libcapstone-dev.deb
+    - *ubuntu-deps
     - cd build && make install && cd ..
     - rm -rf build
     - cp .ci/test-install.cpp test-install.cpp
@@ -435,10 +433,7 @@ package-centos8:
     paths:
       - build
   script:
-    - curl -L https://git.grammatech.com/rewriting/extra-packages/-/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-$OS --output "gtirb.zip"
-    - for pkg in gtirb capstone; do unzip $pkg.zip; done
-    - dpkg -i libcapstone-dev.deb libgtirb.deb libgtirb-dev.deb
+    - *ubuntu-deps
     - 'CAPSTONE_PKG_VERSION=$(dpkg --info libcapstone-dev.deb | sed -n "s/Version: //p" | tr -d "[[:space:]]")'
     - echo $CAPSTONE_PKG_VERSION
     - cd build
