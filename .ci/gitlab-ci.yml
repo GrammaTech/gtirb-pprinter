@@ -2,6 +2,7 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
   GTIRB_BRANCH: "master"
   CAPSTONE_BRANCH: "master"
+  EXTRA_INDEX_URL: https://__token__:$GL_PKG_API_TOKEN@git.grammatech.com/api/v4/projects/1587/packages/pypi/simple
   # The following two variables are used by the package uploader.
   PROJECT_ID: $CI_PROJECT_ID
   PIPELINE_ID: $CI_PIPELINE_ID
@@ -271,7 +272,6 @@ build-centos8-gcc-relwithdebuginfo:
 
 .stack-stamp: &stack-stamp
   stage: xform
-  image: docker.grammatech.com/rewriting/gtirb-server:service-8080
   artifacts:
     paths:
       - build
@@ -280,38 +280,32 @@ build-centos8-gcc-relwithdebuginfo:
     - name: docker.grammatech.com/rewriting/gtirb-server:service-8080
       alias: gtirb-server
   script:
+    - python3 -m pip install pip --upgrade && python3 -m pip install gtirb-server --extra-index-url=$EXTRA_INDEX_URL
     - gtirb-client http://gtirb-server:8080 ddisasm --input "binary=build/bin/gtirb-pprinter" --output "gtirb=gtirb-pprinter.gtirb"
     - gtirb-client http://gtirb-server:8080 stack-stamp --input "gtirb=gtirb-pprinter.gtirb" --output "gtirb=gtirb-pprinter.stack-stamp.gtirb"
     - gtirb-pprinter --ir gtirb-pprinter.stack-stamp.gtirb --binary gtirb-pprinter.stack-stamp
 
 
 stack-stamp-ubuntu18:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
   needs:
     - job: build-ubuntu18-gcc
       artifacts: true
-  before_script:
-    - add-apt-repository ppa:mhier/libboost-latest
-    - apt-get -y update
-    - apt-get -y install libboost1.67-dev libboost-system1.67-dev libboost-filesystem1.67-dev libboost-program-options1.67-dev
   <<: *stack-stamp
 
 stack-stamp-ubuntu20:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
   needs:
     - job: build-ubuntu20-gcc
       artifacts: true
-  before_script:
-    - apt-get -y update
-    - apt-get install -y libboost-dev
   <<: *stack-stamp
 
 stack-stamp-centos8:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/centos8
   needs:
     - job: build-centos8-gcc-relwithdebuginfo
       artifacts: true
   before_script:
-    - add-apt-repository ppa:mhier/libboost-latest
-    - apt-get -y update
-    - apt-get -y install libboost1.67-dev libboost-system1.67-dev libboost-filesystem1.67-dev libboost-program-options1.67-dev
   <<: *stack-stamp
 
 test-and-tag-stack-stamp:
