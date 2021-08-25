@@ -283,7 +283,7 @@ build-centos8-gcc-relwithdebuginfo:
     - python3 -m pip install pip --upgrade && python3 -m pip install gtirb-server --extra-index-url=$EXTRA_INDEX_URL
     - gtirb-client http://gtirb-server:8080 ddisasm --input "binary=build/bin/gtirb-pprinter" --output "gtirb=gtirb-pprinter.gtirb"
     - gtirb-client http://gtirb-server:8080 stack-stamp --input "gtirb=gtirb-pprinter.gtirb" --output "gtirb=gtirb-pprinter.stack-stamp.gtirb"
-    - ./build/bin/gtirb-pprinter --ir gtirb-pprinter.stack-stamp.gtirb --binary gtirb-pprinter.stack-stamp
+    - ./build/bin/gtirb-pprinter --ir gtirb-pprinter.stack-stamp.gtirb --binary gtirb-pprinter.stack-stamp -c "-L$(pwd)/build/lib"
 
 
 stack-stamp-ubuntu18:
@@ -323,6 +323,7 @@ stack-stamp-centos8:
     - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=package-centos8 --output "gtirb.zip"
     - for pkg in gtirb capstone; do unzip $pkg.zip; done
     - dnf --nogpgcheck localinstall -y capstone-devel-*.rpm libgtirb.rpm libgtirb-devel.rpm
+    - export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/build/lib"
   <<: *stack-stamp
 
 test-and-tag-stack-stamp:
