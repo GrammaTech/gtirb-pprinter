@@ -122,10 +122,22 @@ build-conan-linux-gcc9:
     - cmake ../ -DCMAKE_CXX_COMPILER=$COMPILER -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCPACK_DEBIAN_PACKAGE_RELEASE="$(lsb_release -sc)" -DGTIRB_PPRINTER_STRIP_DEBUG_SYMBOLS=On
     - make -j
 
-.test-and-tag-template: &test-and-tag
+.test-and-tag-ubuntu-template: &test-and-tag-ubuntu
   stage: test-and-tag
   script:
     - *ubuntu-deps
+    - pip3 install --upgrade pip
+    - pip3 install -r tests/requirements.txt $EXTRA_INDEX_URL
+    - cd build && PATH=$(pwd)/bin:$PATH ctest -V
+
+.test-and-tag-centos-template: &test-and-tag-centos
+  stage: test-and-tag
+  script:
+    - *centos-deps
+    - mkdir long-dir-name-padding-for-CPACK_RPM_BUILD_SOURCE_DIRS_PREFIX
+    - cd long-dir-name-padding-for-CPACK_RPM_BUILD_SOURCE_DIRS_PREFIX
+    - git clone .. .
+    - mv ../build build
     - pip3 install --upgrade pip
     - pip3 install -r tests/requirements.txt $EXTRA_INDEX_URL
     - cd build && PATH=$(pwd)/bin:$PATH ctest -V
@@ -309,7 +321,7 @@ stack-stamp-ubuntu20:
 stack-stamp-ubuntu20-clang:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
   needs:
-    - job: build-ubuntu20-gcc
+    - job: build-ubuntu20-clang-debug
       artifacts: true
   variables:
     OS: ubuntu20
@@ -334,7 +346,32 @@ test-and-tag-stack-stamp-ubuntu18:
   needs: ['stack-stamp-ubuntu18']
   before_script:
     - cp gtirb-pprinter.stack-stamp build/bin/gtirb-pprinter
-  <<: *test-and-tag
+  <<: *test-and-tag-ubuntu
+
+test-and-tag-stack-stamp-ubuntu20:
+  variables:
+    OS: 'ubuntu20'
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
+  needs: ['stack-stamp-ubuntu20']
+  before_script:
+    - cp gtirb-pprinter.stack-stamp build/bin/gtirb-pprinter
+  <<: *test-and-tag-ubuntu
+
+test-and-tag-stack-stamp-ubuntu20-clang:
+  variables:
+    OS: 'ubuntu20'
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
+  needs: ['stack-stamp-ubuntu20-clang']
+  before_script:
+    - cp gtirb-pprinter.stack-stamp build/bin/gtirb-pprinter
+  <<: *test-and-tag-ubuntu
+
+test-and-tag-stack-stamp-centos8:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/centos8
+  needs: ['stack-stamp-centos8']
+  before_script:
+    - cp gtirb-pprinter.stack-stamp build/bin/gtirb-pprinter
+  <<: *test-and-tag-centos
 
 test-and-tag-ubuntu18-gcc:
   variables:
@@ -343,7 +380,7 @@ test-and-tag-ubuntu18-gcc:
     BUILD_TYPE: 'RelWithDebInfo'
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
   needs: ['build-ubuntu18-gcc']
-  <<: *test-and-tag
+  <<: *test-and-tag-ubuntu
 
 test-and-tag-ubuntu20-gcc:
   variables:
@@ -352,7 +389,12 @@ test-and-tag-ubuntu20-gcc:
     BUILD_TYPE: 'RelWithDebInfo'
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
   needs: ['build-ubuntu20-gcc']
-  <<: *test-and-tag
+  <<: *test-and-tag-ubuntu
+
+test-and-tag-centos8-gcc-relwithdebinfo:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/centos8
+  needs: ['build-centos8-gcc-relwithdebuginfo']
+  <<: *test-and-tag-centos
 
 test-make-install:
   stage: test-and-tag
