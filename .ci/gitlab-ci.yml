@@ -269,12 +269,9 @@ build-centos8-gcc-relwithdebuginfo:
     - cpack -G "RPM" -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PPRINTER_PACKAGE=rpm-driver
     - cd ../ && mv build ../build
 
-stack-stamp-ubuntu18:
+.stack-stamp: &stack-stamp
   stage: xform
   image: docker.grammatech.com/rewriting/gtirb-server:service-8080
-  needs:
-    - job: build-ubuntu18-gcc
-      artifacts: true
   artifacts:
     paths:
       - build
@@ -283,13 +280,39 @@ stack-stamp-ubuntu18:
     - name: docker.grammatech.com/rewriting/gtirb-server:service-8080
       alias: gtirb-server
   script:
-    - ls -lR build
-    - add-apt-repository ppa:mhier/libboost-latest
-    - apt-get -y update
-    - apt-get -y install libboost1.67-dev libboost-system1.67-dev libboost-filesystem1.67-dev libboost-program-options1.67-dev
     - gtirb-client http://gtirb-server:8080 ddisasm --input "binary=build/bin/gtirb-pprinter" --output "gtirb=gtirb-pprinter.gtirb"
     - gtirb-client http://gtirb-server:8080 stack-stamp --input "gtirb=gtirb-pprinter.gtirb" --output "gtirb=gtirb-pprinter.stack-stamp.gtirb"
     - gtirb-pprinter --ir gtirb-pprinter.stack-stamp.gtirb --binary gtirb-pprinter.stack-stamp
+
+
+stack-stamp-ubuntu18:
+  needs:
+    - job: build-ubuntu18-gcc
+      artifacts: true
+  before_script:
+    - add-apt-repository ppa:mhier/libboost-latest
+    - apt-get -y update
+    - apt-get -y install libboost1.67-dev libboost-system1.67-dev libboost-filesystem1.67-dev libboost-program-options1.67-dev
+  <<: *stack-stamp
+
+stack-stamp-ubuntu20:
+  needs:
+    - job: build-ubuntu20-gcc
+      artifacts: true
+  before_script:
+    - apt-get -y update
+    - apt-get install -y libboost-dev
+  <<: *stack-stamp
+
+stack-stamp-centos8:
+  needs:
+    - job: build-centos8-gcc-relwithdebuginfo
+      artifacts: true
+  before_script:
+    - add-apt-repository ppa:mhier/libboost-latest
+    - apt-get -y update
+    - apt-get -y install libboost1.67-dev libboost-system1.67-dev libboost-filesystem1.67-dev libboost-program-options1.67-dev
+  <<: *stack-stamp
 
 test-and-tag-stack-stamp:
   variables:
