@@ -311,7 +311,6 @@ stack-stamp-ubuntu18:
     - job: build-ubuntu18-gcc
       artifacts: true
   variables:
-    OS: ubuntu18
     binaries: "bin/gtirb-pprinter bin/gtirb-layout lib/libgtirb_pprinter.so lib/libgtirb_layout.so"
   before_script:
     - *ubuntu-deps
@@ -323,7 +322,6 @@ stack-stamp-ubuntu20:
     - job: build-ubuntu20-gcc
       artifacts: true
   variables:
-    OS: ubuntu20
     binaries: "bin/gtirb-pprinter bin/gtirb-layout lib/libgtirb_pprinter.so lib/libgtirb_layout.so"
   before_script:
     - *ubuntu-deps
@@ -335,8 +333,18 @@ stack-stamp-ubuntu20-clang:
     - job: build-ubuntu20-clang-debug
       artifacts: true
   variables:
-    OS: ubuntu20
     binaries: "bin/gtirb-pprinter bin/gtirb-layout lib/libgtirb_pprinter.so lib/libgtirb_layout.so"
+  before_script:
+    - *ubuntu-deps
+  <<: *stack-stamp
+
+stack-stamp-static:
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/static
+  needs:
+    - job: static-drivers
+      artifacts: true
+  variables:
+    binaries: "bin/gtirb-pprinter bin/gtirb-layout"
   before_script:
     - *ubuntu-deps
   <<: *stack-stamp
