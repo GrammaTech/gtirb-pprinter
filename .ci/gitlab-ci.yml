@@ -291,7 +291,7 @@ build-centos8-gcc-relwithdebuginfo:
       alias: gtirb-server
   script:
     - python3 -m pip install pip --upgrade && python3 -m pip install gtirb-server --extra-index-url=$EXTRA_INDEX_URL
-    - for binary in $BINARIES ; do
+    - for binary in $binaries ; do
         binary="build/$binary" ;
         gtirb-client http://gtirb-server:8080 ddisasm --input "binary=$binary" --output "gtirb=$binary.gtirb" ;
         gtirb-client http://gtirb-server:8080 stack-stamp --input "gtirb=$binary.gtirb" --output "gtirb=$binary.stack-stamp.gtirb" ;
@@ -300,7 +300,7 @@ build-centos8-gcc-relwithdebuginfo:
           *) ./build/bin/gtirb-pprinter --ir $binary.stack-stamp.gtirb --binary $binary.stack-stamp -c "-L$(pwd)/build/lib" ;;
         esac
       done
-    - for binary in $BINARIES ; do
+    - for binary in $binaries ; do
         binary="build/$binary" ;
         cp $binary.stack-stamp $binary ;
       done
