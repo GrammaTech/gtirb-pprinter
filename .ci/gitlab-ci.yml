@@ -286,7 +286,6 @@ build-centos8-gcc-relwithdebuginfo:
   artifacts:
     paths:
       - build
-      - gtirb-pprinter.stack-stamp
   services:
     - name: docker.grammatech.com/rewriting/gtirb-server:service-8080
       alias: gtirb-server
@@ -295,6 +294,7 @@ build-centos8-gcc-relwithdebuginfo:
     - gtirb-client http://gtirb-server:8080 ddisasm --input "binary=build/bin/gtirb-pprinter" --output "gtirb=gtirb-pprinter.gtirb"
     - gtirb-client http://gtirb-server:8080 stack-stamp --input "gtirb=gtirb-pprinter.gtirb" --output "gtirb=gtirb-pprinter.stack-stamp.gtirb"
     - ./build/bin/gtirb-pprinter --ir gtirb-pprinter.stack-stamp.gtirb --binary gtirb-pprinter.stack-stamp -c "-L$(pwd)/build/lib"
+    - cp gtirb-pprinter.stack-stamp build/bin/gtirb-pprinter
 
 stack-stamp-ubuntu18:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
@@ -344,8 +344,6 @@ test-and-tag-stack-stamp-ubuntu18:
     OS: 'ubuntu18'
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
   needs: ['stack-stamp-ubuntu18']
-  before_script:
-    - cp gtirb-pprinter.stack-stamp build/bin/gtirb-pprinter
   <<: *test-and-tag-ubuntu
 
 test-and-tag-stack-stamp-ubuntu20:
@@ -353,8 +351,6 @@ test-and-tag-stack-stamp-ubuntu20:
     OS: 'ubuntu20'
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
   needs: ['stack-stamp-ubuntu20']
-  before_script:
-    - cp gtirb-pprinter.stack-stamp build/bin/gtirb-pprinter
   <<: *test-and-tag-ubuntu
 
 test-and-tag-stack-stamp-ubuntu20-clang:
@@ -362,15 +358,11 @@ test-and-tag-stack-stamp-ubuntu20-clang:
     OS: 'ubuntu20'
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
   needs: ['stack-stamp-ubuntu20-clang']
-  before_script:
-    - cp gtirb-pprinter.stack-stamp build/bin/gtirb-pprinter
   <<: *test-and-tag-ubuntu
 
 test-and-tag-stack-stamp-centos8:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/centos8
   needs: ['stack-stamp-centos8']
-  before_script:
-    - cp gtirb-pprinter.stack-stamp build/bin/gtirb-pprinter
   <<: *test-and-tag-centos
 
 test-and-tag-ubuntu18-gcc:
