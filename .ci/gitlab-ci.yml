@@ -291,10 +291,19 @@ build-centos8-gcc-relwithdebuginfo:
       alias: gtirb-server
   script:
     - python3 -m pip install pip --upgrade && python3 -m pip install gtirb-server --extra-index-url=$EXTRA_INDEX_URL
-    - gtirb-client http://gtirb-server:8080 ddisasm --input "binary=build/bin/gtirb-pprinter" --output "gtirb=gtirb-pprinter.gtirb"
-    - gtirb-client http://gtirb-server:8080 stack-stamp --input "gtirb=gtirb-pprinter.gtirb" --output "gtirb=gtirb-pprinter.stack-stamp.gtirb"
-    - ./build/bin/gtirb-pprinter --ir gtirb-pprinter.stack-stamp.gtirb --binary gtirb-pprinter.stack-stamp -c "-L$(pwd)/build/lib"
-    - cp gtirb-pprinter.stack-stamp build/bin/gtirb-pprinter
+    - for binary in bin/gtirb-pprinter bin/gtirb-layout lib/libgtirb_pprinter.so lib/libgtirb_layout.so ; do
+        binary="build/$binary" ;
+        gtirb-client http://gtirb-server:8080 ddisasm --input "binary=$binary" --output "gtirb=$binary.gtirb" ;
+        gtirb-client http://gtirb-server:8080 stack-stamp --input "gtirb=$binary.gtirb" --output "gtirb=$binary.stack-stamp.gtirb" ;
+        case "$binary" in
+          *.so*) ./build/bin/gtirb-pprinter --ir $binary.stack-stamp.gtirb --binary $binary.stack-stamp -c "-L$(pwd)/build/lib" --shared ;;
+          *) ./build/bin/gtirb-pprinter --ir $binary.stack-stamp.gtirb --binary $binary.stack-stamp -c "-L$(pwd)/build/lib" ;;
+        esac
+      done
+    - for binary in bin/gtirb-pprinter bin/gtirb-layout lib/libgtirb_pprinter.so lib/libgtirb_layout.so ; do
+        binary="build/$binary" ;
+        cp $binary.stack-stamp $binary ;
+      done
 
 stack-stamp-ubuntu18:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
