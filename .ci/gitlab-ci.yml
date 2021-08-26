@@ -225,7 +225,7 @@ build-static:
     - PATH=$(pwd)/bin:$PATH ctest -V
 
 static-drivers:
-  stage: deploy
+  stage: build
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/static
   needs: []
   artifacts:
