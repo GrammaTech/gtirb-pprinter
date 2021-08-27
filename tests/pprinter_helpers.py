@@ -17,6 +17,7 @@ from typing import (
     Iterator,
     NamedTuple,
     List,
+    Optional,
     Sequence,
     Tuple,
 )
@@ -152,6 +153,41 @@ def run_asm_pprinter_with_outputput(
 
 
 def run_binary_pprinter_mock(
+    ir: gtirb.IR, args: Iterable[str], port: Optional[int]=None
+) -> subprocess.CompletedProcess:
+    with temp_directory() as tmpdir:
+        gtirb_path = os.path.join(tmpdir, "test.gtirb")
+        ir.save_protobuf(gtirb_path)
+
+        # Put our fake binaries first on PATH so that we can monitor
+        # what the pretty-printer is invoking (as long as we have a
+        # stub for everything it invokes).
+        env = dict(os.environ)
+        env["PATH"] = "%s%s%s" % (
+            _FAKEBIN_DIR,
+            os.pathsep,
+            env.get("PATH", ""),
+        )
+        if port is not None:
+            env[fakeprog.PORT_ENV_VAR] = str(port)
+
+        bin_path = os.path.join(tmpdir, "test")
+
+        capture_output_args = {}
+        if not should_print_subprocess_output():
+            capture_output_args["stdout"] = subprocess.PIPE
+            capture_output_args["stderr"] = subprocess.PIPE
+
+        return subprocess.run(
+            (pprinter_binary(), gtirb_path, "--binary", bin_path, *args,),
+            env=env,
+            check=False,
+            cwd=tmpdir,
+            **capture_output_args,
+        )
+
+
+def run_binary_pprinter_mock_iter(
     ir: gtirb.IR, args: Iterable[str] = (),
 ) -> Iterator[ToolInvocation]:
     """
@@ -162,44 +198,14 @@ def run_binary_pprinter_mock(
     :param args: Any additional arguments for the pretty printer.
     """
 
-    def run_proc(port: int) -> subprocess.CompletedProcess:
-        with temp_directory() as tmpdir:
-            gtirb_path = os.path.join(tmpdir, "test.gtirb")
-            ir.save_protobuf(gtirb_path)
-
-            # Put our fake binaries first on PATH so that we can monitor
-            # what the pretty-printer is invoking (as long as we have a
-            # stub for everything it invokes).
-            env = dict(os.environ)
-            env["PATH"] = "%s%s%s" % (
-                _FAKEBIN_DIR,
-                os.pathsep,
-                env.get("PATH", ""),
-            )
-            env[fakeprog.PORT_ENV_VAR] = str(port)
-
-            bin_path = os.path.join(tmpdir, "test")
-
-            capture_output_args = {}
-            if not should_print_subprocess_output():
-                capture_output_args["stdout"] = subprocess.PIPE
-                capture_output_args["stderr"] = subprocess.PIPE
-
-            return subprocess.run(
-                (pprinter_binary(), gtirb_path, "--binary", bin_path, *args,),
-                env=env,
-                check=False,
-                cwd=tmpdir,
-                **capture_output_args,
-            )
-
+    
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
         listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         listener.bind(("localhost", 0))
         listener.listen()
 
         proc_future = concurrent.futures.ThreadPoolExecutor().submit(
-            run_proc, port=listener.getsockname()[1]
+            run_binary_pprinter_mock, ir=ir, args=args, port=listener.getsockname()[1]
         )
 
         # We set a relatively small timeout on the socket so that we are

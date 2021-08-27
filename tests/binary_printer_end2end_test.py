@@ -1,3 +1,4 @@
+from typing import Iterable, Union, Tuple
 import unittest
 from pathlib import Path
 import os
@@ -6,12 +7,26 @@ import subprocess
 import sys
 import dummyso
 import tempfile
+import gtirb
 
-from pprinter_helpers import TESTS_DIR, pprinter_binary
+from pprinter_helpers import TESTS_DIR, pprinter_binary, run_binary_pprinter_mock
+import gtirb_helpers as helpers
 
 two_modules_gtirb = Path(TESTS_DIR, "two_modules.gtirb")
 use_ldlinux_gtirb = Path(TESTS_DIR, "ipcmk.gtirb")
 
+
+def get_test_ir(binary_type: Union[Iterable[str], None]=None
+    )-> Tuple[gtirb.IR, gtirb.Module]:
+    ir, m = helpers.create_test_module(
+        gtirb.Module.FileFormat.ELF, gtirb.Module.ISA.X64, binary_type
+    )
+    helpers.add_section(m, ".dynamic")
+    _, bi = helpers.add_text_section(m)
+    main = helpers.add_code_block(bi, b"\xC3")
+    helpers.add_function(m, "main", main)
+
+    return ir, m
 
 class TestBinaryGeneration(unittest.TestCase):
     @unittest.skipUnless(os.name == "posix", "only runs on Linux")
@@ -25,7 +40,7 @@ class TestBinaryGeneration(unittest.TestCase):
                     "--ir",
                     str(two_modules_gtirb),
                     "--asm",
-                    "/tmp/two_mods/foo.s",
+                    "/tmp/two_mods/foo.", 
                 ]
             ).decode(sys.stdout.encoding)
 
@@ -65,17 +80,12 @@ class TestBinaryGeneration(unittest.TestCase):
         # not try to explicity link with it, as the link should be implicit.
         # Just check that the binary causes no compiler errors; this binary
         # was made on CentOS and thus may not run on all systems.
-        output = subprocess.run(
-            [
-                pprinter_binary(),
-                "--ir",
-                str(use_ldlinux_gtirb),
-                "--binary",
-                "/dev/null",
-            ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-        ).stdout.decode(sys.stdout.encoding)
+
+        # Create a dynamic ELF binary with a trivial main() that just returns
+        ir, m = get_test_ir(["DYN"])
+
+        m.aux_data["libraries"].data.append("ld-linux-x86-64.so.2")
+        output = run_binary_pprinter_mock(ir,[]).stdout.decode(sys.stdout.encoding)
 
         self.assertIn("Compiler arguments:", output)
         self.assertNotIn("ld-linux", output)
@@ -127,3 +137,26 @@ class TestBinaryGeneration(unittest.TestCase):
             ).decode(sys.stdout.encoding)
             self.assertTrue("a() invoked!" in output_bin)
             self.assertTrue("b() invoked!" in output_bin)
+
+    @unittest.skipUnless(os.name=="posix", "only runs on Linux") # TODO: is this true?
+    def test_two_modules_new(self):
+        ir, m1 = get_test_ir()
+        m2 = gtirb.Module(isa=m1.isa, file_format=m1.file_format, name="test2")
+        m2.ir = ir
+
+        helpers.add_standard_aux_data_tables(m2)
+
+        _, bi = helpers.add_text_section(m2)
+        instrs = b"" # TODO: FIGURE OUT / GET BYTES TO PUT HERE 
+        block = helpers.add_code_block(bi, instrs)
+        helpers.add_function(m2, "f1", block)
+
+        
+        # TODO: what should we be checking here? 
+        output = run_binary_pprinter_mock(ir, []).stdout.decode(sys.stdout.encoding)
+
+
+
+
+
+
