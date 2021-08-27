@@ -342,7 +342,7 @@ stack-stamp-ubuntu20-clang:
   <<: *stack-stamp
 
 stack-stamp-static:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/static
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
   needs:
     - job: static-drivers
       artifacts: true
