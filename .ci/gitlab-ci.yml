@@ -290,11 +290,10 @@ build-centos8-gcc-relwithdebuginfo:
     - name: docker.grammatech.com/rewriting/gtirb-server:service-8080
       alias: gtirb-server
   script:
-    - python3 -m pip install pip --upgrade && python3 -m pip install gtirb-server --extra-index-url=$EXTRA_INDEX_URL
     - for binary in $binaries ; do
         binary="build/$binary" ;
-        gtirb-client http://gtirb-server:8080 ddisasm --input "binary=$binary" --output "gtirb=$binary.gtirb" ;
-        gtirb-client http://gtirb-server:8080 stack-stamp --input "gtirb=$binary.gtirb" --output "gtirb=$binary.stack-stamp.gtirb" ;
+        curl -F transform=ddisasm -F input=@$binary --output $binary.gtirb http://gtirb-server:8080/simple ;
+        curl -F transform=stack-stamp -F input=@$binary.gtirb --output $binary.stack-stamp.gtirb http://gtirb-server:8080/simple ;
         case "$binary" in
           *.so*) ./build/bin/gtirb-pprinter --ir $binary.stack-stamp.gtirb --binary $binary.stack-stamp -c "-L$(pwd)/build/lib" --shared ;;
           *) ./build/bin/gtirb-pprinter --ir $binary.stack-stamp.gtirb --binary $binary.stack-stamp -c "-L$(pwd)/build/lib" ;;
