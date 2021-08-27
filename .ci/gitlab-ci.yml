@@ -341,18 +341,6 @@ stack-stamp-ubuntu20-clang:
     - *ubuntu-deps
   <<: *stack-stamp
 
-stack-stamp-static:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
-  needs:
-    - job: static-drivers
-      artifacts: true
-  variables:
-    OS: ubuntu20
-    binaries: "bin/gtirb-pprinter bin/gtirb-layout"
-  before_script:
-    - *ubuntu-deps
-  <<: *stack-stamp
-
 stack-stamp-centos8:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/centos8
   variables:
