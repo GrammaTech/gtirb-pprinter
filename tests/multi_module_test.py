@@ -94,3 +94,27 @@ class MultiModuleTests(PPrinterTest):
             ).decode(sys.stdout.encoding)
             self.assertNotIn(".globl main", output)
             self.assertIn(".globl fun", output)
+
+    def test_multiple_modules_binary(self):
+        """
+        Current expected behavior is that with `--binaries`,
+        the pprinter should produce 2 binary files from a file with 2 modules.
+        """
+        with temp_directory() as tmpdir:
+            gtirb_path = os.path.join(tmpdir, "test.gtirb")
+            test_path = os.path.join(tmpdir, "test")
+            self.create_multi_module_ir().save_protobuf(gtirb_path)
+
+            _ = subprocess.check_output(
+                (
+                    pprinter_binary(),
+                    "--ir",
+                    gtirb_path,
+                    "--binaries",
+                    test_path,
+                ),
+                cwd=tmpdir,
+            ).decode(sys.stdout.encoding)
+
+            self.assertIn("test", os.listdir(tmpdir))
+            self.assertIn("test1", os.listdir(tmpdir))
