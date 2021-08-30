@@ -284,6 +284,7 @@ build-centos8-gcc-relwithdebuginfo:
 .stack-stamp: &stack-stamp
   stage: xform
   artifacts:
+    when: always
     paths:
       - build
   services:
@@ -293,15 +294,16 @@ build-centos8-gcc-relwithdebuginfo:
     - for binary in $binaries ; do
         binary="build/$binary" ;
         curl -F transform=ddisasm -F input=@$binary --output $binary.gtirb http://gtirb-server:8080/simple ;
-        curl -F transform=stack-stamp -F input=@$binary.gtirb --output $binary.stack-stamp.gtirb http://gtirb-server:8080/simple ;
+        curl -F transform=shuffle -F input=@$binary.gtirb --output $binary.shuffle.gtirb http://gtirb-server:8080/simple ;
+        curl -F transform=stack-stamp -F input=@$binary.shuffle.gtirb --output $binary.shuffle.stack-stamp.gtirb http://gtirb-server:8080/simple ;
         case "$binary" in
-          *.so*) ./build/bin/gtirb-pprinter --ir $binary.stack-stamp.gtirb --binary $binary.stack-stamp -c "-L$(pwd)/build/lib" --shared ;;
-          *) ./build/bin/gtirb-pprinter --ir $binary.stack-stamp.gtirb --binary $binary.stack-stamp -c "-L$(pwd)/build/lib" ;;
+          *.so*) ./build/bin/gtirb-pprinter --ir $binary.shuffle.stack-stamp.gtirb --binary $binary.shuffle.stack-stamp -c "-L$(pwd)/build/lib" --shared ;;
+          *) ./build/bin/gtirb-pprinter --ir $binary.shuffle.stack-stamp.gtirb --binary $binary.shuffle.stack-stamp -c "-L$(pwd)/build/lib" ;;
         esac
       done
     - for binary in $binaries ; do
         binary="build/$binary" ;
-        cp $binary.stack-stamp $binary ;
+        cp $binary.shuffle.stack-stamp $binary ;
       done
 
 stack-stamp-ubuntu18:
