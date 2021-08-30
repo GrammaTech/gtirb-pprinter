@@ -153,8 +153,10 @@ def run_asm_pprinter_with_outputput(
 
 
 def run_binary_pprinter_mock_out(
-    ir: gtirb.IR, args: Iterable[str], port: Optional[int]=None,
-    check_output: bool=False
+    ir: gtirb.IR,
+    args: Iterable[str],
+    port: Optional[int] = None,
+    check_output: bool = False,
 ) -> subprocess.CompletedProcess:
     with temp_directory() as tmpdir:
         gtirb_path = os.path.join(tmpdir, "test.gtirb")
@@ -199,14 +201,16 @@ def run_binary_pprinter_mock(
     :param args: Any additional arguments for the pretty printer.
     """
 
-    
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
         listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         listener.bind(("localhost", 0))
         listener.listen()
 
         proc_future = concurrent.futures.ThreadPoolExecutor().submit(
-            run_binary_pprinter_mock_out, ir=ir, args=args, port=listener.getsockname()[1]
+            run_binary_pprinter_mock_out,
+            ir=ir,
+            args=args,
+            port=listener.getsockname()[1],
         )
 
         # We set a relatively small timeout on the socket so that we are
