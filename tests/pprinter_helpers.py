@@ -152,8 +152,9 @@ def run_asm_pprinter_with_outputput(
             return f.read(), proc.stdout.decode("ascii")
 
 
-def run_binary_pprinter_mock(
-    ir: gtirb.IR, args: Iterable[str], port: Optional[int]=None
+def run_binary_pprinter_mock_out(
+    ir: gtirb.IR, args: Iterable[str], port: Optional[int]=None,
+    check_output: bool=False
 ) -> subprocess.CompletedProcess:
     with temp_directory() as tmpdir:
         gtirb_path = os.path.join(tmpdir, "test.gtirb")
@@ -174,7 +175,7 @@ def run_binary_pprinter_mock(
         bin_path = os.path.join(tmpdir, "test")
 
         capture_output_args = {}
-        if not should_print_subprocess_output():
+        if check_output or not should_print_subprocess_output():
             capture_output_args["stdout"] = subprocess.PIPE
             capture_output_args["stderr"] = subprocess.PIPE
 
@@ -187,7 +188,7 @@ def run_binary_pprinter_mock(
         )
 
 
-def run_binary_pprinter_mock_iter(
+def run_binary_pprinter_mock(
     ir: gtirb.IR, args: Iterable[str] = (),
 ) -> Iterator[ToolInvocation]:
     """
@@ -205,7 +206,7 @@ def run_binary_pprinter_mock_iter(
         listener.listen()
 
         proc_future = concurrent.futures.ThreadPoolExecutor().submit(
-            run_binary_pprinter_mock, ir=ir, args=args, port=listener.getsockname()[1]
+            run_binary_pprinter_mock_out, ir=ir, args=args, port=listener.getsockname()[1]
         )
 
         # We set a relatively small timeout on the socket so that we are
