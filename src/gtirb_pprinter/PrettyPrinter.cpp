@@ -874,6 +874,12 @@ void PrettyPrinterBase::printNonZeroDataBlock(
       gtirb::Addr EA = *dataObject.getAddress() + CurrOffset.Displacement;
       printEA(os, EA);
       printSymbolicData(os, EA, SEE, Size, Type);
+      assert(Size != 0 && "Size 0 SymbolicExpression");
+      if (Size == 0) {
+        // Developer's assertion
+        os << " ERROR: Size 0 SymbolicExpression: stop printing\n";
+        break;
+      }
       ByteI += Size;
       ByteIt += Size;
       CurrOffset.Displacement += Size;

@@ -40,6 +40,7 @@ protected:
   std::string getRegisterName(unsigned int reg) const override;
   void printHeader(std::ostream& os) override;
   void setDecodeMode(std::ostream& os, const gtirb::CodeBlock& x) override;
+  void printAlignment(std::ostream& OS, uint64_t Align) override;
   void printInstruction(std::ostream& os, const gtirb::CodeBlock& block,
                         const cs_insn& inst,
                         const gtirb::Offset& offset) override;

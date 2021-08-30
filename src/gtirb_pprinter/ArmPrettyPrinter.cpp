@@ -37,6 +37,7 @@ void ArmPrettyPrinter::printHeader(std::ostream& os) {
   os << "# ARM " << std::endl;
   os << ".syntax unified" << std::endl;
   os << ".arch_extension idiv" << std::endl;
+  os << ".arch_extension sec" << std::endl;
 }
 
 void ArmPrettyPrinter::setDecodeMode(std::ostream& os,
@@ -49,6 +50,17 @@ void ArmPrettyPrinter::setDecodeMode(std::ostream& os,
     os << ".arm" << std::endl;
     cs_option(this->csHandle, CS_OPT_MODE, CS_MODE_ARM | CS_MODE_V8);
   }
+}
+
+void ArmPrettyPrinter::printAlignment(std::ostream& OS, uint64_t Align) {
+  // In ARM Assembly Language, `.align N` aligns the next element to multiple
+  // of 2^N.
+  int X = Align, Log2X = 0;
+  while (X >>= 1) {
+    ++Log2X;
+  }
+
+  ElfPrettyPrinter::printAlignment(OS, Log2X);
 }
 
 void ArmPrettyPrinter::printInstruction(std::ostream& os,
@@ -118,6 +130,17 @@ void ArmPrettyPrinter::printInstruction(std::ostream& os,
   // Make sure the initial m_accum_comment is empty.
   m_accum_comment.clear();
   printOperandList(os, block, inst);
+
+  if (inst.detail->arm.cps_flag != ARM_CPSFLAG_NONE &&
+      inst.detail->arm.cps_flag != ARM_CPSFLAG_INVALID) {
+    if (inst.detail->arm.cps_flag | ARM_CPSFLAG_I)
+      os << "i";
+    if (inst.detail->arm.cps_flag | ARM_CPSFLAG_F)
+      os << "f";
+    if (inst.detail->arm.cps_flag | ARM_CPSFLAG_A)
+      os << "a";
+  }
+
   if (!m_accum_comment.empty()) {
     os << '\n' << syntax.comment() << " ";
     printEA(os, ea);
@@ -134,7 +157,8 @@ void ArmPrettyPrinter::printOperandList(std::ostream& os,
   int opCount = detail.op_count;
   std::set<arm_insn> LdmSdm = {ARM_INS_LDM,   ARM_INS_LDMDA, ARM_INS_LDMDB,
                                ARM_INS_LDMIB, ARM_INS_STM,   ARM_INS_STMDA,
-                               ARM_INS_STMDB, ARM_INS_STMIB};
+                               ARM_INS_STMDB, ARM_INS_STMIB, ARM_INS_VSTMIA,
+                               ARM_INS_VLDMIA};
   std::set<arm_insn> PushPop = {ARM_INS_POP, ARM_INS_PUSH};
   int RegBitVectorIndex = -1;
 
@@ -231,9 +255,17 @@ void ArmPrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
   };
 
   const cs_arm_op& op = inst.detail->arm.operands[index];
-  if (op.type == ARM_OP_SYSREG)
-    os << "msr";
-  else {
+  if (op.type == ARM_OP_SYSREG) {
+    os << "cpsr_";
+    if (op.reg | ARM_SYSREG_CPSR_C)
+      os << "c";
+    if (op.reg | ARM_SYSREG_CPSR_X)
+      os << "x";
+    if (op.reg | ARM_SYSREG_CPSR_S)
+      os << "s";
+    if (op.reg | ARM_SYSREG_CPSR_F)
+      os << "f";
+  } else {
     os << getRegisterName(op.reg);
     std::string shift_type = armShifter2String(op.shift.type);
     std::string opcode = ascii_str_tolower(inst.mnemonic);
@@ -244,7 +276,7 @@ void ArmPrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
       // do not print it again here.
       if (shift_type != "" && shift_type != opcode)
         os << shift_type << " ";
-      if (op.shift.value >= 32)
+      if (op.shift.value > 32)
         os << getRegisterName(op.shift.value);
       else
         os << "#" << op.shift.value;
@@ -270,6 +302,8 @@ void ArmPrettyPrinter::printOpImmediate(
   } else {
     if (op.type == ARM_OP_IMM)
       os << '#';
+    else if (op.type == ARM_OP_CIMM)
+      os << "cr";
     // The operand is just a number.
     os << op.imm;
   }
