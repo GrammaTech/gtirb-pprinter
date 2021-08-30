@@ -133,11 +133,11 @@ void ArmPrettyPrinter::printInstruction(std::ostream& os,
 
   if (inst.detail->arm.cps_flag != ARM_CPSFLAG_NONE &&
       inst.detail->arm.cps_flag != ARM_CPSFLAG_INVALID) {
-    if (inst.detail->arm.cps_flag | ARM_CPSFLAG_I)
+    if (!!(inst.detail->arm.cps_flag | ARM_CPSFLAG_I))
       os << "i";
-    if (inst.detail->arm.cps_flag | ARM_CPSFLAG_F)
+    if (!!(inst.detail->arm.cps_flag | ARM_CPSFLAG_F))
       os << "f";
-    if (inst.detail->arm.cps_flag | ARM_CPSFLAG_A)
+    if (!!(inst.detail->arm.cps_flag | ARM_CPSFLAG_A))
       os << "a";
   }
 
@@ -257,13 +257,13 @@ void ArmPrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
   const cs_arm_op& op = inst.detail->arm.operands[index];
   if (op.type == ARM_OP_SYSREG) {
     os << "cpsr_";
-    if (op.reg | ARM_SYSREG_CPSR_C)
+    if (!!(op.reg | ARM_SYSREG_CPSR_C))
       os << "c";
-    if (op.reg | ARM_SYSREG_CPSR_X)
+    if (!!(op.reg | ARM_SYSREG_CPSR_X))
       os << "x";
-    if (op.reg | ARM_SYSREG_CPSR_S)
+    if (!!(op.reg | ARM_SYSREG_CPSR_S))
       os << "s";
-    if (op.reg | ARM_SYSREG_CPSR_F)
+    if (!!(op.reg | ARM_SYSREG_CPSR_F))
       os << "f";
   } else {
     os << getRegisterName(op.reg);
