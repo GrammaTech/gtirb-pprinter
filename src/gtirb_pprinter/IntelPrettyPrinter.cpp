@@ -32,13 +32,52 @@ IntelPrettyPrinter::IntelPrettyPrinter(gtirb::Context& context_,
   assert(err == CS_ERR_OK && "Capstone failure");
 }
 
+void IntelPrettyPrinter::printInstruction(std::ostream& os,
+                                          const gtirb::CodeBlock& block,
+                                          const cs_insn& inst,
+                                          const gtirb::Offset& offset) {
+
+  // Print explicit directives for instruction prefixes needed for @TLSGD
+  // relocations, which require a fixed 16-byte instruction sequence.
+  if (inst.id == X86_INS_LEA &&
+      inst.detail->x86.prefix[2] == X86_PREFIX_OPSIZE) {
+
+    gtirb::Addr ea(inst.address);
+
+    uint8_t dispOffset = inst.detail->x86.encoding.disp_offset;
+    const gtirb::SymbolicExpression* symbolic =
+        block.getByteInterval()->getSymbolicExpression(
+            ea + dispOffset - *block.getByteInterval()->getAddress());
+
+    if (symbolic) {
+      if (const auto* expr = std::get_if<gtirb::SymAddrConst>(symbolic)) {
+        if (expr->Attributes.isFlagSet(gtirb::SymAttribute::TlsGd)) {
+          // Prefer directives to instruction prefixes:
+          //      .byte 0x66                ;     data16 lea REG, [rip+X]
+          //      lea REG,[rip+X]
+          //      .value 0x6666             ;     data16 data16 rex64 call Y
+          //      rex64
+          //      call __tls_get_addr@PLT
+          os << syntax.tab() << "  .byte 0x66\n";
+          PrettyPrinterBase::printInstruction(os, block, inst, offset);
+          os << syntax.tab() << "  .value 0x6666\n";
+          os << syntax.tab() << "  rex64\n";
+          return;
+        }
+      }
+    }
+  }
+
+  PrettyPrinterBase::printInstruction(os, block, inst, offset);
+}
+
 void IntelPrettyPrinter::fixupInstruction(cs_insn& inst) {
   ElfPrettyPrinter::fixupInstruction(inst);
   x86FixupInstruction(inst);
   auto& Detail = inst.detail->x86;
 
-  // vpgatherdd/vpgatherqd have some issues where the middle operand will be the
-  // wrong width when using Intel syntax.
+  // vpgatherdd/vpgatherqd have some issues where the middle operand will be
+  // the wrong width when using Intel syntax.
   // TODO: this fixup works for gas, but causes issues with clang-as, as
   // clang-as expects the operand to be the size Capstone reports.
   // TODO: any other instructions with a similar problem?

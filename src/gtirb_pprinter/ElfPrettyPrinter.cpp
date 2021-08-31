@@ -371,6 +371,8 @@ void ElfPrettyPrinter::printSymExprSuffix(std::ostream& OS,
     OS << "@TPOFF";
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::NtpOff)) {
     OS << "@NTPOFF";
+  } else if (Attrs.isFlagSet(gtirb::SymAttribute::DtpOff)) {
+    OS << "@DTPOFF";
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::TlsGd)) {
     OS << "@TLSGD";
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::TlsLd)) {

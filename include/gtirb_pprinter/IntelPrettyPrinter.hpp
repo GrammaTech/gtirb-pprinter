@@ -36,8 +36,11 @@ public:
 protected:
   const IntelSyntax& intelSyntax;
 
-  void fixupInstruction(cs_insn& inst) override;
   void printHeader(std::ostream& os) override;
+  void printInstruction(std::ostream& os, const gtirb::CodeBlock& block,
+                        const cs_insn& inst,
+                        const gtirb::Offset& offset) override;
+  void fixupInstruction(cs_insn& inst) override;
   void printOpRegdirect(std::ostream& os, const cs_insn& inst,
                         uint64_t index) override;
   void printOpImmediate(std::ostream& os,
