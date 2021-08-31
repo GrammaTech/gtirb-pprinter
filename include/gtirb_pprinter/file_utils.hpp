@@ -34,8 +34,8 @@ public:
   bool isOpen() const { return static_cast<bool>(FileStream); }
   void close() { FileStream.close(); }
 
-  operator const std::ofstream &() const { return FileStream; }
-  operator std::ofstream &() { return FileStream; }
+  operator const std::ofstream&() const { return FileStream; }
+  operator std::ofstream&() { return FileStream; }
   const std::string& fileName() const { return Name; }
 };
 
