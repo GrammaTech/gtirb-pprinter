@@ -281,7 +281,7 @@ build-centos8-gcc-relwithdebuginfo:
     - cpack -G "RPM" -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PPRINTER_PACKAGE=rpm-driver
     - cd ../ && mv build ../build
 
-.stack-stamp: &stack-stamp
+.xform: &xform
   stage: xform
   artifacts:
     when: always
@@ -306,7 +306,7 @@ build-centos8-gcc-relwithdebuginfo:
         cp $binary.stack-stamp.shuffle $binary ;
       done
 
-stack-stamp-ubuntu18:
+xform-ubuntu18:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
   needs:
     - job: build-ubuntu18-gcc
@@ -316,9 +316,9 @@ stack-stamp-ubuntu18:
     binaries: "bin/gtirb-pprinter bin/gtirb-layout lib/libgtirb_pprinter.so lib/libgtirb_layout.so"
   before_script:
     - *ubuntu-deps
-  <<: *stack-stamp
+  <<: *xform
 
-stack-stamp-ubuntu20:
+xform-ubuntu20:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
   needs:
     - job: build-ubuntu20-gcc
@@ -328,9 +328,9 @@ stack-stamp-ubuntu20:
     binaries: "bin/gtirb-pprinter bin/gtirb-layout lib/libgtirb_pprinter.so lib/libgtirb_layout.so"
   before_script:
     - *ubuntu-deps
-  <<: *stack-stamp
+  <<: *xform
 
-stack-stamp-ubuntu20-clang:
+xform-ubuntu20-clang:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
   needs:
     - job: build-ubuntu20-clang-debug
@@ -340,9 +340,9 @@ stack-stamp-ubuntu20-clang:
     binaries: "bin/gtirb-pprinter bin/gtirb-layout lib/libgtirb_pprinter.so lib/libgtirb_layout.so"
   before_script:
     - *ubuntu-deps
-  <<: *stack-stamp
+  <<: *xform
 
-stack-stamp-centos8:
+xform-centos8:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/centos8
   variables:
     binaries: "bin/gtirb-pprinter bin/gtirb-layout lib/libgtirb_pprinter.so lib/libgtirb_layout.so"
@@ -352,32 +352,32 @@ stack-stamp-centos8:
   before_script:
     - *centos-deps
     - export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/build/lib"
-  <<: *stack-stamp
+  <<: *xform
 
-test-and-tag-stack-stamp-ubuntu18:
+test-and-tag-xform-ubuntu18:
   variables:
     OS: 'ubuntu18'
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
-  needs: ['stack-stamp-ubuntu18']
+  needs: ['xform-ubuntu18']
   <<: *test-and-tag-ubuntu
 
-test-and-tag-stack-stamp-ubuntu20:
+test-and-tag-xform-ubuntu20:
   variables:
     OS: 'ubuntu20'
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
-  needs: ['stack-stamp-ubuntu20']
+  needs: ['xform-ubuntu20']
   <<: *test-and-tag-ubuntu
 
-test-and-tag-stack-stamp-ubuntu20-clang:
+test-and-tag-xform-ubuntu20-clang:
   variables:
     OS: 'ubuntu20'
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
-  needs: ['stack-stamp-ubuntu20-clang']
+  needs: ['xform-ubuntu20-clang']
   <<: *test-and-tag-ubuntu
 
-test-and-tag-stack-stamp-centos8:
+test-and-tag-xform-centos8:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/centos8
-  needs: ['stack-stamp-centos8']
+  needs: ['xform-centos8']
   <<: *test-and-tag-centos
 
 test-and-tag-ubuntu18-gcc:
