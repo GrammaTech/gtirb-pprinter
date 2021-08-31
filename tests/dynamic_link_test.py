@@ -29,5 +29,5 @@ class TestDynamicLinking(PPrinterTest):
             ir, [], check_output=True
         ).stdout.decode(sys.stdout.encoding)
 
-        self.assertContains("Compiler arguments:", output)
-        self.assertNotContains("ld-linux", output)
+        self.assertIn("Compiler arguments:", output)
+        self.assertNotIn("ld-linux", output)
