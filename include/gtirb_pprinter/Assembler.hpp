@@ -29,11 +29,9 @@ public:
   virtual std::string cleanSingleQuote(const std::string& s) const;
 };
 
-class DEBLOAT_PRETTYPRINTER_EXPORT_API GasAssembler : public Assembler {
-};
+class DEBLOAT_PRETTYPRINTER_EXPORT_API GasAssembler : public Assembler {};
 
-class DEBLOAT_PRETTYPRINTER_EXPORT_API ClangAssembler : public Assembler {
-};
+class DEBLOAT_PRETTYPRINTER_EXPORT_API ClangAssembler : public Assembler {};
 
 } // namespace gtirb_pprint
 

@@ -18,18 +18,16 @@
 namespace gtirb_pprint {
 
 IntelIcxPrettyPrinter::IntelIcxPrettyPrinter(gtirb::Context& context_,
-                                       gtirb::Module& module_,
-                                       const IntelSyntax& syntax_,
-                                       const IcxAssembler& assembler_,
-                                       const PrintingPolicy& policy_)
-    : IntelPrettyPrinter(context_, module_, syntax_, assembler_, policy_)
-{
-}
+                                             gtirb::Module& module_,
+                                             const IntelSyntax& syntax_,
+                                             const IcxAssembler& assembler_,
+                                             const PrintingPolicy& policy_)
+    : IntelPrettyPrinter(context_, module_, syntax_, assembler_, policy_) {}
 
 std::unique_ptr<PrettyPrinterBase>
 IntelIcxPrettyPrinterFactory::create(gtirb::Context& gtirb_context,
-                                  gtirb::Module& module,
-                                  const PrintingPolicy& policy) {
+                                     gtirb::Module& module,
+                                     const PrintingPolicy& policy) {
   static const IntelSyntax syntax{};
   static const IcxAssembler assembler{};
   return std::make_unique<IntelPrettyPrinter>(gtirb_context, module, syntax,

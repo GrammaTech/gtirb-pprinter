@@ -21,10 +21,9 @@ namespace gtirb_pprint {
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API IcxAssembler : public ClangAssembler {
 public:
-  virtual std::string cleanSingleQuote(const std::string& s) const
-  {
-      // Do not add escape for single-quote
-      return s;
+  virtual std::string cleanSingleQuote(const std::string& s) const {
+    // Do not add escape for single-quote
+    return s;
   };
 };
 
@@ -32,7 +31,8 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API IntelIcxPrettyPrinter
     : public IntelPrettyPrinter {
 public:
   IntelIcxPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
-                        const IntelSyntax& syntax, const IcxAssembler& assembler,
+                        const IntelSyntax& syntax,
+                        const IcxAssembler& assembler,
                         const PrintingPolicy& policy);
 };
 
