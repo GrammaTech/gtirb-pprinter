@@ -49,18 +49,18 @@ void registerAuxDataTypes() {
 
 void registerPrettyPrinters() {
   registerPrinter({"elf", "raw"}, {"x86", "x64"}, {"intel"}, {"gas"},
-                  std::make_shared<IntelPrettyPrinterFactory>(), true);
+                  std::make_shared<IntelPrettyPrinterFactory>(), true, true);
   registerPrinter({"elf", "raw"}, {"x86", "x64"}, {"intel"}, {"icx"},
                   std::make_shared<IntelIcxPrettyPrinterFactory>());
   registerPrinter({"elf", "raw"}, {"x86", "x64"}, {"att"}, {"gas"},
-                  std::make_shared<AttPrettyPrinterFactory>());
+                  std::make_shared<AttPrettyPrinterFactory>(), false, true);
   registerPrinter({"elf", "raw"}, {"arm"}, {"arm"}, {"gas"},
-                  std::make_shared<ArmPrettyPrinterFactory>(), true);
+                  std::make_shared<ArmPrettyPrinterFactory>(), true, true);
   registerPrinter({"elf", "raw"}, {"arm64"}, {"arm64"}, {"gas"},
-                  std::make_shared<Arm64PrettyPrinterFactory>(), true);
+                  std::make_shared<Arm64PrettyPrinterFactory>(), true, true);
   registerPrinter({"elf", "raw"}, {"mips32"}, {"mips32"}, {"gas"},
-                  std::make_shared<Mips32PrettyPrinterFactory>(), true);
+                  std::make_shared<Mips32PrettyPrinterFactory>(), true, true);
   registerPrinter({"pe", "raw"}, {"x86", "x64"}, {"masm"}, {"gas"},
-                  std::make_shared<MasmPrettyPrinterFactory>(), true);
+                  std::make_shared<MasmPrettyPrinterFactory>(), true, true);
 }
 } // namespace gtirb_pprint

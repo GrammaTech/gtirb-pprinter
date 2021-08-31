@@ -53,15 +53,17 @@ using string_range = boost::any_range<std::string, boost::forward_traversal_tag,
 /// used to load a default \link PrintingPolicy and create a pretty printer for
 /// the formats and syntaxes named in the initialization lists.
 ///
-/// For example, \code registerPrinter({"elf"}, {"x64"}, {"intel"}, theFactory);
-/// \endcode
+/// For example, \code registerPrinter({"elf"}, {"x64"}, {"intel"}, {"gas"},
+/// theFactory); \endcode
 ///
 /// \param formats    the (non-empty) formats produced by the factory
 /// \param isas       the (non-empty) ISAs produced by the factory
 /// \param syntaxes   the (non-empty) syntaxes produced by the factory
 /// \param assemblers the (non-empty) assemblers produced by the factory
 /// \param f          the (non-empty) \link PrettyPrinterFactory object
-/// \param isDefault  optionally make this the default factory for the
+/// \param isDefaultSyntax  optionally make this the default factory for the
+///                   named format and syntax parameters
+/// \param isDefaultAssembler optionally make this the default factory for the
 ///                   named format, syntax, and assembler parameters
 ///
 /// \return \c true.
@@ -71,7 +73,7 @@ registerPrinter(std::initializer_list<std::string> formats,
                 std::initializer_list<std::string> syntaxes,
                 std::initializer_list<std::string> assemblers,
                 std::shared_ptr<PrettyPrinterFactory> f,
-                bool isDefault = false);
+                bool isDefaultSyntax = false, bool isDefaultAssembler = false);
 
 /// Return the current set of syntaxes with registered factories.
 DEBLOAT_PRETTYPRINTER_EXPORT_API

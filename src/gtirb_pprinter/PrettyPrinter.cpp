@@ -60,7 +60,8 @@ bool registerPrinter(std::initializer_list<std::string> formats,
                      std::initializer_list<std::string> isas,
                      std::initializer_list<std::string> syntaxes,
                      std::initializer_list<std::string> assemblers,
-                     std::shared_ptr<PrettyPrinterFactory> f, bool isDefault) {
+                     std::shared_ptr<PrettyPrinterFactory> f,
+                     bool isDefaultSyntax, bool isDefaultAssembler) {
   assert(formats.size() > 0 && "No formats to register!");
   assert(isas.size() > 0 && "No ISAs to register!");
   assert(syntaxes.size() > 0 && "No syntaxes to register!");
@@ -70,8 +71,10 @@ bool registerPrinter(std::initializer_list<std::string> formats,
       for (const std::string& syntax : syntaxes) {
         for (const std::string& assembler : assemblers) {
           getFactories()[std::make_tuple(format, isa, syntax, assembler)] = f;
-          if (isDefault) {
+          if (isDefaultSyntax) {
             setDefaultSyntax(format, isa, syntax);
+          }
+          if (isDefaultAssembler) {
             setDefaultAssembler(format, isa, syntax, assembler);
           }
         }
