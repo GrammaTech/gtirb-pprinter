@@ -2,7 +2,13 @@ import unittest
 
 import gtirb
 
-from gtirb_helpers import add_code_block, add_text_section, create_test_module
+from gtirb_helpers import (
+    add_byte_block,
+    add_code_block,
+    add_section,
+    add_text_section,
+    create_test_module,
+)
 from pprinter_helpers import (
     PPrinterTest,
     can_mock_binaries,
@@ -109,3 +115,126 @@ class WindowsBinaryPrinterTests_NoMock(PPrinterTest):
 
         self.assertNotContains(asm_lines(asm), ["INCLUDELIB WINSPOOL.DRV"])
         self.assertNotContains(asm_lines(asm), ["INCLUDELIB USER32.DLL"])
+
+    def test_windows_REData(self):
+        ir, m = create_test_module(
+            file_format=gtirb.Module.FileFormat.PE,
+            isa=gtirb.Module.ISA.X64,
+            binary_type=["EXEC", "EXE", "WINDOWS_GUI"],
+        )
+
+        resource_data = b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\
+        \x00\x00\x00\x00\x00\x02\x00\x06\x00\x00\x00 \x00\x00\x80\
+        \x18\x00\x00\x008\x00\x00\x80\x00\x00\x00\x00\x00\x00\x00\
+        \x00\x00\x00\x00\x00\x00\x00\x01\x00\x07\x00\x00\x00P\x00\
+        \x00\x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
+        \x00\x00\x01\x00\x01\x00\x00\x00h\x00\x00\x80\x00\x00\x00\
+        \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\t\x04\
+        \x00\x00\x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
+        \x00\x00\x00\x00\x00\x01\x00\t\x04\x00\x00\x90\x00\x00\x00\
+        \xa0`\x00\x00H\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
+        \xe8`\x00\x00}\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
+        \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x14\x00T\x00e\x00s\
+        \x00t\x00 \x00r\x00e\x00s\x00o\x00u\x00r\x00c\x00e\x00 \x00s\
+        \x00t\x00r\x00i\x00n\x00g\x00\x00\x00\x00\x00\x00\x00\x00\
+        \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
+        <?xml version='1.0' encoding='UTF-8' standalone='yes'?>\
+        \r\n<assembly xmlns='urn:schemas-microsoft-com:asm.v1\
+        ' manifestVersion='1.0'>\r\n  \
+        <trustInfo xmlns=\"urn:schemas-microsoft-com:asm.v3\">\r\n\
+            <security>\r\n      <requestedPrivileges>\r\n        \
+            <requestedExecutionLevel level='asInvoker' uiAccess='false' />\r\n\
+          </requestedPrivileges>\r\n    </security>\r\n  </trustInfo>\
+                 \r\n</assembly>\r\n\x00\x00\x00')"
+
+        _, bi = add_section(m, ".text")
+        bi.contents = bytearray(b"\xC3")
+        _, bi = add_section(m, ".rscs")
+        _ = add_byte_block(bi, gtirb.block.DataBlock, resource_data)
+        off1 = gtirb.Offset(bi, 0)
+        off2 = gtirb.Offset(bi, 72)
+        entry1 = (
+            [
+                72,
+                0,
+                0,
+                0,
+                32,
+                0,
+                0,
+                0,
+                255,
+                255,
+                6,
+                0,
+                255,
+                255,
+                7,
+                0,
+                0,
+                0,
+                0,
+                0,
+                48,
+                16,
+                9,
+                4,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],
+            off1,
+            72,
+        )
+        entry2 = (
+            [
+                125,
+                1,
+                0,
+                0,
+                32,
+                0,
+                0,
+                0,
+                255,
+                255,
+                24,
+                0,
+                255,
+                255,
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                48,
+                16,
+                9,
+                4,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],
+            off2,
+            381,
+        )
+        m.aux_data["peResources"] = gtirb.AuxData(
+            [entry1, entry2],
+            "sequence<tuple<sequence<uint8_t>,Offset,uint64_t>>",
+        )
+
+        output = next(run_binary_pprinter_mock(ir))
+
+        # TODO: what do we need to be checking?
+        self.assertIn(".res", output.args)
