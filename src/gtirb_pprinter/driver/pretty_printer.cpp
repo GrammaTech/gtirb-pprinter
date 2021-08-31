@@ -72,7 +72,7 @@ getBinaryPrinter(const std::string& format,
   std::unique_ptr<gtirb_bprint::BinaryPrinter> binaryPrinter;
   if (format == "elf")
     return std::make_unique<gtirb_bprint::ElfBinaryPrinter>(
-        pp, extraCompileArgs, libraryPaths, true);
+        pp, extraCompileArgs, libraryPaths, true, true);
   if (format == "pe")
     return std::make_unique<gtirb_bprint::PeBinaryPrinter>(pp, extraCompileArgs,
                                                            libraryPaths);
