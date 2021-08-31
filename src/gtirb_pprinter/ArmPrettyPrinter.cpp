@@ -22,8 +22,9 @@ namespace gtirb_pprint {
 ArmPrettyPrinter::ArmPrettyPrinter(gtirb::Context& context_,
                                    gtirb::Module& module_,
                                    const ArmSyntax& syntax_,
+                                   const GasAssembler& assembler_,
                                    const PrintingPolicy& policy_)
-    : ElfPrettyPrinter(context_, module_, syntax_, policy_),
+    : ElfPrettyPrinter(context_, module_, syntax_, assembler_, policy_),
       armSyntax(syntax_) {
   // Setup Capstone.
   [[maybe_unused]] cs_err err = cs_open(
@@ -406,8 +407,9 @@ ArmPrettyPrinterFactory::create(gtirb::Context& gtirb_context,
                                 gtirb::Module& module,
                                 const PrintingPolicy& policy) {
   static const ArmSyntax syntax{};
+  static const GasAssembler assembler{};
   return std::make_unique<ArmPrettyPrinter>(gtirb_context, module, syntax,
-                                            policy);
+                                            assembler, policy);
 }
 
 ArmPrettyPrinterFactory::ArmPrettyPrinterFactory() {

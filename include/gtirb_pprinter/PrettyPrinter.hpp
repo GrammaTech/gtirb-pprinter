@@ -15,6 +15,7 @@
 #ifndef GTIRB_PP_PRETTY_PRINTER_H
 #define GTIRB_PP_PRETTY_PRINTER_H
 
+#include "Assembler.hpp"
 #include "Export.hpp"
 #include "Syntax.hpp"
 
@@ -58,21 +59,23 @@ using string_range = boost::any_range<std::string, boost::forward_traversal_tag,
 /// \param formats    the (non-empty) formats produced by the factory
 /// \param isas       the (non-empty) ISAs produced by the factory
 /// \param syntaxes   the (non-empty) syntaxes produced by the factory
+/// \param assemblers the (non-empty) assemblers produced by the factory
 /// \param f          the (non-empty) \link PrettyPrinterFactory object
 /// \param isDefault  optionally make this the default factory for the
-///                   named format and syntax parameters
+///                   named format, syntax, and assembler parameters
 ///
 /// \return \c true.
 DEBLOAT_PRETTYPRINTER_EXPORT_API bool
 registerPrinter(std::initializer_list<std::string> formats,
                 std::initializer_list<std::string> isas,
                 std::initializer_list<std::string> syntaxes,
+                std::initializer_list<std::string> assemblers,
                 std::shared_ptr<PrettyPrinterFactory> f,
                 bool isDefault = false);
 
 /// Return the current set of syntaxes with registered factories.
 DEBLOAT_PRETTYPRINTER_EXPORT_API
-std::set<std::tuple<std::string, std::string, std::string>>
+std::set<std::tuple<std::string, std::string, std::string, std::string>>
 getRegisteredTargets();
 
 /// Return the file format of a GTIRB module.
@@ -82,6 +85,16 @@ getModuleFileFormat(const gtirb::Module& module);
 /// Return the ISA of a GTIRB module.
 DEBLOAT_PRETTYPRINTER_EXPORT_API std::string
 getModuleISA(const gtirb::Module& module);
+
+/// Set the default assembler for a file format, isa, and syntax.
+DEBLOAT_PRETTYPRINTER_EXPORT_API void
+setDefaultAssembler(const std::string& format, const std::string& isa,
+                    const std::string& syntax, const std::string& assembler);
+
+/// Return the default assembler for a file format and syntax.
+DEBLOAT_PRETTYPRINTER_EXPORT_API std::optional<std::string>
+getDefaultAssembler(const std::string& format, const std::string& isa,
+                    const std::string& syntax);
 
 /// Set the default syntax for a file format and isa.
 DEBLOAT_PRETTYPRINTER_EXPORT_API void
@@ -158,9 +171,10 @@ public:
   /// Set the target for which to pretty print. It is the caller's
   /// responsibility to ensure that the target name has been registered.
   ///
-  /// \param target compound indentifier of target format, isa, and syntax
-  void
-  setTarget(const std::tuple<std::string, std::string, std::string>& target);
+  /// \param target compound indentifier of target format, isa, syntax, and
+  /// assembler
+  void setTarget(const std::tuple<std::string, std::string, std::string,
+                                  std::string>& target);
 
   /// Set the file format for which to pretty print.
   ///
@@ -220,6 +234,7 @@ private:
   std::string m_format;
   std::string m_isa;
   std::string m_syntax;
+  std::string m_assembler;
   DebugStyle m_debug;
   PolicyOptions FunctionPolicy, SymbolPolicy, SectionPolicy, ArraySectionPolicy;
   std::string PolicyName = "default";
@@ -270,13 +285,15 @@ private:
 class DEBLOAT_PRETTYPRINTER_EXPORT_API PrettyPrinterBase {
 public:
   PrettyPrinterBase(gtirb::Context& context, gtirb::Module& module,
-                    const Syntax& syntax, const PrintingPolicy& policy);
+                    const Syntax& syntax, const Assembler& assembler,
+                    const PrintingPolicy& policy);
   virtual ~PrettyPrinterBase();
 
   virtual std::ostream& print(std::ostream& out);
 
 protected:
   const Syntax& syntax;
+  const Assembler& assembler;
   PrintingPolicy policy;
 
   /// Return the SymAddrConst expression if it refers to a printed symbol.

@@ -92,7 +92,8 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API MasmPrettyPrinter
     : public PePrettyPrinter {
 public:
   MasmPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
-                    const MasmSyntax& syntax, const PrintingPolicy& policy);
+                    const MasmSyntax& syntax, const GasAssembler& assembler,
+                    const PrintingPolicy& policy);
 
 protected:
   const MasmSyntax& masmSyntax;

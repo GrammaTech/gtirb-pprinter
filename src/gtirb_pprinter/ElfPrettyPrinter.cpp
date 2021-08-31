@@ -95,8 +95,17 @@ struct ElfSymbolInfo {
 ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
                                    gtirb::Module& module_,
                                    const ElfSyntax& syntax_,
+                                   const GasAssembler& assembler_,
                                    const PrintingPolicy& policy_)
-    : PrettyPrinterBase(context_, module_, syntax_, policy_),
+    : PrettyPrinterBase(context_, module_, syntax_, assembler_, policy_),
+      elfSyntax(syntax_) {}
+
+ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
+                                   gtirb::Module& module_,
+                                   const ElfSyntax& syntax_,
+                                   const ClangAssembler& assembler_,
+                                   const PrintingPolicy& policy_)
+    : PrettyPrinterBase(context_, module_, syntax_, assembler_, policy_),
       elfSyntax(syntax_) {}
 
 void ElfPrettyPrinter::printInstruction(std::ostream& os,

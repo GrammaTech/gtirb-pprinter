@@ -16,7 +16,6 @@
 
 #include "AuxDataSchema.hpp"
 #include "string_utils.hpp"
-#include <boost/algorithm/string/replace.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/range/algorithm/find_if.hpp>
 #include <capstone/capstone.h>
@@ -31,11 +30,12 @@ template <class T> T* nodeFromUUID(gtirb::Context& C, gtirb::UUID id) {
   return dyn_cast_or_null<T>(gtirb::Node::getByUUID(C, id));
 }
 
-static std::map<std::tuple<std::string, std::string, std::string>,
+static std::map<std::tuple<std::string, std::string, std::string, std::string>,
                 std::shared_ptr<::gtirb_pprint::PrettyPrinterFactory>>&
 getFactories() {
-  static std::map<std::tuple<std::string, std::string, std::string>,
-                  std::shared_ptr<::gtirb_pprint::PrettyPrinterFactory>>
+  static std::map<
+      std::tuple<std::string, std::string, std::string, std::string>,
+      std::shared_ptr<::gtirb_pprint::PrettyPrinterFactory>>
       factories;
   return factories;
 }
@@ -46,30 +46,45 @@ getSyntaxes() {
   return defaults;
 }
 
+static std::map<std::tuple<std::string, std::string, std::string>, std::string>&
+getAssemblers() {
+  static std::map<std::tuple<std::string, std::string, std::string>,
+                  std::string>
+      defaults;
+  return defaults;
+}
+
 namespace gtirb_pprint {
 
 bool registerPrinter(std::initializer_list<std::string> formats,
                      std::initializer_list<std::string> isas,
                      std::initializer_list<std::string> syntaxes,
+                     std::initializer_list<std::string> assemblers,
                      std::shared_ptr<PrettyPrinterFactory> f, bool isDefault) {
   assert(formats.size() > 0 && "No formats to register!");
   assert(isas.size() > 0 && "No ISAs to register!");
   assert(syntaxes.size() > 0 && "No syntaxes to register!");
+  assert(assemblers.size() > 0 && "No assemblers to register!");
   for (const std::string& format : formats) {
     for (const std::string& isa : isas) {
       for (const std::string& syntax : syntaxes) {
-        getFactories()[std::make_tuple(format, isa, syntax)] = f;
-        if (isDefault)
-          setDefaultSyntax(format, isa, syntax);
+        for (const std::string& assembler : assemblers) {
+          getFactories()[std::make_tuple(format, isa, syntax, assembler)] = f;
+          if (isDefault) {
+            setDefaultSyntax(format, isa, syntax);
+            setDefaultAssembler(format, isa, syntax, assembler);
+          }
+        }
       }
     }
   }
   return true;
 }
 
-std::set<std::tuple<std::string, std::string, std::string>>
+std::set<std::tuple<std::string, std::string, std::string, std::string>>
 getRegisteredTargets() {
-  std::set<std::tuple<std::string, std::string, std::string>> targets;
+  std::set<std::tuple<std::string, std::string, std::string, std::string>>
+      targets;
   for (const auto& entry : getFactories())
     targets.insert(entry.first);
   return targets;
@@ -115,6 +130,21 @@ std::string getModuleISA(const gtirb::Module& module) {
   }
 }
 
+std::optional<std::string> getDefaultAssembler(const std::string& format,
+                                               const std::string& isa,
+                                               const std::string& syntax) {
+  std::map<std::tuple<std::string, std::string, std::string>, std::string>
+      defaults = getAssemblers();
+  auto it = defaults.find(std::tuple(format, isa, syntax));
+  return it != defaults.end() ? std::make_optional(it->second) : std::nullopt;
+}
+
+void setDefaultAssembler(const std::string& format, const std::string& isa,
+                         const std::string& syntax,
+                         const std::string& assembler) {
+  getAssemblers()[std::tuple(format, isa, syntax)] = assembler;
+}
+
 void setDefaultSyntax(const std::string& format, const std::string& isa,
                       const std::string& syntax) {
   getSyntaxes()[std::pair(format, isa)] = syntax;
@@ -129,18 +159,22 @@ std::optional<std::string> getDefaultSyntax(const std::string& format,
 }
 
 void PrettyPrinter::setTarget(
-    const std::tuple<std::string, std::string, std::string>& target) {
+    const std::tuple<std::string, std::string, std::string, std::string>&
+        target) {
   assert(getFactories().find(target) != getFactories().end());
-  const auto& [format, isa, syntax] = target;
+  const auto& [format, isa, syntax, assembler] = target;
   m_format = format;
   m_isa = isa;
   m_syntax = syntax;
+  m_assembler = assembler;
 }
 
 void PrettyPrinter::setFormat(const std::string& format,
                               const std::string& isa) {
   const std::string& syntax = getDefaultSyntax(format, isa).value_or("");
-  setTarget(std::make_tuple(format, isa, syntax));
+  const std::string& assembler =
+      getDefaultAssembler(format, isa, syntax).value_or("");
+  setTarget(std::make_tuple(format, isa, syntax, assembler));
 }
 
 void PrettyPrinter::setDebug(bool do_debug) {
@@ -150,7 +184,8 @@ void PrettyPrinter::setDebug(bool do_debug) {
 bool PrettyPrinter::getDebug() const { return m_debug == DebugMessages; }
 
 std::set<std::string> PrettyPrinter::policyNames() const {
-  auto It = getFactories().find(std::make_tuple(m_format, m_isa, m_syntax));
+  auto It = getFactories().find(
+      std::make_tuple(m_format, m_isa, m_syntax, m_assembler));
   if (It == getFactories().end()) {
     return std::set<std::string>();
   }
@@ -163,7 +198,8 @@ std::set<std::string> PrettyPrinter::policyNames() const {
 }
 
 bool PrettyPrinter::namedPolicyExists(const std::string& Name) const {
-  auto It = getFactories().find(std::make_tuple(m_format, m_isa, m_syntax));
+  auto It = getFactories().find(
+      std::make_tuple(m_format, m_isa, m_syntax, m_assembler));
   if (It == getFactories().end()) {
     return false;
   }
@@ -171,12 +207,14 @@ bool PrettyPrinter::namedPolicyExists(const std::string& Name) const {
 }
 
 PrettyPrinterFactory& PrettyPrinter::getFactory(gtirb::Module& Module) const {
-  auto target = std::make_tuple(m_format, m_isa, m_syntax);
+  auto target = std::make_tuple(m_format, m_isa, m_syntax, m_assembler);
   if (m_format.empty()) {
     const std::string& format = gtirb_pprint::getModuleFileFormat(Module);
     const std::string& isa = gtirb_pprint::getModuleISA(Module);
     const std::string& syntax = getDefaultSyntax(format, isa).value_or("");
-    target = std::make_tuple(format, isa, syntax);
+    const std::string& assembler =
+        getDefaultAssembler(format, isa, syntax).value_or("");
+    target = std::make_tuple(format, isa, syntax, assembler);
   }
   return *getFactories().at(target);
 }
@@ -245,8 +283,9 @@ void PrettyPrinterFactory::deregisterNamedPolicy(const std::string& Name) {
 PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
                                      gtirb::Module& module_,
                                      const Syntax& syntax_,
+                                     const Assembler& assembler_,
                                      const PrintingPolicy& policy_)
-    : syntax(syntax_), policy(policy_),
+    : syntax(syntax_), assembler(assembler_), policy(policy_),
       debug(policy.debug == DebugMessages ? true : false), context(context_),
       module(module_), functionEntry(), functionLastBlock() {
 
@@ -549,6 +588,26 @@ void PrettyPrinterBase::x86FixupInstruction(cs_insn& inst) {
         detail.operands[1].size == 8) {
       detail.operands[1].size = 4;
     }
+  }
+
+  // Capstone gives no operands for UD1. However, UD1 takes two ops:
+  // ud1 EAX,DWORD PTR [EAX]  (4 bytes)
+  // or
+  // ud1 EAX,DWORD PTR [EAX+disp]  (5 bytes)
+  if (inst.id == X86_INS_UD1 && detail.op_count == 0) {
+    detail.operands[0].type = X86_OP_REG;
+    detail.operands[0].reg = X86_REG_EAX;
+    detail.operands[1].type = X86_OP_MEM;
+    detail.operands[1].size = 4;
+    detail.operands[1].mem.segment = X86_REG_INVALID;
+    detail.operands[1].mem.base = X86_REG_EAX;
+    detail.operands[1].mem.index = X86_REG_INVALID;
+    detail.operands[1].mem.disp = 0;
+    detail.op_count = 2;
+    inst.size = 4; // NOTE: It is either 4 (/wo disp) or 5 (/w disp)
+    // It is OK to leave the disp as data:
+    // e.g., ud1 EAX,DWORD PTR [EAX]
+    //       .byte 0x15
   }
 }
 
@@ -1082,29 +1141,13 @@ void PrettyPrinterBase::printSymbolicExpression(std::ostream& os,
 
 void PrettyPrinterBase::printString(std::ostream& os, const gtirb::DataBlock& x,
                                     uint64_t offset) {
-  auto cleanByte = [](uint8_t b) {
-    std::string cleaned;
-    cleaned += b;
-    cleaned = boost::replace_all_copy(cleaned, "\\", "\\\\");
-    cleaned = boost::replace_all_copy(cleaned, "\"", "\\\"");
-    cleaned = boost::replace_all_copy(cleaned, "\n", "\\n");
-    cleaned = boost::replace_all_copy(cleaned, "\t", "\\t");
-    cleaned = boost::replace_all_copy(cleaned, "\v", "\\v");
-    cleaned = boost::replace_all_copy(cleaned, "\b", "\\b");
-    cleaned = boost::replace_all_copy(cleaned, "\r", "\\r");
-    cleaned = boost::replace_all_copy(cleaned, "\a", "\\a");
-    cleaned = boost::replace_all_copy(cleaned, "\'", "\\'");
-
-    return cleaned;
-  };
-
   os << syntax.string() << " \"";
 
   auto Range = x.bytes<uint8_t>();
   for (auto b :
        boost::make_iterator_range(Range.begin() + offset, Range.end())) {
     if (b != 0) {
-      os << cleanByte(b);
+      os << assembler.cleanByte(b);
     }
   }
 

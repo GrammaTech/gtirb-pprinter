@@ -20,8 +20,9 @@
 namespace gtirb_pprint {
 PePrettyPrinter::PePrettyPrinter(gtirb::Context& context_,
                                  gtirb::Module& module_, const Syntax& syntax_,
+                                 const Assembler& assembler_,
                                  const PrintingPolicy& policy_)
-    : PrettyPrinterBase(context_, module_, syntax_, policy_) {}
+    : PrettyPrinterBase(context_, module_, syntax_, assembler_, policy_) {}
 
 const PrintingPolicy&
 PePrettyPrinterFactory::defaultPrintingPolicy(gtirb::Module& /*Module*/) const {

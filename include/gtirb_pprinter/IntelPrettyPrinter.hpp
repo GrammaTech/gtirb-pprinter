@@ -31,7 +31,12 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API IntelPrettyPrinter
     : public ElfPrettyPrinter {
 public:
   IntelPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
-                     const IntelSyntax& syntax, const PrintingPolicy& policy);
+                     const IntelSyntax& syntax, const GasAssembler& assembler,
+                     const PrintingPolicy& policy);
+
+  IntelPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
+                     const IntelSyntax& syntax, const ClangAssembler& assembler,
+                     const PrintingPolicy& policy);
 
 protected:
   const IntelSyntax& intelSyntax;

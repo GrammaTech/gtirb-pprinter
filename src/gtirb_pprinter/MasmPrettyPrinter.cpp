@@ -75,8 +75,9 @@ std::string MasmSyntax::formatSymbolName(const std::string& x) const {
 MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
                                      gtirb::Module& module_,
                                      const MasmSyntax& syntax_,
+                                     const GasAssembler& assembler_,
                                      const PrintingPolicy& policy_)
-    : PePrettyPrinter(context_, module_, syntax_, policy_),
+    : PePrettyPrinter(context_, module_, syntax_, assembler_, policy_),
       masmSyntax(syntax_) {
   // Setup Capstone.
   cs_mode Mode = CS_MODE_64;
@@ -682,6 +683,8 @@ std::unique_ptr<PrettyPrinterBase>
 MasmPrettyPrinterFactory::create(gtirb::Context& context, gtirb::Module& module,
                                  const PrintingPolicy& policy) {
   static const MasmSyntax syntax{};
-  return std::make_unique<MasmPrettyPrinter>(context, module, syntax, policy);
+  static const GasAssembler assembler{};
+  return std::make_unique<MasmPrettyPrinter>(context, module, syntax, assembler,
+                                             policy);
 }
 } // namespace gtirb_pprint

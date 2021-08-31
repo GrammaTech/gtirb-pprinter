@@ -32,8 +32,9 @@ Mips32PrettyPrinterFactory::create(gtirb::Context& gtirb_context,
                                    gtirb::Module& module,
                                    const PrintingPolicy& policy) {
   static const ElfSyntax syntax{};
+  static const GasAssembler assembler{};
   return std::make_unique<Mips32PrettyPrinter>(gtirb_context, module, syntax,
-                                               policy);
+                                               assembler, policy);
 }
 
 Mips32PrettyPrinterFactory::Mips32PrettyPrinterFactory() {
@@ -62,8 +63,9 @@ Mips32PrettyPrinterFactory::Mips32PrettyPrinterFactory() {
 Mips32PrettyPrinter::Mips32PrettyPrinter(gtirb::Context& context_,
                                          gtirb::Module& module_,
                                          const ElfSyntax& syntax_,
+                                         const GasAssembler& assembler_,
                                          const PrintingPolicy& policy_)
-    : ElfPrettyPrinter(context_, module_, syntax_, policy_) {
+    : ElfPrettyPrinter(context_, module_, syntax_, assembler_, policy_) {
   auto a = module_.findSymbols("_gp_copy");
   if (!a.empty()) {
     GP = &a.front();
