@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+import unittest
 
 import gtirb
 
@@ -12,6 +13,7 @@ from gtirb_helpers import (
 )
 from pprinter_helpers import (
     PPrinterTest,
+    can_mock_binaries,
     temp_directory,
     pprinter_binary,
     should_print_subprocess_output,
@@ -95,6 +97,7 @@ class MultiModuleTests(PPrinterTest):
             self.assertNotIn(".globl main", output)
             self.assertIn(".globl fun", output)
 
+    @unittest.skipUnless(can_mock_binaries(), "cannot mock binaries")
     def test_multiple_modules_binary(self):
         """
         Current expected behavior is that with `--binaries`,
