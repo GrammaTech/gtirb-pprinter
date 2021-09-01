@@ -16,6 +16,7 @@ from pprinter_helpers import (
     run_binary_pprinter_mock,
     run_asm_pprinter,
     asm_lines,
+    run_binary_pprinter_mock_out,
 )
 
 
@@ -236,7 +237,6 @@ class WindowsBinaryPrinterTests_NoMock(PPrinterTest):
             "sequence<tuple<sequence<uint8_t>,Offset,uint64_t>>",
         )
 
-        for output in run_binary_pprinter_mock(ir):
-            print("checking output")
-            # TODO: what do we need to be checking?
-            self.assertIn(".res", output.args)
+        output = run_binary_pprinter_mock_out(ir, [])
+        print("output: %s" % output)
+        self.assertTrue(output)
