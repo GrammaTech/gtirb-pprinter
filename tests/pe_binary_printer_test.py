@@ -236,7 +236,7 @@ class WindowsBinaryPrinterTests_NoMock(PPrinterTest):
             "sequence<tuple<sequence<uint8_t>,Offset,uint64_t>>",
         )
 
-        output = next(run_binary_pprinter_mock(ir))
+        for output in run_binary_pprinter_mock(ir):
 
-        # TODO: what do we need to be checking?
-        self.assertIn(".res", output.args)
+            # TODO: what do we need to be checking?
+            self.assertIn(".res", output.args)
