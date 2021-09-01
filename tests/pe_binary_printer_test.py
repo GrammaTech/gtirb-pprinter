@@ -237,6 +237,6 @@ class WindowsBinaryPrinterTests_NoMock(PPrinterTest):
         )
 
         for output in run_binary_pprinter_mock(ir):
-
+            print("checking output")
             # TODO: what do we need to be checking?
             self.assertIn(".res", output.args)
