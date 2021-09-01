@@ -123,6 +123,10 @@ class WindowsBinaryPrinterTests_NoMock(PPrinterTest):
             binary_type=["EXEC", "EXE", "WINDOWS_GUI"],
         )
 
+        _, bi = add_section(m, ".text")
+        entry = add_code_block(bi, b"\xC3")
+        m.entry_point = entry
+
         resource_data = b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\
         \x00\x00\x00\x00\x00\x02\x00\x06\x00\x00\x00 \x00\x00\x80\
         \x18\x00\x00\x008\x00\x00\x80\x00\x00\x00\x00\x00\x00\x00\
@@ -147,8 +151,6 @@ class WindowsBinaryPrinterTests_NoMock(PPrinterTest):
           </requestedPrivileges>\r\n    </security>\r\n  </trustInfo>\
                  \r\n</assembly>\r\n\x00\x00\x00')"
 
-        _, bi = add_section(m, ".text")
-        bi.contents = bytearray(b"\xC3")
         _, bi = add_section(m, ".rscs")
         _ = add_byte_block(bi, gtirb.block.DataBlock, resource_data)
         off1 = gtirb.Offset(bi, 0)
