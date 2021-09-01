@@ -1,5 +1,5 @@
 import unittest
-
+import sys
 import gtirb
 
 from gtirb_helpers import (
@@ -117,7 +117,8 @@ class WindowsBinaryPrinterTests_NoMock(PPrinterTest):
         self.assertNotContains(asm_lines(asm), ["INCLUDELIB WINSPOOL.DRV"])
         self.assertNotContains(asm_lines(asm), ["INCLUDELIB USER32.DLL"])
 
-    def test_windows_REData(self):
+    def make_pe_resource_data(self) -> gtirb.IR:
+
         ir, m = create_test_module(
             file_format=gtirb.Module.FileFormat.PE,
             isa=gtirb.Module.ISA.X64,
@@ -236,7 +237,23 @@ class WindowsBinaryPrinterTests_NoMock(PPrinterTest):
             [entry1, entry2],
             "sequence<tuple<sequence<uint8_t>,Offset,uint64_t>>",
         )
+        return ir
 
-        output = run_binary_pprinter_mock_out(ir, [])
-        print("output: %s" % output)
+    def test_windows_pe_resource_data(self):
+        # checks that the IR gets turned into a binary
+        ir = self.make_pe_resource_data()
+        output = run_binary_pprinter_mock_out(ir, []).stdout.decode(
+            sys.stdout.encoding
+        )
         self.assertTrue(output)
+
+    @unittest.skipUnless(can_mock_binaries(), "cannot mock binaries")
+    def test_windows_pe_resource_data_mock(self):
+        # checks that a resource file is compiled from the resource data
+        ir = self.make_pe_resource_data()
+        has_resouce_file = False
+        for output in run_binary_pprinter_mock(ir):
+            if any(".res" in arg for arg in output.args):
+                has_resouce_file = True
+
+        self.assertTrue(has_resouce_file, "did not produce resource file")
