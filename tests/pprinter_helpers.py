@@ -182,7 +182,14 @@ def run_binary_pprinter_mock_out(
             capture_output_args["stderr"] = subprocess.PIPE
 
         return subprocess.run(
-            (pprinter_binary(), gtirb_path, "--binary", bin_path, *args,),
+            (
+                pprinter_binary(),
+                "--ir",
+                gtirb_path,
+                "--binary",
+                bin_path,
+                *args,
+            ),
             env=env,
             check=False,
             cwd=tmpdir,
