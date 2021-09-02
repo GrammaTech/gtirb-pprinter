@@ -2,7 +2,6 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
   GTIRB_BRANCH: "master"
   CAPSTONE_BRANCH: "master"
-  EXTRA_INDEX_URL: https://__token__:$GL_PKG_API_TOKEN@git.grammatech.com/api/v4/projects/1587/packages/pypi/simple
   # The following two variables are used by the package uploader.
   PROJECT_ID: $CI_PROJECT_ID
   PIPELINE_ID: $CI_PIPELINE_ID
