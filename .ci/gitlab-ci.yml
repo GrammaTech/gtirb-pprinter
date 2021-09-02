@@ -427,8 +427,8 @@ build-ubuntu20-packages:
     - 'TEST_PKG_NAME=$(dpkg --info apt-repo/gtirb-pprinter.deb | sed -n "s/Package: //p")'
     - apt-get update -y && apt-get install -y --allow-unauthenticated $TEST_PKG_NAME
     # just checking that gtirb-pprint and gtirb-layout are on $PATH
-    - [ -f  /usr/bin/gtirb-pprinter ]
-    - [ -f /usr/bin/gtirb-layout ]
+    - '[ -f  /usr/bin/gtirb-pprinter ]'
+    - '[ -f /usr/bin/gtirb-layout ]'
 
 .test-ubuntu-libgtirb-pprinter-dbg: &test-ubuntu-libgtirb-pprinter-dbg
   stage: test-packages1
