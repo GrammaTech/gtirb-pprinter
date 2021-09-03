@@ -89,11 +89,7 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API ElfPrettyPrinter
     : public PrettyPrinterBase {
 public:
   ElfPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
-                   const ElfSyntax& syntax, const GasAssembler& assembler,
-                   const PrintingPolicy& policy);
-
-  ElfPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
-                   const ElfSyntax& syntax, const ClangAssembler& assembler,
+                   const ElfSyntax& syntax, const Assembler& assembler,
                    const PrintingPolicy& policy);
 
 protected:
