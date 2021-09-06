@@ -52,12 +52,6 @@ void IntelPrettyPrinter::printInstruction(std::ostream& os,
     if (symbolic) {
       if (const auto* expr = std::get_if<gtirb::SymAddrConst>(symbolic)) {
         if (expr->Attributes.isFlagSet(gtirb::SymAttribute::TlsGd)) {
-          // Prefer directives to instruction prefixes:
-          //      .byte 0x66                ;     data16 lea REG, [rip+X]
-          //      lea REG,[rip+X]
-          //      .value 0x6666             ;     data16 data16 rex64 call Y
-          //      rex64
-          //      call __tls_get_addr@PLT
           os << syntax.tab() << "  .byte 0x66\n";
           PrettyPrinterBase::printInstruction(os, block, inst, offset);
           os << syntax.tab() << "  .value 0x6666\n";
