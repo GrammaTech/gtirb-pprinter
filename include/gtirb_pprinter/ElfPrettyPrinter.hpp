@@ -94,6 +94,10 @@ public:
 protected:
   const ElfSyntax& elfSyntax;
 
+  void printInstruction(std::ostream& os, const gtirb::CodeBlock& block,
+                        const cs_insn& inst,
+                        const gtirb::Offset& offset) override;
+
   void printFooter(std::ostream& os) override;
 
   void printSectionHeaderDirective(std::ostream& os,

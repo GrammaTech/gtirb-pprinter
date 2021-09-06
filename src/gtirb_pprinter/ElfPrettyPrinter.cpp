@@ -98,6 +98,39 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
     : PrettyPrinterBase(context_, module_, syntax_, policy_),
       elfSyntax(syntax_) {}
 
+void ElfPrettyPrinter::printInstruction(std::ostream& os,
+                                        const gtirb::CodeBlock& block,
+                                        const cs_insn& inst,
+                                        const gtirb::Offset& offset) {
+
+  // Print explicit directives for instruction prefixes needed for @TLSGD
+  // relocations, which require a fixed 16-byte instruction sequence.
+  if (inst.id == X86_INS_LEA &&
+      inst.detail->x86.prefix[2] == X86_PREFIX_OPSIZE) {
+
+    gtirb::Addr ea(inst.address);
+
+    uint8_t dispOffset = inst.detail->x86.encoding.disp_offset;
+    const gtirb::SymbolicExpression* symbolic =
+        block.getByteInterval()->getSymbolicExpression(
+            ea + dispOffset - *block.getByteInterval()->getAddress());
+
+    if (symbolic) {
+      if (const auto* expr = std::get_if<gtirb::SymAddrConst>(symbolic)) {
+        if (expr->Attributes.isFlagSet(gtirb::SymAttribute::TlsGd)) {
+          os << syntax.tab() << "  .byte 0x66\n";
+          PrettyPrinterBase::printInstruction(os, block, inst, offset);
+          os << syntax.tab() << "  .value 0x6666\n";
+          os << syntax.tab() << "  rex64\n";
+          return;
+        }
+      }
+    }
+  }
+
+  PrettyPrinterBase::printInstruction(os, block, inst, offset);
+}
+
 void ElfPrettyPrinter::printHeader(std::ostream& /*os*/) {
   if (policy.Shared) {
     fixupSharedObject();
