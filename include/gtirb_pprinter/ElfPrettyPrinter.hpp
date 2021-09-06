@@ -140,6 +140,9 @@ protected:
   virtual void fixupSharedObject();
 
   std::optional<uint64_t> getAlignment(const gtirb::CodeBlock& Block) override;
+
+private:
+  bool TlsGdSequence = false;
 };
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API ElfPrettyPrinterFactory

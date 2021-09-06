@@ -102,6 +102,11 @@ void ElfPrettyPrinter::printInstruction(std::ostream& os,
                                         const gtirb::CodeBlock& block,
                                         const cs_insn& inst,
                                         const gtirb::Offset& offset) {
+  if (TlsGdSequence) {
+    assert(inst.id == X86_INS_CALL &&
+           "Incorrect code sequence for @TLSGD relocation.");
+    TlsGdSequence = false;
+  }
 
   // Print explicit directives for instruction prefixes needed for @TLSGD
   // relocations, which require a fixed 16-byte instruction sequence.
@@ -118,6 +123,7 @@ void ElfPrettyPrinter::printInstruction(std::ostream& os,
     if (symbolic) {
       if (const auto* expr = std::get_if<gtirb::SymAddrConst>(symbolic)) {
         if (expr->Attributes.isFlagSet(gtirb::SymAttribute::TlsGd)) {
+          TlsGdSequence = true;
           os << syntax.tab() << "  .byte 0x66\n";
           PrettyPrinterBase::printInstruction(os, block, inst, offset);
           os << syntax.tab() << "  .value 0x6666\n";
