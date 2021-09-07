@@ -32,7 +32,7 @@ private:
 class ArmPrettyPrinter : public ElfPrettyPrinter {
 public:
   ArmPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
-                   const ArmSyntax& syntax, const GasAssembler& assembler,
+                   const ArmSyntax& syntax, const Assembler& assembler,
                    const PrintingPolicy& policy);
 
 protected:

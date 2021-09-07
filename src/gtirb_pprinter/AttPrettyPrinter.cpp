@@ -23,7 +23,7 @@ namespace gtirb_pprint {
 AttPrettyPrinter::AttPrettyPrinter(gtirb::Context& context_,
                                    gtirb::Module& module_,
                                    const ElfSyntax& syntax_,
-                                   const GasAssembler& assembler_,
+                                   const Assembler& assembler_,
                                    const PrintingPolicy& policy_)
     : ElfPrettyPrinter(context_, module_, syntax_, assembler_, policy_) {
   // Setup Capstone.
@@ -138,7 +138,7 @@ AttPrettyPrinterFactory::create(gtirb::Context& gtirb_context,
                                 gtirb::Module& module,
                                 const PrintingPolicy& policy) {
   static const ElfSyntax syntax{};
-  static const GasAssembler assembler{};
+  static const Assembler assembler{};
   return std::make_unique<AttPrettyPrinter>(gtirb_context, module, syntax,
                                             assembler, policy);
 }

@@ -25,7 +25,7 @@ namespace gtirb_pprint {
 class Arm64PrettyPrinter : public ElfPrettyPrinter {
 public:
   Arm64PrettyPrinter(gtirb::Context& context, gtirb::Module& module,
-                     const ElfSyntax& syntax, const GasAssembler& assembler,
+                     const ElfSyntax& syntax, const Assembler& assembler,
                      const PrintingPolicy& policy);
 
 protected:

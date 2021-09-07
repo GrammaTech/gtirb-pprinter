@@ -23,7 +23,7 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API AttPrettyPrinter
     : public ElfPrettyPrinter {
 public:
   AttPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
-                   const ElfSyntax& syntax, const GasAssembler& assembler,
+                   const ElfSyntax& syntax, const Assembler& assembler,
                    const PrintingPolicy& policy);
 
 protected:
