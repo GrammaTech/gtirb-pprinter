@@ -27,55 +27,6 @@ namespace gtirb_bprint {
 
 class TempFile;
 
-// Command-line argument wrapper for `lib.exe' or alternate library utility.
-struct PeLibOptions {
-  const std::string& DefFile;
-  const std::string& LibFile;
-  const std::optional<std::string> Machine;
-};
-
-// Command-line argument wrapper for `ml64.exe' or alternate assembler.
-struct PeAssembleOptions {
-  const std::string& Compiland;
-  const std::string& OutputFile;
-  const std::optional<std::string> Machine;
-  const std::vector<std::string>& ExtraCompileArgs;
-  const std::vector<std::string>& LibraryPaths;
-};
-
-// Command-line argument wrapper for `ml64.exe' and `link.exe' or alternatives.
-struct PeLinkOptions {
-  const std::string& OutputFile;
-
-  const std::vector<TempFile>& Compilands;
-  const std::vector<std::string>& Resources;
-  const std::optional<std::string>& ExportDef;
-
-  const std::optional<std::string>& EntryPoint;
-  const std::optional<std::string>& Subsystem;
-  const std::optional<std::string> Machine;
-
-  const bool Dll;
-
-  const std::vector<std::string>& ExtraCompileArgs;
-  const std::vector<std::string>& LibraryPaths;
-};
-
-// Type helpers for command lookup and command-line argument builders.
-using CommandList =
-    std::vector<std::pair<std::string, std::vector<std::string>>>;
-
-using PeLib = std::function<CommandList(const PeLibOptions&)>;
-using PeAssemble = std::function<CommandList(const PeAssembleOptions&)>;
-using PeLink = std::function<CommandList(const PeLinkOptions&)>;
-using PeAssembleLink = std::function<CommandList(const PeLinkOptions&)>;
-
-// Tool lookup helpers.
-PeLib peLib();
-PeAssemble peAssemble();
-PeLink peLink();
-PeAssembleLink peAssembleLink();
-
 class DEBLOAT_PRETTYPRINTER_EXPORT_API PeBinaryPrinter : public BinaryPrinter {
 public:
   PeBinaryPrinter(const gtirb_pprint::PrettyPrinter& Printer,
@@ -108,24 +59,6 @@ protected:
   // Generate RES files for all embedded PE resources.
   bool prepareResources(const gtirb::IR& IR, const gtirb::Context& Context,
                         std::vector<std::string>& Resources) const;
-
-  // Locate a PE library utility and build a command list.
-  CommandList libCommands(const PeLibOptions& Options) const {
-    PeLib Lib = peLib();
-    return Lib(Options);
-  }
-
-  // Locate an assembler and construct the "assemble only" command list.
-  CommandList assembleCommands(const PeAssembleOptions& Options) const {
-    PeAssemble Assemble = peAssemble();
-    return Assemble(Options);
-  }
-
-  // Locate an assembler and construct the "assemble and link" command list.
-  CommandList linkCommands(const PeLinkOptions& Options) const {
-    PeAssembleLink AssembleLink = peAssembleLink();
-    return AssembleLink(Options);
-  }
 };
 
 } // namespace gtirb_bprint
