@@ -1,5 +1,6 @@
 1.8.0 (Unreleased)
 
+  * Add alternative PE assembler and linker commands.
   * Use dedicated symbolic expression attributes.
 
 1.7.0
