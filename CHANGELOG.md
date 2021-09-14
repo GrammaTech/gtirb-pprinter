@@ -2,6 +2,7 @@
 
   * Add alternative PE assembler and linker commands.
   * Use dedicated symbolic expression attributes.
+  * Add an option for assembler
 
 1.7.0
 

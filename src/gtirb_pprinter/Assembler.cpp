@@ -21,7 +21,7 @@
 
 namespace gtirb_pprint {
 
-std::string Assembler::cleanByte(uint8_t b) const {
+std::string Assembler::escapeByte(uint8_t b) const {
   std::string cleaned;
   cleaned += b;
   cleaned = boost::replace_all_copy(cleaned, "\\", "\\\\");
@@ -32,12 +32,12 @@ std::string Assembler::cleanByte(uint8_t b) const {
   cleaned = boost::replace_all_copy(cleaned, "\b", "\\b");
   cleaned = boost::replace_all_copy(cleaned, "\r", "\\r");
   cleaned = boost::replace_all_copy(cleaned, "\a", "\\a");
-  cleaned = cleanSingleQuote(cleaned);
+  cleaned = escapeSingleQuote(cleaned);
 
   return cleaned;
 }
 
-std::string Assembler::cleanSingleQuote(const std::string& s) const {
+std::string Assembler::escapeSingleQuote(const std::string& s) const {
   std::string cleaned = s;
   cleaned = boost::replace_all_copy(cleaned, "\'", "\\'");
 

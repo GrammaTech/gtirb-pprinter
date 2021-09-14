@@ -1150,7 +1150,7 @@ void PrettyPrinterBase::printString(std::ostream& os, const gtirb::DataBlock& x,
   for (auto b :
        boost::make_iterator_range(Range.begin() + offset, Range.end())) {
     if (b != 0) {
-      os << assembler.cleanByte(b);
+      os << assembler.escapeByte(b);
     }
   }
 

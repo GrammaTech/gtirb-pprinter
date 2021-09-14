@@ -75,7 +75,7 @@ std::string MasmSyntax::formatSymbolName(const std::string& x) const {
 MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
                                      gtirb::Module& module_,
                                      const MasmSyntax& syntax_,
-                                     const GasAssembler& assembler_,
+                                     const Assembler& assembler_,
                                      const PrintingPolicy& policy_)
     : PePrettyPrinter(context_, module_, syntax_, assembler_, policy_),
       masmSyntax(syntax_) {
@@ -683,7 +683,7 @@ std::unique_ptr<PrettyPrinterBase>
 MasmPrettyPrinterFactory::create(gtirb::Context& context, gtirb::Module& module,
                                  const PrintingPolicy& policy) {
   static const MasmSyntax syntax{};
-  static const GasAssembler assembler{};
+  static const Assembler assembler{};
   return std::make_unique<MasmPrettyPrinter>(context, module, syntax, assembler,
                                              policy);
 }
