@@ -99,8 +99,28 @@ CommandList linkCommands(const PeLinkOptions& Options) {
 // Read LLVM bin directory path from `llvm-config --bindir'.
 std::optional<std::string> llvmBinDir() {
   bp::ipstream InputStream;
-  bp::child Child(bp::search_path("llvm-config"), "--bindir",
-                  bp::std_out > InputStream);
+
+  // Look for a default `llvm-config' binary.
+  fs::path LlvmConfig = bp::search_path("llvm-config");
+
+  if (LlvmConfig.empty()) {
+    // Look for known versions.
+    const static std::vector<std::string> Versions = {
+        "12", "11", "10", "9", "8", "7", "6.0",
+    };
+    for (const auto& Version : Versions) {
+      LlvmConfig = bp::search_path("llvm-config-" + Version);
+      if (!LlvmConfig.empty()) {
+        break;
+      }
+    }
+  }
+
+  if (LlvmConfig.empty()) {
+    return std::nullopt;
+  }
+
+  bp::child Child(LlvmConfig, "--bindir", bp::std_out > InputStream);
 
   std::string Line;
   if (Child.running() && std::getline(InputStream, Line) && !Line.empty()) {
@@ -133,7 +153,7 @@ int executeCommands(const CommandList& Commands) {
       }
       continue;
     }
-    LOG_ERROR << "could not find `" << Command << "' on the PATH.\n";
+    LOG_ERROR << Command << ": command not found\n";
     return -1;
   }
   return 0;
@@ -435,12 +455,16 @@ PeLib peLib() {
   fs::path Path = bp::search_path("lib.exe");
   if (!Path.empty()) {
     return msvcLib;
+  } else {
+    LOG_INFO << "lib.exe: command not found\n";
   }
 
   // Add LLVM bin directory to PATH.
   if (std::optional<std::string> Dir = llvmBinDir()) {
     auto Env = boost::this_process::environment();
     Env["PATH"] += ":" + *Dir;
+  } else {
+    LOG_INFO << "llvm-config: command not found\n";
   }
 
   // Fallback to `llvm-dlltool'.
