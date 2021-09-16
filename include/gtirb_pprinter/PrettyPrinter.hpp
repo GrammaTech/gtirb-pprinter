@@ -460,7 +460,7 @@ protected:
   getForwardedSymbolName(const gtirb::Symbol* symbol) const;
   virtual gtirb::Symbol* getForwardedSymbol(const gtirb::Symbol* Sym) const;
 
-  bool isAmbiguousSymbol(const std::string& ea) const;
+  bool isAmbiguousSymbol(const gtirb::Symbol& S) const;
 
   // Currently, this only works for symbolic expressions in data blocks.
   // For the symbolic expressions that are part of code blocks, Capstone
@@ -485,6 +485,9 @@ private:
   std::optional<uint64_t> getAlignmentImpl(const BlockType& Block);
 
   static bool x86InstHasMoffsetEncoding(const cs_insn& inst);
+
+  std::multimap<std::string, gtirb::UUID> SymbolVersionUuid;
+  std::map<gtirb::UUID, std::string> UuidSymbolVersion;
 
 protected:
   std::string m_accum_comment;
