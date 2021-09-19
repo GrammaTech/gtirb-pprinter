@@ -165,21 +165,6 @@ void IntelPrettyPrinter::printSymbolicExpression(std::ostream& OS,
     OS << intelSyntax.offset() << ' ' << SE->Sym1->getName();
     return;
   }
-
-  // We replace the GOT-Label, symbol-minus-symbol, with Label@GOTOFF or
-  // Label@GOT that will be resolved to the equivalent GOT-relative value.
-  if (SE->Attributes.isFlagSet(gtirb::SymAttribute::GotOff)) {
-    OS << "+";
-    printSymbolReference(OS, SE->Sym1);
-    if (SE->Attributes.isFlagSet(gtirb::SymAttribute::GotRef)) {
-      OS << "@GOT";
-    } else {
-      OS << "@GOTOFF";
-    }
-    printAddend(OS, SE->Offset, false);
-    return;
-  }
-
   PrettyPrinterBase::printSymbolicExpression(OS, SE, IsNotBranch);
 }
 

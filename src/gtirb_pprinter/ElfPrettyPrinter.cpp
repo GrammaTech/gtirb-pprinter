@@ -403,6 +403,12 @@ void ElfPrettyPrinter::printSymExprSuffix(std::ostream& OS,
     if (!IsNotBranch) {
       OS << "@PLT";
     }
+  } else if (Attrs.isFlagSet(gtirb::SymAttribute::GotOff)) {
+    if (Attrs.isFlagSet(gtirb::SymAttribute::GotRef)) {
+      OS << "@GOT";
+    } else {
+      OS << "@GOTOFF";
+    }
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
     OS << "@GOTPCREL";
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::TpOff)) {
