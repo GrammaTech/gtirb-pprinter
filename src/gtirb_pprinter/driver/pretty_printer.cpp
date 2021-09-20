@@ -118,7 +118,7 @@ int main(int argc, char** argv) {
                      "The ISA of the target binary object.");
   desc.add_options()("syntax,s", po::value<std::string>(),
                      "The syntax of the assembly file to generate.");
-  desc.add_options()("assembler,a", po::value<std::string>(),
+  desc.add_options()("assembler", po::value<std::string>(),
                      "The assembler to use for rewriting.");
   desc.add_options()("layout,l", "Layout code and data in memory to "
                                  "avoid overlap");
