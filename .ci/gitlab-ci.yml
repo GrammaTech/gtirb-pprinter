@@ -289,6 +289,8 @@ build-centos8-gcc-relwithdebuginfo:
   services:
     - name: docker.grammatech.com/rewriting/gtirb-server:service-8080
       alias: gtirb-server
+  variables:
+    binaries: &xform-binaries "bin/gtirb-pprinter bin/gtirb-layout lib/libgtirb_pprinter.so lib/libgtirb_layout.so"
   script:
     - for binary in $binaries ; do
         binary="build/$binary" ;
@@ -296,9 +298,10 @@ build-centos8-gcc-relwithdebuginfo:
         curl -F transform=stack-stamp -F input=@$binary.gtirb --output $binary.stack-stamp.gtirb http://gtirb-server:8080/simple ;
         curl -F transform=shuffle -F input=@$binary.stack-stamp.gtirb --output $binary.stack-stamp.shuffle.gtirb http://gtirb-server:8080/simple ;
         case "$binary" in
-          *.so*) ./build/bin/gtirb-pprinter --ir $binary.stack-stamp.shuffle.gtirb --binary $binary.stack-stamp.shuffle -c "-L$(pwd)/build/lib" --shared ;;
-          *) ./build/bin/gtirb-pprinter --ir $binary.stack-stamp.shuffle.gtirb --binary $binary.stack-stamp.shuffle -c "-L$(pwd)/build/lib" ;;
-        esac
+          *.so*) shared="--shared" ;;
+          *) shared="" ;;
+        esac ;
+        ./build/bin/gtirb-pprinter --ir $binary.stack-stamp.shuffle.gtirb --binary $binary.stack-stamp.shuffle -c "-L$(pwd)/build/lib" $shared ;
       done
     - for binary in $binaries ; do
         binary="build/$binary" ;
@@ -312,7 +315,7 @@ xform-ubuntu18:
       artifacts: true
   variables:
     OS: ubuntu18
-    binaries: "bin/gtirb-pprinter bin/gtirb-layout lib/libgtirb_pprinter.so lib/libgtirb_layout.so"
+    binaries: *xform-binaries
   before_script:
     - *ubuntu-deps
   <<: *xform
@@ -324,7 +327,7 @@ xform-ubuntu20:
       artifacts: true
   variables:
     OS: ubuntu20
-    binaries: "bin/gtirb-pprinter bin/gtirb-layout lib/libgtirb_pprinter.so lib/libgtirb_layout.so"
+    binaries: *xform-binaries
   before_script:
     - *ubuntu-deps
   <<: *xform
@@ -336,18 +339,18 @@ xform-ubuntu20-clang:
       artifacts: true
   variables:
     OS: ubuntu20
-    binaries: "bin/gtirb-pprinter bin/gtirb-layout lib/libgtirb_pprinter.so lib/libgtirb_layout.so"
+    binaries: *xform-binaries
   before_script:
     - *ubuntu-deps
   <<: *xform
 
 xform-centos8:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/centos8
-  variables:
-    binaries: "bin/gtirb-pprinter bin/gtirb-layout lib/libgtirb_pprinter.so lib/libgtirb_layout.so"
   needs:
     - job: build-centos8-gcc-relwithdebuginfo
       artifacts: true
+  variables:
+    binaries: *xform-binaries
   before_script:
     - *centos-deps
     - export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/build/lib"
