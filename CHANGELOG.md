@@ -1,4 +1,4 @@
-1.8.0 (Unreleased)
+1.8.0
 
   * Add alternative PE assembler and linker commands.
   * Use dedicated symbolic expression attributes.
