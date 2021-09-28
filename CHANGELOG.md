@@ -1,3 +1,7 @@
+1.8.1 (Unreleased)
+
+  * TBA
+
 1.8.0
 
   * Add alternative PE assembler and linker commands.
