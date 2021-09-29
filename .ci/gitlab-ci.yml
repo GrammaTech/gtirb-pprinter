@@ -5,6 +5,7 @@ variables:
   # The following two variables are used by the package uploader.
   PROJECT_ID: $CI_PROJECT_ID
   PIPELINE_ID: $CI_PIPELINE_ID
+  XFORM_BINARIES: "bin/gtirb-pprinter bin/gtirb-layout lib/libgtirb_pprinter.so lib/libgtirb_layout.so"
 
 
 default:
@@ -280,6 +281,7 @@ build-centos8-gcc-relwithdebuginfo:
     - cpack -G "RPM" -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PPRINTER_PACKAGE=rpm-driver
     - cd ../ && mv build ../build
 
+
 .xform: &xform
   stage: xform
   artifacts:
@@ -289,10 +291,8 @@ build-centos8-gcc-relwithdebuginfo:
   services:
     - name: docker.grammatech.com/rewriting/gtirb-server:service-8080
       alias: gtirb-server
-  variables:
-    binaries: &xform-binaries "bin/gtirb-pprinter bin/gtirb-layout lib/libgtirb_pprinter.so lib/libgtirb_layout.so"
   script:
-    - for binary in $binaries ; do
+    - for binary in $XFORM_BINARIES ; do
         binary="build/$binary" ;
         curl -F transform=ddisasm -F input=@$binary --output $binary.gtirb http://gtirb-server:8080/simple ;
         curl -F transform=stack-stamp -F input=@$binary.gtirb --output $binary.stack-stamp.gtirb http://gtirb-server:8080/simple ;
@@ -303,7 +303,7 @@ build-centos8-gcc-relwithdebuginfo:
         esac ;
         ./build/bin/gtirb-pprinter --ir $binary.stack-stamp.shuffle.gtirb --binary $binary.stack-stamp.shuffle -c "-L$(pwd)/build/lib" $shared ;
       done
-    - for binary in $binaries ; do
+    - for binary in $XFORM_BINARIES ; do
         binary="build/$binary" ;
         cp $binary.stack-stamp.shuffle $binary ;
       done
@@ -315,7 +315,6 @@ xform-ubuntu18:
       artifacts: true
   variables:
     OS: ubuntu18
-    binaries: *xform-binaries
   before_script:
     - *ubuntu-deps
   <<: *xform
@@ -327,7 +326,6 @@ xform-ubuntu20:
       artifacts: true
   variables:
     OS: ubuntu20
-    binaries: *xform-binaries
   before_script:
     - *ubuntu-deps
   <<: *xform
@@ -339,7 +337,6 @@ xform-ubuntu20-clang:
       artifacts: true
   variables:
     OS: ubuntu20
-    binaries: *xform-binaries
   before_script:
     - *ubuntu-deps
   <<: *xform
@@ -349,8 +346,6 @@ xform-centos8:
   needs:
     - job: build-centos8-gcc-relwithdebuginfo
       artifacts: true
-  variables:
-    binaries: *xform-binaries
   before_script:
     - *centos-deps
     - export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/build/lib"
