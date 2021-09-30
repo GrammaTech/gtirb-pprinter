@@ -341,15 +341,12 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
     policy.skipFunctions.insert(Name);
   }
 
-  if (const auto* ElfSymbolVersions =
-          module.getAuxData<gtirb::schema::ElfSymbolVersions>()) {
-    for (auto const& [Uuid, Version] : *ElfSymbolVersions) {
-
-      const auto* Symbol = nodeFromUUID<gtirb::Symbol>(context, Uuid);
-      assert(Symbol && "UUID references non-existent symbol.");
-      std::string Name = Symbol->getName() + "@" + Version;
-      SymbolVersionUuid.insert({Name, Uuid});
-      UuidSymbolVersion.insert({Uuid, Name});
+  if (const auto* T = module.getAuxData<gtirb::schema::ElfSymbolVersions>()) {
+    for (auto& [Uuid, Version] : *T) {
+      gtirb::Symbol* Symbol = nodeFromUUID<gtirb::Symbol>(context, Uuid);
+      if (Symbol) {
+        SymbolVersions.insert({Symbol->getName(), Version});
+      }
     }
   }
 }
@@ -1419,16 +1416,12 @@ PrettyPrinterBase::getForwardedSymbol(const gtirb::Symbol* Symbol) const {
   return nullptr;
 }
 
-bool PrettyPrinterBase::isAmbiguousSymbol(const gtirb::Symbol& S) const {
-  if (const auto It = UuidSymbolVersion.find(S.getUUID());
-      It != UuidSymbolVersion.end()) {
-    if (SymbolVersionUuid.count(It->second) > 1) {
-      return true;
-    }
+bool PrettyPrinterBase::isAmbiguousSymbol(const gtirb::Symbol& Symbol) const {
+  if (SymbolVersions.count(Symbol.getName()) > 1) {
     return false;
   }
   // Are there multiple symbols with this name?
-  auto Found = module.findSymbols(S.getName());
+  auto Found = module.findSymbols(Symbol.getName());
   return distance(begin(Found), end(Found)) > 1;
 }
 
