@@ -74,7 +74,7 @@ build-conan-linux-gcc9:
 
 .windows-conan-template: &windows-conan
   stage: build
-  tags: [gtirb-pprinter-windows]
+  tags: [ddisasm-windows]
   script:
     - systeminfo
     # Set up user and remote
