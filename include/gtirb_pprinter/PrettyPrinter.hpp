@@ -486,7 +486,8 @@ private:
 
   static bool x86InstHasMoffsetEncoding(const cs_insn& inst);
 
-  std::multimap<std::string, std::string> SymbolVersions;
+  std::multimap<std::string, gtirb::UUID> SymbolVersionUuid;
+  std::map<gtirb::UUID, std::string> UuidSymbolVersion;
 
 protected:
   std::string m_accum_comment;
