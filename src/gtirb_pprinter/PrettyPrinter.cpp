@@ -340,18 +340,6 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
   for (const std::string& Name : AdditionalSkips) {
     policy.skipFunctions.insert(Name);
   }
-
-  if (const auto* ElfSymbolVersions =
-          module.getAuxData<gtirb::schema::ElfSymbolVersions>()) {
-    for (auto const& [Uuid, Version] : *ElfSymbolVersions) {
-
-      const auto* Symbol = nodeFromUUID<gtirb::Symbol>(context, Uuid);
-      assert(Symbol && "UUID references non-existent symbol.");
-      std::string Name = Symbol->getName() + "@" + Version;
-      SymbolVersionUuid.insert({Name, Uuid});
-      UuidSymbolVersion.insert({Uuid, Name});
-    }
-  }
 }
 
 PrettyPrinterBase::~PrettyPrinterBase() { cs_close(&this->csHandle); }
@@ -1363,7 +1351,7 @@ std::string PrettyPrinterBase::getFunctionName(gtirb::Addr x) const {
     if (!symbols.empty()) {
       const gtirb::Symbol& s = symbols.front();
       std::stringstream name(s.getName());
-      if (isAmbiguousSymbol(s)) {
+      if (isAmbiguousSymbol(s.getName())) {
         name.seekp(0, std::ios_base::end);
         name << '_' << std::hex << static_cast<uint64_t>(x);
       }
@@ -1384,7 +1372,7 @@ std::string PrettyPrinterBase::getFunctionName(gtirb::Addr x) const {
 
 std::string
 PrettyPrinterBase::getSymbolName(const gtirb::Symbol& symbol) const {
-  if (isAmbiguousSymbol(symbol)) {
+  if (isAmbiguousSymbol(symbol.getName())) {
     std::stringstream ss;
     ss << symbol.getName() << "_disambig_"
        << reinterpret_cast<uint64_t>(&symbol);
@@ -1419,17 +1407,10 @@ PrettyPrinterBase::getForwardedSymbol(const gtirb::Symbol* Symbol) const {
   return nullptr;
 }
 
-bool PrettyPrinterBase::isAmbiguousSymbol(const gtirb::Symbol& S) const {
-  if (const auto It = UuidSymbolVersion.find(S.getUUID());
-      It != UuidSymbolVersion.end()) {
-    if (SymbolVersionUuid.count(It->second) > 1) {
-      return true;
-    }
-    return false;
-  }
+bool PrettyPrinterBase::isAmbiguousSymbol(const std::string& name) const {
   // Are there multiple symbols with this name?
-  auto Found = module.findSymbols(S.getName());
-  return distance(begin(Found), end(Found)) > 1;
+  auto found = module.findSymbols(name);
+  return distance(begin(found), end(found)) > 1;
 }
 
 void PrettyPrinterBase::printSection(std::ostream& os,
