@@ -142,8 +142,11 @@ protected:
 
   std::optional<uint64_t> getAlignment(const gtirb::CodeBlock& Block) override;
 
+  std::string getSymbolName(const gtirb::Symbol& symbol) const override;
+
 private:
   bool TlsGdSequence = false;
+  std::map<gtirb::UUID, std::string> SymbolVersionAliases;
 };
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API ElfPrettyPrinterFactory

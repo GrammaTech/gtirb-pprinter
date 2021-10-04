@@ -100,6 +100,14 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
     : PrettyPrinterBase(context_, module_, syntax_, assembler_, policy_),
       elfSyntax(syntax_) {}
 
+std::string ElfPrettyPrinter::getSymbolName(const gtirb::Symbol& Symbol) const {
+  if (size_t I = Symbol.getName().find('@'); I != std::string::npos) {
+    // Strip version string from symbol name.
+    return Symbol.getName().substr(0, I);
+  }
+  return PrettyPrinterBase::getSymbolName(Symbol);
+}
+
 void ElfPrettyPrinter::printInstruction(std::ostream& os,
                                         const gtirb::CodeBlock& block,
                                         const cs_insn& inst,
@@ -352,6 +360,7 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
   }
 
   auto name = getSymbolName(sym);
+
   printBar(os, false);
   bool unique = false;
   if (SymbolInfo.Binding == "GLOBAL") {
