@@ -102,15 +102,24 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
       elfSyntax(syntax_) {
 
   // Create `.symver' aliases for local, versioned symbols.
-  //     e.g.   fgetxattr@ATTR_1.0
-  //  becomes   fgetxattr_ATTR_1_0
+  //     e.g.   fgetxattr@GLIBC_2.3    and    fgetxattr@ATTR_1.0
+  //  becomes   fgetxattr              and    fgetxattr_ATTR_1_0
+  std::multimap<std::string, std::string> Versions;
+  for (const auto& Symbol : module.symbols()) {
+    std::string Name = Symbol.getName();
+    if (size_t I = Name.find('@'); I != std::string::npos) {
+      Versions.insert({Name.substr(0, I), Name.substr(I + 1)});
+    }
+  }
   for (const auto& Symbol : module.symbols()) {
     std::string Name = Symbol.getName();
     if (size_t I = Name.find('@'); I != std::string::npos) {
       if (Symbol.getReferent<gtirb::ProxyBlock>() == nullptr) {
-        boost::replace_all(Name, "@", "_");
-        boost::replace_all(Name, ".", "_");
-        SymbolVersions.insert({Symbol.getUUID(), Name});
+        if (Versions.count(Name.substr(0, I)) > 1) {
+          boost::replace_all(Name, "@", "_");
+          boost::replace_all(Name, ".", "_");
+          SymbolVersions.insert({Symbol.getUUID(), Name});
+        }
       }
     }
   }
