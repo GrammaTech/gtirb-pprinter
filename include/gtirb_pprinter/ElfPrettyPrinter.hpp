@@ -146,7 +146,7 @@ protected:
 
 private:
   bool TlsGdSequence = false;
-  std::map<gtirb::UUID, std::string> SymbolVersionAliases;
+  std::map<gtirb::UUID, std::string> SymbolVersions;
 };
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API ElfPrettyPrinterFactory

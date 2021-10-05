@@ -14,6 +14,7 @@
 //===----------------------------------------------------------------------===//
 #include "ElfPrettyPrinter.hpp"
 #include "driver/Logger.h"
+#include <boost/algorithm/string/replace.hpp>
 
 #include "AuxDataSchema.hpp"
 #define SHT_NULL 0
@@ -98,7 +99,22 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
                                    const Assembler& assembler_,
                                    const PrintingPolicy& policy_)
     : PrettyPrinterBase(context_, module_, syntax_, assembler_, policy_),
-      elfSyntax(syntax_) {}
+      elfSyntax(syntax_) {
+
+  // Create `.symver' aliases for local, versioned symbols.
+  //     e.g.   fgetxattr@ATTR_1.0
+  //  becomes   fgetxattr_ATTR_1_0
+  for (const auto& Symbol : module.symbols()) {
+    std::string Name = Symbol.getName();
+    if (size_t I = Name.find('@'); I != std::string::npos) {
+      if (Symbol.getReferent<gtirb::ProxyBlock>() == nullptr) {
+        boost::replace_all(Name, "@", "_");
+        boost::replace_all(Name, ".", "_");
+        SymbolVersions.insert({Symbol.getUUID(), Name});
+      }
+    }
+  }
+}
 
 std::string ElfPrettyPrinter::getSymbolName(const gtirb::Symbol& Symbol) const {
   if (size_t I = Symbol.getName().find('@'); I != std::string::npos) {
@@ -360,7 +376,6 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
   }
 
   auto name = getSymbolName(sym);
-
   printBar(os, false);
   bool unique = false;
   if (SymbolInfo.Binding == "GLOBAL") {
@@ -402,6 +417,11 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
        << TypeName << "\n";
   }
 
+  if (auto It = SymbolVersions.find(sym.getUUID());
+      It != SymbolVersions.end()) {
+    os << ".symver " << It->second << ", " << sym.getName() << ", remove\n";
+  }
+
   printBar(os, false);
 }
 
@@ -433,10 +453,16 @@ void ElfPrettyPrinter::printSymExprSuffix(std::ostream& OS,
   }
 }
 
-void ElfPrettyPrinter::printSymbolDefinition(std::ostream& os,
-                                             const gtirb::Symbol& sym) {
-  printSymbolHeader(os, sym);
-  PrettyPrinterBase::printSymbolDefinition(os, sym);
+void ElfPrettyPrinter::printSymbolDefinition(std::ostream& Stream,
+                                             const gtirb::Symbol& Symbol) {
+  printSymbolHeader(Stream, Symbol);
+  // Define symbol by `.symver' alias.
+  if (auto It = SymbolVersions.find(Symbol.getUUID());
+      It != SymbolVersions.end()) {
+    Stream << It->second << ":\n";
+    return;
+  }
+  PrettyPrinterBase::printSymbolDefinition(Stream, Symbol);
 }
 
 void ElfPrettyPrinter::printSymbolDefinitionRelativeToPC(
