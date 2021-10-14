@@ -31,21 +31,23 @@ private:
   std::string compiler = "gcc";
   bool debug = false;
   bool useDummySO = false;
-  std::vector<std::string> dummySOArgs;
   std::optional<std::string>
   getInfixLibraryName(const std::string& library) const;
   std::optional<std::string>
   findLibrary(const std::string& library,
               const std::vector<std::string>& paths) const;
-  bool generateDummySO(const std::string& lib,
-                       std::vector<const gtirb::Symbol*>::const_iterator begin,
-                       std::vector<const gtirb::Symbol*>::const_iterator end);
-  bool prepareDummySOLibs(const gtirb::IR& ir);
+  bool
+  generateDummySO(const std::string& lib,
+                  std::vector<const gtirb::Symbol*>::const_iterator begin,
+                  std::vector<const gtirb::Symbol*>::const_iterator end) const;
+  std::optional<std::vector<std::string>>
+  prepareDummySOLibs(const gtirb::IR& ir) const;
   void addOrigLibraryArgs(const gtirb::IR& ir,
                           std::vector<std::string>& args) const;
   std::vector<std::string>
   buildCompilerArgs(std::string outputFilename,
-                    const std::vector<TempFile>& asmPath, gtirb::IR& ir) const;
+                    const std::vector<TempFile>& asmPath, gtirb::IR& ir,
+                    const std::vector<std::string>& dummySoArgs) const;
 
 public:
   /// Construct a ElfBinaryPrinter with the default configuration.
@@ -54,7 +56,7 @@ public:
                             const std::vector<std::string>& libraryPaths,
                             bool debugFlag, bool dummySOFlag)
       : BinaryPrinter(prettyPrinter, extraCompileArgs, libraryPaths),
-        debug(debugFlag), useDummySO(dummySOFlag), dummySOArgs() {}
+        debug(debugFlag), useDummySO(dummySOFlag) {}
   virtual ~ElfBinaryPrinter() = default;
 
   int assemble(const std::string& outputFilename, gtirb::Context& context,
