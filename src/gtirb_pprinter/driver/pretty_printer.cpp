@@ -68,11 +68,11 @@ static std::unique_ptr<gtirb_bprint::BinaryPrinter>
 getBinaryPrinter(const std::string& format,
                  const gtirb_pprint::PrettyPrinter& pp,
                  const std::vector<std::string>& extraCompileArgs,
-                 const std::vector<std::string>& libraryPaths) {
+                 const std::vector<std::string>& libraryPaths, bool dummySO) {
   std::unique_ptr<gtirb_bprint::BinaryPrinter> binaryPrinter;
   if (format == "elf")
     return std::make_unique<gtirb_bprint::ElfBinaryPrinter>(
-        pp, extraCompileArgs, libraryPaths, true, true);
+        pp, extraCompileArgs, libraryPaths, true, dummySO);
   if (format == "pe")
     return std::make_unique<gtirb_bprint::PeBinaryPrinter>(pp, extraCompileArgs,
                                                            libraryPaths);
@@ -175,6 +175,9 @@ int main(int argc, char** argv) {
   desc.add_options()("keep-all,k", "Combination of --keep-all-functions, "
                                    "--keep-all-symbols, --keep-all-sections, "
                                    "and --keep-all-array-sections.");
+  desc.add_options()("dummy-so", po::value<bool>()->default_value(false),
+                     "Use artificial .so files for linking rather than actual "
+                     "libraries. Only relevant for ELF executables.");
 
   po::positional_options_description pd;
   pd.add("ir", -1);
@@ -431,7 +434,8 @@ int main(int argc, char** argv) {
       libraryPaths = vm["library-paths"].as<std::vector<std::string>>();
 
     std::unique_ptr<gtirb_bprint::BinaryPrinter> binaryPrinter =
-        getBinaryPrinter(format, pp, extraCompilerArgs, libraryPaths);
+        getBinaryPrinter(format, pp, extraCompilerArgs, libraryPaths,
+                         vm["dummy-so"].as<bool>());
     if (!binaryPrinter) {
       LOG_ERROR << "'" << format
                 << "' is an unsupported binary printing format.\n";
@@ -462,7 +466,8 @@ int main(int argc, char** argv) {
       libraryPaths = vm["library-paths"].as<std::vector<std::string>>();
 
     std::unique_ptr<gtirb_bprint::BinaryPrinter> binaryPrinter =
-        getBinaryPrinter(format, pp, extraCompilerArgs, libraryPaths);
+        getBinaryPrinter(format, pp, extraCompilerArgs, libraryPaths,
+                         vm["dummy-so"].as<bool>());
 
     if (!binaryPrinter) {
       LOG_ERROR << "'" << format
