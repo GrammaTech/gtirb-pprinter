@@ -122,7 +122,9 @@ int main(int argc, char** argv) {
                      "The assembler to use for rewriting.");
   desc.add_options()("layout,l", "Layout code and data in memory to "
                                  "avoid overlap");
-  desc.add_options()("debug,d", "Turn on debugging (will break assembly)");
+  desc.add_options()(
+      "listing-mode", po::value<std::string>(),
+      "The mode of use for the listing: assembler, ui, or debug");
   desc.add_options()(
       "policy,p", po::value<std::string>(),
       "The default set of objects to skip when printing assembly. To modify "
@@ -263,7 +265,12 @@ int main(int argc, char** argv) {
 
   // Perform the Pretty Printing step.
   gtirb_pprint::PrettyPrinter pp;
-  pp.setDebug(vm.count("debug"));
+  std::string listing_mode =
+      vm.count("listing-mode") ? vm["listing-mode"].as<std::string>() : "";
+  if (!pp.setListingMode(listing_mode)) {
+    LOG_ERROR << "Invalid listing-mode: " << listing_mode << "\n";
+    return EXIT_FAILURE;
+  }
   const std::string& format =
       vm.count("format")
           ? vm["format"].as<std::string>()

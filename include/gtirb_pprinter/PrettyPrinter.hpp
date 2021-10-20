@@ -42,7 +42,12 @@ class PrettyPrinterFactory;
 class PrettyPrinterBase;
 
 /// Whether a pretty printer should include debugging messages in it output.
-enum DebugStyle { NoDebug, DebugMessages };
+enum ListingMode {
+  ListingAssembler, // The output is intended for consumption by an assembler
+  ListingUI,        // The output is intended for consumption by a user
+                    // (though we still try to keep is assemble-able)
+  ListingDebug,     // Debug output, not assemble-able, very verbose.
+};
 
 /// A range containing strings. These can be standard library containers or
 /// pairs of iterators, for example.
@@ -151,7 +156,7 @@ struct DEBLOAT_PRETTYPRINTER_EXPORT_API PrintingPolicy {
   /// Additional arguments to the compiler. Used only with binary printers.
   std::unordered_set<std::string> compilerArguments{};
 
-  DebugStyle debug = NoDebug;
+  ListingMode listingMode = ListingAssembler;
   bool Shared = false;
 };
 
@@ -186,13 +191,7 @@ public:
   /// Enable or disable debugging messages inside the pretty-printed code.
   ///
   /// \param do_debug whether to enable debugging messages
-  void setDebug(bool do_debug);
-
-  /// Indicates whether debugging messages are currently enable or disabled.
-  ///
-  /// \return \c true if debugging messages are currently enabled, otherwise
-  /// \c false.
-  bool getDebug() const;
+  bool setListingMode(const std::string& listing_mode);
 
   /// Set whether or not we print assembly for shared libraries.
   void setShared(bool Value) { Shared = Value; }
@@ -237,7 +236,7 @@ private:
   std::string m_isa;
   std::string m_syntax;
   std::string m_assembler;
-  DebugStyle m_debug;
+  ListingMode m_listing_mode;
   PolicyOptions FunctionPolicy, SymbolPolicy, SectionPolicy, ArraySectionPolicy;
   std::string PolicyName = "default";
   bool Shared = false;
@@ -365,11 +364,16 @@ protected:
                                 const cs_insn& inst);
   virtual void printComments(std::ostream& os, const gtirb::Offset& offset,
                              uint64_t range);
+  virtual void emitCommentableLine(std::stringstream& lineContents,
+                                   std::ostream& outStream,
+                                   gtirb::Addr effectiveAddr);
   virtual void printCFIDirectives(std::ostream& os, const gtirb::Offset& ea);
   virtual void printSymbolicData(
-      std::ostream& os, const gtirb::Addr& EA,
+      std::ostream& os,
       const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE,
       uint64_t Size, std::optional<std::string> Type);
+  virtual void printSymbolicDataFollowingComments(std::ostream& os,
+                                                  const gtirb::Addr& EA);
   virtual void printSymbolicDataType(
       std::ostream& os,
       const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE,
@@ -449,7 +453,7 @@ protected:
 
   csh csHandle;
 
-  bool debug;
+  ListingMode listingMode;
 
   gtirb::Context& context;
   gtirb::Module& module;
@@ -477,6 +481,8 @@ private:
   gtirb::Addr programCounter;
 
   std::optional<gtirb::Addr> CFIStartProc;
+
+  const size_t preferredEOLCommentPos;
 
   template <typename BlockType>
   void printBlockImpl(std::ostream& OS, BlockType& Block);

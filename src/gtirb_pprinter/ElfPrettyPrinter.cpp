@@ -334,8 +334,7 @@ void ElfPrettyPrinter::printFunctionFooter(std::ostream& /* os */,
 
 void ElfPrettyPrinter::printByte(std::ostream& os, std::byte byte) {
   std::ios_base::fmtflags flags = os.flags();
-  os << syntax.byteData() << " 0x" << std::hex << static_cast<uint32_t>(byte)
-     << '\n';
+  os << syntax.byteData() << " 0x" << std::hex << static_cast<uint32_t>(byte);
   os.flags(flags);
 }
 

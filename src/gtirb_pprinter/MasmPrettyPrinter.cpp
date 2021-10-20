@@ -620,7 +620,7 @@ void MasmPrettyPrinter::printSymbolicExpression(std::ostream& os,
 void MasmPrettyPrinter::printByte(std::ostream& os, std::byte byte) {
   // Byte constants must start with a number for the MASM assembler.
   os << syntax.byteData() << " 0" << std::hex << std::setfill('0')
-     << std::setw(2) << static_cast<uint32_t>(byte) << 'H' << std::dec << '\n';
+     << std::setw(2) << static_cast<uint32_t>(byte) << 'H' << std::dec;
 }
 
 void MasmPrettyPrinter::printZeroDataBlock(std::ostream& os,

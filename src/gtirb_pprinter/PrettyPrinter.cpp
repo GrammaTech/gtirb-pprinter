@@ -180,11 +180,18 @@ void PrettyPrinter::setFormat(const std::string& format,
   setTarget(std::make_tuple(format, isa, syntax, assembler));
 }
 
-void PrettyPrinter::setDebug(bool do_debug) {
-  m_debug = do_debug ? DebugMessages : NoDebug;
+bool PrettyPrinter::setListingMode(const std::string& listing_mode) {
+  if (listing_mode == "debug") {
+    m_listing_mode = ListingDebug;
+  } else if (listing_mode == "ui") {
+    m_listing_mode = ListingUI;
+  } else if (listing_mode == "assembler" || listing_mode == "") {
+    m_listing_mode = ListingAssembler;
+  } else {
+    return false;
+  }
+  return true;
 }
-
-bool PrettyPrinter::getDebug() const { return m_debug == DebugMessages; }
 
 std::set<std::string> PrettyPrinter::policyNames() const {
   auto It = getFactories().find(
@@ -236,7 +243,7 @@ std::error_condition PrettyPrinter::print(std::ostream& stream,
 
   // Configure printing policy.
   PrintingPolicy policy(getPolicy(module));
-  policy.debug = m_debug;
+  policy.listingMode = m_listing_mode;
   policy.Shared = Shared;
   FunctionPolicy.apply(policy.skipFunctions);
   SymbolPolicy.apply(policy.skipSymbols);
@@ -289,8 +296,8 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
                                      const Assembler& assembler_,
                                      const PrintingPolicy& policy_)
     : syntax(syntax_), assembler(assembler_), policy(policy_),
-      debug(policy.debug == DebugMessages ? true : false), context(context_),
-      module(module_), functionEntry(), functionLastBlock() {
+      listingMode(policy.listingMode), context(context_), module(module_),
+      functionEntry(), functionLastBlock(), preferredEOLCommentPos(64) {
 
   if (const auto* functionEntries =
           module.getAuxData<gtirb::schema::FunctionEntries>()) {
@@ -392,7 +399,7 @@ void PrettyPrinterBase::printOverlapWarning(std::ostream& os,
             << std::endl;
   std::ios_base::fmtflags flags = os.flags();
   os << syntax.comment() << " WARNING: found overlapping blocks at address "
-     << std::hex << static_cast<uint64_t>(addr) << '\n';
+     << std::hex << static_cast<uint64_t>(addr) << "\n";
   os.flags(flags);
 }
 
@@ -405,7 +412,7 @@ void PrettyPrinterBase::printBlockContents(std::ostream& os,
 
   gtirb::Addr addr = *x.getAddress();
   printFunctionHeader(os, addr);
-  os << '\n';
+  os << "\n";
 
   cs_insn* insn;
   cs_option(this->csHandle, CS_OPT_DETAIL, CS_OPT_ON);
@@ -435,21 +442,21 @@ void PrettyPrinterBase::setDecodeMode(std::ostream& /*os*/,
 void PrettyPrinterBase::printSectionHeader(std::ostream& os,
                                            const gtirb::Section& section) {
   std::string sectionName = section.getName();
-  os << '\n';
+  os << "\n";
   printBar(os);
   if (sectionName == syntax.textSection()) {
-    os << syntax.text() << '\n';
+    os << syntax.text() << "\n";
   } else if (sectionName == syntax.dataSection()) {
-    os << syntax.data() << '\n';
+    os << syntax.data() << "\n";
   } else if (sectionName == syntax.bssSection()) {
-    os << syntax.bss() << '\n';
+    os << syntax.bss() << "\n";
   } else {
     printSectionHeaderDirective(os, section);
     printSectionProperties(os, section);
     os << std::endl;
   }
   printBar(os);
-  os << '\n';
+  os << "\n";
 }
 
 void PrettyPrinterBase::printSectionFooter(std::ostream& os,
@@ -461,9 +468,11 @@ void PrettyPrinterBase::printSectionFooter(std::ostream& os,
 
 void PrettyPrinterBase::printBar(std::ostream& os, bool heavy) {
   if (heavy) {
-    os << syntax.comment() << "===================================\n";
+    os << syntax.comment() << "==================================="
+       << "\n";
   } else {
-    os << syntax.comment() << "-----------------------------------\n";
+    os << syntax.comment() << "-----------------------------------"
+       << "\n";
   }
 }
 
@@ -474,7 +483,7 @@ bool PrettyPrinterBase::printSymbolReference(std::ostream& os,
 
   std::optional<std::string> forwardedName = getForwardedSymbolName(symbol);
   if (forwardedName) {
-    if (debug) {
+    if (listingMode == ListingDebug || listingMode == ListingUI) {
       os << forwardedName.value();
       return false;
     } else {
@@ -495,7 +504,7 @@ bool PrettyPrinterBase::printSymbolReference(std::ostream& os,
     }
   }
   if (shouldSkip(*symbol)) {
-    if (debug) {
+    if (listingMode == ListingDebug || listingMode == ListingUI) {
       os << static_cast<uint64_t>(*symbol->getAddress());
     } else {
       // NOTE: See the comment above.
@@ -621,20 +630,20 @@ void PrettyPrinterBase::printInstruction(std::ostream& os,
   gtirb::Addr ea(inst.address);
   printComments(os, offset, inst.size);
   printCFIDirectives(os, offset);
-  printEA(os, ea);
 
   ////////////////////////////////////////////////////////////////////
   // special cases
 
   if (inst.id == X86_INS_NOP || inst.id == ARM64_INS_NOP) {
-    os << "  " << syntax.nop();
-    for (uint64_t i = 1; i < inst.size; ++i) {
+    uint64_t i = 0;
+    do {
+      std::stringstream ssInstruct;
+      printEA(ssInstruct, ea);
+      ssInstruct << "  " << syntax.nop();
+      emitCommentableLine(ssInstruct, os, ea);
+      os << "\n";
       ea += 1;
-      os << '\n';
-      printEA(os, ea);
-      os << "  " << syntax.nop();
-    }
-    os << '\n';
+    } while (++i < inst.size);
     return;
   }
 
@@ -647,21 +656,24 @@ void PrettyPrinterBase::printInstruction(std::ostream& os,
   // end special cases
   ////////////////////////////////////////////////////////////////////
 
+  std::stringstream ssInstruct;
   std::string opcode = ascii_str_tolower(inst.mnemonic);
-  os << "  " << opcode << ' ';
+  printEA(ssInstruct, ea);
+  ssInstruct << "  " << opcode << ' ';
   // Make sure the initial m_accum_comment is empty.
   m_accum_comment.clear();
-  printOperandList(os, block, inst);
+  printOperandList(ssInstruct, block, inst);
   if (!m_accum_comment.empty()) {
-    os << " " << syntax.comment() << " " << m_accum_comment;
+    ssInstruct << " " << syntax.comment() << " " << m_accum_comment;
     m_accum_comment.clear();
   }
-  os << '\n';
+  emitCommentableLine(ssInstruct, os, ea);
+  os << "\n";
 }
 
 void PrettyPrinterBase::printEA(std::ostream& os, gtirb::Addr ea) {
   os << syntax.tab();
-  if (this->debug) {
+  if (this->listingMode == ListingDebug) {
     os << std::hex << static_cast<uint64_t>(ea) << ": " << std::dec;
   }
 }
@@ -884,9 +896,12 @@ void PrettyPrinterBase::printNonZeroDataBlock(
         foundType != types->end()) {
       if (foundType->second == "string") {
         printComments(os, CurrOffset, dataObject.getSize() - offset);
-        printEA(os, *dataObject.getAddress() + offset);
-        printString(os, dataObject, offset);
-        os << '\n';
+
+        std::stringstream ssDataLine;
+        printEA(ssDataLine, *dataObject.getAddress() + offset);
+        printString(ssDataLine, dataObject, offset);
+        emitCommentableLine(ssDataLine, os, *dataObject.getAddress() + offset);
+        os << "\n";
         return;
       }
 
@@ -902,7 +917,7 @@ void PrettyPrinterBase::printNonZeroDataBlock(
   bool HasComments = false;
   std::map<gtirb::Offset, std::string>::const_iterator CommentsIt;
   std::map<gtirb::Offset, std::string>::const_iterator CommentsEnd;
-  if (this->debug) {
+  if (this->listingMode == ListingDebug) {
     if (const auto* comments = module.getAuxData<gtirb::schema::Comments>()) {
       HasComments = true;
       CommentsIt = comments->lower_bound(CurrOffset);
@@ -934,8 +949,12 @@ void PrettyPrinterBase::printNonZeroDataBlock(
         printCommentsBetween(Size);
       }
       gtirb::Addr EA = *dataObject.getAddress() + CurrOffset.Displacement;
-      printEA(os, EA);
-      printSymbolicData(os, EA, SEE, Size, Type);
+      std::stringstream ssDataLine;
+      printEA(ssDataLine, EA);
+      printSymbolicData(ssDataLine, SEE, Size, Type);
+      emitCommentableLine(ssDataLine, os, *dataObject.getAddress() + offset);
+      os << "\n";
+      printSymbolicDataFollowingComments(os, EA);
       ByteI += Size;
       ByteIt += Size;
       CurrOffset.Displacement += Size;
@@ -944,9 +963,13 @@ void PrettyPrinterBase::printNonZeroDataBlock(
         printCommentsBetween(1);
       }
 
-      printEA(os, *dataObject.getAddress() + CurrOffset.Displacement);
-      printByte(os,
+      std::stringstream ssDataLine;
+      printEA(ssDataLine, *dataObject.getAddress() + CurrOffset.Displacement);
+      printByte(ssDataLine,
                 static_cast<std::byte>(static_cast<unsigned char>(*ByteIt)));
+      emitCommentableLine(ssDataLine, os,
+                          *dataObject.getAddress() + CurrOffset.Displacement);
+      os << "\n";
       ByteI++;
       ByteIt++;
       CurrOffset.Displacement++;
@@ -960,15 +983,21 @@ void PrettyPrinterBase::printZeroDataBlock(std::ostream& os,
   if (auto size = dataObject.getSize() - offset) {
     printComments(os, gtirb::Offset(dataObject.getUUID(), offset),
                   dataObject.getSize() - offset);
-    printEA(os, *dataObject.getAddress() + offset);
-    os << ".zero " << size << '\n';
+
+    std::stringstream ssDataLine;
+    printEA(ssDataLine, *dataObject.getAddress() + offset);
+    ssDataLine << ".zero " << size;
+    emitCommentableLine(ssDataLine, os, *dataObject.getAddress() + offset);
+    os << "\n";
   }
 }
 
 void PrettyPrinterBase::printComments(std::ostream& os,
                                       const gtirb::Offset& offset,
                                       uint64_t range) {
-  if (!this->debug)
+  // We only print auxdata comments in debug mode. In UI mode, we _might_ want
+  // some comments but there is no way to be selective of which ones.
+  if (this->listingMode != ListingDebug)
     return;
 
   if (const auto* comments = module.getAuxData<gtirb::schema::Comments>()) {
@@ -978,13 +1007,43 @@ void PrettyPrinterBase::printComments(std::ostream& os,
       os << syntax.comment();
       if (p->first.Displacement > offset.Displacement)
         os << "+" << p->first.Displacement - offset.Displacement << ":";
-      os << " " << p->second << '\n';
+      os << " " << p->second << "\n";
     }
   }
 }
 
+void PrettyPrinterBase::emitCommentableLine(std::stringstream& lineContents,
+                                            std::ostream& outStream,
+                                            gtirb::Addr effectiveAddr) {
+  std::copy(std::istreambuf_iterator<char>(lineContents),
+            std::istreambuf_iterator<char>(),
+            std::ostream_iterator<char>(outStream));
+
+  if (this->listingMode != ListingUI)
+    return;
+
+  // We could do this with std::setw() and <<, but I'm concerned about
+  // performance since we would be iterating lineContents twice.
+  const std::streampos length = lineContents.tellp();
+  assert(length != -1);
+  // If this _was_ -1, it will now be std::max<size_t> which gives us the
+  // behavior we want (single space between end of instruction and comment)
+  const size_t lengthUnsigned = static_cast<size_t>(length);
+  const size_t numSpaces = preferredEOLCommentPos > lengthUnsigned
+                               ? (preferredEOLCommentPos - lengthUnsigned - 1)
+                               : 1;
+  std::string spaces(numSpaces, ' ');
+
+  outStream << spaces << syntax.comment();
+  outStream << " EA: " << std::hex << effectiveAddr;
+}
+
 void PrettyPrinterBase::printCFIDirectives(std::ostream& os,
                                            const gtirb::Offset& offset) {
+  // CFI gets a little noisy for people trying to understand the code.
+  if (this->listingMode == ListingUI)
+    return;
+
   const auto* cfiDirectives = module.getAuxData<gtirb::schema::CfiDirectives>();
   if (!cfiDirectives)
     return;
@@ -1051,7 +1110,7 @@ void PrettyPrinterBase::printSymbolicDataType(
 }
 
 void PrettyPrinterBase::printSymbolicData(
-    std::ostream& os, const gtirb::Addr& EA,
+    std::ostream& os,
     const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE,
     uint64_t Size, std::optional<std::string> Type) {
   printSymbolicDataType(os, SEE, Size, Type);
@@ -1063,26 +1122,23 @@ void PrettyPrinterBase::printSymbolicData(
     // Make sure the initial m_accum_comment is empty.
     m_accum_comment.clear();
     printSymbolicExpression(os, s, true);
-    if (!m_accum_comment.empty()) {
-      os << '\n' << syntax.comment() << " ";
-      printEA(os, EA);
-      os << ": " << m_accum_comment;
-      m_accum_comment.clear();
-    }
   } else if (const auto* sa = std::get_if<gtirb::SymAddrAddr>(
                  &SEE.getSymbolicExpression())) {
     // Make sure the initial m_accum_comment is empty.
     m_accum_comment.clear();
     printSymbolicExpression(os, sa, true);
-    if (!m_accum_comment.empty()) {
-      os << '\n' << syntax.comment() << " ";
-      printEA(os, EA);
-      os << ": " << m_accum_comment;
-      m_accum_comment.clear();
-    }
   }
+}
 
-  os << "\n";
+void PrettyPrinterBase::printSymbolicDataFollowingComments(
+    std::ostream& os, const gtirb::Addr& EA) {
+  if (!m_accum_comment.empty()) {
+    os << syntax.comment() << " ";
+    printEA(os, EA);
+    os << ": " << m_accum_comment;
+    m_accum_comment.clear();
+    os << "\n";
+  }
 }
 
 void PrettyPrinterBase::printSymExprPrefix(
@@ -1158,7 +1214,7 @@ void PrettyPrinterBase::printString(std::ostream& os, const gtirb::DataBlock& x,
 }
 
 bool PrettyPrinterBase::shouldSkip(const gtirb::Section& section) const {
-  if (debug) {
+  if (listingMode == ListingDebug) {
     return false;
   }
 
@@ -1171,7 +1227,7 @@ bool PrettyPrinterBase::shouldSkip(const gtirb::Section& section) const {
 }
 
 bool PrettyPrinterBase::shouldSkip(const gtirb::Symbol& symbol) const {
-  if (debug) {
+  if (listingMode == ListingDebug) {
     return false;
   }
 
@@ -1200,7 +1256,7 @@ bool PrettyPrinterBase::shouldSkip(const gtirb::Symbol& symbol) const {
 }
 
 bool PrettyPrinterBase::shouldSkip(const gtirb::CodeBlock& block) const {
-  if (debug) {
+  if (listingMode == ListingDebug) {
     return false;
   }
 
@@ -1214,7 +1270,7 @@ bool PrettyPrinterBase::shouldSkip(const gtirb::CodeBlock& block) const {
 }
 
 bool PrettyPrinterBase::shouldSkip(const gtirb::DataBlock& block) const {
-  if (debug) {
+  if (listingMode == ListingDebug) {
     return false;
   }
 
