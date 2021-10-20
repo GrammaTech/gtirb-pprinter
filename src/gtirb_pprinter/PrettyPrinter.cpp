@@ -399,7 +399,7 @@ void PrettyPrinterBase::printOverlapWarning(std::ostream& os,
             << std::endl;
   std::ios_base::fmtflags flags = os.flags();
   os << syntax.comment() << " WARNING: found overlapping blocks at address "
-     << std::hex << static_cast<uint64_t>(addr) << "\n";
+     << std::hex << static_cast<uint64_t>(addr) << '\n';
   os.flags(flags);
 }
 
@@ -412,7 +412,7 @@ void PrettyPrinterBase::printBlockContents(std::ostream& os,
 
   gtirb::Addr addr = *x.getAddress();
   printFunctionHeader(os, addr);
-  os << "\n";
+  os << '\n';
 
   cs_insn* insn;
   cs_option(this->csHandle, CS_OPT_DETAIL, CS_OPT_ON);
@@ -442,21 +442,21 @@ void PrettyPrinterBase::setDecodeMode(std::ostream& /*os*/,
 void PrettyPrinterBase::printSectionHeader(std::ostream& os,
                                            const gtirb::Section& section) {
   std::string sectionName = section.getName();
-  os << "\n";
+  os << '\n';
   printBar(os);
   if (sectionName == syntax.textSection()) {
-    os << syntax.text() << "\n";
+    os << syntax.text() << '\n';
   } else if (sectionName == syntax.dataSection()) {
-    os << syntax.data() << "\n";
+    os << syntax.data() << '\n';
   } else if (sectionName == syntax.bssSection()) {
-    os << syntax.bss() << "\n";
+    os << syntax.bss() << '\n';
   } else {
     printSectionHeaderDirective(os, section);
     printSectionProperties(os, section);
     os << std::endl;
   }
   printBar(os);
-  os << "\n";
+  os << '\n';
 }
 
 void PrettyPrinterBase::printSectionFooter(std::ostream& os,
@@ -468,11 +468,9 @@ void PrettyPrinterBase::printSectionFooter(std::ostream& os,
 
 void PrettyPrinterBase::printBar(std::ostream& os, bool heavy) {
   if (heavy) {
-    os << syntax.comment() << "==================================="
-       << "\n";
+    os << syntax.comment() << "===================================\n";
   } else {
-    os << syntax.comment() << "-----------------------------------"
-       << "\n";
+    os << syntax.comment() << "-----------------------------------\n";
   }
 }
 
@@ -640,8 +638,8 @@ void PrettyPrinterBase::printInstruction(std::ostream& os,
       std::stringstream ssInstruct;
       printEA(ssInstruct, ea);
       ssInstruct << "  " << syntax.nop();
-      emitCommentableLine(ssInstruct, os, ea);
-      os << "\n";
+      printCommentableLine(ssInstruct, os, ea);
+      os << '\n';
       ea += 1;
     } while (++i < inst.size);
     return;
@@ -667,8 +665,8 @@ void PrettyPrinterBase::printInstruction(std::ostream& os,
     ssInstruct << " " << syntax.comment() << " " << m_accum_comment;
     m_accum_comment.clear();
   }
-  emitCommentableLine(ssInstruct, os, ea);
-  os << "\n";
+  printCommentableLine(ssInstruct, os, ea);
+  os << '\n';
 }
 
 void PrettyPrinterBase::printEA(std::ostream& os, gtirb::Addr ea) {
@@ -900,8 +898,8 @@ void PrettyPrinterBase::printNonZeroDataBlock(
         std::stringstream ssDataLine;
         printEA(ssDataLine, *dataObject.getAddress() + offset);
         printString(ssDataLine, dataObject, offset);
-        emitCommentableLine(ssDataLine, os, *dataObject.getAddress() + offset);
-        os << "\n";
+        printCommentableLine(ssDataLine, os, *dataObject.getAddress() + offset);
+        os << '\n';
         return;
       }
 
@@ -952,8 +950,8 @@ void PrettyPrinterBase::printNonZeroDataBlock(
       std::stringstream ssDataLine;
       printEA(ssDataLine, EA);
       printSymbolicData(ssDataLine, SEE, Size, Type);
-      emitCommentableLine(ssDataLine, os, *dataObject.getAddress() + offset);
-      os << "\n";
+      printCommentableLine(ssDataLine, os, *dataObject.getAddress() + offset);
+      os << '\n';
       printSymbolicDataFollowingComments(os, EA);
       ByteI += Size;
       ByteIt += Size;
@@ -967,9 +965,9 @@ void PrettyPrinterBase::printNonZeroDataBlock(
       printEA(ssDataLine, *dataObject.getAddress() + CurrOffset.Displacement);
       printByte(ssDataLine,
                 static_cast<std::byte>(static_cast<unsigned char>(*ByteIt)));
-      emitCommentableLine(ssDataLine, os,
-                          *dataObject.getAddress() + CurrOffset.Displacement);
-      os << "\n";
+      printCommentableLine(ssDataLine, os,
+                           *dataObject.getAddress() + CurrOffset.Displacement);
+      os << '\n';
       ByteI++;
       ByteIt++;
       CurrOffset.Displacement++;
@@ -987,8 +985,8 @@ void PrettyPrinterBase::printZeroDataBlock(std::ostream& os,
     std::stringstream ssDataLine;
     printEA(ssDataLine, *dataObject.getAddress() + offset);
     ssDataLine << ".zero " << size;
-    emitCommentableLine(ssDataLine, os, *dataObject.getAddress() + offset);
-    os << "\n";
+    printCommentableLine(ssDataLine, os, *dataObject.getAddress() + offset);
+    os << '\n';
   }
 }
 
@@ -1007,14 +1005,14 @@ void PrettyPrinterBase::printComments(std::ostream& os,
       os << syntax.comment();
       if (p->first.Displacement > offset.Displacement)
         os << "+" << p->first.Displacement - offset.Displacement << ":";
-      os << " " << p->second << "\n";
+      os << " " << p->second << '\n';
     }
   }
 }
 
-void PrettyPrinterBase::emitCommentableLine(std::stringstream& lineContents,
-                                            std::ostream& outStream,
-                                            gtirb::Addr effectiveAddr) {
+void PrettyPrinterBase::printCommentableLine(std::stringstream& lineContents,
+                                             std::ostream& outStream,
+                                             gtirb::Addr effectiveAddr) {
   std::copy(std::istreambuf_iterator<char>(lineContents),
             std::istreambuf_iterator<char>(),
             std::ostream_iterator<char>(outStream));
@@ -1137,7 +1135,7 @@ void PrettyPrinterBase::printSymbolicDataFollowingComments(
     printEA(os, EA);
     os << ": " << m_accum_comment;
     m_accum_comment.clear();
-    os << "\n";
+    os << '\n';
   }
 }
 

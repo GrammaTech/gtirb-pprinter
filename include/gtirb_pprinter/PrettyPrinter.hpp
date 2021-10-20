@@ -188,9 +188,9 @@ public:
   /// \param format indentifier of target format and isa.
   void setFormat(const std::string& format, const std::string& isa);
 
-  /// Enable or disable debugging messages inside the pretty-printed code.
+  /// Set the listing mode: assembler, debug, or UI.
   ///
-  /// \param do_debug whether to enable debugging messages
+  /// \param listing_mode The mode to use
   bool setListingMode(const std::string& listing_mode);
 
   /// Set whether or not we print assembly for shared libraries.
@@ -364,9 +364,9 @@ protected:
                                 const cs_insn& inst);
   virtual void printComments(std::ostream& os, const gtirb::Offset& offset,
                              uint64_t range);
-  virtual void emitCommentableLine(std::stringstream& lineContents,
-                                   std::ostream& outStream,
-                                   gtirb::Addr effectiveAddr);
+  virtual void printCommentableLine(std::stringstream& lineContents,
+                                    std::ostream& outStream,
+                                    gtirb::Addr effectiveAddr);
   virtual void printCFIDirectives(std::ostream& os, const gtirb::Offset& ea);
   virtual void printSymbolicData(
       std::ostream& os,
@@ -482,6 +482,8 @@ private:
 
   std::optional<gtirb::Addr> CFIStartProc;
 
+  // When emitting end-of-line comments, what is the preferred (minimum) column
+  // position to use?
   const size_t preferredEOLCommentPos;
 
   template <typename BlockType>
