@@ -13,11 +13,13 @@
 //
 //===----------------------------------------------------------------------===//
 #include "PrettyPrinter.hpp"
+#include "driver/Logger.h"
 
 #include "AuxDataSchema.hpp"
 #include "string_utils.hpp"
 #include <boost/lexical_cast.hpp>
 #include <boost/range/algorithm/find_if.hpp>
+#include <boost/uuid/uuid_io.hpp>
 #include <capstone/capstone.h>
 #include <fstream>
 #include <gtirb/gtirb.hpp>
@@ -305,9 +307,12 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
       for (auto& entryBlockUUID : function.second) {
         const auto* block =
             nodeFromUUID<gtirb::CodeBlock>(context, entryBlockUUID);
-        assert(block && "UUID references non-existent block.");
         if (block)
           functionEntry.insert(*block->getAddress());
+        else
+          LOG_WARNING << "UUID " << boost::uuids::to_string(entryBlockUUID)
+                      << " in functionEntries table references non-existent "
+                      << "block.\n";
       }
     }
   }
@@ -319,7 +324,10 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
       gtirb::Addr lastAddr{0};
       for (auto& blockUUID : function.second) {
         const auto* block = nodeFromUUID<gtirb::CodeBlock>(context, blockUUID);
-        assert(block && "UUID references non-existent block.");
+        if (!block)
+          LOG_WARNING << "UUID " << boost::uuids::to_string(blockUUID)
+                      << " in functionBlocks table references non-existent "
+                      << "block.\n";
         if (block && block->getAddress() > lastAddr)
           lastAddr = *block->getAddress();
       }
