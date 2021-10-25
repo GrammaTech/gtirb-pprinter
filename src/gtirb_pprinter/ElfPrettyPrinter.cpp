@@ -557,7 +557,7 @@ ElfPrettyPrinterFactory::ElfPrettyPrinterFactory() {
                           /// Sections with possible data object exclusion.
                           {},
                           /// Extra compiler arguments.
-                          {"-static"},
+                          {"-static", "-nostartfiles"},
                       });
   registerNamedPolicy(
       "complete", PrintingPolicy{
