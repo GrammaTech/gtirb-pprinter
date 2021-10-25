@@ -297,7 +297,7 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
                                      const PrintingPolicy& policy_)
     : syntax(syntax_), assembler(assembler_), policy(policy_),
       LstMode(policy.LstMode), context(context_), module(module_),
-      functionEntry(), functionLastBlock(), preferredEOLCommentPos(64) {
+      functionEntry(), functionLastBlock(), PreferredEOLCommentPos(64) {
 
   if (const auto* functionEntries =
           module.getAuxData<gtirb::schema::FunctionEntries>()) {
@@ -635,10 +635,10 @@ void PrettyPrinterBase::printInstruction(std::ostream& os,
   if (inst.id == X86_INS_NOP || inst.id == ARM64_INS_NOP) {
     uint64_t i = 0;
     do {
-      std::stringstream ssInstruct;
-      printEA(ssInstruct, ea);
-      ssInstruct << "  " << syntax.nop();
-      printCommentableLine(ssInstruct, os, ea);
+      std::stringstream InstructLine;
+      printEA(InstructLine, ea);
+      InstructLine << "  " << syntax.nop();
+      printCommentableLine(InstructLine, os, ea);
       os << '\n';
       ea += 1;
     } while (++i < inst.size);
@@ -654,18 +654,18 @@ void PrettyPrinterBase::printInstruction(std::ostream& os,
   // end special cases
   ////////////////////////////////////////////////////////////////////
 
-  std::stringstream ssInstruct;
+  std::stringstream InstructLine;
   std::string opcode = ascii_str_tolower(inst.mnemonic);
-  printEA(ssInstruct, ea);
-  ssInstruct << "  " << opcode << ' ';
+  printEA(InstructLine, ea);
+  InstructLine << "  " << opcode << ' ';
   // Make sure the initial m_accum_comment is empty.
   m_accum_comment.clear();
-  printOperandList(ssInstruct, block, inst);
+  printOperandList(InstructLine, block, inst);
   if (!m_accum_comment.empty()) {
-    ssInstruct << " " << syntax.comment() << " " << m_accum_comment;
+    InstructLine << " " << syntax.comment() << " " << m_accum_comment;
     m_accum_comment.clear();
   }
-  printCommentableLine(ssInstruct, os, ea);
+  printCommentableLine(InstructLine, os, ea);
   os << '\n';
 }
 
@@ -895,10 +895,10 @@ void PrettyPrinterBase::printNonZeroDataBlock(
       if (foundType->second == "string") {
         printComments(os, CurrOffset, dataObject.getSize() - offset);
 
-        std::stringstream ssDataLine;
-        printEA(ssDataLine, *dataObject.getAddress() + offset);
-        printString(ssDataLine, dataObject, offset);
-        printCommentableLine(ssDataLine, os, *dataObject.getAddress() + offset);
+        std::stringstream DataLine;
+        printEA(DataLine, *dataObject.getAddress() + offset);
+        printString(DataLine, dataObject, offset);
+        printCommentableLine(DataLine, os, *dataObject.getAddress() + offset);
         os << '\n';
         return;
       }
@@ -947,10 +947,10 @@ void PrettyPrinterBase::printNonZeroDataBlock(
         printCommentsBetween(Size);
       }
       gtirb::Addr EA = *dataObject.getAddress() + CurrOffset.Displacement;
-      std::stringstream ssDataLine;
-      printEA(ssDataLine, EA);
-      printSymbolicData(ssDataLine, SEE, Size, Type);
-      printCommentableLine(ssDataLine, os, *dataObject.getAddress() + offset);
+      std::stringstream DataLine;
+      printEA(DataLine, EA);
+      printSymbolicData(DataLine, SEE, Size, Type);
+      printCommentableLine(DataLine, os, *dataObject.getAddress() + offset);
       os << '\n';
       printSymbolicDataFollowingComments(os, EA);
       ByteI += Size;
@@ -961,11 +961,11 @@ void PrettyPrinterBase::printNonZeroDataBlock(
         printCommentsBetween(1);
       }
 
-      std::stringstream ssDataLine;
-      printEA(ssDataLine, *dataObject.getAddress() + CurrOffset.Displacement);
-      printByte(ssDataLine,
+      std::stringstream DataLine;
+      printEA(DataLine, *dataObject.getAddress() + CurrOffset.Displacement);
+      printByte(DataLine,
                 static_cast<std::byte>(static_cast<unsigned char>(*ByteIt)));
-      printCommentableLine(ssDataLine, os,
+      printCommentableLine(DataLine, os,
                            *dataObject.getAddress() + CurrOffset.Displacement);
       os << '\n';
       ByteI++;
@@ -982,10 +982,10 @@ void PrettyPrinterBase::printZeroDataBlock(std::ostream& os,
     printComments(os, gtirb::Offset(dataObject.getUUID(), offset),
                   dataObject.getSize() - offset);
 
-    std::stringstream ssDataLine;
-    printEA(ssDataLine, *dataObject.getAddress() + offset);
-    ssDataLine << ".zero " << size;
-    printCommentableLine(ssDataLine, os, *dataObject.getAddress() + offset);
+    std::stringstream DataLine;
+    printEA(DataLine, *dataObject.getAddress() + offset);
+    DataLine << ".zero " << size;
+    printCommentableLine(DataLine, os, *dataObject.getAddress() + offset);
     os << '\n';
   }
 }
@@ -1010,30 +1010,30 @@ void PrettyPrinterBase::printComments(std::ostream& os,
   }
 }
 
-void PrettyPrinterBase::printCommentableLine(std::stringstream& lineContents,
-                                             std::ostream& outStream,
-                                             gtirb::Addr effectiveAddr) {
-  std::copy(std::istreambuf_iterator<char>(lineContents),
+void PrettyPrinterBase::printCommentableLine(std::stringstream& LineContents,
+                                             std::ostream& OutStream,
+                                             gtirb::Addr EA) {
+  std::copy(std::istreambuf_iterator<char>(LineContents),
             std::istreambuf_iterator<char>(),
-            std::ostream_iterator<char>(outStream));
+            std::ostream_iterator<char>(OutStream));
 
   if (this->LstMode != ListingUI)
     return;
 
   // We could do this with std::setw() and <<, but I'm concerned about
   // performance since we would be iterating lineContents twice.
-  const std::streampos length = lineContents.tellp();
-  assert(length != -1);
+  const std::streampos Length = LineContents.tellp();
+  assert(Length != -1);
   // If this _was_ -1, it will now be std::max<size_t> which gives us the
   // behavior we want (single space between end of instruction and comment)
-  const size_t lengthUnsigned = static_cast<size_t>(length);
-  const size_t numSpaces = preferredEOLCommentPos > lengthUnsigned
-                               ? (preferredEOLCommentPos - lengthUnsigned - 1)
+  const size_t LengthUnsigned = static_cast<size_t>(Length);
+  const size_t NumSpaces = PreferredEOLCommentPos > LengthUnsigned
+                               ? (PreferredEOLCommentPos - LengthUnsigned - 1)
                                : 1;
-  std::string spaces(numSpaces, ' ');
+  std::string Spaces(NumSpaces, ' ');
 
-  outStream << spaces << syntax.comment();
-  outStream << " EA: " << std::hex << effectiveAddr;
+  OutStream << Spaces << syntax.comment();
+  OutStream << " EA: " << std::hex << EA;
 }
 
 void PrettyPrinterBase::printCFIDirectives(std::ostream& os,
@@ -1129,13 +1129,13 @@ void PrettyPrinterBase::printSymbolicData(
 }
 
 void PrettyPrinterBase::printSymbolicDataFollowingComments(
-    std::ostream& os, const gtirb::Addr& EA) {
+    std::ostream& OutStream, const gtirb::Addr& EA) {
   if (!m_accum_comment.empty()) {
-    os << syntax.comment() << " ";
-    printEA(os, EA);
-    os << ": " << m_accum_comment;
+    OutStream << syntax.comment() << " ";
+    printEA(OutStream, EA);
+    OutStream << ": " << m_accum_comment;
     m_accum_comment.clear();
-    os << '\n';
+    OutStream << '\n';
   }
 }
 

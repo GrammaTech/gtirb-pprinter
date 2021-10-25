@@ -190,8 +190,8 @@ public:
 
   /// Set the listing mode: assembler, debug, or UI.
   ///
-  /// \param listing_mode The mode to use
-  bool setListingMode(const std::string& listing_mode);
+  /// \param ModeName The mode to use
+  bool setListingMode(const std::string& ModeName);
 
   /// Set whether or not we print assembly for shared libraries.
   void setShared(bool Value) { Shared = Value; }
@@ -364,15 +364,14 @@ protected:
                                 const cs_insn& inst);
   virtual void printComments(std::ostream& os, const gtirb::Offset& offset,
                              uint64_t range);
-  virtual void printCommentableLine(std::stringstream& lineContents,
-                                    std::ostream& outStream,
-                                    gtirb::Addr effectiveAddr);
+  virtual void printCommentableLine(std::stringstream& LineContents,
+                                    std::ostream& OutStream, gtirb::Addr EA);
   virtual void printCFIDirectives(std::ostream& os, const gtirb::Offset& ea);
   virtual void printSymbolicData(
       std::ostream& os,
       const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE,
       uint64_t Size, std::optional<std::string> Type);
-  virtual void printSymbolicDataFollowingComments(std::ostream& os,
+  virtual void printSymbolicDataFollowingComments(std::ostream& OutStream,
                                                   const gtirb::Addr& EA);
   virtual void printSymbolicDataType(
       std::ostream& os,
@@ -484,7 +483,7 @@ private:
 
   // When emitting end-of-line comments, what is the preferred (minimum) column
   // position to use?
-  const size_t preferredEOLCommentPos;
+  const size_t PreferredEOLCommentPos;
 
   template <typename BlockType>
   void printBlockImpl(std::ostream& OS, BlockType& Block);
