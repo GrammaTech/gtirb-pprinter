@@ -156,7 +156,7 @@ struct DEBLOAT_PRETTYPRINTER_EXPORT_API PrintingPolicy {
   /// Additional arguments to the compiler. Used only with binary printers.
   std::unordered_set<std::string> compilerArguments{};
 
-  ListingMode listingMode = ListingAssembler;
+  ListingMode LstMode = ListingAssembler;
   bool Shared = false;
 };
 
@@ -236,7 +236,7 @@ private:
   std::string m_isa;
   std::string m_syntax;
   std::string m_assembler;
-  ListingMode m_listing_mode;
+  ListingMode LstMode;
   PolicyOptions FunctionPolicy, SymbolPolicy, SectionPolicy, ArraySectionPolicy;
   std::string PolicyName = "default";
   bool Shared = false;
@@ -453,7 +453,7 @@ protected:
 
   csh csHandle;
 
-  ListingMode listingMode;
+  ListingMode LstMode;
 
   gtirb::Context& context;
   gtirb::Module& module;

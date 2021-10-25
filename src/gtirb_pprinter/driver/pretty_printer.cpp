@@ -265,10 +265,10 @@ int main(int argc, char** argv) {
 
   // Perform the Pretty Printing step.
   gtirb_pprint::PrettyPrinter pp;
-  std::string listing_mode =
+  std::string LstMode =
       vm.count("listing-mode") ? vm["listing-mode"].as<std::string>() : "";
-  if (!pp.setListingMode(listing_mode)) {
-    LOG_ERROR << "Invalid listing-mode: " << listing_mode << "\n";
+  if (!pp.setListingMode(LstMode)) {
+    LOG_ERROR << "Invalid listing-mode: " << LstMode << "\n";
     return EXIT_FAILURE;
   }
   const std::string& format =

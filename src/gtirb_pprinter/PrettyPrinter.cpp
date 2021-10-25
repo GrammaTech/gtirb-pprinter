@@ -180,13 +180,13 @@ void PrettyPrinter::setFormat(const std::string& format,
   setTarget(std::make_tuple(format, isa, syntax, assembler));
 }
 
-bool PrettyPrinter::setListingMode(const std::string& listing_mode) {
-  if (listing_mode == "debug") {
-    m_listing_mode = ListingDebug;
-  } else if (listing_mode == "ui") {
-    m_listing_mode = ListingUI;
-  } else if (listing_mode == "assembler" || listing_mode == "") {
-    m_listing_mode = ListingAssembler;
+bool PrettyPrinter::setListingMode(const std::string& ModeName) {
+  if (ModeName == "debug") {
+    LstMode = ListingDebug;
+  } else if (ModeName == "ui") {
+    LstMode = ListingUI;
+  } else if (ModeName == "assembler" || ModeName == "") {
+    LstMode = ListingAssembler;
   } else {
     return false;
   }
@@ -243,7 +243,7 @@ std::error_condition PrettyPrinter::print(std::ostream& stream,
 
   // Configure printing policy.
   PrintingPolicy policy(getPolicy(module));
-  policy.listingMode = m_listing_mode;
+  policy.LstMode = LstMode;
   policy.Shared = Shared;
   FunctionPolicy.apply(policy.skipFunctions);
   SymbolPolicy.apply(policy.skipSymbols);
@@ -296,7 +296,7 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
                                      const Assembler& assembler_,
                                      const PrintingPolicy& policy_)
     : syntax(syntax_), assembler(assembler_), policy(policy_),
-      listingMode(policy.listingMode), context(context_), module(module_),
+      LstMode(policy.LstMode), context(context_), module(module_),
       functionEntry(), functionLastBlock(), preferredEOLCommentPos(64) {
 
   if (const auto* functionEntries =
@@ -481,7 +481,7 @@ bool PrettyPrinterBase::printSymbolReference(std::ostream& os,
 
   std::optional<std::string> forwardedName = getForwardedSymbolName(symbol);
   if (forwardedName) {
-    if (listingMode == ListingDebug || listingMode == ListingUI) {
+    if (LstMode == ListingDebug || LstMode == ListingUI) {
       os << forwardedName.value();
       return false;
     } else {
@@ -502,7 +502,7 @@ bool PrettyPrinterBase::printSymbolReference(std::ostream& os,
     }
   }
   if (shouldSkip(*symbol)) {
-    if (listingMode == ListingDebug || listingMode == ListingUI) {
+    if (LstMode == ListingDebug || LstMode == ListingUI) {
       os << static_cast<uint64_t>(*symbol->getAddress());
     } else {
       // NOTE: See the comment above.
@@ -671,7 +671,7 @@ void PrettyPrinterBase::printInstruction(std::ostream& os,
 
 void PrettyPrinterBase::printEA(std::ostream& os, gtirb::Addr ea) {
   os << syntax.tab();
-  if (this->listingMode == ListingDebug) {
+  if (this->LstMode == ListingDebug) {
     os << std::hex << static_cast<uint64_t>(ea) << ": " << std::dec;
   }
 }
@@ -915,7 +915,7 @@ void PrettyPrinterBase::printNonZeroDataBlock(
   bool HasComments = false;
   std::map<gtirb::Offset, std::string>::const_iterator CommentsIt;
   std::map<gtirb::Offset, std::string>::const_iterator CommentsEnd;
-  if (this->listingMode == ListingDebug) {
+  if (this->LstMode == ListingDebug) {
     if (const auto* comments = module.getAuxData<gtirb::schema::Comments>()) {
       HasComments = true;
       CommentsIt = comments->lower_bound(CurrOffset);
@@ -995,7 +995,7 @@ void PrettyPrinterBase::printComments(std::ostream& os,
                                       uint64_t range) {
   // We only print auxdata comments in debug mode. In UI mode, we _might_ want
   // some comments but there is no way to be selective of which ones.
-  if (this->listingMode != ListingDebug)
+  if (this->LstMode != ListingDebug)
     return;
 
   if (const auto* comments = module.getAuxData<gtirb::schema::Comments>()) {
@@ -1017,7 +1017,7 @@ void PrettyPrinterBase::printCommentableLine(std::stringstream& lineContents,
             std::istreambuf_iterator<char>(),
             std::ostream_iterator<char>(outStream));
 
-  if (this->listingMode != ListingUI)
+  if (this->LstMode != ListingUI)
     return;
 
   // We could do this with std::setw() and <<, but I'm concerned about
@@ -1039,7 +1039,7 @@ void PrettyPrinterBase::printCommentableLine(std::stringstream& lineContents,
 void PrettyPrinterBase::printCFIDirectives(std::ostream& os,
                                            const gtirb::Offset& offset) {
   // CFI gets a little noisy for people trying to understand the code.
-  if (this->listingMode == ListingUI)
+  if (this->LstMode == ListingUI)
     return;
 
   const auto* cfiDirectives = module.getAuxData<gtirb::schema::CfiDirectives>();
@@ -1212,7 +1212,7 @@ void PrettyPrinterBase::printString(std::ostream& os, const gtirb::DataBlock& x,
 }
 
 bool PrettyPrinterBase::shouldSkip(const gtirb::Section& section) const {
-  if (listingMode == ListingDebug) {
+  if (LstMode == ListingDebug) {
     return false;
   }
 
@@ -1225,7 +1225,7 @@ bool PrettyPrinterBase::shouldSkip(const gtirb::Section& section) const {
 }
 
 bool PrettyPrinterBase::shouldSkip(const gtirb::Symbol& symbol) const {
-  if (listingMode == ListingDebug) {
+  if (LstMode == ListingDebug) {
     return false;
   }
 
@@ -1254,7 +1254,7 @@ bool PrettyPrinterBase::shouldSkip(const gtirb::Symbol& symbol) const {
 }
 
 bool PrettyPrinterBase::shouldSkip(const gtirb::CodeBlock& block) const {
-  if (listingMode == ListingDebug) {
+  if (LstMode == ListingDebug) {
     return false;
   }
 
@@ -1268,7 +1268,7 @@ bool PrettyPrinterBase::shouldSkip(const gtirb::CodeBlock& block) const {
 }
 
 bool PrettyPrinterBase::shouldSkip(const gtirb::DataBlock& block) const {
-  if (listingMode == ListingDebug) {
+  if (LstMode == ListingDebug) {
     return false;
   }
 
