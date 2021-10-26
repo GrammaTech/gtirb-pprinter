@@ -61,6 +61,25 @@ TempFile::TempFile(const std::string extension) {
 
 TempFile::~TempFile() { fs::remove(Name); }
 
+TempDir::TempDir() : Name(), Errno(0) {
+#ifdef _WIN32
+  assert(0 && "Unimplemented!");
+#else
+  std::string TmpDirName = "/tmp/dirXXXXXX";
+  if (mkdtemp(TmpDirName.data())) {
+    Name = TmpDirName;
+  } else {
+    Errno = errno;
+  }
+#endif
+}
+
+TempDir::~TempDir() {
+  if (created()) {
+    fs::remove_all(Name);
+  }
+}
+
 std::string replaceExtension(const std::string path,
                              const std::string new_ext) {
   return fs::path(path).stem().string() + new_ext;

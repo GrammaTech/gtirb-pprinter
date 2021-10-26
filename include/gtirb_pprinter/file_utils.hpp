@@ -39,6 +39,21 @@ public:
   const std::string& fileName() const { return Name; }
 };
 
+/// Auxiliary class to manage creation and deletion of a temporary directory.
+class TempDir {
+  std::string Name;
+  int Errno;
+
+public:
+  TempDir();
+  ~TempDir();
+
+  bool created() const { return Name.size() > 0; }
+  int errno_code() const { return Errno; }
+
+  const std::string& dirName() const { return Name; }
+};
+
 std::string replaceExtension(const std::string path, const std::string new_ext);
 
 // Helper functions to resolve symlinks and get a real path to a file.

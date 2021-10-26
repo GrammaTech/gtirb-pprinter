@@ -16,6 +16,7 @@
 #define GTIRB_PP_ELF_BINARY_PRINTER_H
 
 #include "BinaryPrinter.hpp"
+#include "file_utils.hpp"
 
 #include <gtirb/gtirb.hpp>
 
@@ -37,10 +38,10 @@ private:
   findLibrary(const std::string& library,
               const std::vector<std::string>& paths) const;
   bool
-  generateDummySO(const std::string& lib,
+  generateDummySO(const TempDir& libDir, const std::string& lib,
                   std::vector<const gtirb::Symbol*>::const_iterator begin,
                   std::vector<const gtirb::Symbol*>::const_iterator end) const;
-  std::optional<std::vector<std::string>>
+  std::optional<std::pair<std::unique_ptr<TempDir>, std::vector<std::string>>>
   prepareDummySOLibs(const gtirb::IR& ir) const;
   void addOrigLibraryArgs(const gtirb::IR& ir,
                           std::vector<std::string>& args) const;

@@ -49,16 +49,41 @@ static std::unordered_set<std::string> BlacklistedLibraries{{
     "ld-linux-x86-64.so.2",
 }};
 
+bool isBlackListed(std::string sym) {
+  static std::vector<std::string> blackList = {"",
+                                               "__rela_iplt_start",
+                                               "__rela_iplt_end",
+                                               "__gmon_start__",
+                                               "_ITM_registerTMCloneTable",
+                                               "_ITM_deregisterTMCloneTable"};
+
+  for (auto& name : blackList) {
+    if (sym == name) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool ElfBinaryPrinter::generateDummySO(
-    const std::string& lib,
+    const TempDir& libDir, const std::string& lib,
     std::vector<const gtirb::Symbol*>::const_iterator begin,
     std::vector<const gtirb::Symbol*>::const_iterator end) const {
 
-  std::string asmFileName = boost::filesystem::basename(lib) + ".s";
+  std::string currExt = boost::filesystem::extension(lib);
+  std::string libCoreName = boost::filesystem::basename(lib);
+  while (currExt != ".so" && currExt != "") {
+    currExt = boost::filesystem::extension(libCoreName);
+    libCoreName = boost::filesystem::basename(libCoreName);
+  }
+  std::string asmFileName = libCoreName + ".s";
+  auto asmFilePath = boost::filesystem::path(libDir.dirName()) / asmFileName;
+  auto libPath = boost::filesystem::path(libDir.dirName()) / lib;
+
   {
-    std::ofstream asmFile(asmFileName);
+    std::ofstream asmFile(asmFilePath.native());
     asmFile << "# Generated dummy file for .so undefined symbols\n";
-    asmFile << ".text\n";
+
     for (auto curr = begin; curr != end; ++curr) {
       const gtirb::Symbol* sym = *curr;
       const auto* SymbolInfoTable =
@@ -70,16 +95,42 @@ bool ElfBinaryPrinter::generateDummySO(
       std::string name = sym->getName();
 
       auto SymInfoIt = SymbolInfoTable->find(sym->getUUID());
+      bool has_copy = false;
       if (SymInfoIt == SymbolInfoTable->end()) {
-        return false;
+        // See if we have a symbol for "foo_copy", if so use its info
+        std::string copyName = sym->getName() + "_copy";
+        if (auto copySymRange = sym->getModule()->findSymbols(copyName)) {
+          if (copySymRange.empty()) {
+            return false;
+          }
+          has_copy = true;
+          SymInfoIt = SymbolInfoTable->find(copySymRange.begin()->getUUID());
+        } else {
+          return false;
+        }
       }
-      auto SymbolInfo = SymInfoIt->second;
+      auto SymInfo = SymInfoIt->second;
 
       // TODO: Make use of syntax content in ElfPrettyPrinter?
 
-      // Note: we want to generate a global, regardless of
-      // what the symbol's type is in the IR.
-      asmFile << ".globl " << name << "\n";
+      // Generate an appropriate symbol
+      if (std::get<1>(SymInfo) == "FUNC" ||
+          std::get<1>(SymInfo) == "GNU_IFUNC") {
+        asmFile << ".text\n";
+        asmFile << ".globl " << name << "\n";
+      } else if (has_copy) {
+        // Treat copy-relocation variables as common symbols
+        asmFile << ".data\n";
+        asmFile << ".comm " << name << ", " << std::get<0>(SymInfo) << ", "
+                << std::get<0>(SymInfo) << "\n";
+
+        // Don't need to do anything else below here for
+        // common symbols.
+        continue;
+      } else {
+        asmFile << ".data\n";
+        asmFile << ".globl " << name << "\n";
+      }
 
       static const std::unordered_map<std::string, std::string>
           TypeNameConversion = {
@@ -87,9 +138,9 @@ bool ElfBinaryPrinter::generateDummySO(
               {"NOTYPE", "notype"},  {"NONE", "notype"},
               {"TLS", "tls_object"}, {"GNU_IFUNC", "gnu_indirect_function"},
           };
-      auto TypeNameIt = TypeNameConversion.find(std::get<1>(SymbolInfo));
+      auto TypeNameIt = TypeNameConversion.find(std::get<1>(SymInfo));
       if (TypeNameIt == TypeNameConversion.end()) {
-        std::cerr << "Unknown type: " << std::get<1>(SymbolInfo)
+        std::cerr << "Unknown type: " << std::get<1>(SymInfo)
                   << " for symbol: " << name << "\n";
         assert(!"unknown type in elfSymbolInfo!");
       } else {
@@ -98,16 +149,22 @@ bool ElfBinaryPrinter::generateDummySO(
       }
 
       asmFile << name << ":\n";
-      asmFile << "            .byte 0x0\n";
+      size_t space = std::get<0>(SymInfo);
+      if (space == 0) {
+        space = 4;
+      }
+      asmFile << ".skip " << space << "\n";
     }
   }
 
   std::vector<std::string> args;
   args.push_back("-o");
-  args.push_back(lib);
+  args.push_back(libPath.native());
   args.push_back("-shared");
   args.push_back("-fPIC");
-  args.push_back(asmFileName);
+  args.push_back("-nostartfiles");
+  args.push_back("-nodefaultlibs");
+  args.push_back(asmFilePath.native());
 
   if (std::optional<int> ret = execute(compiler, args)) {
     if (*ret) {
@@ -115,6 +172,7 @@ bool ElfBinaryPrinter::generateDummySO(
                 << " for dummy .so: " << lib << "\n";
       return false;
     }
+
     return true;
   }
 
@@ -133,8 +191,17 @@ bool ElfBinaryPrinter::generateDummySO(
 // the .so files the original was linked against. So this class will manage the
 // process of creating fake .so files that export all the correct symbols, and
 // we can link against those.
-std::optional<std::vector<std::string>>
+std::optional<std::pair<std::unique_ptr<TempDir>, std::vector<std::string>>>
 ElfBinaryPrinter::prepareDummySOLibs(const gtirb::IR& ir) const {
+  // Create a temporary directory to store the .so files in
+  std::unique_ptr<TempDir> tempDir = std::make_unique<TempDir>();
+  if (!tempDir->created()) {
+    std::cerr
+        << "ERROR: Failed to create temp dir for synthetic .so files. Errno: "
+        << tempDir->errno_code() << "\n";
+    return std::nullopt;
+  }
+
   // Collect all libs we need to handle
   std::vector<std::string> dashLLibs;
   std::vector<std::string> explicitLibs;
@@ -190,19 +257,25 @@ ElfBinaryPrinter::prepareDummySOLibs(const gtirb::IR& ir) const {
       if (!sym.getAddress() &&
           (!sym.hasReferent() ||
            sym.getReferent<gtirb::ProxyBlock>() != nullptr) &&
-          sym.getName() != "") {
+          !isBlackListed(sym.getName())) {
 
         auto SymInfoIt = SymbolInfoTable->find(sym.getUUID());
-
-        // Ignore special symbols that don't have SymbolInfo
-        // TODO: Is this always correct?
         if (SymInfoIt == SymbolInfoTable->end()) {
-          continue;
+          // See if we have a symbol for "foo_copy", if so use its info
+          std::string copyName = sym.getName() + "_copy";
+          if (auto copySymRange = module.findSymbols(copyName)) {
+            if (copySymRange.empty()) {
+              return std::nullopt;
+            }
+            SymInfoIt = SymbolInfoTable->find(copySymRange.begin()->getUUID());
+          } else {
+            return std::nullopt;
+          }
         }
-        auto SymbolInfo = SymInfoIt->second;
+        auto SymInfo = SymInfoIt->second;
 
         // Ignore some types of symbols
-        if (std::get<1>(SymbolInfo) != "FILE") {
+        if (std::get<1>(SymInfo) != "FILE") {
           undefinedSymbols.push_back(&sym);
         }
       }
@@ -219,7 +292,7 @@ ElfBinaryPrinter::prepareDummySOLibs(const gtirb::IR& ir) const {
   std::string firstLib = dashLLibs.size() > 0 ? dashLLibs[0] : explicitLibs[0];
 
   // Generate the .so files
-  if (!generateDummySO(firstLib, undefinedSymbols.begin(),
+  if (!generateDummySO(*tempDir, firstLib, undefinedSymbols.begin(),
                        undefinedSymbols.begin() + numFirstFile)) {
     std::cerr << "ERROR: Failed generating dummy .so for " << firstLib << "\n";
     return std::nullopt;
@@ -227,7 +300,7 @@ ElfBinaryPrinter::prepareDummySOLibs(const gtirb::IR& ir) const {
   auto nextSymbol = undefinedSymbols.begin() + numFirstFile;
   for (const auto& lib : dashLLibs) {
     if (lib != firstLib) {
-      if (!generateDummySO(lib, nextSymbol, nextSymbol + 1)) {
+      if (!generateDummySO(*tempDir, lib, nextSymbol, nextSymbol + 1)) {
         std::cerr << "ERROR: Failed generating dummy .so for " << lib << "\n";
       }
       ++nextSymbol;
@@ -235,7 +308,7 @@ ElfBinaryPrinter::prepareDummySOLibs(const gtirb::IR& ir) const {
   }
   for (const auto& lib : explicitLibs) {
     if (lib != firstLib) {
-      if (!generateDummySO(lib, nextSymbol, nextSymbol + 1)) {
+      if (!generateDummySO(*tempDir, lib, nextSymbol, nextSymbol + 1)) {
         std::cerr << "ERROR: Failed generating dummy .so for " << lib << "\n";
       }
       ++nextSymbol;
@@ -244,9 +317,10 @@ ElfBinaryPrinter::prepareDummySOLibs(const gtirb::IR& ir) const {
 
   // Determine the args that need to be passed to the linker.
   std::vector<std::string> args;
-  args.push_back("-L.");
+  args.push_back("-L" + tempDir->dirName());
+  args.push_back("-nodefaultlibs");
   for (const auto& lib : dashLLibs) {
-    args.push_back("-l" + *getInfixLibraryName(lib));
+    args.push_back("-l:" + lib);
   }
   for (const auto& lib : explicitLibs) {
     args.push_back(lib);
@@ -255,7 +329,7 @@ ElfBinaryPrinter::prepareDummySOLibs(const gtirb::IR& ir) const {
     args.push_back("-Wl,-rpath," + rpath);
   }
 
-  return args;
+  return std::make_pair(std::move(tempDir), args);
 }
 
 void ElfBinaryPrinter::addOrigLibraryArgs(
@@ -424,10 +498,14 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
     return -1;
   }
 
+  // Note that this temporary directory has to survive
+  // longer than the call to the compiler.
+  std::unique_ptr<TempDir> dummySoDir;
   std::vector<std::string> dummySoArgs;
   if (useDummySO) {
     if (auto maybeArgs = prepareDummySOLibs(ir)) {
-      dummySoArgs = std::move(*maybeArgs);
+      dummySoDir = std::move(maybeArgs->first);
+      dummySoArgs = std::move(maybeArgs->second);
     } else {
       std::cerr << "ERROR: Could not create dummy so files for linking.\n";
       return -1;
