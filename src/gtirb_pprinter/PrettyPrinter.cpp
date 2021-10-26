@@ -190,6 +190,7 @@ bool PrettyPrinter::setListingMode(const std::string& ModeName) {
     LstMode = ListingUI;
   } else if (ModeName == "assembler" || ModeName == "") {
     LstMode = ListingAssembler;
+    setDefaultSyntax(m_format, m_isa, "att");
   } else {
     return false;
   }
