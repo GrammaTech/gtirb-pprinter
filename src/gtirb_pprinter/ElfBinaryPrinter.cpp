@@ -114,6 +114,9 @@ bool ElfBinaryPrinter::generateDummySO(
       // TODO: Make use of syntax content in ElfPrettyPrinter?
 
       // Generate an appropriate symbol
+      // Note: The following handles situations we've encountered
+      // so far. If you're having an issue with a particular symbol,
+      // this code is likely where a fix might be needed.
       if (std::get<1>(SymInfo) == "FUNC" ||
           std::get<1>(SymInfo) == "GNU_IFUNC") {
         asmFile << ".text\n";
