@@ -81,7 +81,7 @@ bool ElfBinaryPrinter::generateDummySO(
   auto libPath = boost::filesystem::path(libDir.dirName()) / lib;
 
   {
-    std::ofstream asmFile(asmFilePath.native());
+    std::ofstream asmFile(asmFilePath.string());
     asmFile << "# Generated dummy file for .so undefined symbols\n";
 
     for (auto curr = begin; curr != end; ++curr) {
@@ -159,12 +159,12 @@ bool ElfBinaryPrinter::generateDummySO(
 
   std::vector<std::string> args;
   args.push_back("-o");
-  args.push_back(libPath.native());
+  args.push_back(libPath.string());
   args.push_back("-shared");
   args.push_back("-fPIC");
   args.push_back("-nostartfiles");
   args.push_back("-nodefaultlibs");
-  args.push_back(asmFilePath.native());
+  args.push_back(asmFilePath.string());
 
   if (std::optional<int> ret = execute(compiler, args)) {
     if (*ret) {
