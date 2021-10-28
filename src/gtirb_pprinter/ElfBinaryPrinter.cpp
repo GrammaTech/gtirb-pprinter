@@ -195,9 +195,9 @@ bool ElfBinaryPrinter::generateDummySO(
 // the .so files the original was linked against. So this class will manage the
 // process of creating fake .so files that export all the correct symbols, and
 // we can link against those.
-std::optional<std::vector<std::string>>
-ElfBinaryPrinter::prepareDummySOLibs(const gtirb::IR& ir,
-                                     const std::string& libDir) const {
+bool ElfBinaryPrinter::prepareDummySOLibs(
+    const gtirb::IR& ir, const std::string& libDir,
+    std::vector<std::string>& libArgs) const {
   // Collect all libs we need to handle
   std::vector<std::string> libs;
   for (const gtirb::Module& module : ir.modules()) {
@@ -221,7 +221,7 @@ ElfBinaryPrinter::prepareDummySOLibs(const gtirb::IR& ir,
   }
   if (libs.empty()) {
     std::cerr << "Note: no dynamic libraries present.\n";
-    return std::nullopt;
+    return false;
   }
 
   // Now we need to assign imported symbols to all the libs.
@@ -239,7 +239,7 @@ ElfBinaryPrinter::prepareDummySOLibs(const gtirb::IR& ir,
     if (!SymbolInfoTable) {
       std::cerr << "ERROR: No symbol info for module: " << module.getName()
                 << "\n";
-      return std::nullopt;
+      return false;
     }
 
     for (const auto& sym : module.symbols()) {
@@ -254,11 +254,11 @@ ElfBinaryPrinter::prepareDummySOLibs(const gtirb::IR& ir,
           std::string copyName = sym.getName() + "_copy";
           if (auto copySymRange = module.findSymbols(copyName)) {
             if (copySymRange.empty()) {
-              return std::nullopt;
+              return false;
             }
             SymInfoIt = SymbolInfoTable->find(copySymRange.begin()->getUUID());
           } else {
-            return std::nullopt;
+            return false;
           }
         }
         auto SymInfo = SymInfoIt->second;
@@ -273,7 +273,7 @@ ElfBinaryPrinter::prepareDummySOLibs(const gtirb::IR& ir,
 
   if (undefinedSymbols.size() < libs.size()) {
     std::cerr << "ERROR: More dynamic libs than undefined symbols!\n";
-    return std::nullopt;
+    return false;
   }
 
   size_t numFirstFile = 1 + undefinedSymbols.size() - libs.size();
@@ -285,7 +285,7 @@ ElfBinaryPrinter::prepareDummySOLibs(const gtirb::IR& ir,
     assert(curr != undefinedSymbols.end());
     if (!generateDummySO(libDir, lib, curr, next)) {
       std::cerr << "ERROR: Failed generating dummy .so for " << lib << "\n";
-      return std::nullopt;
+      return false;
     }
     curr = next;
     if (next != undefinedSymbols.end()) {
@@ -295,17 +295,16 @@ ElfBinaryPrinter::prepareDummySOLibs(const gtirb::IR& ir,
   assert(curr == undefinedSymbols.end());
 
   // Determine the args that need to be passed to the linker.
-  std::vector<std::string> args;
-  args.push_back("-L" + libDir);
-  args.push_back("-nodefaultlibs");
+  libArgs.push_back("-L" + libDir);
+  libArgs.push_back("-nodefaultlibs");
   for (const auto& lib : libs) {
-    args.push_back("-l:" + lib);
+    libArgs.push_back("-l:" + lib);
   }
   for (const auto& rpath : LibraryPaths) {
-    args.push_back("-Wl,-rpath," + rpath);
+    libArgs.push_back("-Wl,-rpath," + rpath);
   }
 
-  return args;
+  return true;
 }
 
 void ElfBinaryPrinter::addOrigLibraryArgs(
@@ -366,7 +365,7 @@ void ElfBinaryPrinter::addOrigLibraryArgs(
 
 std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
     std::string outputFilename, const std::vector<TempFile>& asmPaths,
-    gtirb::IR& ir, const std::vector<std::string>& dummySoArgs) const {
+    gtirb::IR& ir, const std::vector<std::string>& libArgs) const {
   std::vector<std::string> args;
   // Start constructing the compile arguments, of the form
   // -o <output_filename> fileAXADA.s
@@ -375,12 +374,7 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
   std::transform(asmPaths.begin(), asmPaths.end(), std::back_inserter(args),
                  [](const TempFile& TF) { return TF.fileName(); });
   args.insert(args.end(), ExtraCompileArgs.begin(), ExtraCompileArgs.end());
-
-  if (this->useDummySO) {
-    args.insert(args.end(), dummySoArgs.begin(), dummySoArgs.end());
-  } else {
-    addOrigLibraryArgs(ir, args);
-  }
+  args.insert(args.end(), libArgs.begin(), libArgs.end());
 
   // add pie, no pie, or shared, depending on the binary type
   if (Printer.getShared()) {
@@ -474,10 +468,11 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
     return -1;
   }
 
+  // Prep stuff for dynamic library dependences
   // Note that this temporary directory has to survive
   // longer than the call to the compiler.
   std::optional<TempDir> dummySoDir;
-  std::vector<std::string> dummySoArgs;
+  std::vector<std::string> libArgs;
   if (useDummySO) {
     // Create the temporary directory for storing the synthetic libraries.
     dummySoDir.emplace();
@@ -488,17 +483,19 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
       return -1;
     }
 
-    if (auto maybeArgs = prepareDummySOLibs(ir, dummySoDir->dirName())) {
-      dummySoArgs = std::move(*maybeArgs);
-    } else {
+    if (!prepareDummySOLibs(ir, dummySoDir->dirName(), libArgs)) {
       std::cerr << "ERROR: Could not create dummy so files for linking.\n";
       return -1;
     }
+  } else {
+    // If we're not using synthetic libraries, we just need to pass
+    // along the appropriate arguments.
+    addOrigLibraryArgs(ir, libArgs);
   }
 
   if (std::optional<int> ret =
-          execute(compiler, buildCompilerArgs(outputFilename, tempFiles, ir,
-                                              dummySoArgs))) {
+          execute(compiler,
+                  buildCompilerArgs(outputFilename, tempFiles, ir, libArgs))) {
     if (*ret)
       std::cerr << "ERROR: assembler returned: " << *ret << "\n";
     return *ret;

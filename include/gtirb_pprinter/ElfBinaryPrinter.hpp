@@ -41,14 +41,14 @@ private:
   generateDummySO(const std::string& libDir, const std::string& lib,
                   std::vector<const gtirb::Symbol*>::const_iterator begin,
                   std::vector<const gtirb::Symbol*>::const_iterator end) const;
-  std::optional<std::vector<std::string>>
-  prepareDummySOLibs(const gtirb::IR& ir, const std::string& libDir) const;
+  bool prepareDummySOLibs(const gtirb::IR& ir, const std::string& libDir,
+                          std::vector<std::string>& libArgs) const;
   void addOrigLibraryArgs(const gtirb::IR& ir,
                           std::vector<std::string>& args) const;
   std::vector<std::string>
   buildCompilerArgs(std::string outputFilename,
                     const std::vector<TempFile>& asmPath, gtirb::IR& ir,
-                    const std::vector<std::string>& dummySoArgs) const;
+                    const std::vector<std::string>& libArgs) const;
 
 public:
   /// Construct a ElfBinaryPrinter with the default configuration.
