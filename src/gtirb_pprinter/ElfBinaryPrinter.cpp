@@ -110,6 +110,8 @@ bool ElfBinaryPrinter::generateDummySO(
         }
       }
       auto SymInfo = SymInfoIt->second;
+      uint64_t SymSize = std::get<0>(SymInfo);
+      std::string SymType = std::get<1>(SymInfo);
 
       // TODO: Make use of syntax content in ElfPrettyPrinter?
 
@@ -117,15 +119,14 @@ bool ElfBinaryPrinter::generateDummySO(
       // Note: The following handles situations we've encountered
       // so far. If you're having an issue with a particular symbol,
       // this code is likely where a fix might be needed.
-      if (std::get<1>(SymInfo) == "FUNC" ||
-          std::get<1>(SymInfo) == "GNU_IFUNC") {
+      if (SymType == "FUNC" || SymType == "GNU_IFUNC") {
         asmFile << ".text\n";
         asmFile << ".globl " << name << "\n";
       } else if (has_copy) {
         // Treat copy-relocation variables as common symbols
         asmFile << ".data\n";
-        asmFile << ".comm " << name << ", " << std::get<0>(SymInfo) << ", "
-                << std::get<0>(SymInfo) << "\n";
+        asmFile << ".comm " << name << ", " << SymSize << ", " << SymSize
+                << "\n";
 
         // Don't need to do anything else below here for
         // common symbols.
@@ -141,10 +142,10 @@ bool ElfBinaryPrinter::generateDummySO(
               {"NOTYPE", "notype"},  {"NONE", "notype"},
               {"TLS", "tls_object"}, {"GNU_IFUNC", "gnu_indirect_function"},
           };
-      auto TypeNameIt = TypeNameConversion.find(std::get<1>(SymInfo));
+      auto TypeNameIt = TypeNameConversion.find(SymType);
       if (TypeNameIt == TypeNameConversion.end()) {
-        std::cerr << "Unknown type: " << std::get<1>(SymInfo)
-                  << " for symbol: " << name << "\n";
+        std::cerr << "Unknown type: " << SymType << " for symbol: " << name
+                  << "\n";
         assert(!"unknown type in elfSymbolInfo!");
       } else {
         const auto& TypeName = TypeNameIt->second;
@@ -152,7 +153,7 @@ bool ElfBinaryPrinter::generateDummySO(
       }
 
       asmFile << name << ":\n";
-      size_t space = std::get<0>(SymInfo);
+      uint64_t space = SymSize;
       if (space == 0) {
         space = 4;
       }
