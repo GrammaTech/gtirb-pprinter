@@ -70,15 +70,15 @@ bool isBlackListed(std::string sym) {
 }
 
 bool ElfBinaryPrinter::generateDummySO(
-    const TempDir& libDir, const std::string& lib,
+    const std::string& libDir, const std::string& lib,
     std::vector<const gtirb::Symbol*>::const_iterator begin,
     std::vector<const gtirb::Symbol*>::const_iterator end) const {
 
   // Assume that lib is a filename w/ no path prefix
   assert(!boost::filesystem::path(lib).has_parent_path());
   std::string asmFileName = lib + ".s";
-  auto asmFilePath = boost::filesystem::path(libDir.dirName()) / asmFileName;
-  auto libPath = boost::filesystem::path(libDir.dirName()) / lib;
+  auto asmFilePath = boost::filesystem::path(libDir) / asmFileName;
+  auto libPath = boost::filesystem::path(libDir) / lib;
 
   {
     std::ofstream asmFile(asmFilePath.string());
@@ -195,17 +195,9 @@ bool ElfBinaryPrinter::generateDummySO(
 // the .so files the original was linked against. So this class will manage the
 // process of creating fake .so files that export all the correct symbols, and
 // we can link against those.
-std::optional<std::pair<std::unique_ptr<TempDir>, std::vector<std::string>>>
-ElfBinaryPrinter::prepareDummySOLibs(const gtirb::IR& ir) const {
-  // Create a temporary directory to store the .so files in
-  std::unique_ptr<TempDir> tempDir = std::make_unique<TempDir>();
-  if (!tempDir->created()) {
-    std::cerr
-        << "ERROR: Failed to create temp dir for synthetic .so files. Errno: "
-        << tempDir->errno_code() << "\n";
-    return std::nullopt;
-  }
-
+std::optional<std::vector<std::string>>
+ElfBinaryPrinter::prepareDummySOLibs(const gtirb::IR& ir,
+                                     const std::string& libDir) const {
   // Collect all libs we need to handle
   std::vector<std::string> libs;
   for (const gtirb::Module& module : ir.modules()) {
@@ -291,7 +283,7 @@ ElfBinaryPrinter::prepareDummySOLibs(const gtirb::IR& ir) const {
   auto next = curr + numFirstFile;
   for (const auto& lib : libs) {
     assert(curr != undefinedSymbols.end());
-    if (!generateDummySO(*tempDir, lib, curr, next)) {
+    if (!generateDummySO(libDir, lib, curr, next)) {
       std::cerr << "ERROR: Failed generating dummy .so for " << lib << "\n";
       return std::nullopt;
     }
@@ -304,7 +296,7 @@ ElfBinaryPrinter::prepareDummySOLibs(const gtirb::IR& ir) const {
 
   // Determine the args that need to be passed to the linker.
   std::vector<std::string> args;
-  args.push_back("-L" + tempDir->dirName());
+  args.push_back("-L" + libDir);
   args.push_back("-nodefaultlibs");
   for (const auto& lib : libs) {
     args.push_back("-l:" + lib);
@@ -313,7 +305,7 @@ ElfBinaryPrinter::prepareDummySOLibs(const gtirb::IR& ir) const {
     args.push_back("-Wl,-rpath," + rpath);
   }
 
-  return std::make_pair(std::move(tempDir), args);
+  return args;
 }
 
 void ElfBinaryPrinter::addOrigLibraryArgs(
@@ -484,12 +476,20 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
 
   // Note that this temporary directory has to survive
   // longer than the call to the compiler.
-  std::unique_ptr<TempDir> dummySoDir;
+  std::optional<TempDir> dummySoDir;
   std::vector<std::string> dummySoArgs;
   if (useDummySO) {
-    if (auto maybeArgs = prepareDummySOLibs(ir)) {
-      dummySoDir = std::move(maybeArgs->first);
-      dummySoArgs = std::move(maybeArgs->second);
+    // Create the temporary directory for storing the synthetic libraries.
+    dummySoDir.emplace();
+    if (!dummySoDir->created()) {
+      std::cerr
+          << "ERROR: Failed to create temp dir for synthetic .so files. Errno: "
+          << dummySoDir->errno_code() << "\n";
+      return -1;
+    }
+
+    if (auto maybeArgs = prepareDummySOLibs(ir, dummySoDir->dirName())) {
+      dummySoArgs = std::move(*maybeArgs);
     } else {
       std::cerr << "ERROR: Could not create dummy so files for linking.\n";
       return -1;

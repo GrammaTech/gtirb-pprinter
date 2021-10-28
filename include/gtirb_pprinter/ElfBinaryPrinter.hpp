@@ -38,11 +38,11 @@ private:
   findLibrary(const std::string& library,
               const std::vector<std::string>& paths) const;
   bool
-  generateDummySO(const TempDir& libDir, const std::string& lib,
+  generateDummySO(const std::string& libDir, const std::string& lib,
                   std::vector<const gtirb::Symbol*>::const_iterator begin,
                   std::vector<const gtirb::Symbol*>::const_iterator end) const;
-  std::optional<std::pair<std::unique_ptr<TempDir>, std::vector<std::string>>>
-  prepareDummySOLibs(const gtirb::IR& ir) const;
+  std::optional<std::vector<std::string>>
+  prepareDummySOLibs(const gtirb::IR& ir, const std::string& libDir) const;
   void addOrigLibraryArgs(const gtirb::IR& ir,
                           std::vector<std::string>& args) const;
   std::vector<std::string>
