@@ -207,8 +207,7 @@ ElfBinaryPrinter::prepareDummySOLibs(const gtirb::IR& ir) const {
   }
 
   // Collect all libs we need to handle
-  std::vector<std::string> dashLLibs;
-  std::vector<std::string> explicitLibs;
+  std::vector<std::string> libs;
   for (const gtirb::Module& module : ir.modules()) {
     if (const auto* libraries = module.getAuxData<gtirb::schema::Libraries>()) {
       for (const auto& library : *libraries) {
@@ -217,24 +216,18 @@ ElfBinaryPrinter::prepareDummySOLibs(const gtirb::IR& ir) const {
           continue;
         }
 
-        std::optional<std::string> infixLibraryName =
-            getInfixLibraryName(library);
-        if (infixLibraryName) {
-          dashLLibs.push_back(library);
-        } else {
-          // TODO: skip any explicit library that isn't just
-          // a filename.
-          if (boost::filesystem::path(library).has_parent_path()) {
-            std::cerr << "ERROR: Skipping explicit lib w/ parent directory: "
-                      << library << "\n";
-            continue;
-          }
-          explicitLibs.push_back(library);
+        // TODO: skip any explicit library that isn't just
+        // a filename. Do these actually occur?
+        if (boost::filesystem::path(library).has_parent_path()) {
+          std::cerr << "ERROR: Skipping explicit lib w/ parent directory: "
+                    << library << "\n";
+          continue;
         }
+        libs.push_back(library);
       }
     }
   }
-  if (dashLLibs.size() == 0 && explicitLibs.size() == 0) {
+  if (libs.empty()) {
     std::cerr << "Note: no dynamic libraries present.\n";
     return std::nullopt;
   }
@@ -286,48 +279,35 @@ ElfBinaryPrinter::prepareDummySOLibs(const gtirb::IR& ir) const {
     }
   }
 
-  if (undefinedSymbols.size() < dashLLibs.size() + explicitLibs.size()) {
+  if (undefinedSymbols.size() < libs.size()) {
     std::cerr << "ERROR: More dynamic libs than undefined symbols!\n";
     return std::nullopt;
   }
 
-  size_t numFirstFile =
-      1 + undefinedSymbols.size() - dashLLibs.size() - explicitLibs.size();
-  std::string firstLib = dashLLibs.size() > 0 ? dashLLibs[0] : explicitLibs[0];
+  size_t numFirstFile = 1 + undefinedSymbols.size() - libs.size();
 
   // Generate the .so files
-  if (!generateDummySO(*tempDir, firstLib, undefinedSymbols.begin(),
-                       undefinedSymbols.begin() + numFirstFile)) {
-    std::cerr << "ERROR: Failed generating dummy .so for " << firstLib << "\n";
-    return std::nullopt;
-  }
-  auto nextSymbol = undefinedSymbols.begin() + numFirstFile;
-  for (const auto& lib : dashLLibs) {
-    if (lib != firstLib) {
-      if (!generateDummySO(*tempDir, lib, nextSymbol, nextSymbol + 1)) {
-        std::cerr << "ERROR: Failed generating dummy .so for " << lib << "\n";
-      }
-      ++nextSymbol;
+  auto curr = undefinedSymbols.begin();
+  auto next = curr + numFirstFile;
+  for (const auto& lib : libs) {
+    assert(curr != undefinedSymbols.end());
+    if (!generateDummySO(*tempDir, lib, curr, next)) {
+      std::cerr << "ERROR: Failed generating dummy .so for " << lib << "\n";
+      return std::nullopt;
+    }
+    curr = next;
+    if (next != undefinedSymbols.end()) {
+      ++next;
     }
   }
-  for (const auto& lib : explicitLibs) {
-    if (lib != firstLib) {
-      if (!generateDummySO(*tempDir, lib, nextSymbol, nextSymbol + 1)) {
-        std::cerr << "ERROR: Failed generating dummy .so for " << lib << "\n";
-      }
-      ++nextSymbol;
-    }
-  }
+  assert(curr == undefinedSymbols.end());
 
   // Determine the args that need to be passed to the linker.
   std::vector<std::string> args;
   args.push_back("-L" + tempDir->dirName());
   args.push_back("-nodefaultlibs");
-  for (const auto& lib : dashLLibs) {
+  for (const auto& lib : libs) {
     args.push_back("-l:" + lib);
-  }
-  for (const auto& lib : explicitLibs) {
-    args.push_back(lib);
   }
   for (const auto& rpath : LibraryPaths) {
     args.push_back("-Wl,-rpath," + rpath);
