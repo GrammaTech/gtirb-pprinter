@@ -74,13 +74,9 @@ bool ElfBinaryPrinter::generateDummySO(
     std::vector<const gtirb::Symbol*>::const_iterator begin,
     std::vector<const gtirb::Symbol*>::const_iterator end) const {
 
-  std::string currExt = boost::filesystem::extension(lib);
-  std::string libCoreName = boost::filesystem::basename(lib);
-  while (currExt != ".so" && currExt != "") {
-    currExt = boost::filesystem::extension(libCoreName);
-    libCoreName = boost::filesystem::basename(libCoreName);
-  }
-  std::string asmFileName = libCoreName + ".s";
+  // Assume that lib is a filename w/ no path prefix
+  assert(!boost::filesystem::path(lib).has_parent_path());
+  std::string asmFileName = lib + ".s";
   auto asmFilePath = boost::filesystem::path(libDir.dirName()) / asmFileName;
   auto libPath = boost::filesystem::path(libDir.dirName()) / lib;
 
