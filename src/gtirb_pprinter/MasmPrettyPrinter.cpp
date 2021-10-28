@@ -672,6 +672,7 @@ void MasmPrettyPrinter::printString(std::ostream& os, const gtirb::DataBlock& x,
     }
     os << syntax.tab();
     printByte(os, static_cast<std::byte>(b));
+    os << "\n";
   }
 }
 
