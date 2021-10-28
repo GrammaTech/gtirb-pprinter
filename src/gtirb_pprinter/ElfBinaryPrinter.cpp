@@ -49,6 +49,10 @@ static std::unordered_set<std::string> BlacklistedLibraries{{
     "ld-linux-x86-64.so.2",
 }};
 
+// These are symbols that otherwise pass our screen for undefined
+// symbols but don't appear to need external linkage when rebuilding
+// the binary. Some, for example __rela_iplt_start, are introduced
+// by ddisasm.
 bool isBlackListed(std::string sym) {
   static std::vector<std::string> blackList = {"",
                                                "__rela_iplt_start",
