@@ -289,14 +289,14 @@ build-centos8-gcc-relwithdebuginfo:
     paths:
       - build
   services:
-    - name: docker.grammatech.com/rewriting/gtirb-server:service-8080
+    - name: docker.grammatech.com/rewriting/gtirb-server
       alias: gtirb-server
   script:
     - for binary in $XFORM_BINARIES ; do
         binary="build/$binary" ;
-        curl -F transform=ddisasm -F input=@$binary --output $binary.gtirb http://gtirb-server:8080/simple ;
-        curl -F transform=stack-stamp -F input=@$binary.gtirb --output $binary.stack-stamp.gtirb http://gtirb-server:8080/simple ;
-        curl -F transform=shuffle -F input=@$binary.stack-stamp.gtirb --output $binary.stack-stamp.shuffle.gtirb http://gtirb-server:8080/simple ;
+        curl -F transform=ddisasm -F binary=@$binary --output $binary.gtirb http://gtirb-server/simple ;
+        curl -F transform=stack-stamp -F gtirb=@$binary.gtirb --output $binary.stack-stamp.gtirb http://gtirb-server/simple ;
+        curl -F transform=shuffle -F gtirb=@$binary.stack-stamp.gtirb --output $binary.stack-stamp.shuffle.gtirb http://gtirb-server/simple ;
         case "$binary" in
           *.so*) shared="--shared" ;;
           *) shared="" ;;
