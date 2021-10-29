@@ -165,22 +165,26 @@ void IntelPrettyPrinter::printOpIndirect(
   os << ']';
 }
 
-void IntelPrettyPrinter::printSymbolicExpression(std::ostream& Stream,
-                                                 const gtirb::SymAddrAddr* SE,
-                                                 bool IsNotBranch) {
+void IntelPrettyPrinter::printSymbolicExpression(
+    std::ostream& Stream, const gtirb::SymAddrAddr* SymExpr, bool IsNotBranch) {
 
+  // TODO:
   // We replace the symbol-minus-symbol with the special _GLOBAL_OFFSET_TABLE_
   // reference that will be resolved as an equivalent GOT-PC expression value.
-  if (SE->Sym1->getName() == "_GLOBAL_OFFSET_TABLE_") {
-    Stream << intelSyntax.offset() << ' ' << SE->Sym1->getName();
-    if (int64_t Offset = SE->Offset; Offset != 0) {
+  if (SymExpr->Sym1->getName() == "_GLOBAL_OFFSET_TABLE_") {
+
+    // Print special dynamically-valued symbol name.
+    Stream << intelSyntax.offset() << ' ' << SymExpr->Sym1->getName();
+
+    // Print offset from instruction that loaded the program counter.
+    if (int64_t Offset = SymExpr->Offset; Offset != 0) {
 
       // Print offset expression, e.g. _GLOBAL_OFFSET_TABLE_+(.Ltmp0-.L0$pb)
-      if (std::optional<gtirb::Addr> Addr = SE->Sym2->getAddress()) {
+      if (std::optional<gtirb::Addr> Addr = SymExpr->Sym2->getAddress()) {
         if (const auto It = module.findSymbols(*Addr - Offset); !It.empty()) {
           const gtirb::Symbol* Symbol = &*It.begin();
           Stream << "+(";
-          printSymbolReference(Stream, SE->Sym2);
+          printSymbolReference(Stream, SymExpr->Sym2);
           Stream << '-';
           printSymbolReference(Stream, Symbol);
           Stream << ')';
@@ -189,14 +193,20 @@ void IntelPrettyPrinter::printSymbolicExpression(std::ostream& Stream,
       }
 
       // Fall back to position-dependent offset from the address that loaded PC.
+      Stream << syntax.comment()
+             << " WARNING: Expected label at _GLOBAL_OFFSET_TABLE_ offset.\n";
       if (Offset > 0) {
         Stream << "+";
       }
       Stream << Offset;
     }
+
+    return;
+  } else if (SymExpr->Sym2->getName() == "_GLOBAL_OFFSET_TABLE_") {
+    Stream << SymExpr->Sym1->getName() << "@GOTOFF";
     return;
   }
-  PrettyPrinterBase::printSymbolicExpression(Stream, SE, IsNotBranch);
+  PrettyPrinterBase::printSymbolicExpression(Stream, SymExpr, IsNotBranch);
 }
 
 std::unique_ptr<PrettyPrinterBase>

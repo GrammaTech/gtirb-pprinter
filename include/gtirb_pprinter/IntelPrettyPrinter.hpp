@@ -54,7 +54,8 @@ protected:
   void printOpIndirect(std::ostream& os,
                        const gtirb::SymbolicExpression* symbolic,
                        const cs_insn& inst, uint64_t index) override;
-  void printSymbolicExpression(std::ostream& OS, const gtirb::SymAddrAddr* SE,
+  void printSymbolicExpression(std::ostream& Stream,
+                               const gtirb::SymAddrAddr* SymExpr,
                                bool IsNotBranch = false) override;
 };
 

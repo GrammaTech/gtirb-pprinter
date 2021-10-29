@@ -12,11 +12,10 @@
 //  endorsement should be inferred.
 //
 //===----------------------------------------------------------------------===//
-
 #include "AttPrettyPrinter.hpp"
+#include "driver/Logger.h"
 #include "string_utils.hpp"
 #include "version.h"
-#include <iomanip>
 
 namespace gtirb_pprint {
 
@@ -56,29 +55,53 @@ void AttPrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
   os << getRegisterName(op.reg);
 }
 
+void AttPrettyPrinter::printSymbolicExpression(
+    std::ostream& Stream, const gtirb::SymAddrAddr* SymExpr, bool IsNotBranch) {
+  // We replace the symbol-minus-symbol with the special _GLOBAL_OFFSET_TABLE_
+  // reference that will be resolved as an equivalent GOT-PC expression value.
+  if (SymExpr->Sym1->getName() == "_GLOBAL_OFFSET_TABLE_") {
+    Stream << SymExpr->Sym1->getName();
+    return;
+  }
+  PrettyPrinterBase::printSymbolicExpression(Stream, SymExpr, IsNotBranch);
+}
+
 void AttPrettyPrinter::printOpImmediate(
-    std::ostream& os, const gtirb::SymbolicExpression* symbolic,
-    const cs_insn& inst, uint64_t index) {
-  const cs_x86_op& op = inst.detail->x86.operands[index];
-  assert(op.type == X86_OP_IMM &&
-         "printOpImmediate called without an immediate operand");
+    std::ostream& Stream, const gtirb::SymbolicExpression* Symbolic,
+    const cs_insn& Insn, uint64_t Index) {
 
-  bool referencesCode =
-      cs_insn_group(this->csHandle, &inst, CS_GRP_JUMP) ||
-      cs_insn_group(this->csHandle, &inst, CS_GRP_CALL) ||
-      cs_insn_group(this->csHandle, &inst, CS_GRP_BRANCH_RELATIVE);
+  const cs_x86_op& Op = Insn.detail->x86.operands[Index];
+  if (Op.type != X86_OP_IMM) {
+    LOG_ERROR << "printOpImmediate called without an immediate operand";
+    std::exit(EXIT_FAILURE);
+  }
 
-  if (!referencesCode)
-    os << '$';
+  bool ReferencesCode =
+      cs_insn_group(this->csHandle, &Insn, CS_GRP_JUMP) ||
+      cs_insn_group(this->csHandle, &Insn, CS_GRP_CALL) ||
+      cs_insn_group(this->csHandle, &Insn, CS_GRP_BRANCH_RELATIVE);
 
-  if (const gtirb::SymAddrConst* s = this->getSymbolicImmediate(symbolic)) {
-    this->printSymbolicExpression(os, s, !referencesCode);
+  if (!ReferencesCode) {
+    Stream << '$';
+  }
+
+  if (const gtirb::SymAddrAddr* SymAddrAddr =
+          std::get_if<gtirb::SymAddrAddr>(Symbolic)) {
+    // Print symbolic expression of the form "(Sym1 - Sym2) / Scale + Offset".
+    printSymbolicExpression(Stream, SymAddrAddr, false);
+  } else if (const gtirb::SymAddrConst* SymAddrConst =
+                 getSymbolicImmediate(Symbolic)) {
+    // Print symbolic expression of the form "Symbol + Offset".
+    PrettyPrinterBase::printSymbolicExpression(Stream, SymAddrConst,
+                                               !ReferencesCode);
   } else {
-    std::ios_base::fmtflags flags = os.flags();
-    if (referencesCode)
-      os << std::setbase(16) << std::showbase;
-    os << op.imm;
-    os.flags(flags);
+    // Print a hex-formatted integer.
+    std::ios_base::fmtflags Flags = Stream.flags();
+    if (ReferencesCode) {
+      Stream << std::setbase(16) << std::showbase;
+    }
+    Stream << Op.imm;
+    Stream.flags(Flags);
   }
 }
 
@@ -104,7 +127,7 @@ void AttPrettyPrinter::printOpIndirect(
 
   if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
     // Displacement is symbolic.
-    printSymbolicExpression(os, s, false);
+    PrettyPrinterBase::printSymbolicExpression(os, s, false);
   } else {
     // Displacement is numeric.
     if (!has_segment && !has_base && !has_index) {
