@@ -236,7 +236,7 @@ private:
   std::string m_isa;
   std::string m_syntax;
   std::string m_assembler;
-  ListingMode LstMode;
+  ListingMode LstMode = ListingAssembler;
   PolicyOptions FunctionPolicy, SymbolPolicy, SectionPolicy, ArraySectionPolicy;
   std::string PolicyName = "default";
   bool Shared = false;
@@ -452,7 +452,7 @@ protected:
 
   csh csHandle;
 
-  ListingMode LstMode;
+  ListingMode LstMode = ListingAssembler;
 
   gtirb::Context& context;
   gtirb::Module& module;
