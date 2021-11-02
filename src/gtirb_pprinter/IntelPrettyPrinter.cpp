@@ -64,6 +64,10 @@ void IntelPrettyPrinter::fixupInstruction(cs_insn& inst) {
   case X86_INS_VPGATHERQD:
     Detail.operands[1].size = 4;
     break;
+  case X86_INS_VGATHERDPD:
+  case X86_INS_VGATHERQPD:
+    Detail.operands[1].size = 8;
+    break;
   }
 }
 
