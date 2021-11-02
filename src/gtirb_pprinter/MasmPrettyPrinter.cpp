@@ -225,35 +225,40 @@ void MasmPrettyPrinter::printSectionHeaderDirective(
   Stream << Name << ' ' << syntax.section();
 }
 
-void MasmPrettyPrinter::printSectionProperties(std::ostream& os,
-                                               const gtirb::Section& section) {
-  const auto* peSectionProperties =
-      module.getAuxData<gtirb::schema::PeSectionProperties>();
-  if (!peSectionProperties)
+void MasmPrettyPrinter::printSectionProperties(std::ostream& Stream,
+                                               const gtirb::Section& Section) {
+  // Load section properties table from AuxData.
+  const auto* SectionProperties =
+      module.getAuxData<gtirb::schema::SectionProperties>();
+  if (!SectionProperties) {
     return;
-  const auto sectionProperties = peSectionProperties->find(section.getUUID());
-  if (sectionProperties == peSectionProperties->end())
-    return;
-  uint64_t flags = sectionProperties->second;
+  }
 
-  if (flags & IMAGE_SCN_MEM_READ)
-    os << " READ";
-  if (flags & IMAGE_SCN_MEM_WRITE)
-    os << " WRITE";
-  if (flags & IMAGE_SCN_MEM_EXECUTE)
-    os << " EXECUTE";
-  if (flags & IMAGE_SCN_MEM_SHARED)
-    os << " SHARED";
-  if (flags & IMAGE_SCN_MEM_NOT_PAGED)
-    os << " NOPAGE";
-  if (flags & IMAGE_SCN_MEM_NOT_CACHED)
-    os << " NOCACHE";
-  if (flags & IMAGE_SCN_MEM_DISCARDABLE)
-    os << " DISCARD";
-  if (flags & IMAGE_SCN_CNT_CODE)
-    os << " 'CODE'";
-  if (flags & IMAGE_SCN_CNT_INITIALIZED_DATA)
-    os << " 'DATA'";
+  // Find properties entry by section UUID.
+  if (const auto It = SectionProperties->find(Section.getUUID());
+      It != SectionProperties->end()) {
+
+    uint64_t Flags = std::get<2>(It->second);
+
+    if (Flags & IMAGE_SCN_MEM_READ)
+      Stream << " READ";
+    if (Flags & IMAGE_SCN_MEM_WRITE)
+      Stream << " WRITE";
+    if (Flags & IMAGE_SCN_MEM_EXECUTE)
+      Stream << " EXECUTE";
+    if (Flags & IMAGE_SCN_MEM_SHARED)
+      Stream << " SHARED";
+    if (Flags & IMAGE_SCN_MEM_NOT_PAGED)
+      Stream << " NOPAGE";
+    if (Flags & IMAGE_SCN_MEM_NOT_CACHED)
+      Stream << " NOCACHE";
+    if (Flags & IMAGE_SCN_MEM_DISCARDABLE)
+      Stream << " DISCARD";
+    if (Flags & IMAGE_SCN_CNT_CODE)
+      Stream << " 'CODE'";
+    if (Flags & IMAGE_SCN_CNT_INITIALIZED_DATA)
+      Stream << " 'DATA'";
+  }
 };
 
 void MasmPrettyPrinter::printSectionFooterDirective(

@@ -32,8 +32,7 @@ void registerAuxDataTypes() {
   gtirb::AuxDataContainer::registerAuxDataType<FunctionBlocks>();
   gtirb::AuxDataContainer::registerAuxDataType<SymbolForwarding>();
   gtirb::AuxDataContainer::registerAuxDataType<Encodings>();
-  gtirb::AuxDataContainer::registerAuxDataType<ElfSectionProperties>();
-  gtirb::AuxDataContainer::registerAuxDataType<PeSectionProperties>();
+  gtirb::AuxDataContainer::registerAuxDataType<SectionProperties>();
   gtirb::AuxDataContainer::registerAuxDataType<CfiDirectives>();
   gtirb::AuxDataContainer::registerAuxDataType<Libraries>();
   gtirb::AuxDataContainer::registerAuxDataType<LibraryPaths>();
