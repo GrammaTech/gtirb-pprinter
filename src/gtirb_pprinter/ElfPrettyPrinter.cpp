@@ -70,6 +70,17 @@
 #define SHF_ORDERED (1 << 30)
 #define SHF_EXCLUDE (1U << 31)
 
+#define SHN_UNDEF 0
+#define SHN_LORESERVE 0xff00
+#define SHN_LOPROC 0xff00
+#define SHN_HIPROC 0xff1f
+#define SHN_LOOS 0xff20
+#define SHN_HIOS 0xff3f
+#define SHN_ABS 0xfff1
+#define SHN_COMMON 0xfff2
+#define SHN_XINDEX 0xffff
+#define SHN_HIRESERVE 0xffff
+
 namespace gtirb_pprint {
 
 struct ElfSymbolInfo {
@@ -463,12 +474,27 @@ void ElfPrettyPrinter::printSymbolDefinitionRelativeToPC(
   os << "\n";
 }
 
-void ElfPrettyPrinter::printIntegralSymbol(std::ostream& os,
-                                           const gtirb::Symbol& sym) {
-  printSymbolHeader(os, sym);
+void ElfPrettyPrinter::printIntegralSymbol(std::ostream& Stream,
+                                           const gtirb::Symbol& Symbol) {
 
-  os << elfSyntax.set() << ' ' << getSymbolName(sym) << ", "
-     << *sym.getAddress() << '\n';
+  // TODO:
+  if (const auto* T = module.getAuxData<gtirb::schema::ElfSymbolInfo>()) {
+    if (auto It = T->find(Symbol.getUUID()); It != T->end()) {
+      if (uint64_t Index = std::get<4>(It->second); Index == SHN_COMMON) {
+        std::string Name = Symbol.getName();
+        uint64_t Size = std::get<0>(It->second);
+        uint64_t Align = static_cast<uint64_t>(*Symbol.getAddress());
+
+        Stream << ".comm " << Name << "," << Size << "," << Align << "\n";
+        return;
+      }
+    }
+  }
+
+  printSymbolHeader(Stream, Symbol);
+
+  Stream << elfSyntax.set() << ' ' << getSymbolName(Symbol) << ", "
+         << *Symbol.getAddress() << '\n';
 }
 
 void ElfPrettyPrinter::printUndefinedSymbol(std::ostream& os,
