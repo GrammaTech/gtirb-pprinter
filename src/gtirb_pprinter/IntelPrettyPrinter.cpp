@@ -69,6 +69,12 @@ void IntelPrettyPrinter::fixupInstruction(cs_insn& inst) {
     Detail.operands[1].size = 8;
     break;
   }
+
+  // MPX registers are 128 bits.
+  if (inst.id == X86_INS_BNDMOV) {
+    Detail.operands[0].size = 16;
+    Detail.operands[1].size = 16;
+  }
 }
 
 void IntelPrettyPrinter::printHeader(std::ostream& os) {
