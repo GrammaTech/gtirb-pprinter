@@ -607,26 +607,6 @@ void PrettyPrinterBase::x86FixupInstruction(cs_insn& inst) {
       detail.operands[1].size = 4;
     }
   }
-
-  // Capstone gives no operands for UD1. However, UD1 takes two ops:
-  // ud1 EAX,DWORD PTR [EAX]  (4 bytes)
-  // or
-  // ud1 EAX,DWORD PTR [EAX+disp]  (5 bytes)
-  if (inst.id == X86_INS_UD1 && detail.op_count == 0) {
-    detail.operands[0].type = X86_OP_REG;
-    detail.operands[0].reg = X86_REG_EAX;
-    detail.operands[1].type = X86_OP_MEM;
-    detail.operands[1].size = 4;
-    detail.operands[1].mem.segment = X86_REG_INVALID;
-    detail.operands[1].mem.base = X86_REG_EAX;
-    detail.operands[1].mem.index = X86_REG_INVALID;
-    detail.operands[1].mem.disp = 0;
-    detail.op_count = 2;
-    inst.size = 4; // NOTE: It is either 4 (/wo disp) or 5 (/w disp)
-    // It is OK to leave the disp as data:
-    // e.g., ud1 EAX,DWORD PTR [EAX]
-    //       .byte 0x15
-  }
 }
 
 void PrettyPrinterBase::printInstruction(std::ostream& os,

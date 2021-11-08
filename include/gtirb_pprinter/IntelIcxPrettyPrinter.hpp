@@ -21,7 +21,7 @@ namespace gtirb_pprint {
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API IcxAssembler : public ClangAssembler {
 public:
-  virtual std::string cleanSingleQuote(const std::string& s) const {
+  virtual std::string escapeSingleQuote(const std::string& s) const {
     // Do not add escape for single-quote
     return s;
   };
