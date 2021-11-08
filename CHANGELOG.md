@@ -1,6 +1,6 @@
 1.8.1 (Unreleased)
 
-  * TBA
+  * Use `.ascii` directive for partial strings.
 
 1.8.0
 

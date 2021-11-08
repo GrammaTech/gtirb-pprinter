@@ -398,8 +398,8 @@ protected:
                                     const gtirb::Symbol* symbol);
   virtual void printAddend(std::ostream& os, int64_t number,
                            bool first = false);
-  virtual void printString(std::ostream& os, const gtirb::DataBlock& x,
-                           uint64_t offset);
+  virtual void printString(std::ostream& Stream, const gtirb::DataBlock& Block,
+                           uint64_t Offset, bool NullTerminated = true);
 
   virtual void printOperand(std::ostream& os, const gtirb::CodeBlock& block,
                             const cs_insn& inst, uint64_t index);

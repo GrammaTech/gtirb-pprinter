@@ -484,6 +484,22 @@ void ElfPrettyPrinter::printSymbolicDataType(
   }
 }
 
+void ElfPrettyPrinter::printString(std::ostream& Stream,
+                                   const gtirb::DataBlock& Block,
+                                   uint64_t Offset, bool NullTerminated) {
+  Stream << (NullTerminated ? elfSyntax.string() : elfSyntax.ascii()) << " \"";
+
+  auto Bytes = Block.bytes<uint8_t>();
+  auto It = boost::make_iterator_range(Bytes.begin() + Offset, Bytes.end());
+  for (auto Byte : It) {
+    if (Byte != 0) {
+      Stream << assembler.escapeByte(Byte);
+    }
+  }
+
+  Stream << '"';
+}
+
 std::optional<uint64_t>
 ElfPrettyPrinter::getAlignment(const gtirb::CodeBlock& Block) {
   // If the symbol is exported, ensure the block is aligned.

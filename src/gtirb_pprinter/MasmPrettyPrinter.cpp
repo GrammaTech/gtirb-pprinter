@@ -646,37 +646,38 @@ bool MasmPrettyPrinter::printSymbolReference(std::ostream& Stream,
   return PrettyPrinterBase::printSymbolReference(Stream, Symbol);
 }
 
-void MasmPrettyPrinter::printString(std::ostream& os, const gtirb::DataBlock& x,
-                                    uint64_t offset) {
-
+void MasmPrettyPrinter::printString(std::ostream& Stream,
+                                    const gtirb::DataBlock& Block,
+                                    uint64_t Offset,
+                                    bool /* NullTerminated */) {
   std::string Chunk{""};
 
-  auto Range = x.bytes<uint8_t>();
-  for (uint8_t b :
-       boost::make_iterator_range(Range.begin() + offset, Range.end())) {
+  auto Bytes = Block.bytes<uint8_t>();
+  auto It = boost::make_iterator_range(Bytes.begin() + Offset, Bytes.end());
+  for (uint8_t Byte : It) {
     // NOTE: MASM only supports strings smaller than 256 bytes.
     //  and  MASM only supports statements with 50 comma-separated items.
     if (Chunk.size() >= 64) {
       boost::replace_all(Chunk, "'", "''");
-      os << syntax.tab() << syntax.string() << " '" << Chunk << "'\n";
+      Stream << syntax.tab() << syntax.string() << " '" << Chunk << "'\n";
       Chunk.clear();
     }
 
     // Aggegrate printable characters
-    if (std::isprint(b)) {
-      Chunk.append(1, b);
+    if (std::isprint(Byte)) {
+      Chunk.append(1, Byte);
       continue;
     }
 
     // Found non-printable character, output previous chunk and print byte
     if (!Chunk.empty()) {
       boost::replace_all(Chunk, "'", "''");
-      os << syntax.tab() << syntax.string() << " '" << Chunk << "'\n";
+      Stream << syntax.tab() << syntax.string() << " '" << Chunk << "'\n";
       Chunk.clear();
     }
-    os << syntax.tab();
-    printByte(os, static_cast<std::byte>(b));
-    os << "\n";
+    Stream << syntax.tab();
+    printByte(Stream, static_cast<std::byte>(Byte));
+    Stream << "\n";
   }
 }
 

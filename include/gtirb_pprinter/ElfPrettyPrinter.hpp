@@ -24,6 +24,7 @@ public:
   const std::string& comment() const override { return CommentStyle; }
 
   const std::string& string() const override { return StringDirective; }
+  virtual const std::string& ascii() const { return AsciiDirective; }
 
   virtual const std::string& attributePrefix() const { return AttributePrefix; }
 
@@ -57,6 +58,7 @@ private:
   const std::string CommentStyle{"#"};
 
   const std::string StringDirective{".string"};
+  const std::string AsciiDirective{".ascii"};
 
   const std::string AttributePrefix{"@"};
 
@@ -133,6 +135,9 @@ protected:
   virtual void printHeader(std::ostream& os) override;
 
   void printSymbolHeader(std::ostream& os, const gtirb::Symbol& symbol);
+
+  void printString(std::ostream& Stream, const gtirb::DataBlock& Block,
+                   uint64_t Offset, bool NullTerminated = true) override;
 
   /// Called in the constructor when the --shared option was specified.
   /// By default, fixes up any direct references to global symbols, which
