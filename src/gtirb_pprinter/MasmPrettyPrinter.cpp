@@ -23,11 +23,39 @@
 
 namespace gtirb_pprint {
 
-std::string MasmSyntax::formatSectionName(const std::string& x) const {
-  std::string name(x);
-  if (name[0] == '.')
-    name[0] = '_';
-  return ascii_str_toupper(name);
+std::string MasmSyntax::formatSectionName(const std::string& S) const {
+  // Valid MASM identifiers are describe as ...
+  // Max Length:                                            247
+  //    Grammar:          id ::= alpha | id alpha | id decdigit
+  //                    alpa ::= a-z | A-Z | @ _ $ ?
+  //                decdigit ::= 0-9
+  std::string Name(S);
+  // Rewrite standard dot-prefixed names by convention,
+  //   e.g.  '.text` to `_TEXT'
+  if (Name[0] == '.') {
+    Name[0] = '_';
+    Name = ascii_str_toupper(Name);
+  }
+  // Truncate long section Names.
+  if (Name.length() > 247) {
+    Name.resize(247);
+  }
+  // Replace non-alpha characters with '?' characters.
+  for (size_t I = 0; I < Name.size(); I++) {
+    switch (Name[I]) {
+    case '@':
+    case '_':
+    case '$':
+    case '?':
+      continue;
+    default:
+      if (!std::isalnum(Name[I])) {
+        Name[I] = '?';
+      }
+      continue;
+    }
+  }
+  return Name;
 }
 
 std::string MasmSyntax::formatFunctionName(const std::string& x) const {
@@ -47,8 +75,9 @@ std::string MasmSyntax::formatSymbolName(const std::string& x) const {
 MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
                                      gtirb::Module& module_,
                                      const MasmSyntax& syntax_,
+                                     const Assembler& assembler_,
                                      const PrintingPolicy& policy_)
-    : PePrettyPrinter(context_, module_, syntax_, policy_),
+    : PePrettyPrinter(context_, module_, syntax_, assembler_, policy_),
       masmSyntax(syntax_) {
   // Setup Capstone.
   cs_mode Mode = CS_MODE_64;
@@ -156,6 +185,7 @@ void MasmPrettyPrinter::printHeader(std::ostream& os) {
        << ".XMM\n"
        << ".MODEL FLAT\n"
        << "ASSUME FS:NOTHING\n"
+       << "ASSUME GS:NOTHING\n"
        << "\n";
   }
   printIncludes(os);
@@ -180,9 +210,19 @@ void MasmPrettyPrinter::printSectionHeader(std::ostream& os,
 }
 
 void MasmPrettyPrinter::printSectionHeaderDirective(
-    std::ostream& os, const gtirb::Section& section) {
-  std::string section_name = syntax.formatSectionName(section.getName());
-  os << section_name << ' ' << syntax.section();
+    std::ostream& Stream, const gtirb::Section& Section) {
+  std::string Name = syntax.formatSectionName(Section.getName());
+
+  if (Name.empty()) {
+    gtirb::UUID UUID = Section.getUUID();
+    if (!RenamedSections.count(UUID)) {
+      size_t N = RenamedSections.size() + 1;
+      RenamedSections[UUID] = "unnamed_section_" + std::to_string(N);
+    }
+    Name = RenamedSections[UUID];
+  }
+
+  Stream << Name << ' ' << syntax.section();
 }
 
 void MasmPrettyPrinter::printSectionProperties(std::ostream& os,
@@ -217,10 +257,12 @@ void MasmPrettyPrinter::printSectionProperties(std::ostream& os,
 };
 
 void MasmPrettyPrinter::printSectionFooterDirective(
-    std::ostream& os, const gtirb::Section& section) {
-  std::string section_name = syntax.formatSectionName(section.getName());
-
-  os << section_name << ' ' << masmSyntax.ends() << '\n';
+    std::ostream& Stream, const gtirb::Section& Section) {
+  std::string Name = syntax.formatSectionName(Section.getName());
+  if (RenamedSections.count(Section.getUUID())) {
+    Name = RenamedSections[Section.getUUID()];
+  }
+  Stream << Name << ' ' << masmSyntax.ends() << '\n';
 }
 
 void MasmPrettyPrinter::printFunctionHeader(std::ostream& /* os */,
@@ -308,13 +350,12 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
       }
     }
 
-  // The first argument for SCASB is implied.
-  if (inst.id == X86_INS_SCASB) {
-    if (Detail.op_count == 2 && Detail.operands[0].type == X86_OP_REG &&
-        Detail.operands[0].reg == X86_REG_AL) {
-      Detail.operands[0] = Detail.operands[1];
-      Detail.op_count = 1;
-    }
+  // Omit implicit operands for scan string instructions.
+  switch (inst.id) {
+  case X86_INS_SCASB:
+  case X86_INS_SCASW:
+  case X86_INS_SCASD:
+    Detail.op_count = 0;
   }
 
   // The k1 register from AVX512 instructions is frequently set to NULL.
@@ -340,6 +381,26 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
   }
   if (inst.id == X86_INS_POPAL) {
     strcpy(inst.mnemonic, "popad");
+  }
+
+  // Omit LODSD operands.
+  if (inst.id == X86_INS_LODSD || inst.id == X86_INS_LODSB) {
+    Detail.op_count = 0;
+  }
+
+  // BOUND does not have a 64-bit mode.
+  if (inst.id == X86_INS_BOUND && Detail.op_count == 2 &&
+      Detail.operands[1].size == 8) {
+    Detail.operands[1].size = 4;
+  }
+
+  // BNDSTX and BNDLDX do not have 128-bit registers.
+  if (inst.id == X86_INS_BNDSTX || inst.id == X86_INS_BNDLDX) {
+    for (int i = 0; i < Detail.op_count; i++) {
+      if (Detail.operands[i].size == 16) {
+        Detail.operands[i].size = 4;
+      }
+    }
   }
 
   x86FixupInstruction(inst);
@@ -559,7 +620,7 @@ void MasmPrettyPrinter::printSymbolicExpression(std::ostream& os,
 void MasmPrettyPrinter::printByte(std::ostream& os, std::byte byte) {
   // Byte constants must start with a number for the MASM assembler.
   os << syntax.byteData() << " 0" << std::hex << std::setfill('0')
-     << std::setw(2) << static_cast<uint32_t>(byte) << 'H' << std::dec << '\n';
+     << std::setw(2) << static_cast<uint32_t>(byte) << 'H' << std::dec;
 }
 
 void MasmPrettyPrinter::printZeroDataBlock(std::ostream& os,
@@ -611,6 +672,7 @@ void MasmPrettyPrinter::printString(std::ostream& os, const gtirb::DataBlock& x,
     }
     os << syntax.tab();
     printByte(os, static_cast<std::byte>(b));
+    os << "\n";
   }
 }
 
@@ -622,6 +684,8 @@ std::unique_ptr<PrettyPrinterBase>
 MasmPrettyPrinterFactory::create(gtirb::Context& context, gtirb::Module& module,
                                  const PrintingPolicy& policy) {
   static const MasmSyntax syntax{};
-  return std::make_unique<MasmPrettyPrinter>(context, module, syntax, policy);
+  static const Assembler assembler{};
+  return std::make_unique<MasmPrettyPrinter>(context, module, syntax, assembler,
+                                             policy);
 }
 } // namespace gtirb_pprint

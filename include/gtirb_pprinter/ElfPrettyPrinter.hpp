@@ -89,10 +89,15 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API ElfPrettyPrinter
     : public PrettyPrinterBase {
 public:
   ElfPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
-                   const ElfSyntax& syntax, const PrintingPolicy& policy);
+                   const ElfSyntax& syntax, const Assembler& assembler,
+                   const PrintingPolicy& policy);
 
 protected:
   const ElfSyntax& elfSyntax;
+
+  void printInstruction(std::ostream& os, const gtirb::CodeBlock& block,
+                        const cs_insn& inst,
+                        const gtirb::Offset& offset) override;
 
   void printFooter(std::ostream& os) override;
 
@@ -136,6 +141,11 @@ protected:
   virtual void fixupSharedObject();
 
   std::optional<uint64_t> getAlignment(const gtirb::CodeBlock& Block) override;
+
+  std::string getSymbolName(const gtirb::Symbol& symbol) const override;
+
+private:
+  bool TlsGdSequence = false;
 };
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API ElfPrettyPrinterFactory

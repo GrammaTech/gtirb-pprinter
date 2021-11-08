@@ -28,8 +28,9 @@ namespace gtirb_pprint {
 Arm64PrettyPrinter::Arm64PrettyPrinter(gtirb::Context& context_,
                                        gtirb::Module& module_,
                                        const ElfSyntax& syntax_,
+                                       const Assembler& assembler_,
                                        const PrintingPolicy& policy_)
-    : ElfPrettyPrinter(context_, module_, syntax_, policy_) {
+    : ElfPrettyPrinter(context_, module_, syntax_, assembler_, policy_) {
   // Setup Capstone.
   [[maybe_unused]] cs_err err =
       cs_open(CS_ARCH_ARM64, CS_MODE_ARM, &this->csHandle);
@@ -584,8 +585,9 @@ Arm64PrettyPrinterFactory::create(gtirb::Context& gtirb_context,
                                   gtirb::Module& module,
                                   const PrintingPolicy& policy) {
   static const ElfSyntax syntax{};
+  static const Assembler assembler{};
   return std::make_unique<Arm64PrettyPrinter>(gtirb_context, module, syntax,
-                                              policy);
+                                              assembler, policy);
 }
 
 Arm64PrettyPrinterFactory::Arm64PrettyPrinterFactory() {

@@ -16,43 +16,49 @@
 #define GTIRB_PP_PE_BINARY_PRINTER_H
 
 #include "BinaryPrinter.hpp"
+#include "file_utils.hpp"
 
 #include <gtirb/gtirb.hpp>
 
 #include <string>
 #include <vector>
 
-/// \brief PeBinary-print GTIRB representations.
 namespace gtirb_bprint {
+
 class TempFile;
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API PeBinaryPrinter : public BinaryPrinter {
-  std::string compiler;
-
-  void prepareAssemblerArguments(
-      const std::vector<TempFile>& compilands,
-      const std::string& outputFilename,
-      const std::vector<std::string>& perCompilandExtraArgs,
-      std::vector<std::string>& args) const;
-  bool prepareDefFile(gtirb::IR& ir, TempFile& defFile) const;
-  bool prepareResources(gtirb::IR& ir, gtirb::Context& ctx,
-                        std::vector<std::string>& resourceFiles) const;
-  void prepareLinkerArguments(gtirb::IR& ir,
-                              std::vector<std::string>& resourceFiles,
-                              std::string defFile,
-                              std::vector<std::string>& args) const;
-
 public:
-  PeBinaryPrinter(const gtirb_pprint::PrettyPrinter& prettyPrinter,
-                  const std::vector<std::string>& extraCompileArgs,
-                  const std::vector<std::string>& libraryPaths);
+  PeBinaryPrinter(const gtirb_pprint::PrettyPrinter& Printer,
+                  const std::vector<std::string>& ExtraCompileArgs,
+                  const std::vector<std::string>& LibraryPaths);
 
-  int assemble(const std::string& outputFilename, gtirb::Context& context,
-               gtirb::Module& mod) const override;
-  int link(const std::string& outputFilename, gtirb::Context& context,
-           gtirb::IR& ir) override;
-  bool prepareImportLibs(gtirb::IR& ir,
-                         std::vector<std::string>& importLibs) const;
+  // Assemble a module but do not link the object.
+  int assemble(const std::string& OutputFile, gtirb::Context& Context,
+               gtirb::Module& Module) const override;
+
+  // Assemble and link all modules.
+  int link(const std::string& OutputFile, gtirb::Context& Context,
+           gtirb::IR& IR) const override;
+
+  // Generate LIB files for all imports.
+  int libs(const gtirb::IR& IR) const;
+
+  // Generate RES files for all resources.
+  int resources(const gtirb::IR& IR, const gtirb::Context& Context) const;
+
+protected:
+  // Generate DEF files for imported libaries (temp files).
+  bool prepareImportDefs(
+      const gtirb::IR& IR,
+      std::map<std::string, std::unique_ptr<TempFile>>& ImportDefs) const;
+
+  // Generated a DEF file with all exports.
+  bool prepareExportDef(gtirb::IR& IR, TempFile& Def) const;
+
+  // Generate RES files for all embedded PE resources.
+  bool prepareResources(const gtirb::IR& IR, const gtirb::Context& Context,
+                        std::vector<std::string>& Resources) const;
 };
 
 } // namespace gtirb_bprint

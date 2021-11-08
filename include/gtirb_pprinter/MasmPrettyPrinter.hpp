@@ -92,7 +92,8 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API MasmPrettyPrinter
     : public PePrettyPrinter {
 public:
   MasmPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
-                    const MasmSyntax& syntax, const PrintingPolicy& policy);
+                    const MasmSyntax& syntax, const Assembler& assembler,
+                    const PrintingPolicy& policy);
 
 protected:
   const MasmSyntax& masmSyntax;
@@ -162,6 +163,7 @@ private:
   std::optional<gtirb::Symbol*> EntryPoint;
   std::unordered_set<gtirb::UUID> Imports;
   std::unordered_set<gtirb::UUID> Exports;
+  std::unordered_map<gtirb::UUID, std::string> RenamedSections;
 };
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API MasmPrettyPrinterFactory

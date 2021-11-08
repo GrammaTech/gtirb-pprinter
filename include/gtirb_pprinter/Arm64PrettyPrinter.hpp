@@ -25,7 +25,8 @@ namespace gtirb_pprint {
 class Arm64PrettyPrinter : public ElfPrettyPrinter {
 public:
   Arm64PrettyPrinter(gtirb::Context& context, gtirb::Module& module,
-                     const ElfSyntax& syntax, const PrintingPolicy& policy);
+                     const ElfSyntax& syntax, const Assembler& assembler,
+                     const PrintingPolicy& policy);
 
 protected:
   std::string getRegisterName(unsigned int reg) const override;

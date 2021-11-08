@@ -49,8 +49,8 @@ std::string Syntax::formatSymbolName(const std::string& x) const {
 }
 
 std::string Syntax::avoidRegNameConflicts(const std::string& x) const {
-  const std::vector<std::string> adapt{"FS",  "MOD", "DIV", "NOT", "mod", "div",
-                                       "not", "and", "or",  "shr", "Si"};
+  const std::vector<std::string> adapt{"FS",  "MOD", "DIV", "NOT", "mod", "di",
+                                       "div", "not", "and", "or",  "shr", "Si"};
 
   if (const auto found = std::find(std::begin(adapt), std::end(adapt), x);
       found != std::end(adapt)) {

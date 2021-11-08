@@ -15,6 +15,7 @@
 #ifndef GTIRB_PP_PRETTY_PRINTER_H
 #define GTIRB_PP_PRETTY_PRINTER_H
 
+#include "Assembler.hpp"
 #include "Export.hpp"
 #include "Syntax.hpp"
 
@@ -41,7 +42,12 @@ class PrettyPrinterFactory;
 class PrettyPrinterBase;
 
 /// Whether a pretty printer should include debugging messages in it output.
-enum DebugStyle { NoDebug, DebugMessages };
+enum ListingMode {
+  ListingAssembler, // The output is intended for consumption by an assembler
+  ListingUI,        // The output is intended for consumption by a user
+                    // (though we still try to keep is assemble-able)
+  ListingDebug,     // Debug output, not assemble-able, very verbose.
+};
 
 /// A range containing strings. These can be standard library containers or
 /// pairs of iterators, for example.
@@ -52,27 +58,31 @@ using string_range = boost::any_range<std::string, boost::forward_traversal_tag,
 /// used to load a default \link PrintingPolicy and create a pretty printer for
 /// the formats and syntaxes named in the initialization lists.
 ///
-/// For example, \code registerPrinter({"elf"}, {"x64"}, {"intel"}, theFactory);
-/// \endcode
+/// For example, \code registerPrinter({"elf"}, {"x64"}, {"intel"}, {"gas"},
+/// theFactory); \endcode
 ///
 /// \param formats    the (non-empty) formats produced by the factory
 /// \param isas       the (non-empty) ISAs produced by the factory
 /// \param syntaxes   the (non-empty) syntaxes produced by the factory
+/// \param assemblers the (non-empty) assemblers produced by the factory
 /// \param f          the (non-empty) \link PrettyPrinterFactory object
-/// \param isDefault  optionally make this the default factory for the
+/// \param isDefaultSyntax  optionally make this the default factory for the
 ///                   named format and syntax parameters
+/// \param isDefaultAssembler optionally make this the default factory for the
+///                   named format, syntax, and assembler parameters
 ///
 /// \return \c true.
 DEBLOAT_PRETTYPRINTER_EXPORT_API bool
 registerPrinter(std::initializer_list<std::string> formats,
                 std::initializer_list<std::string> isas,
                 std::initializer_list<std::string> syntaxes,
+                std::initializer_list<std::string> assemblers,
                 std::shared_ptr<PrettyPrinterFactory> f,
-                bool isDefault = false);
+                bool isDefaultSyntax = false, bool isDefaultAssembler = false);
 
 /// Return the current set of syntaxes with registered factories.
 DEBLOAT_PRETTYPRINTER_EXPORT_API
-std::set<std::tuple<std::string, std::string, std::string>>
+std::set<std::tuple<std::string, std::string, std::string, std::string>>
 getRegisteredTargets();
 
 /// Return the file format of a GTIRB module.
@@ -82,6 +92,16 @@ getModuleFileFormat(const gtirb::Module& module);
 /// Return the ISA of a GTIRB module.
 DEBLOAT_PRETTYPRINTER_EXPORT_API std::string
 getModuleISA(const gtirb::Module& module);
+
+/// Set the default assembler for a file format, isa, and syntax.
+DEBLOAT_PRETTYPRINTER_EXPORT_API void
+setDefaultAssembler(const std::string& format, const std::string& isa,
+                    const std::string& syntax, const std::string& assembler);
+
+/// Return the default assembler for a file format and syntax.
+DEBLOAT_PRETTYPRINTER_EXPORT_API std::optional<std::string>
+getDefaultAssembler(const std::string& format, const std::string& isa,
+                    const std::string& syntax);
 
 /// Set the default syntax for a file format and isa.
 DEBLOAT_PRETTYPRINTER_EXPORT_API void
@@ -136,7 +156,7 @@ struct DEBLOAT_PRETTYPRINTER_EXPORT_API PrintingPolicy {
   /// Additional arguments to the compiler. Used only with binary printers.
   std::unordered_set<std::string> compilerArguments{};
 
-  DebugStyle debug = NoDebug;
+  ListingMode LstMode = ListingAssembler;
   bool Shared = false;
 };
 
@@ -158,25 +178,20 @@ public:
   /// Set the target for which to pretty print. It is the caller's
   /// responsibility to ensure that the target name has been registered.
   ///
-  /// \param target compound indentifier of target format, isa, and syntax
-  void
-  setTarget(const std::tuple<std::string, std::string, std::string>& target);
+  /// \param target compound indentifier of target format, isa, syntax, and
+  /// assembler
+  void setTarget(const std::tuple<std::string, std::string, std::string,
+                                  std::string>& target);
 
   /// Set the file format for which to pretty print.
   ///
   /// \param format indentifier of target format and isa.
   void setFormat(const std::string& format, const std::string& isa);
 
-  /// Enable or disable debugging messages inside the pretty-printed code.
+  /// Set the listing mode: assembler, debug, or UI.
   ///
-  /// \param do_debug whether to enable debugging messages
-  void setDebug(bool do_debug);
-
-  /// Indicates whether debugging messages are currently enable or disabled.
-  ///
-  /// \return \c true if debugging messages are currently enabled, otherwise
-  /// \c false.
-  bool getDebug() const;
+  /// \param ModeName The mode to use
+  bool setListingMode(const std::string& ModeName);
 
   /// Set whether or not we print assembly for shared libraries.
   void setShared(bool Value) { Shared = Value; }
@@ -220,7 +235,8 @@ private:
   std::string m_format;
   std::string m_isa;
   std::string m_syntax;
-  DebugStyle m_debug;
+  std::string m_assembler;
+  ListingMode LstMode = ListingAssembler;
   PolicyOptions FunctionPolicy, SymbolPolicy, SectionPolicy, ArraySectionPolicy;
   std::string PolicyName = "default";
   bool Shared = false;
@@ -270,13 +286,15 @@ private:
 class DEBLOAT_PRETTYPRINTER_EXPORT_API PrettyPrinterBase {
 public:
   PrettyPrinterBase(gtirb::Context& context, gtirb::Module& module,
-                    const Syntax& syntax, const PrintingPolicy& policy);
+                    const Syntax& syntax, const Assembler& assembler,
+                    const PrintingPolicy& policy);
   virtual ~PrettyPrinterBase();
 
   virtual std::ostream& print(std::ostream& out);
 
 protected:
   const Syntax& syntax;
+  const Assembler& assembler;
   PrintingPolicy policy;
 
   /// Return the SymAddrConst expression if it refers to a printed symbol.
@@ -346,11 +364,15 @@ protected:
                                 const cs_insn& inst);
   virtual void printComments(std::ostream& os, const gtirb::Offset& offset,
                              uint64_t range);
+  virtual void printCommentableLine(std::stringstream& LineContents,
+                                    std::ostream& OutStream, gtirb::Addr EA);
   virtual void printCFIDirectives(std::ostream& os, const gtirb::Offset& ea);
   virtual void printSymbolicData(
-      std::ostream& os, const gtirb::Addr& EA,
+      std::ostream& os,
       const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE,
       uint64_t Size, std::optional<std::string> Type);
+  virtual void printSymbolicDataFollowingComments(std::ostream& OutStream,
+                                                  const gtirb::Addr& EA);
   virtual void printSymbolicDataType(
       std::ostream& os,
       const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE,
@@ -430,7 +452,7 @@ protected:
 
   csh csHandle;
 
-  bool debug;
+  ListingMode LstMode = ListingAssembler;
 
   gtirb::Context& context;
   gtirb::Module& module;
@@ -458,6 +480,10 @@ private:
   gtirb::Addr programCounter;
 
   std::optional<gtirb::Addr> CFIStartProc;
+
+  // When emitting end-of-line comments, what is the preferred (minimum) column
+  // position to use?
+  const size_t PreferredEOLCommentPos;
 
   template <typename BlockType>
   void printBlockImpl(std::ostream& OS, BlockType& Block);

@@ -17,6 +17,7 @@
 #include "ArmPrettyPrinter.hpp"
 #include "AttPrettyPrinter.hpp"
 #include "AuxDataSchema.hpp"
+#include "IntelIcxPrettyPrinter.hpp"
 #include "IntelPrettyPrinter.hpp"
 #include "MasmPrettyPrinter.hpp"
 #include "Mips32PrettyPrinter.hpp"
@@ -47,17 +48,19 @@ void registerAuxDataTypes() {
 }
 
 void registerPrettyPrinters() {
-  registerPrinter({"elf", "raw"}, {"x86", "x64"}, {"intel"},
-                  std::make_shared<IntelPrettyPrinterFactory>(), true);
-  registerPrinter({"elf", "raw"}, {"x86", "x64"}, {"att"},
-                  std::make_shared<AttPrettyPrinterFactory>());
-  registerPrinter({"elf", "raw"}, {"arm"}, {"arm"},
-                  std::make_shared<ArmPrettyPrinterFactory>(), true);
-  registerPrinter({"elf", "raw"}, {"arm64"}, {"arm64"},
-                  std::make_shared<Arm64PrettyPrinterFactory>(), true);
-  registerPrinter({"elf", "raw"}, {"mips32"}, {"mips32"},
-                  std::make_shared<Mips32PrettyPrinterFactory>(), true);
-  registerPrinter({"pe", "raw"}, {"x86", "x64"}, {"masm"},
-                  std::make_shared<MasmPrettyPrinterFactory>(), true);
+  registerPrinter({"elf", "raw"}, {"x86", "x64"}, {"intel"}, {"gas"},
+                  std::make_shared<IntelPrettyPrinterFactory>(), true, true);
+  registerPrinter({"elf", "raw"}, {"x86", "x64"}, {"intel"}, {"icx"},
+                  std::make_shared<IntelIcxPrettyPrinterFactory>());
+  registerPrinter({"elf", "raw"}, {"x86", "x64"}, {"att"}, {"gas"},
+                  std::make_shared<AttPrettyPrinterFactory>(), false, true);
+  registerPrinter({"elf", "raw"}, {"arm"}, {"arm"}, {"gas"},
+                  std::make_shared<ArmPrettyPrinterFactory>(), true, true);
+  registerPrinter({"elf", "raw"}, {"arm64"}, {"arm64"}, {"gas"},
+                  std::make_shared<Arm64PrettyPrinterFactory>(), true, true);
+  registerPrinter({"elf", "raw"}, {"mips32"}, {"mips32"}, {"gas"},
+                  std::make_shared<Mips32PrettyPrinterFactory>(), true, true);
+  registerPrinter({"pe", "raw"}, {"x86", "x64"}, {"masm"}, {"gas"},
+                  std::make_shared<MasmPrettyPrinterFactory>(), true, true);
 }
 } // namespace gtirb_pprint

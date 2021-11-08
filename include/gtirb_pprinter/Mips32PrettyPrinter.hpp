@@ -24,7 +24,8 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API Mips32PrettyPrinter
     : public ElfPrettyPrinter {
 public:
   Mips32PrettyPrinter(gtirb::Context& context, gtirb::Module& module,
-                      const ElfSyntax& syntax, const PrintingPolicy& policy);
+                      const ElfSyntax& syntax, const GasAssembler& assembler,
+                      const PrintingPolicy& policy);
 
 protected:
   void printHeader(std::ostream& os) override;

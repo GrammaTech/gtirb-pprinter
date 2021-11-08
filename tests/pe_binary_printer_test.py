@@ -28,7 +28,7 @@ class WindowsBinaryPrinterTests(PPrinterTest):
 
         tools = list(run_binary_pprinter_mock(ir))
         self.assertEqual(len(tools), 1)
-        self.assertEqual(tools[0].name, "ml64")
+        self.assertEqual(tools[0].name, "ml64.exe")
         self.assertIn("/SUBSYSTEM:windows", tools[0].args)
 
     def test_windows_subsystem_console(self):
@@ -44,7 +44,7 @@ class WindowsBinaryPrinterTests(PPrinterTest):
 
         tools = list(run_binary_pprinter_mock(ir))
         self.assertEqual(len(tools), 1)
-        self.assertEqual(tools[0].name, "ml64")
+        self.assertEqual(tools[0].name, "ml64.exe")
         self.assertIn("/SUBSYSTEM:console", tools[0].args)
 
     def test_windows_dll(self):
@@ -58,7 +58,7 @@ class WindowsBinaryPrinterTests(PPrinterTest):
 
         tools = list(run_binary_pprinter_mock(ir))
         self.assertEqual(len(tools), 1)
-        self.assertEqual(tools[0].name, "ml64")
+        self.assertEqual(tools[0].name, "ml64.exe")
         self.assertIn("/DLL", tools[0].args)
 
     def test_windows_defs(self):

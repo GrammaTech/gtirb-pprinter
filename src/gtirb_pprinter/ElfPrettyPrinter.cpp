@@ -13,6 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 #include "ElfPrettyPrinter.hpp"
+#include "driver/Logger.h"
 
 #include "AuxDataSchema.hpp"
 #define SHT_NULL 0
@@ -94,9 +95,54 @@ struct ElfSymbolInfo {
 ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
                                    gtirb::Module& module_,
                                    const ElfSyntax& syntax_,
+                                   const Assembler& assembler_,
                                    const PrintingPolicy& policy_)
-    : PrettyPrinterBase(context_, module_, syntax_, policy_),
+    : PrettyPrinterBase(context_, module_, syntax_, assembler_, policy_),
       elfSyntax(syntax_) {}
+
+std::string ElfPrettyPrinter::getSymbolName(const gtirb::Symbol& Symbol) const {
+  if (size_t I = Symbol.getName().find('@'); I != std::string::npos) {
+    // Strip version string from symbol name.
+    return Symbol.getName().substr(0, I);
+  }
+  return PrettyPrinterBase::getSymbolName(Symbol);
+}
+
+void ElfPrettyPrinter::printInstruction(std::ostream& os,
+                                        const gtirb::CodeBlock& block,
+                                        const cs_insn& inst,
+                                        const gtirb::Offset& offset) {
+  // Print explicit directives for instruction prefixes needed for @TLSGD
+  // relocations, which require a fixed 16-byte instruction sequence.
+  if (inst.id == X86_INS_LEA &&
+      inst.detail->x86.prefix[2] == X86_PREFIX_OPSIZE) {
+
+    gtirb::Addr ea(inst.address);
+
+    uint8_t dispOffset = inst.detail->x86.encoding.disp_offset;
+    const gtirb::SymbolicExpression* symbolic =
+        block.getByteInterval()->getSymbolicExpression(
+            ea + dispOffset - *block.getByteInterval()->getAddress());
+
+    if (symbolic) {
+      if (const auto* expr = std::get_if<gtirb::SymAddrConst>(symbolic)) {
+        if (expr->Attributes.isFlagSet(gtirb::SymAttribute::TlsGd)) {
+          TlsGdSequence = true;
+          os << syntax.tab() << "  .byte 0x66\n";
+        }
+      }
+    }
+  } else if (TlsGdSequence && inst.id == X86_INS_CALL) {
+    os << syntax.tab() << "  .value 0x6666\n";
+    os << syntax.tab() << "  rex64\n";
+    TlsGdSequence = false;
+  } else if (TlsGdSequence) {
+    LOG_ERROR << "Incorrect code sequence for @TLSGD relocation.\n";
+    TlsGdSequence = false;
+  }
+
+  PrettyPrinterBase::printInstruction(os, block, inst, offset);
+}
 
 void ElfPrettyPrinter::printHeader(std::ostream& /*os*/) {
   if (policy.Shared) {
@@ -288,8 +334,7 @@ void ElfPrettyPrinter::printFunctionFooter(std::ostream& /* os */,
 
 void ElfPrettyPrinter::printByte(std::ostream& os, std::byte byte) {
   std::ios_base::fmtflags flags = os.flags();
-  os << syntax.byteData() << " 0x" << std::hex << static_cast<uint32_t>(byte)
-     << '\n';
+  os << syntax.byteData() << " 0x" << std::hex << static_cast<uint32_t>(byte);
   os.flags(flags);
 }
 
@@ -365,21 +410,31 @@ void ElfPrettyPrinter::printSymExprSuffix(std::ostream& OS,
     if (!IsNotBranch) {
       OS << "@PLT";
     }
+  } else if (Attrs.isFlagSet(gtirb::SymAttribute::GotOff)) {
+    if (Attrs.isFlagSet(gtirb::SymAttribute::GotRef)) {
+      OS << "@GOT";
+    } else {
+      OS << "@GOTOFF";
+    }
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
     OS << "@GOTPCREL";
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::TpOff)) {
     OS << "@TPOFF";
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::NtpOff)) {
     OS << "@NTPOFF";
+  } else if (Attrs.isFlagSet(gtirb::SymAttribute::DtpOff)) {
+    OS << "@DTPOFF";
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::TlsGd)) {
     OS << "@TLSGD";
+  } else if (Attrs.isFlagSet(gtirb::SymAttribute::TlsLd)) {
+    OS << "@TLSLD";
   }
 }
 
-void ElfPrettyPrinter::printSymbolDefinition(std::ostream& os,
-                                             const gtirb::Symbol& sym) {
-  printSymbolHeader(os, sym);
-  PrettyPrinterBase::printSymbolDefinition(os, sym);
+void ElfPrettyPrinter::printSymbolDefinition(std::ostream& Stream,
+                                             const gtirb::Symbol& Symbol) {
+  printSymbolHeader(Stream, Symbol);
+  PrettyPrinterBase::printSymbolDefinition(Stream, Symbol);
 }
 
 void ElfPrettyPrinter::printSymbolDefinitionRelativeToPC(
@@ -501,7 +556,7 @@ ElfPrettyPrinterFactory::ElfPrettyPrinterFactory() {
                           /// Sections with possible data object exclusion.
                           {},
                           /// Extra compiler arguments.
-                          {"-static"},
+                          {"-static", "-nostartfiles"},
                       });
   registerNamedPolicy(
       "complete", PrintingPolicy{

@@ -20,8 +20,25 @@ namespace gtirb_pprint {
 IntelPrettyPrinter::IntelPrettyPrinter(gtirb::Context& context_,
                                        gtirb::Module& module_,
                                        const IntelSyntax& syntax_,
+                                       const GasAssembler& assembler_,
                                        const PrintingPolicy& policy_)
-    : ElfPrettyPrinter(context_, module_, syntax_, policy_),
+    : ElfPrettyPrinter(context_, module_, syntax_, assembler_, policy_),
+      intelSyntax(syntax_) {
+  // Setup Capstone.
+  cs_mode Mode = CS_MODE_64;
+  if (module.getISA() == gtirb::ISA::IA32) {
+    Mode = CS_MODE_32;
+  }
+  [[maybe_unused]] cs_err err = cs_open(CS_ARCH_X86, Mode, &this->csHandle);
+  assert(err == CS_ERR_OK && "Capstone failure");
+}
+
+IntelPrettyPrinter::IntelPrettyPrinter(gtirb::Context& context_,
+                                       gtirb::Module& module_,
+                                       const IntelSyntax& syntax_,
+                                       const ClangAssembler& assembler_,
+                                       const PrintingPolicy& policy_)
+    : ElfPrettyPrinter(context_, module_, syntax_, assembler_, policy_),
       intelSyntax(syntax_) {
   // Setup Capstone.
   cs_mode Mode = CS_MODE_64;
@@ -37,8 +54,8 @@ void IntelPrettyPrinter::fixupInstruction(cs_insn& inst) {
   x86FixupInstruction(inst);
   auto& Detail = inst.detail->x86;
 
-  // vpgatherdd/vpgatherqd have some issues where the middle operand will be the
-  // wrong width when using Intel syntax.
+  // vpgatherdd/vpgatherqd have some issues where the middle operand will be
+  // the wrong width when using Intel syntax.
   // TODO: this fixup works for gas, but causes issues with clang-as, as
   // clang-as expects the operand to be the size Capstone reports.
   // TODO: any other instructions with a similar problem?
@@ -46,6 +63,10 @@ void IntelPrettyPrinter::fixupInstruction(cs_insn& inst) {
   case X86_INS_VPGATHERDD:
   case X86_INS_VPGATHERQD:
     Detail.operands[1].size = 4;
+    break;
+  case X86_INS_VGATHERDPD:
+  case X86_INS_VGATHERQPD:
+    Detail.operands[1].size = 8;
     break;
   }
 }
@@ -148,21 +169,6 @@ void IntelPrettyPrinter::printSymbolicExpression(std::ostream& OS,
     OS << intelSyntax.offset() << ' ' << SE->Sym1->getName();
     return;
   }
-
-  // We replace the GOT-Label, symbol-minus-symbol, with Label@GOTOFF or
-  // Label@GOT that will be resolved to the equivalent GOT-relative value.
-  if (SE->Attributes.isFlagSet(gtirb::SymAttribute::GotOff)) {
-    OS << "+";
-    printSymbolReference(OS, SE->Sym1);
-    if (SE->Attributes.isFlagSet(gtirb::SymAttribute::GotRef)) {
-      OS << "@GOT";
-    } else {
-      OS << "@GOTOFF";
-    }
-    printAddend(OS, SE->Offset, false);
-    return;
-  }
-
   PrettyPrinterBase::printSymbolicExpression(OS, SE, IsNotBranch);
 }
 
@@ -171,7 +177,8 @@ IntelPrettyPrinterFactory::create(gtirb::Context& gtirb_context,
                                   gtirb::Module& module,
                                   const PrintingPolicy& policy) {
   static const IntelSyntax syntax{};
+  static const GasAssembler assembler{};
   return std::make_unique<IntelPrettyPrinter>(gtirb_context, module, syntax,
-                                              policy);
+                                              assembler, policy);
 }
 } // namespace gtirb_pprint

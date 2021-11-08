@@ -68,11 +68,11 @@ static std::unique_ptr<gtirb_bprint::BinaryPrinter>
 getBinaryPrinter(const std::string& format,
                  const gtirb_pprint::PrettyPrinter& pp,
                  const std::vector<std::string>& extraCompileArgs,
-                 const std::vector<std::string>& libraryPaths) {
+                 const std::vector<std::string>& libraryPaths, bool dummySO) {
   std::unique_ptr<gtirb_bprint::BinaryPrinter> binaryPrinter;
   if (format == "elf")
     return std::make_unique<gtirb_bprint::ElfBinaryPrinter>(
-        pp, extraCompileArgs, libraryPaths, true);
+        pp, extraCompileArgs, libraryPaths, true, dummySO);
   if (format == "pe")
     return std::make_unique<gtirb_bprint::PeBinaryPrinter>(pp, extraCompileArgs,
                                                            libraryPaths);
@@ -118,9 +118,13 @@ int main(int argc, char** argv) {
                      "The ISA of the target binary object.");
   desc.add_options()("syntax,s", po::value<std::string>(),
                      "The syntax of the assembly file to generate.");
+  desc.add_options()("assembler", po::value<std::string>(),
+                     "The assembler to use for rewriting.");
   desc.add_options()("layout,l", "Layout code and data in memory to "
                                  "avoid overlap");
-  desc.add_options()("debug,d", "Turn on debugging (will break assembly)");
+  desc.add_options()(
+      "listing-mode", po::value<std::string>(),
+      "The mode of use for the listing: assembler, ui, or debug");
   desc.add_options()(
       "policy,p", po::value<std::string>(),
       "The default set of objects to skip when printing assembly. To modify "
@@ -171,6 +175,9 @@ int main(int argc, char** argv) {
   desc.add_options()("keep-all,k", "Combination of --keep-all-functions, "
                                    "--keep-all-symbols, --keep-all-sections, "
                                    "and --keep-all-array-sections.");
+  desc.add_options()("dummy-so", po::value<bool>()->default_value(false),
+                     "Use artificial .so files for linking rather than actual "
+                     "libraries. Only relevant for ELF executables.");
 
   po::positional_options_description pd;
   pd.add("ir", -1);
@@ -261,7 +268,12 @@ int main(int argc, char** argv) {
 
   // Perform the Pretty Printing step.
   gtirb_pprint::PrettyPrinter pp;
-  pp.setDebug(vm.count("debug"));
+  std::string LstMode =
+      vm.count("listing-mode") ? vm["listing-mode"].as<std::string>() : "";
+  if (!pp.setListingMode(LstMode)) {
+    LOG_ERROR << "Invalid listing-mode: " << LstMode << "\n";
+    return EXIT_FAILURE;
+  }
   const std::string& format =
       vm.count("format")
           ? vm["format"].as<std::string>()
@@ -273,21 +285,27 @@ int main(int argc, char** argv) {
       vm.count("syntax")
           ? vm["syntax"].as<std::string>()
           : gtirb_pprint::getDefaultSyntax(format, isa).value_or("");
-  auto target = std::make_tuple(format, isa, syntax);
+  const std::string& assembler =
+      vm.count("assembler")
+          ? vm["assembler"].as<std::string>()
+          : gtirb_pprint::getDefaultAssembler(format, isa, syntax).value_or("");
+  auto target = std::make_tuple(format, isa, syntax, assembler);
   if (gtirb_pprint::getRegisteredTargets().count(target) == 0) {
     LOG_ERROR << "Unsupported combination: format \"" << format << "\" ISA \""
-              << isa << "\" and syntax \"" << syntax << "\".\n";
+              << isa << "\" syntax \"" << syntax << "\" and assembler \""
+              << assembler << "\".\n";
     std::string::size_type width = std::strlen("syntax");
-    for (const auto& [f, i, s] : gtirb_pprint::getRegisteredTargets())
-      width = std::max({width, f.size(), i.size(), s.size()});
+    for (const auto& [f, i, s, a] : gtirb_pprint::getRegisteredTargets())
+      width = std::max({width, f.size(), i.size(), s.size(), a.size()});
     width += 2; // add "gutter" between columns
     LOG_ERROR << "Available combinations:\n";
     LOG_ERROR << std::left << std::setw(width) << "format" << std::setw(width)
-              << "ISA" << std::setw(width) << "syntax"
+              << "ISA" << std::setw(width) << "syntax" << std::setw(width)
+              << "assembler"
               << "\n";
-    for (const auto& [f, i, s] : gtirb_pprint::getRegisteredTargets())
+    for (const auto& [f, i, s, a] : gtirb_pprint::getRegisteredTargets())
       LOG_ERROR << std::left << std::setw(width) << f << std::setw(width) << i
-                << std::setw(width) << s << '\n';
+                << std::setw(width) << s << std::setw(width) << a << '\n';
     return EXIT_FAILURE;
   }
   pp.setTarget(std::move(target));
@@ -416,7 +434,8 @@ int main(int argc, char** argv) {
       libraryPaths = vm["library-paths"].as<std::vector<std::string>>();
 
     std::unique_ptr<gtirb_bprint::BinaryPrinter> binaryPrinter =
-        getBinaryPrinter(format, pp, extraCompilerArgs, libraryPaths);
+        getBinaryPrinter(format, pp, extraCompilerArgs, libraryPaths,
+                         vm["dummy-so"].as<bool>());
     if (!binaryPrinter) {
       LOG_ERROR << "'" << format
                 << "' is an unsupported binary printing format.\n";
@@ -447,7 +466,8 @@ int main(int argc, char** argv) {
       libraryPaths = vm["library-paths"].as<std::vector<std::string>>();
 
     std::unique_ptr<gtirb_bprint::BinaryPrinter> binaryPrinter =
-        getBinaryPrinter(format, pp, extraCompilerArgs, libraryPaths);
+        getBinaryPrinter(format, pp, extraCompilerArgs, libraryPaths,
+                         vm["dummy-so"].as<bool>());
 
     if (!binaryPrinter) {
       LOG_ERROR << "'" << format
