@@ -411,13 +411,19 @@ void ElfPrettyPrinter::printSymExprSuffix(std::ostream& OS,
       OS << "@PLT";
     }
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::GotOff)) {
-    if (Attrs.isFlagSet(gtirb::SymAttribute::GotRef)) {
+    if (Attrs.isFlagSet(gtirb::SymAttribute::NtpOff)) {
+      OS << "@GOTNTPOFF";
+    } else if (Attrs.isFlagSet(gtirb::SymAttribute::GotRef)) {
       OS << "@GOT";
     } else {
       OS << "@GOTOFF";
     }
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
-    OS << "@GOTPCREL";
+    if (Attrs.isFlagSet(gtirb::SymAttribute::TpOff)) {
+      OS << "@GOTTPOFF";
+    } else {
+      OS << "@GOTPCREL";
+    }
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::TpOff)) {
     OS << "@TPOFF";
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::NtpOff)) {
