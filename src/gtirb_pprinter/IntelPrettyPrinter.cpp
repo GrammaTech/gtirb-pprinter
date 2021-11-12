@@ -165,17 +165,38 @@ void IntelPrettyPrinter::printOpIndirect(
   os << ']';
 }
 
-void IntelPrettyPrinter::printSymbolicExpression(std::ostream& OS,
+void IntelPrettyPrinter::printSymbolicExpression(std::ostream& Stream,
                                                  const gtirb::SymAddrAddr* SE,
                                                  bool IsNotBranch) {
 
   // We replace the symbol-minus-symbol with the special _GLOBAL_OFFSET_TABLE_
   // reference that will be resolved as an equivalent GOT-PC expression value.
   if (SE->Sym1->getName() == "_GLOBAL_OFFSET_TABLE_") {
-    OS << intelSyntax.offset() << ' ' << SE->Sym1->getName();
+    Stream << intelSyntax.offset() << ' ' << SE->Sym1->getName();
+    if (int64_t Offset = SE->Offset; Offset != 0) {
+
+      // Print offset expression, e.g. _GLOBAL_OFFSET_TABLE_+(.Ltmp0-.L0$pb)
+      if (std::optional<gtirb::Addr> Addr = SE->Sym2->getAddress()) {
+        if (const auto It = module.findSymbols(*Addr - Offset); !It.empty()) {
+          const gtirb::Symbol* Symbol = &*It.begin();
+          Stream << "+(";
+          printSymbolReference(Stream, SE->Sym2);
+          Stream << '-';
+          printSymbolReference(Stream, Symbol);
+          Stream << ')';
+        }
+        return;
+      }
+
+      // Fall back to position-dependent offset from the address that loaded PC.
+      if (Offset > 0) {
+        Stream << "+";
+      }
+      Stream << Offset;
+    }
     return;
   }
-  PrettyPrinterBase::printSymbolicExpression(OS, SE, IsNotBranch);
+  PrettyPrinterBase::printSymbolicExpression(Stream, SE, IsNotBranch);
 }
 
 std::unique_ptr<PrettyPrinterBase>
