@@ -1,6 +1,21 @@
 import gtirb
 import gtirb_test_helpers as gth
 
+# This file provides a constructor for building the dummyso gtirb test IR.
+# What we're testing here is gtirb-pprinter's ability to synthesize fake
+# .so files as proxies for the actual .so files that the executable
+# modeled by this gtirb depends on. The actual .so files are in the
+# subdirectory dummyso_libs and are used by the test when running the
+# rewritten binary. Each .so has an exported symbol that the main
+# executable invokes.
+#
+# The main binary looks roughly like:
+# _start() {
+#   a();
+#   b();
+#   syscall(exit);
+# }
+
 
 def build_gtirb():
     (ir, module) = gth.create_test_module(

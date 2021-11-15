@@ -90,7 +90,7 @@ class TestBinaryGeneration(unittest.TestCase):
 
         exe_path = os.path.join(testdir, "dummyso_rewritten")
 
-        # Check that we can automatically rebuild a binary that has dependences
+        # Check that we can automatically build a binary that has dependences
         # on .so files without having those .so files be present.
         output = subprocess.check_output(
             [
@@ -107,6 +107,8 @@ class TestBinaryGeneration(unittest.TestCase):
         ).decode(sys.stdout.encoding)
         self.assertIn("Compiler arguments:", output)
 
+        # Run the resulting binary with the directory containing the actual
+        # .so libs in LD_LIBRARY_PATH, so the loader can find them.
         output_bin = subprocess.check_output(
             exe_path, env={"LD_LIBRARY_PATH": "./tests/dummyso_libs"}
         ).decode(sys.stdout.encoding)
