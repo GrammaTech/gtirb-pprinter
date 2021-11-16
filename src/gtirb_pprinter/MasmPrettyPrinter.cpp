@@ -383,8 +383,12 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
     strcpy(inst.mnemonic, "popad");
   }
 
-  // Omit LODSD operands.
-  if (inst.id == X86_INS_LODSD || inst.id == X86_INS_LODSB) {
+  // Omit implicit LODS operands.
+  switch (inst.id) {
+  case X86_INS_LODSB:
+  case X86_INS_LODSW:
+  case X86_INS_LODSD:
+  case X86_INS_LODSQ:
     Detail.op_count = 0;
   }
 
