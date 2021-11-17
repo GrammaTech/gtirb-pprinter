@@ -29,11 +29,11 @@ if("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "deb-lib")
   set(CPACK_COMPONENTS_ALL ${LIB_COMPONENTS})
   if("${CPACK_DEBIAN_PACKAGE_RELEASE}" STREQUAL "focal")
     set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "libstdc++6, libc6, libgcc1, libgtirb${CPACK_GTIRB_SUFFIX} (=${CPACK_GTIRB_DEB_VERSION}), libboost-filesystem1.71.0, libcapstone-dev${CPACK_CAPSTONE_PKG_SUFFIX} (=${CPACK_CAPSTONE_PKG_VERSION})"
+        "gcc, libstdc++6, libc6, libgcc1, libgtirb${CPACK_GTIRB_SUFFIX} (=${CPACK_GTIRB_DEB_VERSION}), libboost-filesystem1.71.0, libcapstone-dev${CPACK_CAPSTONE_PKG_SUFFIX} (=${CPACK_CAPSTONE_PKG_VERSION})"
     )
   else()
     set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "libstdc++6, libc6, libgcc1, libgtirb${CPACK_GTIRB_SUFFIX} (=${CPACK_GTIRB_DEB_VERSION}), libboost (>=1.67) | libboost1.67, libcapstone-dev${CPACK_CAPSTONE_PKG_SUFFIX} (=${CPACK_CAPSTONE_PKG_VERSION})"
+        "gcc, libstdc++6, libc6, libgcc1, libgtirb${CPACK_GTIRB_SUFFIX} (=${CPACK_GTIRB_DEB_VERSION}), libboost (>=1.67) | libboost1.67, libcapstone-dev${CPACK_CAPSTONE_PKG_SUFFIX} (=${CPACK_CAPSTONE_PKG_VERSION})"
     )
   endif()
 elseif("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "deb-lib-dbg")
@@ -86,7 +86,7 @@ elseif("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "rpm-lib")
   set(CPACK_RPM_FILE_NAME "libgtirb-pprinter.rpm")
   set(CPACK_RPM_PACKAGE_NAME "libgtirb-pprinter")
   set(CPACK_RPM_PACKAGE_REQUIRES
-      "libgtirb = ${CPACK_GTIRB_VERSION}, capstone-devel = ${CPACK_CAPSTONE_PKG_VERSION}, boost169 = 1.69.0"
+      "gcc, libgtirb = ${CPACK_GTIRB_VERSION}, capstone-devel = ${CPACK_CAPSTONE_PKG_VERSION}, boost169 = 1.69.0"
   )
   set(CPACK_RPM_DEBUGINFO_PACKAGE ON)
   set(CPACK_RPM_DEBUGINFO_FILE_NAME "libgtirb-pprinter-debuginfo.rpm")
