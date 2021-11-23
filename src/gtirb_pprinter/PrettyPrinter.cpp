@@ -1184,23 +1184,6 @@ void PrettyPrinterBase::printSymbolicExpression(std::ostream& os,
   printSymExprSuffix(os, sexpr->Attributes, IsNotBranch);
 }
 
-void PrettyPrinterBase::printString(std::ostream& Stream,
-                                    const gtirb::DataBlock& Block,
-                                    uint64_t Offset,
-                                    bool /*  NullTerminated */) {
-  Stream << syntax.string() << " \"";
-
-  auto Bytes = Block.bytes<uint8_t>();
-  auto It = boost::make_iterator_range(Bytes.begin() + Offset, Bytes.end());
-  for (auto Byte : It) {
-    if (Byte != 0) {
-      Stream << assembler.escapeByte(Byte);
-    }
-  }
-
-  Stream << '"';
-}
-
 bool PrettyPrinterBase::shouldSkip(const gtirb::Section& section) const {
   if (LstMode == ListingDebug) {
     return false;
