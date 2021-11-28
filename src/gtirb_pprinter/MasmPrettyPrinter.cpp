@@ -648,8 +648,7 @@ bool MasmPrettyPrinter::printSymbolReference(std::ostream& Stream,
 
 void MasmPrettyPrinter::printString(std::ostream& Stream,
                                     const gtirb::DataBlock& Block,
-                                    uint64_t Offset,
-                                    bool /* NullTerminated */) {
+                                    uint64_t Offset, bool NullTerminated) {
   std::string Chunk{""};
 
   auto Bytes = Block.bytes<uint8_t>();
@@ -678,6 +677,11 @@ void MasmPrettyPrinter::printString(std::ostream& Stream,
     Stream << syntax.tab();
     printByte(Stream, static_cast<std::byte>(Byte));
     Stream << "\n";
+  }
+  if (!NullTerminated && !Chunk.empty()) {
+    boost::replace_all(Chunk, "'", "''");
+    Stream << syntax.tab() << syntax.string() << " '" << Chunk << "'\n";
+    Chunk.clear();
   }
 }
 
