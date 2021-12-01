@@ -1,9 +1,9 @@
-; This file contains code for the function b(),
-; which prints a simple message to stdout.
-; Note that this makes a direct system call rather
-; than, say, calling puts(), because the
-; testcase using this does not include CRT code, and
-; we're not linking against libc.
+# This file contains code for the function b(),
+# which prints a simple message to stdout.
+# Note that this makes a direct system call rather
+# than, say, calling puts(), because the
+# testcase using this does not include CRT code, and
+# we're not linking against libc.
 
         .file   "b.s"
         .text
