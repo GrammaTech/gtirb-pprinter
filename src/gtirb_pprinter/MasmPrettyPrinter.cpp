@@ -320,6 +320,7 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
   //   e.g  faddp st(2)  needs to be  faddp st(2),st(0)
   switch (inst.id) {
   case X86_INS_FADD:
+  case X86_INS_FADDP:
   case X86_INS_FMULP:
   case X86_INS_FDIVP:
   case X86_INS_FSUBR:
