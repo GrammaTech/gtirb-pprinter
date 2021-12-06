@@ -55,21 +55,25 @@ void Arm64PrettyPrinter::printInstruction(std::ostream& os,
                                           const cs_insn& inst,
                                           const gtirb::Offset& offset) {
   gtirb::Addr ea(inst.address);
-  printComments(os, offset, inst.size);
-  printCFIDirectives(os, offset);
-  printEA(os, ea);
+  std::stringstream InstructLine;
+  printComments(InstructLine, offset, inst.size);
+  printCFIDirectives(InstructLine, offset);
+  printEA(InstructLine, ea);
 
   ////////////////////////////////////////////////////////////////////
   // special cases
 
   if (inst.id == ARM64_INS_NOP) {
-    os << "  " << syntax.nop();
+    InstructLine << "  " << syntax.nop();
     for (uint64_t i = 1; i < inst.size; ++i) {
+      printCommentableLine(InstructLine, os, ea);
+      InstructLine.str(std::string()); // Clear
       ea += 1;
       os << '\n';
-      printEA(os, ea);
-      os << "  " << syntax.nop();
+      printEA(InstructLine, ea);
+      InstructLine << "  " << syntax.nop();
     }
+    printCommentableLine(InstructLine, os, ea);
     os << '\n';
     return;
   }
@@ -78,17 +82,21 @@ void Arm64PrettyPrinter::printInstruction(std::ostream& os,
   ////////////////////////////////////////////////////////////////////
 
   std::string opcode = ascii_str_tolower(inst.mnemonic);
-  os << "  " << opcode << ' ';
+  InstructLine << "  " << opcode << ' ';
 
   // Make sure the initial m_accum_comment is empty.
   m_accum_comment.clear();
-  printOperandList(os, block, inst);
+  printOperandList(InstructLine, block, inst);
   if (!m_accum_comment.empty()) {
-    os << '\n' << syntax.comment() << " ";
-    printEA(os, ea);
-    os << ": " << m_accum_comment;
+    printCommentableLine(InstructLine, os, ea);
+    InstructLine.str(std::string()); // Clear
+    os << '\n';
+    InstructLine << syntax.comment() << " ";
+    printEA(InstructLine, ea);
+    InstructLine << ": " << m_accum_comment;
     m_accum_comment.clear();
   }
+  printCommentableLine(InstructLine, os, ea);
   os << '\n';
 }
 
