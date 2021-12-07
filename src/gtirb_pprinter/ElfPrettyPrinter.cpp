@@ -307,34 +307,29 @@ void ElfPrettyPrinter::printSectionHeaderDirective(
   os << syntax.section() << ' ' << sectionName;
 }
 
-void ElfPrettyPrinter::printSectionProperties(std::ostream& Stream,
-                                              const gtirb::Section& Section) {
-  // Load section properties table from AuxData.
-  const auto* SectionProperties =
-      module.getAuxData<gtirb::schema::SectionProperties>();
-  if (!SectionProperties)
+void ElfPrettyPrinter::printSectionProperties(std::ostream& os,
+                                              const gtirb::Section& section) {
+  const auto* elfSectionProperties =
+      module.getAuxData<gtirb::schema::ElfSectionProperties>();
+  if (!elfSectionProperties)
     return;
-
-  // Find properties entry by section UUID.
-  if (auto It = SectionProperties->find(Section.getUUID());
-      It != SectionProperties->end()) {
-
-    uint64_t Type = std::get<1>(It->second);
-    uint64_t Flags = std::get<2>(It->second);
-
-    Stream << " ,\"";
-    if (Flags & SHF_WRITE)
-      Stream << "w";
-    if (Flags & SHF_ALLOC)
-      Stream << "a";
-    if (Flags & SHF_EXECINSTR)
-      Stream << "x";
-    Stream << "\"";
-    if (Type == SHT_PROGBITS)
-      Stream << "," << elfSyntax.attributePrefix() << "progbits";
-    if (Type == SHT_NOBITS)
-      Stream << "," << elfSyntax.attributePrefix() << "nobits";
-  }
+  auto sectionProperties = elfSectionProperties->find(section.getUUID());
+  if (sectionProperties == elfSectionProperties->end())
+    return;
+  uint64_t type = std::get<0>(sectionProperties->second);
+  uint64_t flags = std::get<1>(sectionProperties->second);
+  os << " ,\"";
+  if (flags & SHF_WRITE)
+    os << "w";
+  if (flags & SHF_ALLOC)
+    os << "a";
+  if (flags & SHF_EXECINSTR)
+    os << "x";
+  os << "\"";
+  if (type == SHT_PROGBITS)
+    os << "," << elfSyntax.attributePrefix() << "progbits";
+  if (type == SHT_NOBITS)
+    os << "," << elfSyntax.attributePrefix() << "nobits";
 }
 
 void ElfPrettyPrinter::printSectionFooterDirective(
