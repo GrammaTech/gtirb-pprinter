@@ -472,12 +472,14 @@ void ElfPrettyPrinter::printSymbolDefinitionRelativeToPC(
 void ElfPrettyPrinter::printIntegralSymbol(std::ostream& Stream,
                                            const gtirb::Symbol& Symbol) {
 
-  // TODO:
+  // Print `.comm IDENT,SIZE,ALIGN' directive:
   if (const auto* T = module.getAuxData<gtirb::schema::ElfSymbolInfo>()) {
     if (auto It = T->find(Symbol.getUUID()); It != T->end()) {
+      // Symbol with section index set to SHN_COMMON.
       if (uint64_t Index = std::get<4>(It->second); Index == SHN_COMMON) {
         std::string Name = Symbol.getName();
         uint64_t Size = std::get<0>(It->second);
+        // Alignment is stored in the symbol's value field.
         uint64_t Align = static_cast<uint64_t>(*Symbol.getAddress());
 
         Stream << ".comm " << Name << "," << Size << "," << Align << "\n";
