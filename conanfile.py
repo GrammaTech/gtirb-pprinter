@@ -132,6 +132,10 @@ class GtirbPprinterConan(Properties, ConanFile):
             cmake = CMake(self, generator=None)
             defs.update({"GTIRB_PPRINTER_STRIP_DEBUG_SYMBOLS:BOOL": "ON"})
 
+        revision = os.environ.get("CI_COMMIT_SHORT_SHA")
+        if revision:
+            defs["GTIRB_PPRINTER_BUILD_REVISION"] = revision
+
         if self.settings.build_type == "Release":
             cmake.build_type = "RelWithDebInfo"
         cmake.configure(source_folder=".", defs=defs)
