@@ -159,8 +159,8 @@ void ArmPrettyPrinter::printOperandList(std::ostream& os,
   std::set<arm_insn> LdmSdm = {ARM_INS_LDM,   ARM_INS_LDMDA, ARM_INS_LDMDB,
                                ARM_INS_LDMIB, ARM_INS_STM,   ARM_INS_STMDA,
                                ARM_INS_STMDB, ARM_INS_STMIB, ARM_INS_VSTMIA,
-                               ARM_INS_VLDMIA};
-  std::set<arm_insn> PushPop = {ARM_INS_POP, ARM_INS_PUSH};
+                               ARM_INS_VLDMIA, ARM_INS_VPUSH};
+  std::set<arm_insn> PushPop = {ARM_INS_POP, ARM_INS_PUSH, ARM_INS_VPUSH};
   int RegBitVectorIndex = -1;
 
   if (LdmSdm.find(static_cast<arm_insn>(inst.id)) != LdmSdm.end())
@@ -202,6 +202,10 @@ void ArmPrettyPrinter::printOperand(std::ostream& os,
     symbolic = block.getByteInterval()->getSymbolicExpression(
         ea - *block.getByteInterval()->getAddress());
     printOpImmediate(os, symbolic, inst, index);
+    return;
+  }
+  case ARM_OP_FP: {
+    os << "#" << std::scientific << std::setprecision(18) << op.fp;
     return;
   }
   case ARM_OP_MEM: {
@@ -255,17 +259,28 @@ void ArmPrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
     }
   };
 
+  auto armSysReg2String = [](int sysreg) {
+    switch (sysreg) {
+    case ARM_SYSREG_IPSR:
+      return "ipsr";
+    case ARM_SYSREG_MSP:
+      return "msp";
+    case ARM_SYSREG_PSP:
+      return "psp";
+    case ARM_SYSREG_PRIMASK:
+      return "primask";
+    case ARM_SYSREG_BASEPRI:
+      return "basepri";
+    case ARM_SYSREG_CONTROL:
+      return "control";
+    default:
+      return "TODO";
+    }
+  };
+
   const cs_arm_op& op = inst.detail->arm.operands[index];
   if (op.type == ARM_OP_SYSREG) {
-    os << "cpsr_";
-    if (!!(op.reg & ARM_SYSREG_CPSR_C))
-      os << "c";
-    if (!!(op.reg & ARM_SYSREG_CPSR_X))
-      os << "x";
-    if (!!(op.reg & ARM_SYSREG_CPSR_S))
-      os << "s";
-    if (!!(op.reg & ARM_SYSREG_CPSR_F))
-      os << "f";
+    os << armSysReg2String(op.reg);
   } else {
     os << getRegisterName(op.reg);
     std::string shift_type = armShifter2String(op.shift.type);
