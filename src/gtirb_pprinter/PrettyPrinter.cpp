@@ -1378,22 +1378,15 @@ std::string PrettyPrinterBase::getFunctionName(gtirb::Addr x) const {
 
   if (entry_point) {
     const auto symbols = module.findSymbols(x);
-    if (!symbols.empty()) {
-      const gtirb::Symbol& s = symbols.front();
-      std::stringstream name(s.getName());
-      if (isAmbiguousSymbol(s.getName())) {
-        name.seekp(0, std::ios_base::end);
-        name << '_' << std::hex << static_cast<uint64_t>(x);
-      }
+    if (symbols.empty()) {
+      // This is a function entry with no associated symbol?
+      std::stringstream name;
+      name << "unknown_function_" << std::hex << static_cast<uint64_t>(x);
       return name.str();
+    } else {
+      const gtirb::Symbol& s = symbols.front();
+      return s.getName();
     }
-  }
-
-  // Is this a function entry with no associated symbol?
-  if (entry_point) {
-    std::stringstream name;
-    name << "unknown_function_" << std::hex << static_cast<uint64_t>(x);
-    return name.str();
   }
 
   // This doesn't seem to be a function.
