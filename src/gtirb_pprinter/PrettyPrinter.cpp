@@ -880,18 +880,18 @@ void PrettyPrinterBase::printNonZeroDataBlock(
   if (const auto* types = module.getAuxData<gtirb::schema::Encodings>()) {
     if (auto foundType = types->find(dataObject.getUUID());
         foundType != types->end()) {
-      if (foundType->second == "string") {
+      Type = foundType->second;
+
+      if (Type == "string" || Type == "ascii") {
         printComments(os, CurrOffset, dataObject.getSize() - offset);
 
         std::stringstream DataLine;
         printEA(DataLine, *dataObject.getAddress() + offset);
-        printString(DataLine, dataObject, offset);
+        printString(DataLine, dataObject, offset, Type == "string");
         printCommentableLine(DataLine, os, *dataObject.getAddress() + offset);
         os << '\n';
         return;
       }
-
-      Type = foundType->second;
     }
   }
 
@@ -1188,21 +1188,6 @@ void PrettyPrinterBase::printSymbolicExpression(std::ostream& os,
   }
 
   printSymExprSuffix(os, sexpr->Attributes, IsNotBranch);
-}
-
-void PrettyPrinterBase::printString(std::ostream& os, const gtirb::DataBlock& x,
-                                    uint64_t offset) {
-  os << syntax.string() << " \"";
-
-  auto Range = x.bytes<uint8_t>();
-  for (auto b :
-       boost::make_iterator_range(Range.begin() + offset, Range.end())) {
-    if (b != 0) {
-      os << assembler.escapeByte(b);
-    }
-  }
-
-  os << '"';
 }
 
 bool PrettyPrinterBase::shouldSkip(const gtirb::Section& section) const {

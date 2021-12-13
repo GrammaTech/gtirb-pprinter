@@ -154,8 +154,8 @@ protected:
 
   bool printSymbolReference(std::ostream& os,
                             const gtirb::Symbol* symbol) override;
-  void printString(std::ostream& os, const gtirb::DataBlock& x,
-                   uint64_t offset) override;
+  void printString(std::ostream& Stream, const gtirb::DataBlock& Block,
+                   uint64_t Offset, bool NullTerminated = true) override;
 
 private:
   gtirb::Addr BaseAddress;

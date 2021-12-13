@@ -291,6 +291,7 @@ build-centos8-gcc-relwithdebuginfo:
   services:
     - name: docker.grammatech.com/rewriting/gtirb-server
       alias: gtirb-server
+  allow_failure: true
   script:
     - for binary in $XFORM_BINARIES ; do
         binary="build/$binary" ;
@@ -356,6 +357,7 @@ test-and-tag-xform-ubuntu18:
     OS: 'ubuntu18'
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
   needs: ['xform-ubuntu18']
+  allow_failure: true
   <<: *test-and-tag-ubuntu
 
 test-and-tag-xform-ubuntu20:
@@ -363,6 +365,7 @@ test-and-tag-xform-ubuntu20:
     OS: 'ubuntu20'
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
   needs: ['xform-ubuntu20']
+  allow_failure: true
   <<: *test-and-tag-ubuntu
 
 test-and-tag-xform-ubuntu20-clang:
@@ -370,11 +373,13 @@ test-and-tag-xform-ubuntu20-clang:
     OS: 'ubuntu20'
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
   needs: ['xform-ubuntu20-clang']
+  allow_failure: true
   <<: *test-and-tag-ubuntu
 
 test-and-tag-xform-centos8:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/centos8
   needs: ['xform-centos8']
+  allow_failure: true
   <<: *test-and-tag-centos
 
 test-and-tag-ubuntu18-gcc:
@@ -412,8 +417,8 @@ test-make-install:
     - cd build && make install && cd ..
     - rm -rf build
     - cp .ci/test-install.cpp test-install.cpp
-    - g++ test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs
-    - ./test-install
+    - g++ test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs -lgtirb -lgtirb_layout
+    - ./test-install tests/two_modules.gtirb
     - pip3 install --upgrade pip
     - pip3 install -r tests/requirements.txt $EXTRA_INDEX_URL
     - python3 -m unittest discover tests "*_test.py"
@@ -431,33 +436,37 @@ test-centos8-libgtirb-pprinter-devel:
     - dnf --nogpgcheck localinstall -y capstone-devel-*.rpm libgtirb.rpm libgtirb-devel.rpm libgtirb-pprinter.rpm libgtirb-pprinter-devel.rpm
     - popd
     - rm -rf build
-    - g++ .ci/test-install.cpp -I/usr/include/boost169 -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs
-    - ./test-install
+    - g++ .ci/test-install.cpp -I/usr/include/boost169 -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs -lgtirb -lgtirb_layout
+    - ./test-install tests/two_modules.gtirb
 
 test-centos8-gtirb-pprinter:
   stage: test-packages1
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/centos8
+  image: centos:centos8
   needs: ['build-centos8-gcc-relwithdebuginfo']
   script:
     - pushd build
+    - dnf install -y epel-release
+    - dnf update -y
     - dnf --nogpgcheck localinstall -y capstone-devel-*.rpm libgtirb.rpm libgtirb-pprinter.rpm gtirb-pprinter.rpm
     - popd
     - rm -rf build
-    - gtirb-pprinter tests/two_modules.gtirb
+    - gtirb-pprinter tests/two_modules.gtirb --binary two_modules
     - gtirb-layout tests/two_modules.gtirb --out output
 
 test-centos8-libgtirb-pprinter:
   stage: test-packages2
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/centos8
+  image: centos:centos8
   needs:
     - build-centos8-gcc-relwithdebuginfo
     - test-centos8-libgtirb-pprinter-devel
   script:
     - pushd build
+    - dnf install -y epel-release
+    - dnf update -y
     - dnf --nogpgcheck localinstall -y capstone-devel-*.rpm libgtirb.rpm libgtirb-pprinter.rpm
     - popd
     - rm -rf build
-    - ./test-install
+    - ./test-install tests/two_modules.gtirb
 
 package-centos8:
   stage: deploy
@@ -531,8 +540,8 @@ build-ubuntu20-packages:
     - echo -e "\ndeb $TRUSTED file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - 'TEST_PKG_NAME=$(dpkg --info apt-repo/libgtirb-pprinter-dev.deb | sed -n "s/Package: //p")'
     - apt-get update -y && apt-get install -y --allow-unauthenticated $TEST_PKG_NAME
-    - g++ .ci/test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs
-    - ./test-install
+    - g++ .ci/test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs -lgtirb -lgtirb_layout
+    - ./test-install tests/two_modules.gtirb
 
 .test-ubuntu-gtirb-pprinter: &test-ubuntu-gtirb-pprinter
   stage: test-packages1
@@ -542,7 +551,7 @@ build-ubuntu20-packages:
     - echo -e "\ndeb $TRUSTED file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - 'TEST_PKG_NAME=$(dpkg --info apt-repo/gtirb-pprinter.deb | sed -n "s/Package: //p")'
     - apt-get update -y && apt-get install -y --allow-unauthenticated $TEST_PKG_NAME
-    - gtirb-pprinter tests/two_modules.gtirb
+    - gtirb-pprinter tests/two_modules.gtirb --binary two_modules
     - gtirb-layout tests/two_modules.gtirb --out output
 
 .test-ubuntu-libgtirb-pprinter-dbg: &test-ubuntu-libgtirb-pprinter-dbg
@@ -573,7 +582,7 @@ build-ubuntu20-packages:
     - echo -e "\ndeb $TRUSTED file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - 'TEST_PKG_NAME=$(dpkg --info apt-repo/libgtirb-pprinter.deb | sed -n "s/Package: //p")'
     - apt-get update -y && apt-get install -y --allow-unauthenticated $TEST_PKG_NAME
-    - ./test-install
+    - ./test-install tests/two_modules.gtirb
 
 setup-ubuntu18-repo:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
@@ -588,8 +597,11 @@ test-ubuntu18-libgtirb-pprinter-dev:
   <<: *test-ubuntu-libgtirb-pprinter-dev
 
 test-ubuntu18-gtirb-pprinter:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
+  image: ubuntu:18.04
   needs: ['setup-ubuntu18-repo']
+  before_script:
+    - apt-get -y update && apt-get -y install lsb-release software-properties-common
+    - add-apt-repository ppa:mhier/libboost-latest
   <<: *test-ubuntu-gtirb-pprinter
 
 test-ubuntu18-libgtirb-pprinter-dbg:
@@ -603,8 +615,11 @@ test-ubuntu18-gtirb-pprinter-dbg:
   <<: *test-ubuntu-gtirb-pprinter-dbg
 
 test-ubuntu18-libgtirb-pprinter:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
+  image: ubuntu:18.04
   needs: ['setup-ubuntu18-repo', 'test-ubuntu18-libgtirb-pprinter-dev']
+  before_script:
+    - apt-get -y update && apt-get -y install lsb-release software-properties-common
+    - add-apt-repository ppa:mhier/libboost-latest
   <<: *test-ubuntu-libgtirb-pprinter
 
 setup-ubuntu20-repo:
@@ -620,8 +635,10 @@ test-ubuntu20-libgtirb-pprinter-dev:
   <<: *test-ubuntu-libgtirb-pprinter-dev
 
 test-ubuntu20-gtirb-pprinter:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
+  image: ubuntu:20.04
   needs: ['setup-ubuntu20-repo']
+  before_script:
+    - apt-get -y update && apt-get -y install lsb-release
   <<: *test-ubuntu-gtirb-pprinter
 
 test-ubuntu20-libgtirb-pprinter-dbg:
@@ -635,8 +652,10 @@ test-ubuntu20-gtirb-pprinter-dbg:
   <<: *test-ubuntu-gtirb-pprinter-dbg
 
 test-ubuntu20-libgtirb-pprinter:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
+  image: ubuntu:20.04
   needs: ['setup-ubuntu20-repo', 'test-ubuntu20-libgtirb-pprinter-dev']
+  before_script:
+    - apt-get -y update && apt-get -y install lsb-release
   <<: *test-ubuntu-libgtirb-pprinter
 
 .deploy-debian-installer: &deploy-debian-installer

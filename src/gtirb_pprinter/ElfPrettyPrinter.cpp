@@ -70,6 +70,17 @@
 #define SHF_ORDERED (1 << 30)
 #define SHF_EXCLUDE (1U << 31)
 
+#define SHN_UNDEF 0
+#define SHN_LORESERVE 0xff00
+#define SHN_LOPROC 0xff00
+#define SHN_HIPROC 0xff1f
+#define SHN_LOOS 0xff20
+#define SHN_HIOS 0xff3f
+#define SHN_ABS 0xfff1
+#define SHN_COMMON 0xfff2
+#define SHN_XINDEX 0xffff
+#define SHN_HIRESERVE 0xffff
+
 namespace gtirb_pprint {
 
 struct ElfSymbolInfo {
@@ -411,13 +422,19 @@ void ElfPrettyPrinter::printSymExprSuffix(std::ostream& OS,
       OS << "@PLT";
     }
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::GotOff)) {
-    if (Attrs.isFlagSet(gtirb::SymAttribute::GotRef)) {
+    if (Attrs.isFlagSet(gtirb::SymAttribute::NtpOff)) {
+      OS << "@GOTNTPOFF";
+    } else if (Attrs.isFlagSet(gtirb::SymAttribute::GotRef)) {
       OS << "@GOT";
     } else {
       OS << "@GOTOFF";
     }
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
-    OS << "@GOTPCREL";
+    if (Attrs.isFlagSet(gtirb::SymAttribute::TpOff)) {
+      OS << "@GOTTPOFF";
+    } else {
+      OS << "@GOTPCREL";
+    }
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::TpOff)) {
     OS << "@TPOFF";
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::NtpOff)) {
@@ -452,17 +469,43 @@ void ElfPrettyPrinter::printSymbolDefinitionRelativeToPC(
   os << "\n";
 }
 
-void ElfPrettyPrinter::printIntegralSymbol(std::ostream& os,
-                                           const gtirb::Symbol& sym) {
-  printSymbolHeader(os, sym);
+void ElfPrettyPrinter::printIntegralSymbol(std::ostream& Stream,
+                                           const gtirb::Symbol& Symbol) {
 
-  os << elfSyntax.set() << ' ' << getSymbolName(sym) << ", "
-     << *sym.getAddress() << '\n';
+  printSymbolHeader(Stream, Symbol);
+
+  Stream << elfSyntax.set() << ' ' << getSymbolName(Symbol) << ", "
+         << *Symbol.getAddress() << '\n';
 }
 
-void ElfPrettyPrinter::printUndefinedSymbol(std::ostream& os,
-                                            const gtirb::Symbol& sym) {
-  printSymbolHeader(os, sym);
+void ElfPrettyPrinter::printUndefinedSymbol(std::ostream& Stream,
+                                            const gtirb::Symbol& Symbol) {
+
+  auto* Alignment = module.getAuxData<gtirb::schema::Alignment>();
+  auto* SymbolInfo = module.getAuxData<gtirb::schema::ElfSymbolInfo>();
+
+  // Print communal symbols directive.
+  if (SymbolInfo) {
+    if (auto It = SymbolInfo->find(Symbol.getUUID()); It != SymbolInfo->end()) {
+      // Symbol with section index set to SHN_COMMON.
+      if (uint64_t Index = std::get<4>(It->second); Index == SHN_COMMON) {
+
+        std::string Name = Symbol.getName();
+        uint64_t Size = std::get<0>(It->second);
+        uint64_t Align = Alignment ? (*Alignment)[Symbol.getUUID()] : 0;
+
+        // .comm IDENT,SIZE,ALIGN
+        Stream << ".comm " << Name << "," << Size;
+        if (Align > 0) {
+          Stream << "," << Align;
+        }
+        Stream << "\n";
+        return;
+      }
+    }
+  }
+
+  printSymbolHeader(Stream, Symbol);
 }
 
 void ElfPrettyPrinter::printSymbolicDataType(
@@ -476,6 +519,22 @@ void ElfPrettyPrinter::printSymbolicDataType(
   } else {
     PrettyPrinterBase::printSymbolicDataType(os, SEE, Size, Type);
   }
+}
+
+void ElfPrettyPrinter::printString(std::ostream& Stream,
+                                   const gtirb::DataBlock& Block,
+                                   uint64_t Offset, bool NullTerminated) {
+  Stream << (NullTerminated ? elfSyntax.string() : elfSyntax.ascii()) << " \"";
+
+  auto Bytes = Block.bytes<uint8_t>();
+  auto It = boost::make_iterator_range(Bytes.begin() + Offset, Bytes.end());
+  for (auto Byte : It) {
+    if (Byte != 0) {
+      Stream << assembler.escapeByte(Byte);
+    }
+  }
+
+  Stream << '"';
 }
 
 std::optional<uint64_t>
