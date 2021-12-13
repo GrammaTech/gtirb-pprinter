@@ -291,6 +291,7 @@ build-centos8-gcc-relwithdebuginfo:
   services:
     - name: docker.grammatech.com/rewriting/gtirb-server
       alias: gtirb-server
+  allow_failure: true
   script:
     - for binary in $XFORM_BINARIES ; do
         binary="build/$binary" ;
@@ -356,6 +357,7 @@ test-and-tag-xform-ubuntu18:
     OS: 'ubuntu18'
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
   needs: ['xform-ubuntu18']
+  allow_failure: true
   <<: *test-and-tag-ubuntu
 
 test-and-tag-xform-ubuntu20:
@@ -363,6 +365,7 @@ test-and-tag-xform-ubuntu20:
     OS: 'ubuntu20'
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
   needs: ['xform-ubuntu20']
+  allow_failure: true
   <<: *test-and-tag-ubuntu
 
 test-and-tag-xform-ubuntu20-clang:
@@ -370,11 +373,13 @@ test-and-tag-xform-ubuntu20-clang:
     OS: 'ubuntu20'
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
   needs: ['xform-ubuntu20-clang']
+  allow_failure: true
   <<: *test-and-tag-ubuntu
 
 test-and-tag-xform-centos8:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/centos8
   needs: ['xform-centos8']
+  allow_failure: true
   <<: *test-and-tag-centos
 
 test-and-tag-ubuntu18-gcc:
