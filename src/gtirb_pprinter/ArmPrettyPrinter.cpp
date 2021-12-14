@@ -69,9 +69,10 @@ void ArmPrettyPrinter::printInstruction(std::ostream& os,
                                         const cs_insn& inst,
                                         const gtirb::Offset& offset) {
   gtirb::Addr ea(inst.address);
-  printComments(os, offset, inst.size);
-  printCFIDirectives(os, offset);
-  printEA(os, ea);
+  std::stringstream InstructLine;
+  printComments(InstructLine, offset, inst.size);
+  printCFIDirectives(InstructLine, offset);
+  printEA(InstructLine, ea);
   std::string opcode = ascii_str_tolower(inst.mnemonic);
   if (auto index = opcode.rfind(".w"); index != std::string::npos)
     opcode = opcode.substr(0, index);
@@ -122,32 +123,36 @@ void ArmPrettyPrinter::printInstruction(std::ostream& os,
             std::end(it_instrs));
   };
 
-  os << "  " << opcode;
+  InstructLine << "  " << opcode;
   if (isItInstr(opcode)) {
     std::string cc = armCc2String(inst.detail->arm.cc);
-    os << " " << cc;
+    InstructLine << " " << cc;
   }
-  os << ' ';
+  InstructLine << ' ';
   // Make sure the initial m_accum_comment is empty.
   m_accum_comment.clear();
-  printOperandList(os, block, inst);
+  printOperandList(InstructLine, block, inst);
 
   if (inst.detail->arm.cps_flag != ARM_CPSFLAG_NONE &&
       inst.detail->arm.cps_flag != ARM_CPSFLAG_INVALID) {
     if (!!(inst.detail->arm.cps_flag & ARM_CPSFLAG_I))
-      os << "i";
+      InstructLine << "i";
     if (!!(inst.detail->arm.cps_flag & ARM_CPSFLAG_F))
-      os << "f";
+      InstructLine << "f";
     if (!!(inst.detail->arm.cps_flag & ARM_CPSFLAG_A))
-      os << "a";
+      InstructLine << "a";
   }
 
   if (!m_accum_comment.empty()) {
-    os << '\n' << syntax.comment() << " ";
-    printEA(os, ea);
-    os << ": " << m_accum_comment;
+    printCommentableLine(InstructLine, os, ea);
+    InstructLine.str(std::string()); // Clear
+    os << '\n';
+    InstructLine << syntax.comment() << " ";
+    printEA(InstructLine, ea);
+    InstructLine << ": " << m_accum_comment;
     m_accum_comment.clear();
   }
+  printCommentableLine(InstructLine, os, ea);
   os << '\n';
 }
 

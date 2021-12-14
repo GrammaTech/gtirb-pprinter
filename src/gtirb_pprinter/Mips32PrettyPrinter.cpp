@@ -222,18 +222,20 @@ void Mips32PrettyPrinter::printInstruction(std::ostream& os,
                                            const cs_insn& inst,
                                            const gtirb::Offset& offset) {
   gtirb::Addr ea(inst.address);
-  printComments(os, offset, inst.size);
-  printCFIDirectives(os, offset);
-  printEA(os, ea);
+  std::stringstream InstructLine;
+  printComments(InstructLine, offset, inst.size);
+  printCFIDirectives(InstructLine, offset);
+  printEA(InstructLine, ea);
 
-  os << "  " << inst.mnemonic << ' ';
+  InstructLine << "  " << inst.mnemonic << ' ';
   // Make sure the initial m_accum_comment is empty.
   m_accum_comment.clear();
-  printOperandList(os, block, inst);
+  printOperandList(InstructLine, block, inst);
   if (!m_accum_comment.empty()) {
-    os << " " << syntax.comment() << " " << m_accum_comment;
+    InstructLine << " " << syntax.comment() << " " << m_accum_comment;
     m_accum_comment.clear();
   }
+  printCommentableLine(InstructLine, os, ea);
   os << '\n';
 }
 
