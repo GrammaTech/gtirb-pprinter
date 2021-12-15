@@ -13,6 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 #include "PrettyPrinter.hpp"
+#include "AuxDataLoader.hpp"
 #include "driver/Logger.h"
 
 #include "AuxDataSchema.hpp"
@@ -301,38 +302,32 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
       LstMode(policy.LstMode), context(context_), module(module_),
       functionEntry(), functionLastBlock(), PreferredEOLCommentPos(64) {
 
-  if (const auto* functionEntries =
-          module.getAuxData<gtirb::schema::FunctionEntries>()) {
-    for (auto const& function : *functionEntries) {
-      for (auto& entryBlockUUID : function.second) {
-        const auto* block =
-            nodeFromUUID<gtirb::CodeBlock>(context, entryBlockUUID);
-        if (block)
-          functionEntry.insert(*block->getAddress());
-        else
-          LOG_WARNING << "UUID " << boost::uuids::to_string(entryBlockUUID)
-                      << " in functionEntries table references non-existent "
-                      << "block.\n";
-      }
+  for (auto const& function : aux_data::getFunctionBlocks(module_)) {
+    for (auto& entryBlockUUID : function.second) {
+      const auto* block =
+          nodeFromUUID<gtirb::CodeBlock>(context, entryBlockUUID);
+      if (block)
+        functionEntry.insert(*block->getAddress());
+      else
+        LOG_WARNING << "UUID " << boost::uuids::to_string(entryBlockUUID)
+                    << " in functionEntries table references non-existent "
+                    << "block.\n";
     }
   }
 
-  if (const auto* functionBlocks =
-          module.getAuxData<gtirb::schema::FunctionBlocks>()) {
-    for (auto const& function : *functionBlocks) {
-      assert(function.second.size() > 0);
-      gtirb::Addr lastAddr{0};
-      for (auto& blockUUID : function.second) {
-        const auto* block = nodeFromUUID<gtirb::CodeBlock>(context, blockUUID);
-        if (!block)
-          LOG_WARNING << "UUID " << boost::uuids::to_string(blockUUID)
-                      << " in functionBlocks table references non-existent "
-                      << "block.\n";
-        if (block && block->getAddress() > lastAddr)
-          lastAddr = *block->getAddress();
-      }
-      functionLastBlock.insert(lastAddr);
+  for (auto const& function : aux_data::getFunctionBlocks(module_)) {
+    assert(function.second.size() > 0);
+    gtirb::Addr lastAddr{0};
+    for (auto& blockUUID : function.second) {
+      const auto* block = nodeFromUUID<gtirb::CodeBlock>(context, blockUUID);
+      if (!block)
+        LOG_WARNING << "UUID " << boost::uuids::to_string(blockUUID)
+                    << " in functionBlocks table references non-existent "
+                    << "block.\n";
+      if (block && block->getAddress() > lastAddr)
+        lastAddr = *block->getAddress();
     }
+    functionLastBlock.insert(lastAddr);
   }
 
   // FIXME: Make getContainerFunctionName return multiple labels, remove this.
@@ -905,23 +900,17 @@ void PrettyPrinterBase::printNonZeroDataBlock(
   gtirb::Offset CurrOffset = gtirb::Offset(dataObject.getUUID(), offset);
 
   // If this is a string, print it as one.
-  std::optional<std::string> Type;
-  if (const auto* types = module.getAuxData<gtirb::schema::Encodings>()) {
-    if (auto foundType = types->find(dataObject.getUUID());
-        foundType != types->end()) {
-      Type = foundType->second;
+  std::optional<std::string> Type = aux_data::getEncodingType(dataObject);
 
-      if (Type == "string" || Type == "ascii") {
-        printComments(os, CurrOffset, dataObject.getSize() - offset);
+  if (Type == "string" || Type == "ascii") {
+    printComments(os, CurrOffset, dataObject.getSize() - offset);
 
-        std::stringstream DataLine;
-        printEA(DataLine, *dataObject.getAddress() + offset);
-        printString(DataLine, dataObject, offset, Type == "string");
-        printCommentableLine(DataLine, os, *dataObject.getAddress() + offset);
-        os << '\n';
-        return;
-      }
-    }
+    std::stringstream DataLine;
+    printEA(DataLine, *dataObject.getAddress() + offset);
+    printString(DataLine, dataObject, offset, Type == "string");
+    printCommentableLine(DataLine, os, *dataObject.getAddress() + offset);
+    os << '\n';
+    return;
   }
 
   // Otherwise, print each byte and/or symbolic expression in order.
@@ -933,7 +922,7 @@ void PrettyPrinterBase::printNonZeroDataBlock(
   std::map<gtirb::Offset, std::string>::const_iterator CommentsIt;
   std::map<gtirb::Offset, std::string>::const_iterator CommentsEnd;
   if (this->LstMode == ListingDebug) {
-    if (const auto* comments = module.getAuxData<gtirb::schema::Comments>()) {
+    if (const auto* comments = aux_data::getComments(module)) {
       HasComments = true;
       CommentsIt = comments->lower_bound(CurrOffset);
       CommentsEnd = comments->end();
@@ -1020,7 +1009,7 @@ void PrettyPrinterBase::printComments(std::ostream& os,
   if (this->LstMode != ListingDebug)
     return;
 
-  if (const auto* comments = module.getAuxData<gtirb::schema::Comments>()) {
+  if (const auto* comments = aux_data::getComments(module)) {
     gtirb::Offset endOffset(offset.ElementId, offset.Displacement + range);
     for (auto p = comments->lower_bound(offset);
          p != comments->end() && p->first < endOffset; ++p) {
@@ -1064,44 +1053,39 @@ void PrettyPrinterBase::printCFIDirectives(std::ostream& os,
   if (this->LstMode == ListingUI)
     return;
 
-  const auto* cfiDirectives = module.getAuxData<gtirb::schema::CfiDirectives>();
-  if (!cfiDirectives)
-    return;
-  const auto entry = cfiDirectives->find(offset);
-  if (entry == cfiDirectives->end())
-    return;
+  if (auto cfiDirectives = aux_data::getCFIDirectives(offset, module)) {
+    for (auto& cfiDirective : *cfiDirectives) {
+      std::string Directive = cfiDirective.Directive;
 
-  for (auto& cfiDirective : entry->second) {
-    std::string Directive = std::get<0>(cfiDirective);
+      if (Directive == ".cfi_startproc") {
+        CFIStartProc = programCounter;
+      } else if (!CFIStartProc) {
+        std::cerr << "WARNING: Missing `.cfi_startproc', omitting `"
+                  << Directive << "' directive.\n";
+        continue;
+      }
 
-    if (Directive == ".cfi_startproc") {
-      CFIStartProc = programCounter;
-    } else if (!CFIStartProc) {
-      std::cerr << "WARNING: Missing `.cfi_startproc', omitting `" << Directive
-                << "' directive.\n";
-      continue;
-    }
+      os << Directive << " ";
+      const std::vector<int64_t>& operands = cfiDirective.Operands;
+      for (auto it = operands.begin(); it != operands.end(); it++) {
+        if (it != operands.begin())
+          os << ", ";
+        os << *it;
+      }
 
-    os << Directive << " ";
-    const std::vector<int64_t>& operands = std::get<1>(cfiDirective);
-    for (auto it = operands.begin(); it != operands.end(); it++) {
-      if (it != operands.begin())
-        os << ", ";
-      os << *it;
-    }
+      gtirb::Symbol* symbol =
+          nodeFromUUID<gtirb::Symbol>(context, cfiDirective.Uuid);
+      if (symbol) {
+        if (operands.size() > 0)
+          os << ", ";
+        printSymbolReference(os, symbol);
+      }
 
-    gtirb::Symbol* symbol =
-        nodeFromUUID<gtirb::Symbol>(context, std::get<2>(cfiDirective));
-    if (symbol) {
-      if (operands.size() > 0)
-        os << ", ";
-      printSymbolReference(os, symbol);
-    }
+      os << std::endl;
 
-    os << std::endl;
-
-    if (Directive == ".cfi_endproc") {
-      CFIStartProc = std::nullopt;
+      if (Directive == ".cfi_endproc") {
+        CFIStartProc = std::nullopt;
+      }
     }
   }
 }
@@ -1339,25 +1323,22 @@ PrettyPrinterBase::getAlignmentImpl(const BlockType& Block) {
             Block.getByteInterval());
 
   // print alignment if block specified in aux data table
-  if (auto* Alignments = module.getAuxData<gtirb::schema::Alignment>()) {
-    if (auto It = Alignments->find(Block.getUUID()); It != Alignments->end()) {
-      return It->second;
+  if (auto Alignment = aux_data::getAlignment(Block.getUUID(), module)) {
+    return Alignment;
+  }
+
+  // print alignment if byte interval specified in aux data table
+  if (FirstInBI) {
+    if (auto Alignment = aux_data::getAlignment(
+            Block.getByteInterval()->getUUID(), module)) {
+      return Alignment;
     }
 
-    // print alignment if byte interval specified in aux data table
-    if (FirstInBI) {
-      if (auto It = Alignments->find(Block.getByteInterval()->getUUID());
-          It != Alignments->end()) {
-        return It->second;
-      }
-
-      // print alignment if section specified in aux data table
-      if (FirstInSection) {
-        if (auto It = Alignments->find(
-                Block.getByteInterval()->getSection()->getUUID());
-            It != Alignments->end()) {
-          return It->second;
-        }
+    // print alignment if section specified in aux data table
+    if (FirstInSection) {
+      if (auto Alignment = aux_data::getAlignment(
+              Block.getByteInterval()->getSection()->getUUID(), module)) {
+        return Alignment;
       }
     }
   }
@@ -1460,16 +1441,11 @@ PrettyPrinterBase::getForwardedSymbolName(const gtirb::Symbol* Symbol) const {
 
 gtirb::Symbol*
 PrettyPrinterBase::getForwardedSymbol(const gtirb::Symbol* Symbol) const {
-  const auto* SymbolForwarding =
-      module.getAuxData<gtirb::schema::SymbolForwarding>();
-
-  if (Symbol && SymbolForwarding) {
-    auto Found = SymbolForwarding->find(Symbol->getUUID());
-    if (Found != SymbolForwarding->end()) {
-      return nodeFromUUID<gtirb::Symbol>(context, Found->second);
+  if (Symbol) {
+    if (auto Found = aux_data::getForwardedSymbol(Symbol)) {
+      return nodeFromUUID<gtirb::Symbol>(context, *Found);
     }
   }
-
   return nullptr;
 }
 
@@ -1498,15 +1474,9 @@ void PrettyPrinterBase::printSection(std::ostream& os,
 uint64_t PrettyPrinterBase::getSymbolicExpressionSize(
     const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE) const {
   // Check if it is present in aux data.
-  if (auto* SymExprSizes =
-          SEE.getByteInterval()
-              ->getSection()
-              ->getModule()
-              ->getAuxData<gtirb::schema::SymbolicExpressionSizes>()) {
-    gtirb::Offset Off{SEE.getByteInterval()->getUUID(), SEE.getOffset()};
-    if (auto It = SymExprSizes->find(Off); It != SymExprSizes->end()) {
-      return It->second;
-    }
+  gtirb::Offset Off{SEE.getByteInterval()->getUUID(), SEE.getOffset()};
+  if (auto Size = aux_data::getSymbolicExpressionSize(Off, module)) {
+    return *Size;
   }
 
   // If not, it's the size of that largest data block at this address that is:

@@ -13,6 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 #include "ElfPrettyPrinter.hpp"
+#include "AuxDataLoader.hpp"
 #include "driver/Logger.h"
 
 #include "AuxDataSchema.hpp"
@@ -98,6 +99,10 @@ struct ElfSymbolInfo {
         Binding(std::get<2>(tuple)), Visibility(std::get<3>(tuple)),
         SectionIndex(std::get<4>(tuple)) {}
 
+  ElfSymbolInfo(const ElfSymbolInfo& other)
+      : Size(other.Size), Type(other.Type), Binding(other.Binding),
+        Visibility(other.Visibility), SectionIndex(other.SectionIndex) {}
+
   AuxDataType asAuxData() {
     return AuxDataType{Size, Type, Binding, Visibility, SectionIndex};
   }
@@ -165,56 +170,53 @@ void ElfPrettyPrinter::fixupSharedObject() {
   // if this is a shared library or PIE executable, we need to
   // ensure all global symbols being referenced in code blocks either have a
   // hidden alias or are referenced via GOT/PLT
-  if (auto* ElfSymInfo = module.getAuxData<gtirb::schema::ElfSymbolInfo>()) {
-    // find the global symbols being referenced incorrectly
-    std::unordered_set<gtirb::Symbol*> SymbolsToAlias;
-    std::vector<gtirb::ByteInterval::SymbolicExpressionElement> SEEsToAlias,
-        SEEsToPLT;
-    for (auto& CB : module.code_blocks()) {
-      if (shouldSkip(CB)) {
-        continue;
-      }
 
-      for (auto SEE : CB.getByteInterval()->findSymbolicExpressionsAtOffset(
-               CB.getOffset(), CB.getOffset() + CB.getSize())) {
-        auto SymsToCheck = std::visit(
-            [](const auto& SE) -> std::vector<gtirb::Symbol*> {
-              using T = std::decay_t<decltype(SE)>;
+  // find the global symbols being referenced incorrectly
+  std::unordered_set<gtirb::Symbol*> SymbolsToAlias;
+  std::vector<gtirb::ByteInterval::SymbolicExpressionElement> SEEsToAlias,
+      SEEsToPLT;
+  for (auto& CB : module.code_blocks()) {
+    if (shouldSkip(CB)) {
+      continue;
+    }
 
-              if (SE.Attributes.isFlagSet(gtirb::SymAttribute::PltRef) ||
-                  SE.Attributes.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
-                return {}; // PLT/GOT references are allowed in shared objects
-              }
+    for (auto SEE : CB.getByteInterval()->findSymbolicExpressionsAtOffset(
+             CB.getOffset(), CB.getOffset() + CB.getSize())) {
+      auto SymsToCheck = std::visit(
+          [](const auto& SE) -> std::vector<gtirb::Symbol*> {
+            using T = std::decay_t<decltype(SE)>;
 
-              if constexpr (std::is_same_v<T, gtirb::SymAddrAddr>) {
-                return {SE.Sym1, SE.Sym2};
-              } else if constexpr (std::is_same_v<T, gtirb::SymAddrConst>) {
-                return {SE.Sym};
-              }
-            },
-            SEE.getSymbolicExpression());
+            if (SE.Attributes.isFlagSet(gtirb::SymAttribute::PltRef) ||
+                SE.Attributes.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
+              return {}; // PLT/GOT references are allowed in shared objects
+            }
 
-        for (auto* Symbol : SymsToCheck) {
-          if (!Symbol->hasReferent() && Symbol->getAddress()) {
-            continue; // integral symbols don't need fixed up
-          }
+            if constexpr (std::is_same_v<T, gtirb::SymAddrAddr>) {
+              return {SE.Sym1, SE.Sym2};
+            } else if constexpr (std::is_same_v<T, gtirb::SymAddrConst>) {
+              return {SE.Sym};
+            }
+          },
+          SEE.getSymbolicExpression());
 
-          if (auto It = ElfSymInfo->find(Symbol->getUUID());
-              It != ElfSymInfo->end()) {
-            if (ElfSymbolInfo Info{It->second};
-                Info.Binding != "LOCAL" && Info.Visibility == "DEFAULT") {
-              // direct references to global symbols are not allowed in
-              // shared objects
-              if (!Symbol->hasReferent() ||
-                  Symbol->getReferent<gtirb::ProxyBlock>() ||
-                  getForwardedSymbol(Symbol)) {
-                // need to turn into a PLT reference
-                SEEsToPLT.push_back(SEE);
-              } else {
-                // need to change to the hidden alias
-                SymbolsToAlias.insert(Symbol);
-                SEEsToAlias.push_back(SEE);
-              }
+      for (auto* Symbol : SymsToCheck) {
+        if (!Symbol->hasReferent() && Symbol->getAddress()) {
+          continue; // integral symbols don't need fixed up
+        }
+
+        if (auto Info = aux_data::getElfSymbolInfo(*Symbol)) {
+          if (Info->Binding != "LOCAL" && Info->Visibility == "DEFAULT") {
+            // direct references to global symbols are not allowed in
+            // shared objects
+            if (!Symbol->hasReferent() ||
+                Symbol->getReferent<gtirb::ProxyBlock>() ||
+                getForwardedSymbol(Symbol)) {
+              // need to turn into a PLT reference
+              SEEsToPLT.push_back(SEE);
+            } else {
+              // need to change to the hidden alias
+              SymbolsToAlias.insert(Symbol);
+              SEEsToAlias.push_back(SEE);
             }
           }
         }
@@ -240,9 +242,10 @@ void ElfPrettyPrinter::fixupSharedObject() {
       auto* HiddenSymbol = module.addSymbol(
           context, ".gtirb_pprinter.hidden_alias." + Symbol->getName());
       Symbol->visit(SetHiddenSymbolReferent(HiddenSymbol));
-      ElfSymbolInfo NewSymInfo{(*ElfSymInfo)[Symbol->getUUID()]};
+      auto SymInfo = *aux_data::getElfSymbolInfo(*Symbol);
+      aux_data::ElfSymbolInfo NewSymInfo{SymInfo};
       NewSymInfo.Visibility = "HIDDEN";
-      (*ElfSymInfo)[HiddenSymbol->getUUID()] = NewSymInfo.asAuxData();
+      aux_data::setElfSymbolInfo(*HiddenSymbol, NewSymInfo);
       GlobalToHiddenSyms[Symbol] = HiddenSymbol;
     }
 
@@ -309,27 +312,22 @@ void ElfPrettyPrinter::printSectionHeaderDirective(
 
 void ElfPrettyPrinter::printSectionProperties(std::ostream& os,
                                               const gtirb::Section& section) {
-  const auto* elfSectionProperties =
-      module.getAuxData<gtirb::schema::ElfSectionProperties>();
-  if (!elfSectionProperties)
-    return;
-  auto sectionProperties = elfSectionProperties->find(section.getUUID());
-  if (sectionProperties == elfSectionProperties->end())
-    return;
-  uint64_t type = std::get<0>(sectionProperties->second);
-  uint64_t flags = std::get<1>(sectionProperties->second);
-  os << " ,\"";
-  if (flags & SHF_WRITE)
-    os << "w";
-  if (flags & SHF_ALLOC)
-    os << "a";
-  if (flags & SHF_EXECINSTR)
-    os << "x";
-  os << "\"";
-  if (type == SHT_PROGBITS)
-    os << "," << elfSyntax.attributePrefix() << "progbits";
-  if (type == SHT_NOBITS)
-    os << "," << elfSyntax.attributePrefix() << "nobits";
+
+  if (auto sectionProperties = aux_data::getElfSectionProperties(section)) {
+    auto& [type, flags] = *sectionProperties;
+    os << " ,\"";
+    if (flags & SHF_WRITE)
+      os << "w";
+    if (flags & SHF_ALLOC)
+      os << "a";
+    if (flags & SHF_EXECINSTR)
+      os << "x";
+    os << "\"";
+    if (type == SHT_PROGBITS)
+      os << "," << elfSyntax.attributePrefix() << "progbits";
+    if (type == SHT_NOBITS)
+      os << "," << elfSyntax.attributePrefix() << "nobits";
+  }
 }
 
 void ElfPrettyPrinter::printSectionFooterDirective(
@@ -347,65 +345,55 @@ void ElfPrettyPrinter::printFooter(std::ostream& /* os */){};
 
 void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
                                          const gtirb::Symbol& sym) {
-  const auto* SymbolTypes = module.getAuxData<gtirb::schema::ElfSymbolInfo>();
-  if (!SymbolTypes) {
-    return;
+  if (auto SymbolInfo = aux_data::getElfSymbolInfo(sym)) {
+    if (SymbolInfo->Binding == "LOCAL") {
+      return;
+    }
+
+    auto name = getSymbolName(sym);
+    printBar(os, false);
+    bool unique = false;
+    if (SymbolInfo->Binding == "GLOBAL") {
+      os << syntax.global() << ' ' << name << '\n';
+    } else if (SymbolInfo->Binding == "WEAK") {
+      os << elfSyntax.weak() << ' ' << name << '\n';
+    } else if (SymbolInfo->Binding == "UNIQUE" ||
+               SymbolInfo->Binding == "GNU_UNIQUE") {
+      os << elfSyntax.global() << ' ' << name << '\n';
+      unique = true;
+    } else {
+      assert(!"unknown binding in elfSymbolInfo!");
+    }
+
+    if (SymbolInfo->Visibility == "DEFAULT") {
+      // do nothing
+    } else if (SymbolInfo->Visibility == "HIDDEN") {
+      os << elfSyntax.hidden() << ' ' << name << '\n';
+    } else if (SymbolInfo->Visibility == "PROTECTED") {
+      os << elfSyntax.protected_() << ' ' << name << '\n';
+    } else if (SymbolInfo->Visibility == "INTERNAL") {
+      os << elfSyntax.internal() << ' ' << name << '\n';
+    } else {
+      assert(!"unknown visibility in elfSymbolInfo!");
+    }
+
+    static const std::unordered_map<std::string, std::string>
+        TypeNameConversion = {
+            {"FUNC", "function"},  {"OBJECT", "object"},
+            {"NOTYPE", "notype"},  {"NONE", "notype"},
+            {"TLS", "tls_object"}, {"GNU_IFUNC", "gnu_indirect_function"},
+        };
+    auto TypeNameIt = TypeNameConversion.find(SymbolInfo->Type);
+    if (TypeNameIt == TypeNameConversion.end()) {
+      assert(!"unknown type in elfSymbolInfo!");
+    } else {
+      const auto& TypeName = unique ? "gnu_unique_object" : TypeNameIt->second;
+      os << elfSyntax.type() << ' ' << name << ", "
+         << elfSyntax.attributePrefix() << TypeName << "\n";
+    }
+
+    printBar(os, false);
   }
-
-  auto SymTypeIt = SymbolTypes->find(sym.getUUID());
-  if (SymTypeIt == SymbolTypes->end()) {
-    return;
-  }
-
-  ElfSymbolInfo SymbolInfo{SymTypeIt->second};
-
-  if (SymbolInfo.Binding == "LOCAL") {
-    return;
-  }
-
-  auto name = getSymbolName(sym);
-  printBar(os, false);
-  bool unique = false;
-  if (SymbolInfo.Binding == "GLOBAL") {
-    os << syntax.global() << ' ' << name << '\n';
-  } else if (SymbolInfo.Binding == "WEAK") {
-    os << elfSyntax.weak() << ' ' << name << '\n';
-  } else if (SymbolInfo.Binding == "UNIQUE" ||
-             SymbolInfo.Binding == "GNU_UNIQUE") {
-    os << elfSyntax.global() << ' ' << name << '\n';
-    unique = true;
-  } else {
-    assert(!"unknown binding in elfSymbolInfo!");
-  }
-
-  if (SymbolInfo.Visibility == "DEFAULT") {
-    // do nothing
-  } else if (SymbolInfo.Visibility == "HIDDEN") {
-    os << elfSyntax.hidden() << ' ' << name << '\n';
-  } else if (SymbolInfo.Visibility == "PROTECTED") {
-    os << elfSyntax.protected_() << ' ' << name << '\n';
-  } else if (SymbolInfo.Visibility == "INTERNAL") {
-    os << elfSyntax.internal() << ' ' << name << '\n';
-  } else {
-    assert(!"unknown visibility in elfSymbolInfo!");
-  }
-
-  static const std::unordered_map<std::string, std::string> TypeNameConversion =
-      {
-          {"FUNC", "function"},  {"OBJECT", "object"},
-          {"NOTYPE", "notype"},  {"NONE", "notype"},
-          {"TLS", "tls_object"}, {"GNU_IFUNC", "gnu_indirect_function"},
-      };
-  auto TypeNameIt = TypeNameConversion.find(SymbolInfo.Type);
-  if (TypeNameIt == TypeNameConversion.end()) {
-    assert(!"unknown type in elfSymbolInfo!");
-  } else {
-    const auto& TypeName = unique ? "gnu_unique_object" : TypeNameIt->second;
-    os << elfSyntax.type() << ' ' << name << ", " << elfSyntax.attributePrefix()
-       << TypeName << "\n";
-  }
-
-  printBar(os, false);
 }
 
 void ElfPrettyPrinter::printSymExprSuffix(std::ostream& OS,
@@ -475,27 +463,25 @@ void ElfPrettyPrinter::printIntegralSymbol(std::ostream& Stream,
 void ElfPrettyPrinter::printUndefinedSymbol(std::ostream& Stream,
                                             const gtirb::Symbol& Symbol) {
 
-  auto* Alignment = module.getAuxData<gtirb::schema::Alignment>();
-  auto* SymbolInfo = module.getAuxData<gtirb::schema::ElfSymbolInfo>();
-
   // Print communal symbols directive.
-  if (SymbolInfo) {
-    if (auto It = SymbolInfo->find(Symbol.getUUID()); It != SymbolInfo->end()) {
-      // Symbol with section index set to SHN_COMMON.
-      if (uint64_t Index = std::get<4>(It->second); Index == SHN_COMMON) {
+  if (auto SymbolInfo = aux_data::getElfSymbolInfo(Symbol)) {
+    // Symbol with section index set to SHN_COMMON.
+    if (SymbolInfo->SectionIndex == SHN_COMMON) {
 
-        std::string Name = Symbol.getName();
-        uint64_t Size = std::get<0>(It->second);
-        uint64_t Align = Alignment ? (*Alignment)[Symbol.getUUID()] : 0;
-
-        // .comm IDENT,SIZE,ALIGN
-        Stream << ".comm " << Name << "," << Size;
-        if (Align > 0) {
-          Stream << "," << Align;
-        }
-        Stream << "\n";
-        return;
+      std::string Name = Symbol.getName();
+      uint64_t Size = SymbolInfo->Size;
+      uint64_t Align = 0;
+      if (auto Alignment = aux_data::getAlignment(Symbol.getUUID(), module)) {
+        Align = *Alignment;
       }
+
+      // .comm IDENT,SIZE,ALIGN
+      Stream << ".comm " << Name << "," << Size;
+      if (Align > 0) {
+        Stream << "," << Align;
+      }
+      Stream << "\n";
+      return;
     }
   }
 
@@ -542,26 +528,18 @@ ElfPrettyPrinter::getAlignment(const gtirb::CodeBlock& Block) {
     return Align;
   }
 
-  const auto* SymbolTypes = module.getAuxData<gtirb::schema::ElfSymbolInfo>();
-  if (!SymbolTypes) {
-    return std::nullopt;
-  }
-
   for (const auto& Sym : module.findSymbols(Block)) {
-    auto SymTypeIt = SymbolTypes->find(Sym.getUUID());
-    if (SymTypeIt == SymbolTypes->end()) {
-      continue;
-    }
+    if (auto SymbolInfo = aux_data::getElfSymbolInfo(Sym)) {
 
-    ElfSymbolInfo SymbolInfo{SymTypeIt->second};
-    if (SymbolInfo.Binding == "LOCAL" || SymbolInfo.Visibility != "DEFAULT") {
-      continue;
-    }
+      if (SymbolInfo->Binding == "LOCAL" ||
+          SymbolInfo->Visibility != "DEFAULT") {
+        continue;
+      }
 
-    // exported symbol detected; ensure alignment is preserved
-    return PrettyPrinterBase::getAlignment(*Block.getAddress());
+      // exported symbol detected; ensure alignment is preserved
+      return PrettyPrinterBase::getAlignment(*Block.getAddress());
+    }
   }
-
   return std::nullopt;
 }
 
