@@ -190,7 +190,7 @@ void setElfSymbolInfo(gtirb::Symbol& sym, aux_data::ElfSymbolInfo& info);
 std::optional<std::tuple<uint64_t, uint64_t>>
 getElfSectionProperties(const gtirb::Section& section);
 
-std::optional<uint64_t> getSectionProperties(const gtirb::Section& section);
+std::optional<uint64_t> getPeSectionProperties(const gtirb::Section& section);
 
 gtirb::schema::ImportEntries::Type getImportEntries(const gtirb::Module& M_);
 

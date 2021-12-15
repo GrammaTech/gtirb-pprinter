@@ -148,7 +148,7 @@ getElfSectionProperties(const gtirb::Section& section) {
   return std::nullopt;
 };
 
-std::optional<uint64_t> getSectionProperties(const gtirb::Section& section) {
+std::optional<uint64_t> getPeSectionProperties(const gtirb::Section& section) {
   return util::getByNode<gtirb::schema::PeSectionProperties>(
       section, *section.getModule());
 }

@@ -15,6 +15,7 @@
 
 #include "MasmPrettyPrinter.hpp"
 
+#include "AuxDataLoader.hpp"
 #include "AuxDataSchema.hpp"
 #include "file_utils.hpp"
 #include "regex"
@@ -128,61 +129,53 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
     }
   }
 
-  const auto* ImportedSymbols =
-      module.getAuxData<gtirb::schema::PeImportedSymbols>();
-  if (ImportedSymbols) {
-    for (const auto& UUID : *ImportedSymbols) {
-      Imports.insert(UUID);
-    }
+  for (const auto& UUID : aux_data::getPeImportedSymbols(module)) {
+    Imports.insert(UUID);
   }
 
-  const auto* ExportedSymbols =
-      module.getAuxData<gtirb::schema::PeExportedSymbols>();
-  if (ExportedSymbols) {
-    for (const auto& UUID : *ExportedSymbols) {
-      Exports.insert(UUID);
-    }
+  for (const auto& UUID : aux_data::getPeExportedSymbols(module)) {
+    Exports.insert(UUID);
   }
 }
 
 void MasmPrettyPrinter::printIncludes(std::ostream& os) {
-  const auto* libraries = module.getAuxData<gtirb::schema::Libraries>();
-  if (libraries) {
-    for (const auto& library : *libraries) {
-      // Include import libs later generated using synthesized DEF files passed
-      // through lib.exe.  Have observed .dll and .drv files
-      os << "INCLUDELIB " << gtirb_bprint::replaceExtension(library, ".lib")
-         << '\n';
-    }
+  for (const auto& library : aux_data::getLibraries(module)) {
+    // Include import libs later generated using synthesized DEF files passed
+    // through lib.exe.  Have observed .dll and .drv files
+    os << "INCLUDELIB " << gtirb_bprint::replaceExtension(library, ".lib")
+       << '\n';
   }
   os << '\n';
 }
 
 void MasmPrettyPrinter::printExterns(std::ostream& os) {
   // Declare EXTERN symbols
-  if (const auto* symbolForwarding =
-          module.getAuxData<gtirb::schema::SymbolForwarding>()) {
-    std::set<std::string> Externs;
-    for (auto& forward : *symbolForwarding) {
-      if (const auto* symbol = dyn_cast_or_null<gtirb::Symbol>(
-              gtirb::Node::getByUUID(context, forward.second))) {
-        std::string Name = getSymbolName(*symbol);
-        // This is not completely understood why, but link.exe (msvc) mangles
-        // differently.  We'll apply this heuristic until it's fully understood.
-        Externs.insert(module.getISA() == gtirb::ISA::IA32 && Name[0] != '?'
-                           ? "_" + Name
-                           : Name);
-      }
+  std::set<std::string> Externs;
+  auto Forwarding = aux_data::getSymbolForwarding(module);
+  if (Forwarding.empty()) {
+    return;
+  }
+
+  for (auto& forward : Forwarding) {
+    if (const auto* symbol = dyn_cast_or_null<gtirb::Symbol>(
+            gtirb::Node::getByUUID(context, forward.second))) {
+      std::string Name = getSymbolName(*symbol);
+      // This is not completely understood why, but link.exe (msvc) mangles
+      // differently.  We'll apply this heuristic until it's fully understood.
+      Externs.insert(module.getISA() == gtirb::ISA::IA32 && Name[0] != '?'
+                         ? "_" + Name
+                         : Name);
     }
-    for (auto& Name : Externs) {
-      // Since we don't know up front if the references to an export are direct,
-      // indirect, or both, we will define both as extern conservatively.  This
-      // should have no impact at runtime, and both with be defined in the
-      // import library regardless.
-      os << masmSyntax.extrn() << " "
-         << "__imp_" << Name << ":PROC\n";
-      os << masmSyntax.extrn() << " " << Name << ":PROC\n";
-    }
+  }
+
+  for (auto& Name : Externs) {
+    // Since we don't know up front if the references to an export are direct,
+    // indirect, or both, we will define both as extern conservatively.  This
+    // should have no impact at runtime, and both with be defined in the
+    // import library regardless.
+    os << masmSyntax.extrn() << " "
+       << "__imp_" << Name << ":PROC\n";
+    os << masmSyntax.extrn() << " " << Name << ":PROC\n";
   }
 
   os << '\n';
@@ -251,33 +244,30 @@ void MasmPrettyPrinter::printSectionHeaderDirective(
 
 void MasmPrettyPrinter::printSectionProperties(std::ostream& os,
                                                const gtirb::Section& section) {
-  const auto* peSectionProperties =
-      module.getAuxData<gtirb::schema::PeSectionProperties>();
-  if (!peSectionProperties)
-    return;
-  const auto sectionProperties = peSectionProperties->find(section.getUUID());
-  if (sectionProperties == peSectionProperties->end())
-    return;
-  uint64_t flags = sectionProperties->second;
 
-  if (flags & IMAGE_SCN_MEM_READ)
-    os << " READ";
-  if (flags & IMAGE_SCN_MEM_WRITE)
-    os << " WRITE";
-  if (flags & IMAGE_SCN_MEM_EXECUTE)
-    os << " EXECUTE";
-  if (flags & IMAGE_SCN_MEM_SHARED)
-    os << " SHARED";
-  if (flags & IMAGE_SCN_MEM_NOT_PAGED)
-    os << " NOPAGE";
-  if (flags & IMAGE_SCN_MEM_NOT_CACHED)
-    os << " NOCACHE";
-  if (flags & IMAGE_SCN_MEM_DISCARDABLE)
-    os << " DISCARD";
-  if (flags & IMAGE_SCN_CNT_CODE)
-    os << " 'CODE'";
-  if (flags & IMAGE_SCN_CNT_INITIALIZED_DATA)
-    os << " 'DATA'";
+  if (const auto sectionProperties =
+          aux_data::getPeSectionProperties(section)) {
+    uint64_t flags = *sectionProperties;
+
+    if (flags & IMAGE_SCN_MEM_READ)
+      os << " READ";
+    if (flags & IMAGE_SCN_MEM_WRITE)
+      os << " WRITE";
+    if (flags & IMAGE_SCN_MEM_EXECUTE)
+      os << " EXECUTE";
+    if (flags & IMAGE_SCN_MEM_SHARED)
+      os << " SHARED";
+    if (flags & IMAGE_SCN_MEM_NOT_PAGED)
+      os << " NOPAGE";
+    if (flags & IMAGE_SCN_MEM_NOT_CACHED)
+      os << " NOCACHE";
+    if (flags & IMAGE_SCN_MEM_DISCARDABLE)
+      os << " DISCARD";
+    if (flags & IMAGE_SCN_CNT_CODE)
+      os << " 'CODE'";
+    if (flags & IMAGE_SCN_CNT_INITIALIZED_DATA)
+      os << " 'DATA'";
+  }
 };
 
 void MasmPrettyPrinter::printSectionFooterDirective(
