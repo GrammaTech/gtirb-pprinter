@@ -13,6 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 #include "PeBinaryPrinter.hpp"
+#include "AuxDataLoader.hpp"
 #include "AuxDataSchema.hpp"
 #include "driver/Logger.h"
 #include "file_utils.hpp"
@@ -593,10 +594,11 @@ std::optional<std::string> getPeSubsystem(const gtirb::IR& IR) {
 
   // Reference the Module's `binaryType' AuxData table for the subsystem label.
   if (Found != IR.modules_end()) {
-    if (auto* T = Found->getAuxData<gtirb::schema::BinaryType>()) {
-      if (std::find(T->begin(), T->end(), "WINDOWS_GUI") != T->end()) {
+    auto T = aux_data::getBinaryType(*Found);
+    if (!T.empty()) {
+      if (std::find(T.begin(), T.end(), "WINDOWS_GUI") != T.end()) {
         return "windows";
-      } else if (std::find(T->begin(), T->end(), "WINDOWS_CUI") != T->end()) {
+      } else if (std::find(T.begin(), T.end(), "WINDOWS_CUI") != T.end()) {
         return "console";
       }
     }
@@ -607,10 +609,9 @@ std::optional<std::string> getPeSubsystem(const gtirb::IR& IR) {
 
 bool isPeDll(const gtirb::IR& IR) {
   for (const gtirb::Module& Module : IR.modules()) {
-    if (auto* Table = Module.getAuxData<gtirb::schema::BinaryType>()) {
-      if (std::find(Table->begin(), Table->end(), "DLL") != Table->end()) {
-        return true;
-      }
+    auto Table = aux_data::getBinaryType(Module);
+    if (std::find(Table.begin(), Table.end(), "DLL") != Table.end()) {
+      return true;
     }
   }
   return false;
@@ -747,15 +748,15 @@ bool PeBinaryPrinter::prepareImportDefs(
   LOG_INFO << "Preparing import LIB files...\n";
   for (const gtirb::Module& Module : IR.modules()) {
 
-    auto* PeImports = Module.getAuxData<gtirb::schema::ImportEntries>();
-    if (!PeImports) {
+    auto PeImports = aux_data::getImportEntries(Module);
+    if (PeImports.empty()) {
       LOG_INFO << "Module: " << Module.getBinaryPath()
                << ": No import entries.\n";
       continue;
     }
 
     // For each import in the AuxData table.
-    for (const auto& [Addr, Ordinal, Name, Import] : *PeImports) {
+    for (const auto& [Addr, Ordinal, Name, Import] : PeImports) {
       (void)Addr; // unused binding
 
       auto It = ImportDefs.find(Import);
@@ -792,14 +793,14 @@ bool PeBinaryPrinter::prepareExportDef(gtirb::IR& IR, TempFile& Def) const {
   for (const gtirb::Module& Module : IR.modules()) {
     LOG_INFO << "Preparing exports DEF file...\n";
 
-    auto* PeExports = Module.getAuxData<gtirb::schema::ExportEntries>();
-    if (!PeExports) {
+    auto PeExports = aux_data::getExportEntries(Module);
+    if (PeExports.empty()) {
       LOG_INFO << "Module: " << Module.getBinaryPath()
                << ": No export entries.\n";
       continue;
     }
 
-    for (const auto& [Addr, Ordinal, Name] : *PeExports) {
+    for (const auto& [Addr, Ordinal, Name] : PeExports) {
       (void)Addr; // unused binding
 
       std::string Extra;
@@ -837,8 +838,8 @@ bool PeBinaryPrinter::prepareResources(
   LOG_INFO << "Preparing resource RES files...\n";
   for (const gtirb::Module& Module : IR.modules()) {
 
-    auto* Table = Module.getAuxData<gtirb::schema::PEResources>();
-    if (!Table) {
+    auto Table = aux_data::getPEResources(Module);
+    if (Table.empty()) {
       LOG_INFO << "Module: " << Module.getBinaryPath() << ": No resources.\n";
       continue;
     }
@@ -860,7 +861,7 @@ bool PeBinaryPrinter::prepareResources(
     Stream.write(reinterpret_cast<const char*>(&FileHeader), 32);
 
     // ... followed by a list of header/data blocks.
-    for (const auto& [Header, Offset, Size] : *Table) {
+    for (const auto& [Header, Offset, Size] : Table) {
       // Write resource header.
       Stream.write(reinterpret_cast<const char*>(Header.data()), Header.size());
 
