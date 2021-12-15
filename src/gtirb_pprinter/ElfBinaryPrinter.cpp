@@ -14,6 +14,7 @@
 //===----------------------------------------------------------------------===//
 #include "ElfBinaryPrinter.hpp"
 
+#include "AuxDataLoader.hpp"
 #include "AuxDataSchema.hpp"
 #include "driver/Logger.h"
 #include "file_utils.hpp"
@@ -87,37 +88,29 @@ bool ElfBinaryPrinter::generateDummySO(
 
     for (auto curr = begin; curr != end; ++curr) {
       const gtirb::Symbol* sym = *curr;
-      const auto* SymbolInfoTable =
-          sym->getModule()->getAuxData<gtirb::schema::ElfSymbolInfo>();
-      if (!SymbolInfoTable) {
-        return false;
-      }
 
       std::string name = sym->getName();
 
-      auto SymInfoIt = SymbolInfoTable->find(sym->getUUID());
+      auto SymInfo = aux_data::getElfSymbolInfo(*sym);
       bool has_copy = false;
-      if (SymInfoIt == SymbolInfoTable->end()) {
+      if (!SymInfo) {
         // See if we have a symbol for "foo_copy", if so use its info
         std::string copyName = sym->getName() + "_copy";
-        auto copySymRange = sym->getModule()->findSymbols(copyName);
-        if (copySymRange.empty()) {
+        if (auto copySymRange = sym->getModule()->findSymbols(copyName)) {
+          if (copySymRange.empty()) {
           LOG_WARNING << "Symbol not in symbol table [" << sym->getName()
                       << "] while generating dummy SO\n";
           assert(false); // Should've been filtered out in prepareDummySOLibs.
           return false;
-        }
-        has_copy = true;
-        SymInfoIt = SymbolInfoTable->find(copySymRange.begin()->getUUID());
-        if (SymInfoIt == SymbolInfoTable->end()) {
-          assert(false);
+          }
+          has_copy = true;
+          SymInfo = aux_data::getElfSymbolInfo(*(copySymRange.begin()));
+        } else {
           return false;
         }
       }
-      auto SymInfo = SymInfoIt->second;
-      uint64_t SymSize = std::get<0>(SymInfo);
-      std::string SymType = std::get<1>(SymInfo);
-
+      uint64_t SymSize = SymInfo->Size;
+      std::string SymType = SymInfo->Type;
       // TODO: Make use of syntax content in ElfPrettyPrinter?
 
       // Generate an appropriate symbol
@@ -206,22 +199,20 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
   // Collect all libs we need to handle
   std::vector<std::string> libs;
   for (const gtirb::Module& module : ir.modules()) {
-    if (const auto* libraries = module.getAuxData<gtirb::schema::Libraries>()) {
-      for (const auto& library : *libraries) {
-        // Skip blacklisted libs
-        if (BlacklistedLibraries.count(library)) {
-          continue;
-        }
-
-        // TODO: skip any explicit library that isn't just
-        // a filename. Do these actually occur?
-        if (boost::filesystem::path(library).has_parent_path()) {
-          std::cerr << "ERROR: Skipping explicit lib w/ parent directory: "
-                    << library << "\n";
-          continue;
-        }
-        libs.push_back(library);
+    for (const auto& library : aux_data::getLibraries(module)) {
+      // Skip blacklisted libs
+      if (BlacklistedLibraries.count(library)) {
+        continue;
       }
+
+      // TODO: skip any explicit library that isn't just
+      // a filename. Do these actually occur?
+      if (boost::filesystem::path(library).has_parent_path()) {
+        std::cerr << "ERROR: Skipping explicit lib w/ parent directory: "
+                  << library << "\n";
+        continue;
+      }
+      libs.push_back(library);
     }
   }
   if (libs.empty()) {
@@ -239,37 +230,30 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
   // certain undefined symbols. Do we need similar rules here?
   std::vector<const gtirb::Symbol*> undefinedSymbols;
   for (const gtirb::Module& module : ir.modules()) {
-    const auto* SymbolInfoTable =
-        module.getAuxData<gtirb::schema::ElfSymbolInfo>();
-    if (!SymbolInfoTable) {
-      std::cerr << "ERROR: No symbol info for module: " << module.getName()
-                << "\n";
-      return false;
-    }
-
     for (const auto& sym : module.symbols()) {
       if (!sym.getAddress() &&
           (!sym.hasReferent() ||
            sym.getReferent<gtirb::ProxyBlock>() != nullptr) &&
           !isBlackListed(sym.getName())) {
 
-        auto SymInfoIt = SymbolInfoTable->find(sym.getUUID());
-        if (SymInfoIt == SymbolInfoTable->end()) {
+        auto SymInfo = aux_data::getElfSymbolInfo(sym);
+        if (!SymInfo) {
           // See if we have a symbol for "foo_copy", if so use its info
           std::string copyName = sym.getName() + "_copy";
-          if (auto copySymRange = module.findSymbols(copyName);
-              !copySymRange.empty()) {
-            SymInfoIt = SymbolInfoTable->find(copySymRange.begin()->getUUID());
+          if (auto copySymRange = module.findSymbols(copyName)) {
+            if (copySymRange.empty()) {
+              return false;
+            }
+            SymInfo = aux_data::getElfSymbolInfo(*copySymRange.begin());
           } else {
             LOG_WARNING << "Symbol not in symbol table [" << sym.getName()
                         << "] while preparing dummy SO\n";
             continue;
           }
         }
-        auto SymInfo = SymInfoIt->second;
 
         // Ignore some types of symbols
-        if (std::get<1>(SymInfo) != "FILE") {
+        if (SymInfo->Type != "FILE") {
           undefinedSymbols.push_back(&sym);
         }
       }
@@ -319,34 +303,30 @@ void ElfBinaryPrinter::addOrigLibraryArgs(
 
   for (const gtirb::Module& module : ir.modules()) {
 
-    if (const auto* binaryLibraryPaths =
-            module.getAuxData<gtirb::schema::LibraryPaths>())
-      allBinaryPaths.insert(allBinaryPaths.end(), binaryLibraryPaths->begin(),
-                            binaryLibraryPaths->end());
+    auto binaryLibraryPaths = aux_data::getLibraryPaths(module);
+    allBinaryPaths.insert(allBinaryPaths.end(), binaryLibraryPaths.begin(),
+                          binaryLibraryPaths.begin());
   }
 
   // add needed libraries
   for (const gtirb::Module& module : ir.modules()) {
-    if (const auto* libraries = module.getAuxData<gtirb::schema::Libraries>()) {
-      for (const auto& library : *libraries) {
-        // if they're a blacklisted name, skip them
-        if (BlacklistedLibraries.count(library)) {
-          continue;
-        }
-        // if they match the lib*.so pattern we let the compiler look for them
-        std::optional<std::string> infixLibraryName =
-            getInfixLibraryName(library);
-        if (infixLibraryName) {
-          args.push_back("-l" + *infixLibraryName);
+    for (const auto& library : aux_data::getLibraries(module)) {
+      // if they're a blacklisted name, skip them
+      if (BlacklistedLibraries.count(library)) {
+        continue;
+      }
+      // if they match the lib*.so pattern we let the compiler look for them
+      std::optional<std::string> infixLibraryName =
+          getInfixLibraryName(library);
+      if (infixLibraryName) {
+        args.push_back("-l" + *infixLibraryName);
+      } else {
+        // otherwise we try to find them here
+        if (std::optional<std::string> libraryLocation =
+                findLibrary(library, allBinaryPaths)) {
+          args.push_back(*libraryLocation);
         } else {
-          // otherwise we try to find them here
-          if (std::optional<std::string> libraryLocation =
-                  findLibrary(library, allBinaryPaths)) {
-            args.push_back(*libraryLocation);
-          } else {
-            std::cerr << "ERROR: Could not find library " << library
-                      << std::endl;
-          }
+          std::cerr << "ERROR: Could not find library " << library << std::endl;
         }
       }
     }
@@ -358,12 +338,9 @@ void ElfBinaryPrinter::addOrigLibraryArgs(
   }
   // add binary library paths (add them to rpath as well)
   for (const gtirb::Module& module : ir.modules()) {
-    if (const auto* binaryLibraryPaths =
-            module.getAuxData<gtirb::schema::LibraryPaths>()) {
-      for (const auto& libraryPath : *binaryLibraryPaths) {
-        args.push_back("-L" + libraryPath);
-        args.push_back("-Wl,-rpath," + libraryPath);
-      }
+    for (const auto& libraryPath : aux_data::getLibraryPaths(module)) {
+      args.push_back("-L" + libraryPath);
+      args.push_back("-Wl,-rpath," + libraryPath);
     }
   }
 }
@@ -386,36 +363,34 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
     args.push_back("-shared");
   } else {
     for (gtirb::Module& M : ir.modules()) {
-      if (const auto* BinType = M.getAuxData<gtirb::schema::BinaryType>()) {
-        // if DYN, pie. if EXEC, no-pie. if both, pie overrides no-pie. If none,
-        // do not specify either argument.
+      // if DYN, pie. if EXEC, no-pie. if both, pie overrides no-pie. If none,
+      // do not specify either argument.
 
-        bool pie = false;
-        bool noPie = false;
+      bool pie = false;
+      bool noPie = false;
 
-        for (const auto& BinTypeStr : *BinType) {
-          if (BinTypeStr == "DYN") {
-            pie = true;
-            noPie = false;
-          } else if (BinTypeStr == "EXEC") {
-            if (!pie) {
-              noPie = true;
-              pie = false;
-            }
-          } else {
-            assert(!"Unknown binary type!");
+      for (const auto& BinTypeStr : aux_data::getBinaryType(M)) {
+        if (BinTypeStr == "DYN") {
+          pie = true;
+          noPie = false;
+        } else if (BinTypeStr == "EXEC") {
+          if (!pie) {
+            noPie = true;
+            pie = false;
           }
+        } else {
+          assert(!"Unknown binary type!");
         }
-
-        if (pie) {
-          args.push_back("-pie");
-        }
-        if (noPie) {
-          args.push_back("-no-pie");
-        }
-
-        break;
       }
+
+      if (pie) {
+        args.push_back("-pie");
+      }
+      if (noPie) {
+        args.push_back("-no-pie");
+      }
+
+      break;
     }
   }
   // add -m32 for x86 binaries
