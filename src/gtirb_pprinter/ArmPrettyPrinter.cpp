@@ -267,7 +267,7 @@ void ArmPrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
 
   auto armSysReg2String = [](int sysreg) {
     if (sysreg == ARM_SYSREG_INVALID) {
-      return "INVALID";
+      return std::string("INVALID");
     } else if (sysreg < 16) {
       std::string ret = "spsr_";
       if (sysreg & ARM_SYSREG_SPSR_C)
@@ -278,7 +278,7 @@ void ArmPrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
         ret += "s";
       if (sysreg & ARM_SYSREG_SPSR_F)
         ret += "f";
-      return ret.c_str();
+      return ret;
     } else if (sysreg < 256) {
       std::string ret = "cpsr_";
       if (sysreg & ARM_SYSREG_CPSR_C)
@@ -289,89 +289,129 @@ void ArmPrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
         ret += "s";
       if (sysreg & ARM_SYSREG_CPSR_F)
         ret += "f";
-      return ret.c_str();
+      return ret;
     } else {
+      std::string ret;
       switch (sysreg) {
       case ARM_SYSREG_APSR:
-        return "apsr";
+        ret = "apsr";
+        break;
       case ARM_SYSREG_APSR_G:
-        return "apsr_g";
+        ret = "apsr_g";
+        break;
       case ARM_SYSREG_APSR_NZCVQ:
-        return "apsr_nzcvq";
+        ret = "apsr_nzcvq";
+        break;
       case ARM_SYSREG_APSR_NZCVQG:
-        return "apsr_nzcvqg";
+        ret = "apsr_nzcvqg";
+        break;
       case ARM_SYSREG_IAPSR:
-        return "iapsr";
+        ret = "iapsr";
+        break;
       case ARM_SYSREG_IAPSR_G:
-        return "iapsr_g";
+        ret = "iapsr_g";
+        break;
       case ARM_SYSREG_IAPSR_NZCVQG:
-        return "iapsr_nzcvqg";
+        ret = "iapsr_nzcvqg";
+        break;
       case ARM_SYSREG_IAPSR_NZCVQ:
-        return "iapsr_nzcvq";
+        ret = "iapsr_nzcvq";
+        break;
       case ARM_SYSREG_EAPSR:
-        return "eapsr";
+        ret = "eapsr";
+        break;
       case ARM_SYSREG_EAPSR_G:
-        return "eapsr_g";
+        ret = "eapsr_g";
+        break;
       case ARM_SYSREG_EAPSR_NZCVQG:
-        return "eapsr_nzcvqg";
+        ret = "eapsr_nzcvqg";
+        break;
       case ARM_SYSREG_EAPSR_NZCVQ:
-        return "eapsr_nzcvq";
+        ret = "eapsr_nzcvq";
+        break;
       case ARM_SYSREG_XPSR:
-        return "xpsr";
+        ret = "xpsr";
+        break;
       case ARM_SYSREG_XPSR_G:
-        return "xpsr_g";
+        ret = "xpsr_g";
+        break;
       case ARM_SYSREG_XPSR_NZCVQG:
-        return "xpsr_nzcvqg";
+        ret = "xpsr_nzcvqg";
+        break;
       case ARM_SYSREG_XPSR_NZCVQ:
-        return "xpsr_nzcvq";
+        ret = "xpsr_nzcvq";
+        break;
       case ARM_SYSREG_IPSR:
-        return "ipsr";
+        ret = "ipsr";
+        break;
       case ARM_SYSREG_EPSR:
-        return "epsr";
+        ret = "epsr";
+        break;
       case ARM_SYSREG_IEPSR:
-        return "iepsr";
+        ret = "iepsr";
+        break;
       case ARM_SYSREG_MSP:
-        return "msp";
+        ret = "msp";
+        break;
       case ARM_SYSREG_PSP:
-        return "psp";
+        ret = "psp";
+        break;
       case ARM_SYSREG_PRIMASK:
-        return "primask";
+        ret = "primask";
+        break;
       case ARM_SYSREG_BASEPRI:
-        return "basepri";
+        ret = "basepri";
+        break;
       case ARM_SYSREG_BASEPRI_MAX:
-        return "basepri_max";
+        ret = "basepri_max";
+        break;
       case ARM_SYSREG_FAULTMASK:
-        return "faultmask";
+        ret = "faultmask";
+        break;
       case ARM_SYSREG_CONTROL:
-        return "control";
+        ret = "control";
+        break;
       case ARM_SYSREG_MSPLIM:
-        return "msplim";
+        ret = "msplim";
+        break;
       case ARM_SYSREG_PSPLIM:
-        return "psplim";
+        ret = "psplim";
+        break;
       case ARM_SYSREG_MSP_NS:
-        return "msp_ns";
+        ret = "msp_ns";
+        break;
       case ARM_SYSREG_PSP_NS:
-        return "psp_ns";
+        ret = "psp_ns";
+        break;
       case ARM_SYSREG_MSPLIM_NS:
-        return "msplim_ns";
+        ret = "msplim_ns";
+        break;
       case ARM_SYSREG_PSPLIM_NS:
-        return "psplim_ns";
+        ret = "psplim_ns";
+        break;
       case ARM_SYSREG_PRIMASK_NS:
-        return "primask_ns";
+        ret = "primask_ns";
+        break;
       case ARM_SYSREG_BASEPRI_NS:
-        return "basepri_ns";
+        ret = "basepri_ns";
+        break;
       case ARM_SYSREG_FAULTMASK_NS:
-        return "faultmask_ns";
+        ret = "faultmask_ns";
+        break;
       case ARM_SYSREG_CONTROL_NS:
-        return "control_ns";
+        ret = "control_ns";
+        break;
       case ARM_SYSREG_SP_NS:
-        return "sp_ns";
+        ret = "sp_ns";
+        break;
       default: {
         std::stringstream ss;
         ss << "<TODO:" << sysreg << ">";
-        return ss.str().c_str();
+        ret = ss.str();
+        break;
       }
       }
+      return ret;
     }
   };
 
