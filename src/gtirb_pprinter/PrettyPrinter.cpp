@@ -238,9 +238,8 @@ const PrintingPolicy& PrettyPrinter::getPolicy(gtirb::Module& Module) const {
                                  : *Factory.findNamedPolicy(PolicyName);
 }
 
-std::error_condition PrettyPrinter::print(std::ostream& stream,
-                                          gtirb::Context& context,
-                                          gtirb::Module& module) const {
+int PrettyPrinter::print(std::ostream& stream, gtirb::Context& context,
+                         gtirb::Module& module) const {
   // Find pretty printer factory.
   PrettyPrinterFactory& Factory = getFactory(module);
 
@@ -254,9 +253,12 @@ std::error_condition PrettyPrinter::print(std::ostream& stream,
   ArraySectionPolicy.apply(policy.arraySections);
 
   // Create the pretty printer and print the IR.
-  Factory.create(context, module, policy)->print(stream);
-
-  return std::error_condition{};
+  if (aux_data::validateAuxData(module, m_format)) {
+    if (Factory.create(context, module, policy)->print(stream)) {
+      return 0;
+    }
+  }
+  return -1;
 }
 
 boost::iterator_range<NamedPolicyMap::const_iterator>

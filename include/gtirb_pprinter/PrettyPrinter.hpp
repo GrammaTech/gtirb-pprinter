@@ -207,10 +207,8 @@ public:
   /// \param context context to use for allocating AuxData objects if needed
   /// \param module      the module to pretty-print
   ///
-  /// \return a condition indicating if there was an error, or condition 0 if
-  /// there were no errors.
-  std::error_condition print(std::ostream& stream, gtirb::Context& context,
-                             gtirb::Module& module) const;
+  int print(std::ostream& stream, gtirb::Context& context,
+            gtirb::Module& module) const;
 
   PolicyOptions& functionPolicy() { return FunctionPolicy; }
   const PolicyOptions& functionPolicy() const { return FunctionPolicy; }

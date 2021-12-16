@@ -406,9 +406,10 @@ int main(int argc, char** argv) {
       fs::path name = getAsmFileName(asmPath, i);
       std::ofstream ofs(name.generic_string());
       if (ofs) {
-        pp.print(ofs, ctx, m);
-        LOG_INFO << "Module " << i << "'s assembly written to: " << name
-                 << "\n";
+        if (pp.print(ofs, ctx, m)) {
+          LOG_INFO << "Module " << i << "'s assembly written to: " << name
+                   << "\n";
+        }
       } else {
         LOG_ERROR << "Could not output assembly output file: \"" << asmPath
                   << "\".\n";
@@ -445,7 +446,8 @@ int main(int argc, char** argv) {
     int i = 0;
     for (gtirb::Module& m : ir->modules()) {
       fs::path name = getAsmFileName(asmPath, i);
-      if (binaryPrinter->assemble(name.string(), ctx, m)) {
+      if (auto errc = binaryPrinter->assemble(name.string(), ctx, m)) {
+        (void)errc; // currently unused;
         LOG_ERROR << "Unable to assemble '" << name.string() << "'.\n";
         return EXIT_FAILURE;
       }
@@ -474,7 +476,8 @@ int main(int argc, char** argv) {
                 << "' is an unsupported binary printing format.\n";
       return EXIT_FAILURE;
     }
-    if (binaryPrinter->link(binaryPath.string(), ctx, *ir)) {
+    if (auto errc = binaryPrinter->link(binaryPath.string(), ctx, *ir)) {
+      (void)errc; // currently unused;
       return EXIT_FAILURE;
     }
   }
