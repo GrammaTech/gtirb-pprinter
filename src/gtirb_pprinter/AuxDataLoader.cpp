@@ -4,48 +4,39 @@ namespace aux_data {
 
 bool validateAuxData(const gtirb::Module& Mod, std::string TargetFormat) {
   if (!Mod.getAuxData<gtirb::schema::FunctionEntries>()) {
-    std::stringstream Msg{"Missing FunctionEntries in module "};
-    Msg << Mod.getName();
+    std::string Msg = "Missing FunctionEntries in module " + Mod.getName();
+    std::cerr << Msg;
     // return gtirb::createStringError(
     //     gtirb_pprint::pprinter_error::MissingAuxData, Msg.str());
     return false;
   }
-  if (auto Blocks = Mod.getAuxData<gtirb::schema::FunctionBlocks>(); !Blocks) {
-    // std::stringstream Msg{"Missing FunctionBlocks in module "};
-    // Msg << Mod.getName();
+  auto Blocks = Mod.getAuxData<gtirb::schema::FunctionBlocks>();
+  if (!Blocks) {
+    std::string Msg = "Missing FunctionBlocks in module " + Mod.getName();
+    std::cerr << Msg;
     // return gtirb::createStringError(
     //     gtirb_pprint::pprinter_error::MissingAuxData, Msg.str());
     return false;
-  } else {
-    for (auto& [UUID, BlockUUIDS] : *Blocks) {
-      if (BlockUUIDS.empty()) {
-        // return gtirb::createStringError(
-        //     gtirb_pprint::pprinter_error::EmptyFunction,
-        //     "Function with no blocks in module " + Mod.getName());
-        return false;
-      }
+  }
+  for (auto& [UUID, BlockUUIDS] : *Blocks) {
+    if (BlockUUIDS.empty()) {
+      // return gtirb::createStringError(
+      //     gtirb_pprint::pprinter_error::EmptyFunction,
+      //     "Function with no blocks in module " + Mod.getName());
+      return false;
     }
   }
   if (TargetFormat == "elf") {
     if (!Mod.getAuxData<gtirb::schema::ElfSymbolInfo>()) {
-      std::stringstream Msg{"Missing ElfSymbolInfo in module "};
-      Msg << Mod.getName();
+      std::string Msg = "Missing ElfSymbolInfo in module " + Mod.getName();
+      std::cerr << Msg;
       // return gtirb::createStringError(
       //     gtirb_pprint::pprinter_error::MissingAuxData, Msg.str());
       return false;
     }
     if (!Mod.getAuxData<gtirb::schema::ElfSectionProperties>()) {
-      std::stringstream Msg{"Missing ElfSectionProperties in module "};
-      Msg << Mod.getName();
-      // return gtirb::createStringError(
-      //     gtirb_pprint::pprinter_error::MissingAuxData, Msg.str());
-      return false;
-    }
-  }
-  if (TargetFormat == "pe") {
-    if (!Mod.getAuxData<gtirb::schema::PeSectionProperties>()) {
-      std::stringstream Msg{"Missing PeSectionProperties in module "};
-      Msg << Mod.getName();
+      std::string Msg{"Missing ElfSectionProperties in module "};
+      Msg += Mod.getName();
       // return gtirb::createStringError(
       //     gtirb_pprint::pprinter_error::MissingAuxData, Msg.str());
       return false;
