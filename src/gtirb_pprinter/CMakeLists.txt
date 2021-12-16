@@ -6,7 +6,7 @@ configure_file("${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/version.h.in"
 
 set(${PROJECT_NAME}_H
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/AuxDataSchema.hpp
-    ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/AuxDataLoader.hpp
+    ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/aux_data_util.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/BinaryPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Export.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/file_utils.hpp
@@ -30,7 +30,7 @@ set(${PROJECT_NAME}_H
 # sources
 set(${PROJECT_NAME}_SRC
     ArmPrettyPrinter.cpp
-    AuxDataLoader.cpp
+    aux_data_util.cpp
     Arm64PrettyPrinter.cpp
     AttPrettyPrinter.cpp
     BinaryPrinter.cpp

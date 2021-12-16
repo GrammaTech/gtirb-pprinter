@@ -15,8 +15,8 @@
 
 #include "MasmPrettyPrinter.hpp"
 
-#include "AuxDataLoader.hpp"
 #include "AuxDataSchema.hpp"
+#include "aux_data_util.hpp"
 #include "file_utils.hpp"
 #include "regex"
 #include "string_utils.hpp"

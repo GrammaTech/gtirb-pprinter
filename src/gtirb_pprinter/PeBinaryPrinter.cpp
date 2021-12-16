@@ -13,8 +13,8 @@
 //
 //===----------------------------------------------------------------------===//
 #include "PeBinaryPrinter.hpp"
-#include "AuxDataLoader.hpp"
 #include "AuxDataSchema.hpp"
+#include "aux_data_util.hpp"
 #include "driver/Logger.h"
 #include "file_utils.hpp"
 

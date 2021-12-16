@@ -14,9 +14,9 @@
 //===----------------------------------------------------------------------===//
 #include "ElfBinaryPrinter.hpp"
 
-#include "AuxDataLoader.hpp"
 #include "AuxDataSchema.hpp"
 #include "driver/Logger.h"
+#include "aux_data_util.hpp"
 #include "file_utils.hpp"
 #include <boost/filesystem.hpp>
 #include <fstream>

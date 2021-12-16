@@ -13,7 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 #include "PrettyPrinter.hpp"
-#include "AuxDataLoader.hpp"
+#include "aux_data_util.hpp"
 #include "driver/Logger.h"
 
 #include "AuxDataSchema.hpp"
