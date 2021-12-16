@@ -191,6 +191,20 @@ void ArmPrettyPrinter::printOperand(std::ostream& os,
     printOpIndirect(os, symbolic, inst, index);
     return;
   }
+  case ARM_OP_SETEND: {
+    switch (op.setend) {
+    case ARM_SETEND_BE:
+      os << "BE";
+      break;
+    case ARM_SETEND_LE:
+      os << "LE";
+      break;
+    default:
+      std::cerr << "invalid SETEND operand\n";
+      exit(1);
+    }
+    return;
+  }
   default:
     std::cerr << "invalid operand\n";
     exit(1);
