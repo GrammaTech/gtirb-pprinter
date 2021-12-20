@@ -135,11 +135,11 @@ void ArmPrettyPrinter::printInstruction(std::ostream& os,
 
   if (inst.detail->arm.cps_flag != ARM_CPSFLAG_NONE &&
       inst.detail->arm.cps_flag != ARM_CPSFLAG_INVALID) {
-    if (!!(inst.detail->arm.cps_flag & ARM_CPSFLAG_I))
+    if (inst.detail->arm.cps_flag & ARM_CPSFLAG_I)
       InstructLine << "i";
-    if (!!(inst.detail->arm.cps_flag & ARM_CPSFLAG_F))
+    if (inst.detail->arm.cps_flag & ARM_CPSFLAG_F)
       InstructLine << "f";
-    if (!!(inst.detail->arm.cps_flag & ARM_CPSFLAG_A))
+    if (inst.detail->arm.cps_flag & ARM_CPSFLAG_A)
       InstructLine << "a";
   }
 
