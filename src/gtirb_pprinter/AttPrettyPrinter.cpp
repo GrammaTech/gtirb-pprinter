@@ -57,44 +57,17 @@ void AttPrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
 
 void AttPrettyPrinter::printSymbolicExpression(
     std::ostream& Stream, const gtirb::SymAddrAddr* SymExpr, bool IsNotBranch) {
-  // TODO:
-  // We replace the symbol-minus-symbol with the special _GLOBAL_OFFSET_TABLE_
-  // reference that will be resolved as an equivalent GOT-PC expression value.
-  if (SymExpr->Sym1->getName() == "_GLOBAL_OFFSET_TABLE_") {
 
-    // Print special dynamically-valued symbol name.
-    Stream << SymExpr->Sym1->getName();
-
-    // Print offset from instruction that loaded the program counter.
-    if (int64_t Offset = SymExpr->Offset; Offset != 0) {
-
-      // Print offset expression, e.g. _GLOBAL_OFFSET_TABLE_+(.Ltmp0-.L0$pb)
-      if (std::optional<gtirb::Addr> Addr = SymExpr->Sym2->getAddress()) {
-        if (const auto It = module.findSymbols(*Addr - Offset); !It.empty()) {
-          const gtirb::Symbol* Symbol = &*It.begin();
-          Stream << "+(";
-          printSymbolReference(Stream, SymExpr->Sym2);
-          Stream << '-';
-          printSymbolReference(Stream, Symbol);
-          Stream << ')';
-        }
-        return;
-      }
-
-      // Fall back to position-dependent offset from the address that loaded PC.
-      Stream << syntax.comment()
-             << " WARNING: Expected label at _GLOBAL_OFFSET_TABLE_ offset.\n";
-      if (Offset > 0) {
-        Stream << "+";
-      }
-      Stream << Offset;
-    }
-
-    return;
-  } else if (SymExpr->Sym2->getName() == "_GLOBAL_OFFSET_TABLE_") {
-    Stream << SymExpr->Sym1->getName() << "@GOTOFF";
+  // Print offset expression, e.g. _GLOBAL_OFFSET_TABLE_+(.Ltmp0-.L0$pb)
+  if (SymExpr->Attributes.isFlagSet(gtirb::SymAttribute::GotOff)) {
+    Stream << " $_GLOBAL_OFFSET_TABLE_+(";
+    printSymbolReference(Stream, SymExpr->Sym1);
+    Stream << '-';
+    printSymbolReference(Stream, SymExpr->Sym2);
+    Stream << ")";
     return;
   }
+
   PrettyPrinterBase::printSymbolicExpression(Stream, SymExpr, IsNotBranch);
 }
 
