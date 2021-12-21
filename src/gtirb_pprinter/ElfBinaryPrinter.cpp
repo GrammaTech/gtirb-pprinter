@@ -15,6 +15,7 @@
 #include "ElfBinaryPrinter.hpp"
 
 #include "AuxDataSchema.hpp"
+#include "driver/Logger.h"
 #include "file_utils.hpp"
 #include <boost/filesystem.hpp>
 #include <fstream>
@@ -99,14 +100,15 @@ bool ElfBinaryPrinter::generateDummySO(
       if (SymInfoIt == SymbolInfoTable->end()) {
         // See if we have a symbol for "foo_copy", if so use its info
         std::string copyName = sym->getName() + "_copy";
-        if (auto copySymRange = sym->getModule()->findSymbols(copyName)) {
-          if (copySymRange.empty()) {
-            return false;
-          }
+        if (auto copySymRange = sym->getModule()->findSymbols(copyName);
+            !copySymRange.empty()) {
           has_copy = true;
           SymInfoIt = SymbolInfoTable->find(copySymRange.begin()->getUUID());
         } else {
-          return false;
+          LOG_WARNING << "Symbol not in symbol table [" << sym->getName()
+                      << "] while generating dummy SO\n";
+          assert(false); // Should've been filtered out in prepareDummySOLibs.
+          return false;  // Or continue?
         }
       }
       auto SymInfo = SymInfoIt->second;
@@ -252,13 +254,13 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
         if (SymInfoIt == SymbolInfoTable->end()) {
           // See if we have a symbol for "foo_copy", if so use its info
           std::string copyName = sym.getName() + "_copy";
-          if (auto copySymRange = module.findSymbols(copyName)) {
-            if (copySymRange.empty()) {
-              return false;
-            }
+          if (auto copySymRange = module.findSymbols(copyName);
+              !copySymRange.empty()) {
             SymInfoIt = SymbolInfoTable->find(copySymRange.begin()->getUUID());
           } else {
-            return false;
+            LOG_WARNING << "Symbol not in symbol table [" << sym.getName()
+                        << "] while preparing dummy SO\n";
+            continue;
           }
         }
         auto SymInfo = SymInfoIt->second;
