@@ -938,11 +938,10 @@ void PrettyPrinterBase::printNonZeroDataBlock(
       std::stringstream DataLine;
       printEA(DataLine, EA);
       printSymbolicData(DataLine, SEE, Size, Type);
-      assert(Size != 0 && "Size 0 SymbolicExpression");
       if (Size == 0) {
-        // Developer's assertion
-        os << " ERROR: Size 0 SymbolicExpression: stop printing\n";
-        break;
+        LOG_ERROR
+            << "ERROR: " << EA
+            << ": Size 0 SymbolicExpression: break infinite loop of printing\n";
       }
       printCommentableLine(DataLine, os, *dataObject.getAddress() + offset);
       os << '\n';
