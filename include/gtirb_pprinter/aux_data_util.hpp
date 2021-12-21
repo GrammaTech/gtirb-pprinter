@@ -112,10 +112,6 @@ struct ElfSymbolInfo {
         Binding(std::get<2>(tuple)), Visibility(std::get<3>(tuple)),
         SectionIndex(std::get<4>(tuple)) {}
 
-  ElfSymbolInfo(const ElfSymbolInfo& other)
-      : Size(other.Size), Type(other.Type), Binding(other.Binding),
-        Visibility(other.Visibility), SectionIndex(other.SectionIndex){};
-
   AuxDataType asAuxData() {
     return AuxDataType{Size, Type, Binding, Visibility, SectionIndex};
   }
