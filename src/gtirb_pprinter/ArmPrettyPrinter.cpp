@@ -161,10 +161,12 @@ void ArmPrettyPrinter::printOperandList(std::ostream& os,
                                         const cs_insn& inst) {
   cs_arm& detail = inst.detail->arm;
   int opCount = detail.op_count;
-  std::set<arm_insn> LdmSdm = {ARM_INS_LDM,    ARM_INS_LDMDA, ARM_INS_LDMDB,
-                               ARM_INS_LDMIB,  ARM_INS_STM,   ARM_INS_STMDA,
-                               ARM_INS_STMDB,  ARM_INS_STMIB, ARM_INS_VSTMIA,
-                               ARM_INS_VLDMIA, ARM_INS_VPOP,  ARM_INS_VPUSH};
+  std::set<arm_insn> LdmSdm = {
+      ARM_INS_LDM,     ARM_INS_LDMDA,   ARM_INS_LDMDB,  ARM_INS_LDMIB,
+      ARM_INS_FLDMDBX, ARM_INS_FLDMIAX, ARM_INS_VLDMDB, ARM_INS_VLDMIA,
+      ARM_INS_STM,     ARM_INS_STMDA,   ARM_INS_STMDB,  ARM_INS_STMIB,
+      ARM_INS_FSTMDBX, ARM_INS_FSTMIAX, ARM_INS_VSTMDB, ARM_INS_VSTMIA,
+      ARM_INS_VPOP,    ARM_INS_VPUSH};
   std::set<arm_insn> PushPop = {ARM_INS_POP, ARM_INS_PUSH, ARM_INS_VPOP,
                                 ARM_INS_VPUSH};
   int RegBitVectorIndex = -1;
