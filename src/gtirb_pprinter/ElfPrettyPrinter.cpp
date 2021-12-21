@@ -83,31 +83,6 @@
 #define SHN_HIRESERVE 0xffff
 
 namespace gtirb_pprint {
-
-struct ElfSymbolInfo {
-  using AuxDataType =
-      std::tuple<uint64_t, std::string, std::string, std::string, uint64_t>;
-
-  uint64_t Size;
-  std::string Type;
-  std::string Binding;
-  std::string Visibility;
-  uint64_t SectionIndex;
-
-  ElfSymbolInfo(const AuxDataType& tuple)
-      : Size(std::get<0>(tuple)), Type(std::get<1>(tuple)),
-        Binding(std::get<2>(tuple)), Visibility(std::get<3>(tuple)),
-        SectionIndex(std::get<4>(tuple)) {}
-
-  ElfSymbolInfo(const ElfSymbolInfo& other)
-      : Size(other.Size), Type(other.Type), Binding(other.Binding),
-        Visibility(other.Visibility), SectionIndex(other.SectionIndex) {}
-
-  AuxDataType asAuxData() {
-    return AuxDataType{Size, Type, Binding, Visibility, SectionIndex};
-  }
-};
-
 ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
                                    gtirb::Module& module_,
                                    const ElfSyntax& syntax_,
