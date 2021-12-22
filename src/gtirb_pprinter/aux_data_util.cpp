@@ -1,4 +1,5 @@
 #include "aux_data_util.hpp"
+#include <iostream>
 
 namespace aux_data {
 
@@ -19,6 +20,7 @@ bool validateAuxData(const gtirb::Module& Mod, std::string TargetFormat) {
     return false;
   }
   for (auto& [UUID, BlockUUIDS] : *Blocks) {
+    (void)UUID; // unused
     if (BlockUUIDS.empty()) {
       // return gtirb::createStringError(
       //     gtirb_pprint::pprinter_error::EmptyFunction,
