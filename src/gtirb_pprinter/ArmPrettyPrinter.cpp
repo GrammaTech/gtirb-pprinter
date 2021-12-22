@@ -201,9 +201,12 @@ void ArmPrettyPrinter::printOperand(std::ostream& os,
   const gtirb::SymbolicExpression* symbolic = nullptr;
   switch (op.type) {
   case ARM_OP_REG:
-  case ARM_OP_SYSREG:
+  case ARM_OP_SYSREG: {
+    if (op.subtracted)
+      os << "-";
     printOpRegdirect(os, inst, index);
     return;
+  }
   case ARM_OP_IMM:
   case ARM_OP_PIMM:
   case ARM_OP_CIMM: {
