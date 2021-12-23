@@ -174,6 +174,25 @@ public:
          const PrintingPolicy& policy) override;
 };
 
+class DEBLOAT_PRETTYPRINTER_EXPORT_API UasmPrettyPrinter
+    : public MasmPrettyPrinter {
+
+public:
+  UasmPrettyPrinter(gtirb::Context& context_, gtirb::Module& module_,
+                    const MasmSyntax& syntax_, const Assembler& assembler_,
+                    const PrintingPolicy& policy_)
+      : MasmPrettyPrinter(context_, module_, syntax_, assembler_, policy_) {}
+  void printHeader(std::ostream& os) override;
+};
+
+class DEBLOAT_PRETTYPRINTER_EXPORT_API UasmPrettyPrinterFactory
+    : public PePrettyPrinterFactory {
+public:
+  std::unique_ptr<PrettyPrinterBase>
+  create(gtirb::Context& context, gtirb::Module& module,
+         const PrintingPolicy& policy) override;
+};
+
 } // namespace gtirb_pprint
 
 #endif /* GTIRB_PP_MASM_PRINTER_H */
