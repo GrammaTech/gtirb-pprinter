@@ -365,7 +365,6 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
     for (gtirb::Module& M : ir.modules()) {
       // if DYN, pie. if EXEC, no-pie. if both, pie overrides no-pie. If none,
       // do not specify either argument.
-
       bool pie = false;
       bool noPie = false;
 
@@ -389,8 +388,9 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
       if (noPie) {
         args.push_back("-no-pie");
       }
-
-      break;
+      if (pie || noPie) {
+        break;
+      }
     }
   }
   // add -m32 for x86 binaries
