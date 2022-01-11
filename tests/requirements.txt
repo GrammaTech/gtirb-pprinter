@@ -1,3 +1,4 @@
 # Requirements for running tests. These should be kept minimal because the
 # conanfile runs tests by default.
 gtirb
+gtirb-test-helpers
