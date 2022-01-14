@@ -397,7 +397,7 @@ test-make-install:
       - build
   script:
     - *ubuntu-deps
-    - 'CAPSTONE_PKG_VERSION=$(dpkg --info libcapstone-dev.deb | sed -n "s/Version: //p" | tr -d "[[:space:]]")'
+    - 'CAPSTONE_PKG_VERSION=$(dpkg -f libcapstone-dev.deb version | sed -E "s/[[:digit:]]+://g")'
     - echo $CAPSTONE_PKG_VERSION
     - cd build
     - CPACK_GTIRB_PPRINTER_STABLE_PKG_NAME=OFF
