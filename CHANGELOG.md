@@ -1,4 +1,7 @@
-1.8.1 (Unreleased)
+1.8.3 (Unreleased)
+  * TBD
+
+1.8.2
 
   * Use `.ascii` directive for partial strings.
 
