@@ -62,5 +62,7 @@ void registerPrettyPrinters() {
                   std::make_shared<Mips32PrettyPrinterFactory>(), true, true);
   registerPrinter({"pe", "raw"}, {"x86", "x64"}, {"masm"}, {"gas"},
                   std::make_shared<MasmPrettyPrinterFactory>(), true, true);
+  registerPrinter({"pe", "raw"}, {"x86", "x64"}, {"masm"}, {"uasm"},
+                  std::make_shared<UasmPrettyPrinterFactory>(), false, false);
 }
 } // namespace gtirb_pprint

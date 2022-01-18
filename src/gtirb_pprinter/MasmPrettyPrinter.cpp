@@ -195,6 +195,15 @@ void MasmPrettyPrinter::printHeader(std::ostream& os) {
   }
 }
 
+void UasmPrettyPrinter::printHeader(std::ostream& os) {
+  if (module.getISA() == gtirb::ISA::X64) {
+    os << ".x64\n"
+       << "ASSUME FS:NOTHING\n"
+       << "\n";
+  }
+  MasmPrettyPrinter::printHeader(os);
+}
+
 void MasmPrettyPrinter::printSectionHeader(std::ostream& os,
                                            const gtirb::Section& section) {
   std::string sectionName = section.getName();
@@ -696,6 +705,15 @@ MasmPrettyPrinterFactory::create(gtirb::Context& context, gtirb::Module& module,
   static const MasmSyntax syntax{};
   static const Assembler assembler{};
   return std::make_unique<MasmPrettyPrinter>(context, module, syntax, assembler,
+                                             policy);
+}
+
+std::unique_ptr<PrettyPrinterBase>
+UasmPrettyPrinterFactory::create(gtirb::Context& context, gtirb::Module& module,
+                                 const PrintingPolicy& policy) {
+  static const MasmSyntax syntax{};
+  static const Assembler assembler{};
+  return std::make_unique<UasmPrettyPrinter>(context, module, syntax, assembler,
                                              policy);
 }
 } // namespace gtirb_pprint
