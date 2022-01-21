@@ -346,15 +346,14 @@ void Arm64PrettyPrinter::printOpIndirect(
     os << getRegisterName(op.mem.index);
   }
 
-  // Add shift
-  if (op.shift.type != ARM64_SFT_INVALID && op.shift.value != 0) {
+  // Add extend / shift
+  if (op.ext != ARM64_EXT_INVALID) {
+    os << ",";
+    printExtender(os, op.ext, op.shift.type, op.shift.value);
+  } else if (op.shift.type != ARM64_SFT_INVALID && op.shift.value != 0) {
     os << ",";
     assert(!first && "unexpected shift operator");
-    if (op.shift.type == ARM64_SFT_LSL && op.ext != ARM64_EXT_INVALID) {
-      printExtender(os, op.ext, op.shift.type, op.shift.value);
-    } else {
-      printShift(os, op.shift.type, op.shift.value);
-    }
+    printShift(os, op.shift.type, op.shift.value);
   }
 
   os << "]";
