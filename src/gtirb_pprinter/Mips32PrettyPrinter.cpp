@@ -66,13 +66,6 @@ Mips32PrettyPrinter::Mips32PrettyPrinter(gtirb::Context& context_,
                                          const GasAssembler& assembler_,
                                          const PrintingPolicy& policy_)
     : ElfPrettyPrinter(context_, module_, syntax_, assembler_, policy_) {
-  auto a = module_.findSymbols("_gp_copy");
-  if (!a.empty()) {
-    GP = &a.front();
-  } else {
-    // If _gp is not found, leave GP as NULL.
-    LOG_ERROR << "WARNING: Could not find _gp.\n";
-  }
 
   unsigned int mode = CS_MODE_MIPS32;
   if (module_.getByteOrder() == gtirb::ByteOrder::Big) {
@@ -299,7 +292,7 @@ void Mips32PrettyPrinter::printIntegralSymbol(std::ostream& os,
 
 void Mips32PrettyPrinter::printSymbolicExpression(
     std::ostream& os, const gtirb::SymAddrAddr* sexpr, bool IsNotBranch) {
-  if (sexpr->Sym1 == GP) {
+  if (sexpr->Sym1->getName() == "_gp" || sexpr->Sym1->getName() == "_gp_copy") {
     printSymExprPrefix(os, sexpr->Attributes, IsNotBranch);
     os << "_gp_disp";
     printSymExprSuffix(os, sexpr->Attributes, IsNotBranch);

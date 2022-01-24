@@ -58,9 +58,6 @@ protected:
   void printSymbolicExpression(std::ostream& os,
                                const gtirb::SymAddrAddr* sexpr,
                                bool IsNotBranch = false) override;
-
-private:
-  const gtirb::Symbol* GP;
 };
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API Mips32PrettyPrinterFactory
