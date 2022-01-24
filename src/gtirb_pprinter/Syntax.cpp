@@ -44,20 +44,6 @@ std::string Syntax::formatSectionName(const std::string& x) const { return x; }
 
 std::string Syntax::formatFunctionName(const std::string& x) const { return x; }
 
-std::string Syntax::formatSymbolName(const std::string& x) const {
-  return avoidRegNameConflicts(x);
-}
-
-std::string Syntax::avoidRegNameConflicts(const std::string& x) const {
-  const std::vector<std::string> adapt{"FS",  "MOD", "DIV", "NOT", "mod", "di",
-                                       "div", "not", "and", "or",  "shr", "Si"};
-
-  if (const auto found = std::find(std::begin(adapt), std::end(adapt), x);
-      found != std::end(adapt)) {
-    return x + "_renamed";
-  }
-
-  return x;
-}
+std::string Syntax::formatSymbolName(const std::string& x) const { return x; }
 
 } // namespace gtirb_pprint

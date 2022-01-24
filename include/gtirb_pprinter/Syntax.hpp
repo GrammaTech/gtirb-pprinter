@@ -58,7 +58,6 @@ public:
   virtual std::string formatSectionName(const std::string& x) const;
   virtual std::string formatFunctionName(const std::string& x) const;
   virtual std::string formatSymbolName(const std::string& x) const;
-  virtual std::string avoidRegNameConflicts(const std::string& x) const;
 
   virtual std::optional<std::string> getSizeName(uint64_t bits) const;
 
