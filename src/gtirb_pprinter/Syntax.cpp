@@ -46,4 +46,17 @@ std::string Syntax::formatFunctionName(const std::string& x) const { return x; }
 
 std::string Syntax::formatSymbolName(const std::string& x) const { return x; }
 
+std::string Syntax::avoidRegNameConflicts(const std::string& x) const {
+
+  const std::vector<std::string> adapt{"FS", "MOD", "NOT", "Di",  "Si",  "AND",
+                                       "OR", "SHR", "fs",  "mod", "not", "di",
+                                       "si", "and", "or",  "shr"};
+
+  if (const auto found = std::find(std::begin(adapt), std::end(adapt), x);
+      found != std::end(adapt)) {
+    return x + "_renamed";
+  }
+  return x;
+}
+
 } // namespace gtirb_pprint

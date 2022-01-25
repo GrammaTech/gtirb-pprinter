@@ -23,17 +23,7 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API IntelSyntax : public ElfSyntax {
 public:
   const std::string& offset() const { return OffsetDirective; }
   std::string formatSymbolName(const std::string& name) {
-
-    const std::vector<std::string> adapt{
-        "FS", "MOD", "NOT", "Di", "Si", "AND", "OR", "SHR",
-        "fs", "mod", "not", "di", "si", "and", "or", "shr"};
-
-    if (const auto found = std::find(std::begin(adapt), std::end(adapt), x);
-        found != std::end(adapt)) {
-      return x + "_renamed";
-    }
-
-    return x;
+    return avoidRegNameConflicts(name);
   }
 
 private:
