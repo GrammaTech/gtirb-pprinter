@@ -112,7 +112,7 @@ class TestBinaryGeneration(unittest.TestCase):
             self.assertTrue(os.path.exists(exe_path))
 
             # Make sure the .so libs have been built
-            libdir = "./tests/dummyso_libs"
+            libdir = os.path.join(os.path.dirname(__file__), "dummyso_libs")
             self.assertTrue(os.path.exists(libdir))
             subprocess.run(
                 "make", cwd=libdir,
