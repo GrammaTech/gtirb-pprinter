@@ -489,6 +489,15 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
       std::cerr << "ERROR: Could not create dummy so files for linking.\n";
       return -1;
     }
+    // add rpaths from original binary(ies)
+    for (const gtirb::Module& module : ir.modules()) {
+      if (const auto* binaryLibraryPaths =
+              module.getAuxData<gtirb::schema::LibraryPaths>()) {
+        for (const auto& libraryPath : *binaryLibraryPaths) {
+          libArgs.push_back("-Wl,-rpath," + libraryPath);
+        }
+      }
+    }
   } else {
     // If we're not using synthetic libraries, we just need to pass
     // along the appropriate arguments.
