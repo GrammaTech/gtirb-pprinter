@@ -57,6 +57,7 @@ public:
   // Formatting helpers
   std::string formatSectionName(const std::string& x) const override;
   std::string formatFunctionName(const std::string& x) const override;
+  std::string avoidRegNameConflicts(const std::string& x) const override;
   std::string formatSymbolName(const std::string& x) const override;
 
 private:
