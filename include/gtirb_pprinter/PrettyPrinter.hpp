@@ -475,6 +475,7 @@ protected:
 private:
   std::set<gtirb::Addr> functionEntry;
   std::set<gtirb::Addr> functionLastBlock;
+  std::map<const gtirb::Symbol*, uint16_t> AmbiguousSymbols;
   gtirb::Addr programCounter;
 
   std::optional<gtirb::Addr> CFIStartProc;

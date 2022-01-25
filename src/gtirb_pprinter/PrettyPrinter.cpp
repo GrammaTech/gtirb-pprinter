@@ -355,6 +355,18 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
   for (const std::string& Name : AdditionalSkips) {
     policy.skipFunctions.insert(Name);
   }
+
+  // Collect all ambiguous symbols in the module and give them
+  // distinct numbers
+  for (auto NameIter = module.symbols_by_name_begin();
+       NameIter != module.symbols_by_name_end(); ++NameIter) {
+    auto NameRange = module.findSymbols(NameIter->getName());
+    auto NameRangeSize = distance(begin(NameRange), end(NameRange));
+    for (unsigned i = 1; i < NameRangeSize; ++i) {
+      ++NameIter;
+      AmbiguousSymbols.insert({&*NameIter, i});
+    }
+  }
 }
 
 PrettyPrinterBase::~PrettyPrinterBase() { cs_close(&this->csHandle); }
@@ -1395,10 +1407,10 @@ std::string PrettyPrinterBase::getFunctionName(gtirb::Addr x) const {
 
 std::string
 PrettyPrinterBase::getSymbolName(const gtirb::Symbol& symbol) const {
-  if (isAmbiguousSymbol(symbol.getName())) {
+  if (auto ambiguousSymbol = AmbiguousSymbols.find(&symbol);
+      ambiguousSymbol != AmbiguousSymbols.end()) {
     std::stringstream ss;
-    ss << symbol.getName() << "_disambig_"
-       << reinterpret_cast<uint64_t>(&symbol);
+    ss << symbol.getName() << "_disambig_" << ambiguousSymbol->second;
     assert(module.findSymbols(ss.str()).empty());
     return syntax.formatSymbolName(ss.str());
   } else {
