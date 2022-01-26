@@ -22,7 +22,7 @@ namespace gtirb_pprint {
 class DEBLOAT_PRETTYPRINTER_EXPORT_API IntelSyntax : public ElfSyntax {
 public:
   const std::string& offset() const { return OffsetDirective; }
-  std::string formatSymbolName(const std::string& name) {
+  std::string formatSymbolName(const std::string& name) const override {
     return avoidRegNameConflicts(name);
   }
 
