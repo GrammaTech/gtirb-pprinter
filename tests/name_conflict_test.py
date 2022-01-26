@@ -8,7 +8,14 @@ from gtirb_helpers import (
 import pprinter_helpers
 import gtirb
 
-###
+# Does the pretty-printer need to deal with conflicts between
+# reserved asm words and symbol names?
+# ATT syntax: NO
+# Intel syntax: YES (but not DIV)
+# MASM syntax: YES (longer list)
+# ARM/ARM64/Mips: Maybe? If so, it would be a different
+#  set of keywords than Intel/Masm; if it ever comes up
+#  we can start handling it then
 
 
 def create_ir_with_name(name: str) -> gtirb.IR:
