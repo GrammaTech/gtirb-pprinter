@@ -100,15 +100,18 @@ bool ElfBinaryPrinter::generateDummySO(
       if (SymInfoIt == SymbolInfoTable->end()) {
         // See if we have a symbol for "foo_copy", if so use its info
         std::string copyName = sym->getName() + "_copy";
-        if (auto copySymRange = sym->getModule()->findSymbols(copyName);
-            !copySymRange.empty()) {
-          has_copy = true;
-          SymInfoIt = SymbolInfoTable->find(copySymRange.begin()->getUUID());
-        } else {
+        auto copySymRange = sym->getModule()->findSymbols(copyName);
+        if (copySymRange.empty()) {
           LOG_WARNING << "Symbol not in symbol table [" << sym->getName()
                       << "] while generating dummy SO\n";
           assert(false); // Should've been filtered out in prepareDummySOLibs.
-          return false;  // Or continue?
+          return false;
+        }
+        has_copy = true;
+        SymInfoIt = SymbolInfoTable->find(copySymRange.begin()->getUUID());
+        if (SymInfoIt == SymbolInfoTable->end()) {
+          assert(false);
+          return false;
         }
       }
       auto SymInfo = SymInfoIt->second;
