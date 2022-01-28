@@ -844,7 +844,7 @@ bool PeBinaryPrinter::prepareResources(
     }
 
     std::ofstream Stream;
-    std::string Filename = replaceExtension(Module.getBinaryPath(), ".res");
+    std::string Filename = replaceExtension(Module.getName(), ".res");
     Stream.open(Filename, std::ios::binary | std::ios::trunc);
     if (!Stream.is_open()) {
       LOG_ERROR << "Unable to open resource file: " << Filename << "\n";
