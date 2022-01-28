@@ -254,6 +254,6 @@ class WindowsBinaryPrinterTests_NoMock(PPrinterTest):
         has_resource_file = False
         for output in run_binary_pprinter_mock(ir):
             if any(".res" in arg for arg in output.args):
-                has_resouce_file = True
+                has_resource_file = True
 
-        self.assertTrue(has_resouce_file, "did not produce resource file")
+        self.assertTrue(has_resource_file, "did not produce resource file")
