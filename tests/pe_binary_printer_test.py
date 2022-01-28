@@ -153,7 +153,7 @@ class WindowsBinaryPrinterTests_NoMock(PPrinterTest):
           </requestedPrivileges>\r\n    </security>\r\n  </trustInfo>\
                  \r\n</assembly>\r\n\x00\x00\x00')"
 
-        _, bi = add_section(m, ".rscs")
+        _, bi = add_section(m, ".rsrc")
         _ = add_byte_block(bi, gtirb.block.DataBlock, resource_data)
         off1 = gtirb.Offset(bi, 0)
         off2 = gtirb.Offset(bi, 72)
@@ -251,7 +251,7 @@ class WindowsBinaryPrinterTests_NoMock(PPrinterTest):
     def test_windows_pe_resource_data_mock(self):
         # checks that a resource file is compiled from the resource data
         ir = self.make_pe_resource_data()
-        has_resouce_file = False
+        has_resource_file = False
         for output in run_binary_pprinter_mock(ir):
             if any(".res" in arg for arg in output.args):
                 has_resouce_file = True
