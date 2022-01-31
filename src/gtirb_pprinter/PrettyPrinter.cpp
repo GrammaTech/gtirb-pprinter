@@ -419,7 +419,6 @@ void PrettyPrinterBase::printBlockContents(std::ostream& os,
   }
 
   gtirb::Addr addr = *x.getAddress();
-  printFunctionHeader(os, addr);
   os << '\n';
 
   cs_insn* insn;
@@ -441,7 +440,6 @@ void PrettyPrinterBase::printBlockContents(std::ostream& os,
   // print any CFI directives located at the end of the block
   // e.g. '.cfi_endproc' is usually attached to the end of the block
   printCFIDirectives(os, blockOffset);
-  printFunctionFooter(os, addr);
 }
 
 void PrettyPrinterBase::setDecodeMode(std::ostream& /*os*/,

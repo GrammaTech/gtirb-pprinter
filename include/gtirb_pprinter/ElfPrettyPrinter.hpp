@@ -109,8 +109,6 @@ protected:
                               const gtirb::Section& section) override;
   void printSectionFooterDirective(std::ostream& os,
                                    const gtirb::Section& addr) override;
-  void printFunctionHeader(std::ostream& os, gtirb::Addr addr) override;
-  void printFunctionFooter(std::ostream& os, gtirb::Addr addr) override;
 
   void printByte(std::ostream& os, std::byte byte) override;
 

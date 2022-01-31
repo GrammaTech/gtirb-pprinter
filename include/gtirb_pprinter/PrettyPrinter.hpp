@@ -322,8 +322,6 @@ protected:
                                   const gtirb::Section& section);
   virtual void printSectionFooterDirective(std::ostream& os,
                                            const gtirb::Section& section) = 0;
-  virtual void printFunctionHeader(std::ostream& os, gtirb::Addr addr) = 0;
-  virtual void printFunctionFooter(std::ostream& os, gtirb::Addr addr) = 0;
   virtual void printBlock(std::ostream& os, const gtirb::CodeBlock& block);
   virtual void printBlock(std::ostream& os, const gtirb::DataBlock& block);
   virtual void printBlockContents(std::ostream& os,

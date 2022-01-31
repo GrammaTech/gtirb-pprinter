@@ -114,9 +114,6 @@ protected:
   void printSectionFooterDirective(std::ostream& os,
                                    const gtirb::Section& addr) override;
 
-  void printFunctionHeader(std::ostream& os, gtirb::Addr addr) override;
-  void printFunctionFooter(std::ostream& os, gtirb::Addr addr) override;
-
   void printOpRegdirect(std::ostream& os, const cs_insn& inst,
                         uint64_t index) override;
   void printOpImmediate(std::ostream& os,

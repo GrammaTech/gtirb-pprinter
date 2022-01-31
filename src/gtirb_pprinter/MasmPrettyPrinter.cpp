@@ -274,16 +274,6 @@ void MasmPrettyPrinter::printSectionFooterDirective(
   Stream << Name << ' ' << masmSyntax.ends() << '\n';
 }
 
-void MasmPrettyPrinter::printFunctionHeader(std::ostream& /* os */,
-                                            gtirb::Addr /* addr */) {
-  // TODO
-}
-
-void MasmPrettyPrinter::printFunctionFooter(std::ostream& /* os */,
-                                            gtirb::Addr /* addr */) {
-  // TODO
-}
-
 void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
   cs_x86& Detail = inst.detail->x86;
 
