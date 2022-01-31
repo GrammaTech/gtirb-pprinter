@@ -66,10 +66,9 @@ std::string MasmSyntax::formatFunctionName(const std::string& x) const {
 }
 
 std::string MasmSyntax::avoidRegNameConflicts(const std::string& x) const {
-  // MASM has a long number of reserved words and I am willing to bet
-  // (though I have not checked) that ml.exe rejects all of them
+  // MASM has a long number of reserved words that ml.exe rejects
   // as symbol names; but most relevant for actual users,
-  // "div" is an invalid symbol name for MASM but not intel
+  // "div" is an invalid symbol name for MASM but not intel.
   const std::vector<std::string> adapt{
       "FS", "MOD", "NOT", "Di", "DIV", "Si", "AND", "OR", "SHR",
       "fs", "mod", "not", "di", "div", "si", "and", "or", "shr"};

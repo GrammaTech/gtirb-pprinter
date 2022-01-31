@@ -364,7 +364,11 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
     auto NameRangeSize = distance(begin(NameRange), end(NameRange));
     for (unsigned i = 1; i < NameRangeSize; ++i) {
       ++NameIter;
-      AmbiguousSymbols.insert({&*NameIter, i});
+      if (auto addr = NameIter->getAddress()) {
+        AmbiguousSymbols.insert({&*NameIter, (size_t)*addr});
+      } else {
+        AmbiguousSymbols.insert({&*NameIter, i});
+      }
     }
   }
 }
@@ -390,7 +394,7 @@ std::ostream& PrettyPrinterBase::print(std::ostream& os) {
   }
 
   // print integral symbols
-  for (const auto& sym : module.symbols()) {
+  for (const auto& sym : module.symbols_by_name()) {
     if (auto addr = sym.getAddress();
         addr && !sym.hasReferent() && !shouldSkip(sym)) {
       os << syntax.comment() << " WARNING: integral symbol " << sym.getName()
@@ -1406,21 +1410,21 @@ std::string PrettyPrinterBase::getFunctionName(gtirb::Addr x) const {
 }
 
 std::string
-PrettyPrinterBase::getSymbolName(const gtirb::Symbol& symbol) const {
-  if (auto ambiguousSymbol = AmbiguousSymbols.find(&symbol);
+PrettyPrinterBase::getSymbolName(const gtirb::Symbol& Symbol) const {
+  if (auto ambiguousSymbol = AmbiguousSymbols.find(&Symbol);
       ambiguousSymbol != AmbiguousSymbols.end()) {
-    std::stringstream ss;
-    ss << symbol.getName() << "_disambig_" << ambiguousSymbol->second;
-    assert(module.findSymbols(ss.str()).empty());
-    return syntax.formatSymbolName(ss.str());
+    std::stringstream Ss;
+    Ss << Symbol.getName() << "_disambig_" << ambiguousSymbol->second;
+    assert(module.findSymbols(Ss.str()).empty());
+    return syntax.formatSymbolName(Ss.str());
   } else {
-    return syntax.formatSymbolName(symbol.getName());
+    return syntax.formatSymbolName(Symbol.getName());
   }
 }
 
 std::optional<std::string>
-PrettyPrinterBase::getForwardedSymbolName(const gtirb::Symbol* symbol) const {
-  if (auto* Result = getForwardedSymbol(symbol)) {
+PrettyPrinterBase::getForwardedSymbolName(const gtirb::Symbol* Symbol) const {
+  if (auto* Result = getForwardedSymbol(Symbol)) {
     return getSymbolName(*Result);
   } else {
     return std::nullopt;

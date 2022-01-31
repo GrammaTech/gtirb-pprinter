@@ -40,23 +40,29 @@ std::optional<std::string> Syntax::getSizeName(uint64_t bits) const {
   return std::nullopt;
 }
 
-std::string Syntax::formatSectionName(const std::string& x) const { return x; }
+std::string Syntax::formatSectionName(const std::string& Name) const {
+  return Name;
+}
 
-std::string Syntax::formatFunctionName(const std::string& x) const { return x; }
+std::string Syntax::formatFunctionName(const std::string& Name) const {
+  return Name;
+}
 
-std::string Syntax::formatSymbolName(const std::string& x) const { return x; }
+std::string Syntax::formatSymbolName(const std::string& Name) const {
+  return Name;
+}
 
-std::string Syntax::avoidRegNameConflicts(const std::string& x) const {
+std::string Syntax::avoidRegNameConflicts(const std::string& Name) const {
 
-  const std::vector<std::string> adapt{"FS", "MOD", "NOT", "Di",  "Si",  "AND",
+  const std::vector<std::string> Adapt{"FS", "MOD", "NOT", "Di",  "Si",  "AND",
                                        "OR", "SHR", "fs",  "mod", "not", "di",
                                        "si", "and", "or",  "shr"};
 
-  if (const auto found = std::find(std::begin(adapt), std::end(adapt), x);
-      found != std::end(adapt)) {
-    return x + "_renamed";
+  if (const auto found = std::find(std::begin(Adapt), std::end(Adapt), Name);
+      found != std::end(Adapt)) {
+    return Name + "_renamed";
   }
-  return x;
+  return Name;
 }
 
 } // namespace gtirb_pprint
