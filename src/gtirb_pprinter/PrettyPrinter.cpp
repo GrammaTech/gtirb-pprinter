@@ -364,44 +364,50 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
       AmbiguousNames.insert(S.getName());
     }
   }
-
   for (auto& Name : AmbiguousNames) {
-    std::vector<const gtirb::Symbol*> SymbolsSharingName;
+    NameAmbiguousSymbols(Name);
+  }
+}
 
-    auto SymbolRange = module.findSymbols(Name);
-    for (auto& S : SymbolRange) {
-      SymbolsSharingName.push_back(&S);
+void PrettyPrinterBase::NameAmbiguousSymbols(const std::string& SharedName) {
+  assert(isAmbiguousSymbol(SharedName));
+  std::vector<const gtirb::Symbol*> SymbolsSharingName;
+  auto SymbolRange = module.findSymbols(SharedName);
+  for (auto& S : SymbolRange) {
+    SymbolsSharingName.push_back(&S);
+  }
+  std::sort(SymbolsSharingName.begin(), SymbolsSharingName.end(),
+            [](auto* x, auto* y) {
+              if (auto xaddr = x->getAddress()) {
+                if (auto yaddr = y->getAddress()) {
+                  return *xaddr < *yaddr;
+                }
+                return false;
+              }
+              return true;
+            });
+  int i;
+  std::optional<gtirb::Addr> PrevAddress;
+  for (auto SymIter = SymbolsSharingName.begin();
+       SymIter != SymbolsSharingName.end(); ++i, ++SymIter) {
+    std::stringstream NewName;
+    NewName << (*SymIter)->getName();
+    if (auto Addr = (*SymIter)->getAddress()) {
+      NewName << "_" << Addr;
     }
-    std::sort(SymbolsSharingName.begin(), SymbolsSharingName.end(),
-              [](auto* x, auto* y) {
-                return (x->getAddress() ? (y->getAddress() ? x->getAddress() <
-                                                                 y->getAddress()
-                                                           : false)
-                                        : true);
-              });
-    int i;
-    std::optional<gtirb::Addr> PrevAddress;
-    for (auto SymIter = SymbolsSharingName.begin();
-         SymIter != SymbolsSharingName.end(); ++i, ++SymIter) {
-      std::stringstream NewName;
-      NewName << (*SymIter)->getName();
-      if (auto Addr = (*SymIter)->getAddress()) {
-        NewName << "_" << Addr;
-      }
-      if (auto Addr = (*SymIter)->getAddress(); Addr != PrevAddress) {
-        i = 0;
-        PrevAddress = Addr;
-      }
-      std::stringstream Suffix;
+    if (auto Addr = (*SymIter)->getAddress(); Addr != PrevAddress) {
+      i = 0;
+      PrevAddress = Addr;
+    }
+    std::stringstream Suffix;
+    Suffix << "_" << i;
+    while (!module.findSymbols(NewName.str() + Suffix.str()).empty()) {
+      ++i;
+      Suffix.seekp(0);
       Suffix << "_" << i;
-      while (!module.findSymbols(NewName.str() + Suffix.str()).empty()) {
-        ++i;
-        Suffix.seekp(0);
-        Suffix << "_" << i;
-      }
-      NewName << Suffix.str();
-      AmbiguousSymbols.insert({*SymIter, NewName.str()});
     }
+    NewName << Suffix.str();
+    AmbiguousSymbols.insert({*SymIter, NewName.str()});
   }
 }
 
