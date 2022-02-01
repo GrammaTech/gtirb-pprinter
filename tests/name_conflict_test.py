@@ -80,7 +80,6 @@ class NameConflictTest(unittest.TestCase):
         add_function(m, "f1", cb2)
         add_symbol(m, "f1", cb)
         asm = pprinter_helpers.run_asm_pprinter(ir)
-        print(asm)
         self.assertTrue("f1_0x1000_1:" in asm)
         self.assertTrue("f1_0x1000_2:" in asm)
         self.assertTrue("f1_0x1001_0:" in asm)
