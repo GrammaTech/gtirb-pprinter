@@ -371,7 +371,11 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
       }
       std::sort(SymbolsSharingName.begin(), SymbolsSharingName.end(),
                 [](auto* x, auto* y) {
-                  return (!x && !y) ? 1 : x->getAddress() < y->getAddress();
+                  return (x->getAddress()
+                              ? (y->getAddress()
+                                     ? x->getAddress() < y->getAddress()
+                                     : false)
+                              : true)
                 });
 
       // Assign conflicting symbols unique names
