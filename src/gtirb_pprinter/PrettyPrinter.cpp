@@ -386,7 +386,7 @@ void PrettyPrinterBase::NameAmbiguousSymbols(const std::string& SharedName) {
               }
               return true;
             });
-  int i;
+  unsigned long i = 0;
   std::optional<gtirb::Addr> PrevAddress;
   for (auto SymIter = SymbolsSharingName.begin();
        SymIter != SymbolsSharingName.end(); ++i, ++SymIter) {
