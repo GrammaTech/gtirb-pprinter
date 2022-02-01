@@ -358,50 +358,49 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
 
   // Collect all ambiguous symbols in the module and give them
   // unambiguous names
-  for (auto NameIter = module.symbols_by_name_begin();
-       NameIter != module.symbols_by_name_end(); ++NameIter) {
-    auto NameRange = module.findSymbols(NameIter->getName());
-    if (std::distance(begin(NameRange), end(NameRange)) > 1) {
+  std::set<std::string> AmbiguousNames;
+  for (auto& S : module.symbols()) {
+    if (isAmbiguousSymbol(S.getName())) {
+      AmbiguousNames.insert(S.getName());
+    }
+  }
 
-      // copy all 2+ symbols with this name into a vector
-      // and sort it by address
-      std::vector<const gtirb::Symbol*> SymbolsSharingName;
-      for (auto& Sym : NameRange) {
-        SymbolsSharingName.push_back(&Sym);
+  for (auto& Name : AmbiguousNames) {
+    std::vector<const gtirb::Symbol*> SymbolsSharingName;
+
+    auto SymbolRange = module.findSymbols(Name);
+    for (auto& S : SymbolRange) {
+      SymbolsSharingName.push_back(&S);
+    }
+    std::sort(SymbolsSharingName.begin(), SymbolsSharingName.end(),
+              [](auto* x, auto* y) {
+                return (x->getAddress() ? (y->getAddress() ? x->getAddress() <
+                                                                 y->getAddress()
+                                                           : false)
+                                        : true);
+              });
+    int i;
+    std::optional<gtirb::Addr> PrevAddress;
+    for (auto SymIter = SymbolsSharingName.begin();
+         SymIter != SymbolsSharingName.end(); ++i, ++SymIter) {
+      std::stringstream NewName;
+      NewName << (*SymIter)->getName();
+      if (auto Addr = (*SymIter)->getAddress()) {
+        NewName << "_" << Addr;
       }
-      std::sort(SymbolsSharingName.begin(), SymbolsSharingName.end(),
-                [](auto* x, auto* y) {
-                  return (x->getAddress()
-                              ? (y->getAddress()
-                                     ? x->getAddress() < y->getAddress()
-                                     : false)
-                              : true)
-                });
-
-      // Assign conflicting symbols unique names
-      int i = 0; // numeric suffix
-      std::optional<gtirb::Addr> Address = std::nullopt;
-      for (auto Sym : SymbolsSharingName) {
-        std::stringstream NewNameStream;
-        NewNameStream << Sym->getName() << "_disambig_";
-        auto SymAddr = Sym->getAddress();
-        if (SymAddr) {
-          NewNameStream << (size_t)*SymAddr;
-        }
-        auto NewName = NewNameStream.str();
-
-        do {
-          NewNameStream.seekp(0);
-          NewNameStream << NewName << "_" << i;
-          ++i;
-        } while (!module.findSymbols(NewNameStream.str()).empty());
-        if (SymAddr != Address) {
-          Address = SymAddr;
-          i = 0;
-        }
-        AmbiguousSymbols.insert({Sym, NewNameStream.str()});
-        ++NameIter;
+      if (auto Addr = (*SymIter)->getAddress(); Addr != PrevAddress) {
+        i = 0;
+        PrevAddress = Addr;
       }
+      std::string NewNameStr;
+      do {
+        std::stringstream Suffix;
+        Suffix << "_" << i;
+        NewNameStr = NewName.str() + Suffix.str();
+        ++i;
+      } while (!module.findSymbols(NewNameStr).empty());
+      --i;
+      AmbiguousSymbols.insert({*SymIter, NewNameStr});
     }
   }
 }
