@@ -1,5 +1,7 @@
 import unittest
 from gtirb_helpers import (
+    add_data_block,
+    add_data_section,
     add_symbol,
     add_text_section,
     create_test_module,
@@ -8,7 +10,7 @@ from gtirb_helpers import (
 )
 import pprinter_helpers
 import gtirb
-import re
+
 
 # Does the pretty-printer need to deal with conflicts between
 # reserved asm words and symbol names?
@@ -18,8 +20,6 @@ import re
 # ARM/ARM64/Mips: Maybe? If so, it would be a different
 #  set of keywords than Intel/Masm; if it ever comes up
 #  we can start handling it then
-
-
 def create_ir_with_name(name: str) -> gtirb.IR:
     (ir, m) = create_test_module(
         gtirb.Module.FileFormat.ELF, gtirb.Module.ISA.X64
@@ -62,6 +62,10 @@ class NameConflictTest(unittest.TestCase):
         )
         self.assertIn("div_renamed:", asm)
 
+    # Make sure that the renaming scheme for
+    # ambiguous symbol names is being
+    # followed, and produces unambiguous
+    # understandable names
     def test_ambiguous_symbol_names(self):
         ir, m = create_test_module(
             gtirb.Module.FileFormat.ELF, gtirb.Module.ISA.X64
@@ -69,9 +73,14 @@ class NameConflictTest(unittest.TestCase):
         s, bi = add_text_section(m, 0x1000)
         cb = add_code_block(bi, b"\xc3")
         cb2 = add_code_block(bi, b"\xc3")
+        s2, bi2 = add_data_section(m, 0x500)
+        db = add_data_block(bi2, b"hello")
+        add_symbol(m, "f1_0x1000_0", db)
         add_function(m, "f1", cb)
         add_function(m, "f1", cb2)
         add_symbol(m, "f1", cb)
         asm = pprinter_helpers.run_asm_pprinter(ir)
         print(asm)
-        self.assertTrue(re.match(r"f1\w*_4096\w*:", asm) is not None)
+        self.assertTrue("f1_0x1000_1:" in asm)
+        self.assertTrue("f1_0x1000_2:" in asm)
+        self.assertTrue("f1_0x1001_0:" in asm)
