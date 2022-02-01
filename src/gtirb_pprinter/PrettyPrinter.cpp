@@ -357,17 +357,46 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
   }
 
   // Collect all ambiguous symbols in the module and give them
-  // distinct numbers
+  // unambiguous names
   for (auto NameIter = module.symbols_by_name_begin();
        NameIter != module.symbols_by_name_end(); ++NameIter) {
     auto NameRange = module.findSymbols(NameIter->getName());
-    auto NameRangeSize = distance(begin(NameRange), end(NameRange));
-    for (unsigned i = 1; i < NameRangeSize; ++i) {
-      ++NameIter;
-      if (auto addr = NameIter->getAddress()) {
-        AmbiguousSymbols.insert({&*NameIter, (size_t)*addr});
-      } else {
-        AmbiguousSymbols.insert({&*NameIter, i});
+    if (std::distance(begin(NameRange), end(NameRange)) > 1) {
+
+      // copy all 2+ symbols with this name into a vector
+      // and sort it by address
+      std::vector<const gtirb::Symbol*> SymbolsSharingName;
+      for (auto& Sym : NameRange) {
+        SymbolsSharingName.push_back(&Sym);
+      }
+      std::sort(SymbolsSharingName.begin(), SymbolsSharingName.end(),
+                [](auto* x, auto* y) {
+                  return (!x && !y) ? 1 : x->getAddress() < y->getAddress();
+                });
+
+      // Assign conflicting symbols unique names
+      int i = 0; // numeric suffix
+      std::optional<gtirb::Addr> Address = std::nullopt;
+      for (auto Sym : SymbolsSharingName) {
+        std::stringstream NewNameStream;
+        NewNameStream << Sym->getName() << "_disambig_";
+        auto SymAddr = Sym->getAddress();
+        if (SymAddr) {
+          NewNameStream << (size_t)*SymAddr;
+        }
+        auto NewName = NewNameStream.str();
+
+        do {
+          NewNameStream.seekp(0);
+          NewNameStream << NewName << "_" << i;
+          ++i;
+        } while (!module.findSymbols(NewNameStream.str()).empty());
+        if (SymAddr != Address) {
+          Address = SymAddr;
+          i = 0;
+        }
+        AmbiguousSymbols.insert({Sym, NewNameStream.str()});
+        ++NameIter;
       }
     }
   }
@@ -1411,12 +1440,10 @@ std::string PrettyPrinterBase::getFunctionName(gtirb::Addr x) const {
 
 std::string
 PrettyPrinterBase::getSymbolName(const gtirb::Symbol& Symbol) const {
-  if (auto ambiguousSymbol = AmbiguousSymbols.find(&Symbol);
-      ambiguousSymbol != AmbiguousSymbols.end()) {
-    std::stringstream Ss;
-    Ss << Symbol.getName() << "_disambig_" << ambiguousSymbol->second;
-    assert(module.findSymbols(Ss.str()).empty());
-    return syntax.formatSymbolName(Ss.str());
+  if (isAmbiguousSymbol(Symbol.getName())) {
+    auto newName = AmbiguousSymbols.find(&Symbol)->second;
+    assert(module.findSymbols(newName).empty());
+    return syntax.formatSymbolName(newName);
   } else {
     return syntax.formatSymbolName(Symbol.getName());
   }
