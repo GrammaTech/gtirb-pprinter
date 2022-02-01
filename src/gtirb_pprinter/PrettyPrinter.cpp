@@ -392,15 +392,15 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
         i = 0;
         PrevAddress = Addr;
       }
-      std::string NewNameStr;
-      do {
-        std::stringstream Suffix;
-        Suffix << "_" << i;
-        NewNameStr = NewName.str() + Suffix.str();
+      std::stringstream Suffix;
+      Suffix << "_" << i;
+      while (!module.findSymbols(NewName.str() + Suffix.str()).empty()) {
         ++i;
-      } while (!module.findSymbols(NewNameStr).empty());
-      --i;
-      AmbiguousSymbols.insert({*SymIter, NewNameStr});
+        Suffix.seekp(0);
+        Suffix << "_" << i;
+      }
+      NewName << Suffix.str();
+      AmbiguousSymbols.insert({*SymIter, NewName.str()});
     }
   }
 }
