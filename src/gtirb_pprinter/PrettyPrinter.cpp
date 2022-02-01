@@ -377,34 +377,34 @@ void PrettyPrinterBase::NameAmbiguousSymbols(const std::string& SharedName) {
     SymbolsSharingName.push_back(&S);
   }
   std::sort(SymbolsSharingName.begin(), SymbolsSharingName.end(),
-            [](auto* x, auto* y) {
-              if (auto xaddr = x->getAddress()) {
-                if (auto yaddr = y->getAddress()) {
-                  return *xaddr < *yaddr;
+            [](auto* SymL, auto* SymR) {
+              if (auto AddrL = SymL->getAddress()) {
+                if (auto AddrR = SymR->getAddress()) {
+                  return *AddrL < *AddrR;
                 }
                 return false;
               }
               return true;
             });
-  unsigned long i = 0;
+  unsigned long I = 0;
   std::optional<gtirb::Addr> PrevAddress;
   for (auto SymIter = SymbolsSharingName.begin();
-       SymIter != SymbolsSharingName.end(); ++i, ++SymIter) {
+       SymIter != SymbolsSharingName.end(); ++I, ++SymIter) {
     std::stringstream NewName;
     NewName << (*SymIter)->getName();
     if (auto Addr = (*SymIter)->getAddress()) {
       NewName << "_" << Addr;
     }
     if (auto Addr = (*SymIter)->getAddress(); Addr != PrevAddress) {
-      i = 0;
+      I = 0;
       PrevAddress = Addr;
     }
     std::stringstream Suffix;
-    Suffix << "_" << i;
+    Suffix << "_" << I;
     while (!module.findSymbols(NewName.str() + Suffix.str()).empty()) {
-      ++i;
+      ++I;
       Suffix.seekp(0);
-      Suffix << "_" << i;
+      Suffix << "_" << I;
     }
     NewName << Suffix.str();
     AmbiguousSymbols.insert({*SymIter, NewName.str()});
