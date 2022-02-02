@@ -348,11 +348,12 @@ test-make-install:
     - *ubuntu-deps
     - cd build && make install && cd ..
     - rm -rf build
-    - cp .ci/test-install.cpp test-install.cpp
-    - g++ test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs -lgtirb -lgtirb_layout
-    - ./test-install tests/two_modules.gtirb
     - pip3 install --upgrade pip
     - pip3 install -r tests/requirements.txt $EXTRA_INDEX_URL
+    - cp .ci/test-install.cpp test-install.cpp
+    - g++ test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs -lgtirb -lgtirb_layout
+    - python3 tests/hello_world.py
+    - ./test-install hello.gtirb
     - python3 -m unittest discover tests "*_test.py"
 
 # APT packaging related jobs
@@ -409,6 +410,7 @@ build-ubuntu20-packages:
     name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
     paths:
       - test-install
+      - hello.gtirb
   script:
     - if [ $(lsb_release -sc) == "bionic" ]; then TRUSTED="[trusted=yes]"; fi
     - if [ $(lsb_release -sc) == "focal" ]; then TRUSTED="[trusted=yes]"; fi
@@ -416,7 +418,10 @@ build-ubuntu20-packages:
     - 'TEST_PKG_NAME=$(dpkg --info apt-repo/libgtirb-pprinter-dev.deb | sed -n "s/Package: //p")'
     - apt-get update -y && apt-get install -y --allow-unauthenticated $TEST_PKG_NAME
     - g++ .ci/test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs -lgtirb -lgtirb_layout
-    - ./test-install tests/two_modules.gtirb
+    - pip3 install --upgrade pip
+    - pip3 install -r tests/requirements.txt $EXTRA_INDEX_URL
+    - python3 tests/hello_world.py
+    - ./test-install hello.gtirb
 
 .test-ubuntu-gtirb-pprinter: &test-ubuntu-gtirb-pprinter
   stage: test-packages1
@@ -458,7 +463,7 @@ build-ubuntu20-packages:
     - echo -e "\ndeb $TRUSTED file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - 'TEST_PKG_NAME=$(dpkg --info apt-repo/libgtirb-pprinter.deb | sed -n "s/Package: //p")'
     - apt-get update -y && apt-get install -y --allow-unauthenticated $TEST_PKG_NAME
-    - ./test-install tests/two_modules.gtirb
+    - ./test-install hello.gtirb
 
 setup-ubuntu18-repo:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
