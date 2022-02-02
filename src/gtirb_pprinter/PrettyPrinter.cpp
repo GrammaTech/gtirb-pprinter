@@ -357,7 +357,7 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
   }
 
   // Collect all ambiguous symbols in the module and give them
-  // unambiguous names
+  // unique names
   std::set<std::string> AmbiguousNames;
   for (auto& S : module.symbols()) {
     if (isAmbiguousSymbol(S.getName())) {
@@ -369,6 +369,16 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
   }
 }
 
+bool SymbolAddrLessThan(const gtirb::Symbol* SymL, const gtirb::Symbol* SymR) {
+  if (auto AddrL = SymL->getAddress()) {
+    if (auto AddrR = SymR->getAddress()) {
+      return *AddrL < *AddrR;
+    }
+    return false;
+  }
+  return true;
+};
+
 void PrettyPrinterBase::NameAmbiguousSymbols(const std::string& SharedName) {
   assert(isAmbiguousSymbol(SharedName));
   std::vector<const gtirb::Symbol*> SymbolsSharingName;
@@ -377,21 +387,13 @@ void PrettyPrinterBase::NameAmbiguousSymbols(const std::string& SharedName) {
     SymbolsSharingName.push_back(&S);
   }
   std::sort(SymbolsSharingName.begin(), SymbolsSharingName.end(),
-            [](auto* SymL, auto* SymR) {
-              if (auto AddrL = SymL->getAddress()) {
-                if (auto AddrR = SymR->getAddress()) {
-                  return *AddrL < *AddrR;
-                }
-                return false;
-              }
-              return true;
-            });
+            &SymbolAddrLessThan);
   unsigned long I = 0;
   std::optional<gtirb::Addr> PrevAddress;
   for (auto SymIter = SymbolsSharingName.begin();
        SymIter != SymbolsSharingName.end(); ++I, ++SymIter) {
     std::stringstream NewName;
-    NewName << (*SymIter)->getName();
+    NewName << (*SymIter)->getName() << "_disambig_";
     if (auto Addr = (*SymIter)->getAddress()) {
       NewName << "_" << Addr;
     }
