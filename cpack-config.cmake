@@ -1,7 +1,6 @@
 set(CPACK_COMPONENTS_GROUPING ALL_COMPONENTS_IN_ONE)
 
 set(CPACK_DEB_COMPONENT_INSTALL ON)
-set(CPACK_RPM_COMPONENT_INSTALL ON)
 
 set(LIB_COMPONENTS pprinter_library layout_library)
 set(DEV_COMPONENTS pprinter_headers layout_headers cmake_config cmake_target)
@@ -79,32 +78,5 @@ elseif("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "deb-driver-dbg")
   set(CPACK_COMPONENTS_ALL pprinter-driver-debug-file layout-driver-debug-file)
   set(CPACK_DEBIAN_PACKAGE_DEPENDS
       "gtirb-pprinter${CPACK_GTIRB_PPRINTER_SUFFIX} (=${CPACK_GTIRB_PPRINTER_DEB_VERSION})"
-  )
-
-  # RPM packages
-elseif("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "rpm-lib")
-  set(CPACK_RPM_FILE_NAME "libgtirb-pprinter.rpm")
-  set(CPACK_RPM_PACKAGE_NAME "libgtirb-pprinter")
-  set(CPACK_RPM_PACKAGE_REQUIRES
-      "gcc, libgtirb = ${CPACK_GTIRB_VERSION}, capstone-devel = ${CPACK_CAPSTONE_PKG_VERSION}, boost169 = 1.69.0"
-  )
-  set(CPACK_RPM_DEBUGINFO_PACKAGE ON)
-  set(CPACK_RPM_DEBUGINFO_FILE_NAME "libgtirb-pprinter-debuginfo.rpm")
-  set(CPACK_COMPONENTS_ALL ${LIB_COMPONENTS})
-elseif("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "rpm-dev")
-  set(CPACK_RPM_FILE_NAME "libgtirb-pprinter-devel.rpm")
-  set(CPACK_RPM_PACKAGE_NAME "libgtirb-pprinter-devel")
-  set(CPACK_RPM_PACKAGE_REQUIRES
-      "libgtirb-pprinter = ${CPACK_GTIRB_PPRINTER_VERSION}, libgtirb-devel = ${CPACK_GTIRB_VERSION}, boost169-devel = 1.69.0"
-  )
-  set(CPACK_COMPONENTS_ALL ${DEV_COMPONENTS})
-elseif("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "rpm-driver")
-  set(CPACK_RPM_PACKAGE_NAME "gtirb-pprinter")
-  set(CPACK_PACKAGE_FILE_NAME "gtirb-pprinter")
-  set(CPACK_RPM_DEBUGINFO_PACKAGE ON)
-  set(CPACK_RPM_DEBUGINFO_FILE_NAME "gtirb-pprinter-debuginfo.rpm")
-  set(CPACK_COMPONENTS_ALL ${DRIVER_COMPONENTS})
-  set(CPACK_RPM_PACKAGE_DEPENDS
-      "libgtirb = ${CPACK_GTIRB_VERSION}, capstone-devel = ${CPACK_CAPSTONE_PKG_VERSION}, libgtirb-pprinter = ${CPACK_GTIRB_PPRINTER_VERSION}"
   )
 endif()

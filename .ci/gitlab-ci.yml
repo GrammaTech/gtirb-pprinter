@@ -92,25 +92,17 @@ build-conan-linux-gcc9:
     - pip3 install -r tests/requirements.txt $EXTRA_INDEX_URL
     - python .ci/build.py -s build_type=$BUILD_TYPE
 
-.setup-dependencies:
-  ubuntu-deps:
-    &ubuntu-deps
-    - case $OS in
-       ubuntu18) JOB_NAME='debian-installer-ubuntu18' ;;
-       ubuntu20) JOB_NAME='debian-installer-ubuntu20' ;;
-       esac
-    # download capstone & gtirb
-    - curl -L https://git.grammatech.com/rewriting/extra-packages/-/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=${JOB_NAME} --output "gtirb.zip"
-    - for pkg in gtirb capstone; do unzip $pkg.zip; done
-    - dpkg -i libcapstone-dev.deb libgtirb.deb libgtirb-dev.deb
-  centos-deps:
-    &centos-deps
-    # download capstone & gtirb
-    - curl -L https://git.grammatech.com/rewriting/extra-packages/-/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-rpm --output "capstone.zip"
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=package-centos8 --output "gtirb.zip"
-    - for pkg in gtirb capstone; do unzip $pkg.zip; done
-    - dnf --nogpgcheck localinstall -y capstone-devel-*.rpm libgtirb.rpm libgtirb-devel.rpm
+.ubuntu-deps:
+  &ubuntu-deps
+  - case $OS in
+     ubuntu18) JOB_NAME='debian-installer-ubuntu18' ;;
+     ubuntu20) JOB_NAME='debian-installer-ubuntu20' ;;
+     esac
+  # download capstone & gtirb
+  - curl -L https://git.grammatech.com/rewriting/extra-packages/-/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
+  - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=${JOB_NAME} --output "gtirb.zip"
+  - for pkg in gtirb capstone; do unzip $pkg.zip; done
+  - dpkg -i libcapstone-dev.deb libgtirb.deb libgtirb-dev.deb
 
 .build-template: &build
   stage: build
@@ -128,18 +120,6 @@ build-conan-linux-gcc9:
   stage: test-and-tag
   script:
     - *ubuntu-deps
-    - pip3 install --upgrade pip
-    - pip3 install -r tests/requirements.txt $EXTRA_INDEX_URL
-    - cd build && PATH=$(pwd)/bin:$PATH ctest -V
-
-.test-and-tag-centos-template: &test-and-tag-centos
-  stage: test-and-tag
-  script:
-    - *centos-deps
-    - mkdir long-dir-name-padding-for-CPACK_RPM_BUILD_SOURCE_DIRS_PREFIX
-    - cd long-dir-name-padding-for-CPACK_RPM_BUILD_SOURCE_DIRS_PREFIX
-    - git clone .. .
-    - mv ../build build
     - pip3 install --upgrade pip
     - pip3 install -r tests/requirements.txt $EXTRA_INDEX_URL
     - cd build && PATH=$(pwd)/bin:$PATH ctest -V
@@ -254,35 +234,6 @@ static-drivers:
     # For verification purposes, print ldd of the driver here.
     - ldd bin/gtirb-pprinter
 
-build-centos8-gcc-relwithdebuginfo:
-  stage: build
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/centos8
-  artifacts:
-    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
-    paths:
-      - build
-  script:
-    # What's the deal with PADDED_DIR? See:
-    # https://cmake.org/cmake/help/latest/cpack_gen/rpm.html#variable:CPACK_RPM_BUILD_SOURCE_DIRS_PREFIX
-    # From the above link: "...Limitation is that replaced path part must
-    # be shorter or of equal length than the length of its replacement.  If
-    # that is not the case either CPACK_RPM_BUILD_SOURCE_DIRS_PREFIX variable
-    # has to be set to a shorter path or source directories must be placed on
-    # a longer path."
-    - PADDED_DIR=long-dir-name-padding-for-CPACK_RPM_BUILD_SOURCE_DIRS_PREFIX
-    - mkdir $PADDED_DIR && cd $PADDED_DIR
-    - git clone .. .
-    - mkdir build && cd build
-    - *centos-deps
-    - CAPSTONE_PKG_VERSION=$(ls capstone-devel-*.rpm | sed -n 's/capstone-devel-\(.*\).x86_64.rpm/\1/p')
-    # Build
-    - cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_PREFIX_PATH='/usr/lib64/boost169' -DBOOST_INCLUDEDIR='/usr/include/boost169' -DGTIRB_PPRINTER_STRIP_DEBUG_SYMBOLS=Off ..
-    - make
-    - cpack -G "RPM" -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PPRINTER_PACKAGE=rpm-lib
-    - cpack -G "RPM" -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PPRINTER_PACKAGE=rpm-dev
-    - cpack -G "RPM" -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PPRINTER_PACKAGE=rpm-driver
-    - cd ../ && mv build ../build
-
 
 .xform: &xform
   stage: xform
@@ -344,16 +295,6 @@ xform-ubuntu20-clang:
     - *ubuntu-deps
   <<: *xform
 
-xform-centos8:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/centos8
-  needs:
-    - job: build-centos8-gcc-relwithdebuginfo
-      artifacts: true
-  before_script:
-    - *centos-deps
-    - export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/build/lib"
-  <<: *xform
-
 test-and-tag-xform-ubuntu18:
   variables:
     OS: 'ubuntu18'
@@ -378,12 +319,6 @@ test-and-tag-xform-ubuntu20-clang:
   allow_failure: true
   <<: *test-and-tag-ubuntu
 
-test-and-tag-xform-centos8:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/centos8
-  needs: ['xform-centos8']
-  allow_failure: true
-  <<: *test-and-tag-centos
-
 test-and-tag-ubuntu18-gcc:
   variables:
     OS: 'ubuntu18'
@@ -402,11 +337,6 @@ test-and-tag-ubuntu20-gcc:
   needs: ['build-ubuntu20-gcc']
   <<: *test-and-tag-ubuntu
 
-test-and-tag-centos8-gcc-relwithdebinfo:
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/centos8
-  needs: ['build-centos8-gcc-relwithdebuginfo']
-  <<: *test-and-tag-centos
-
 test-make-install:
   stage: test-and-tag
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu18
@@ -424,63 +354,6 @@ test-make-install:
     - pip3 install --upgrade pip
     - pip3 install -r tests/requirements.txt $EXTRA_INDEX_URL
     - python3 -m unittest discover tests "*_test.py"
-
-test-centos8-libgtirb-pprinter-devel:
-  stage: test-packages1
-  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/centos8
-  needs: ['build-centos8-gcc-relwithdebuginfo']
-  artifacts:
-    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
-    paths:
-      - test-install
-  script:
-    - pushd build
-    - dnf --nogpgcheck localinstall -y capstone-devel-*.rpm libgtirb.rpm libgtirb-devel.rpm libgtirb-pprinter.rpm libgtirb-pprinter-devel.rpm
-    - popd
-    - rm -rf build
-    - g++ .ci/test-install.cpp -I/usr/include/boost169 -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs -lgtirb -lgtirb_layout
-    - ./test-install tests/two_modules.gtirb
-
-test-centos8-gtirb-pprinter:
-  stage: test-packages1
-  image: centos:centos8
-  needs: ['build-centos8-gcc-relwithdebuginfo']
-  script:
-    - pushd build
-    - dnf install -y epel-release
-    - dnf update -y
-    - dnf --nogpgcheck localinstall -y capstone-devel-*.rpm libgtirb.rpm libgtirb-pprinter.rpm gtirb-pprinter.rpm
-    - popd
-    - rm -rf build
-    - gtirb-pprinter tests/two_modules.gtirb --binary two_modules
-    - gtirb-layout tests/two_modules.gtirb --out output
-
-test-centos8-libgtirb-pprinter:
-  stage: test-packages2
-  image: centos:centos8
-  needs:
-    - build-centos8-gcc-relwithdebuginfo
-    - test-centos8-libgtirb-pprinter-devel
-  script:
-    - pushd build
-    - dnf install -y epel-release
-    - dnf update -y
-    - dnf --nogpgcheck localinstall -y capstone-devel-*.rpm libgtirb.rpm libgtirb-pprinter.rpm
-    - popd
-    - rm -rf build
-    - ./test-install tests/two_modules.gtirb
-
-package-centos8:
-  stage: deploy
-  image: $DOCKER_REGISTRY/rewriting/gtirb/centos8
-  needs: ['build-centos8-gcc-relwithdebuginfo', 'test-centos8-libgtirb-pprinter']
-  artifacts:
-    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
-    paths:
-      - '*gtirb-pprinter*.rpm'
-  script:
-    - cp build/*.rpm ./
-
 
 # APT packaging related jobs
 .build-ubuntu-packages-template: &build-ubuntu-packages
