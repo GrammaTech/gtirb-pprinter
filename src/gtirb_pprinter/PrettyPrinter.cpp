@@ -400,7 +400,6 @@ void PrettyPrinterBase::NameAmbiguousSymbols(const std::string& SharedName) {
     // (For our purposes, external symbols are (1) symbols with
     // no address and no referent, (2) symbols that refer to
     // a ProxyBlock)
-    //
     if ((!Addr && !(*SymIter)->hasReferent()) ||
         (*SymIter)->getReferent<gtirb::ProxyBlock>() != nullptr) {
       AmbiguousSymbolsRenamed.insert({*SymIter, (*SymIter)->getName()});
