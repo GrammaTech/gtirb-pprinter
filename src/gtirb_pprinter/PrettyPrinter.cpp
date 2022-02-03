@@ -393,7 +393,7 @@ void PrettyPrinterBase::NameAmbiguousSymbols(const std::string& SharedName) {
   for (auto SymIter = SymbolsSharingName.begin();
        SymIter != SymbolsSharingName.end(); ++I, ++SymIter) {
     std::stringstream NewName;
-    NewName << (*SymIter)->getName() << "_disambig_";
+    NewName << (*SymIter)->getName() << "_disambig";
     if (auto Addr = (*SymIter)->getAddress()) {
       NewName << "_" << Addr;
     }
