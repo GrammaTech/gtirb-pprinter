@@ -392,6 +392,13 @@ void PrettyPrinterBase::NameAmbiguousSymbols(const std::string& SharedName) {
   std::optional<gtirb::Addr> PrevAddress;
   for (auto SymIter = SymbolsSharingName.begin();
        SymIter != SymbolsSharingName.end(); ++I, ++SymIter) {
+    // We don't want to rename external symbols, even if they
+    // are ambiguous
+    if (!(*SymIter)->hasReferent() ||
+        (*SymIter)->getReferent<gtirb::ProxyBlock>() == nullptr) {
+      AmbiguousSymbols.insert({*SymIter, (*SymIter)->getName()});
+      continue;
+    }
     std::stringstream NewName;
     NewName << (*SymIter)->getName() << "_disambig";
     if (auto Addr = (*SymIter)->getAddress()) {
