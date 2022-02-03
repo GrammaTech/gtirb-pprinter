@@ -75,7 +75,7 @@ class NameConflictTest(unittest.TestCase):
         cb2 = add_code_block(bi, b"\xc3")
         s2, bi2 = add_data_section(m, 0x500)
         db = add_data_block(bi2, b"hello")
-        add_symbol(m, "f1_0x1000_0", db)
+        add_symbol(m, "f1_disambig_0x1000_0", db)
         add_function(m, "f1", cb)
         add_function(m, "f1", cb2)
         add_symbol(m, "f1", cb)

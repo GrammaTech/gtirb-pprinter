@@ -392,19 +392,26 @@ void PrettyPrinterBase::NameAmbiguousSymbols(const std::string& SharedName) {
   std::optional<gtirb::Addr> PrevAddress;
   for (auto SymIter = SymbolsSharingName.begin();
        SymIter != SymbolsSharingName.end(); ++I, ++SymIter) {
+    auto Addr = (*SymIter)->getAddress();
     // We don't want to rename external symbols, even if they
-    // are ambiguous
-    if (!(*SymIter)->hasReferent() ||
-        (*SymIter)->getReferent<gtirb::ProxyBlock>() == nullptr) {
-      AmbiguousSymbols.insert({*SymIter, (*SymIter)->getName()});
+    // are ambiguous. However, isAmbiguousSymbol will
+    // still return true, so they still need an entry in
+    // AmbiguousSymbolsRenamed.
+    // (For our purposes, external symbols are (1) symbols with
+    // no address and no referent, (2) symbols that refer to
+    // a ProxyBlock)
+    //
+    if ((!Addr && !(*SymIter)->hasReferent()) ||
+        (*SymIter)->getReferent<gtirb::ProxyBlock>() != nullptr) {
+      AmbiguousSymbolsRenamed.insert({*SymIter, (*SymIter)->getName()});
       continue;
     }
     std::stringstream NewName;
     NewName << (*SymIter)->getName() << "_disambig";
-    if (auto Addr = (*SymIter)->getAddress()) {
+    if (Addr) {
       NewName << "_" << Addr;
     }
-    if (auto Addr = (*SymIter)->getAddress(); Addr != PrevAddress) {
+    if (Addr != PrevAddress) {
       I = 0;
       PrevAddress = Addr;
     }
@@ -416,7 +423,7 @@ void PrettyPrinterBase::NameAmbiguousSymbols(const std::string& SharedName) {
       Suffix << "_" << I;
     }
     NewName << Suffix.str();
-    AmbiguousSymbols.insert({*SymIter, NewName.str()});
+    AmbiguousSymbolsRenamed.insert({*SymIter, NewName.str()});
   }
 }
 
@@ -1459,7 +1466,7 @@ std::string PrettyPrinterBase::getFunctionName(gtirb::Addr x) const {
 std::string
 PrettyPrinterBase::getSymbolName(const gtirb::Symbol& Symbol) const {
   if (isAmbiguousSymbol(Symbol.getName())) {
-    auto newName = AmbiguousSymbols.find(&Symbol)->second;
+    auto newName = AmbiguousSymbolsRenamed.find(&Symbol)->second;
     assert(module.findSymbols(newName).empty());
     return syntax.formatSymbolName(newName);
   } else {
