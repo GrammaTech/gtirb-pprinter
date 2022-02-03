@@ -16,6 +16,7 @@ compile_commands.json
 CTestTestfile.cmake
 /gtirb
 /datalog_disasm/
+/tests/dummyso_libs/*
 /include/gsl/*
 /.vscode/
 .mypy_cache/
