@@ -586,7 +586,7 @@ void ArmPrettyPrinter::printOpIndirect(
 std::string ArmPrettyPrinter::getFunctionName(gtirb::Addr x) const {
   if (isFunctionEntry(x)) {
     for (gtirb::Symbol& s : module.findSymbols(x)) {
-      if (isAmbiguousSymbol(s.getName()))
+      if (AmbiguousSymbols.count(&s) > 0)
         continue;
       // local symbol
       if (s.getName().find('.') == 0)

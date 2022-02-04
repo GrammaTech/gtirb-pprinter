@@ -461,8 +461,8 @@ protected:
   getForwardedSymbolName(const gtirb::Symbol* symbol) const;
   virtual gtirb::Symbol* getForwardedSymbol(const gtirb::Symbol* Sym) const;
 
-  bool isAmbiguousSymbol(const std::string& ea) const;
-  void NameAmbiguousSymbols(const std::string& SharedName);
+  std::map<const gtirb::Symbol*, std::string> AmbiguousSymbols;
+
   // Currently, this only works for symbolic expressions in data blocks.
   // For the symbolic expressions that are part of code blocks, Capstone
   // always provides the information using the instruction context, so
@@ -475,7 +475,6 @@ protected:
 private:
   std::set<gtirb::Addr> functionEntry;
   std::set<gtirb::Addr> functionLastBlock;
-  std::map<const gtirb::Symbol*, std::string> AmbiguousSymbols;
   gtirb::Addr programCounter;
 
   std::optional<gtirb::Addr> CFIStartProc;

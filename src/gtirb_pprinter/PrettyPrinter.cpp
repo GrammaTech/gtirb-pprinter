@@ -1460,12 +1460,6 @@ PrettyPrinterBase::getForwardedSymbol(const gtirb::Symbol* Symbol) const {
   return nullptr;
 }
 
-bool PrettyPrinterBase::isAmbiguousSymbol(const std::string& name) const {
-  // Are there multiple symbols with this name?
-  auto found = module.findSymbols(name);
-  return distance(begin(found), end(found)) > 1;
-}
-
 void PrettyPrinterBase::printSection(std::ostream& os,
                                      const gtirb::Section& section) {
   if (shouldSkip(section)) {
