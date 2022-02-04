@@ -358,71 +358,33 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
 
   // Collect all ambiguous symbols in the module and give them
   // unique names
-  std::set<std::string> AmbiguousNames;
+  std::map<std::string, std::multimap<gtirb::Addr, gtirb::Symbol*>>
+      SymbolsByNameAddr;
   for (auto& S : module.symbols()) {
-    if (isAmbiguousSymbol(S.getName())) {
-      AmbiguousNames.insert(S.getName());
-    }
+    auto Addr = S.getAddress().value_or(gtirb::Addr(0));
+    SymbolsByNameAddr[S.getName()].insert({Addr, &S});
   }
-  for (auto& Name : AmbiguousNames) {
-    NameAmbiguousSymbols(Name);
-  }
-}
-
-bool SymbolAddrLessThan(const gtirb::Symbol* SymL, const gtirb::Symbol* SymR) {
-  if (auto AddrL = SymL->getAddress()) {
-    if (auto AddrR = SymR->getAddress()) {
-      return *AddrL < *AddrR;
+  for (auto& [Name, Group] : SymbolsByNameAddr) {
+    if (Group.size() > 1) {
+      int Index = 0;
+      gtirb::Addr PrevAddress{0};
+      for (auto& [Addr, Sym] : Group) {
+        std::stringstream NewName;
+        NewName << Sym->getName() << "_disambig_" << Addr;
+        if (Addr != PrevAddress) {
+          Index = 0;
+          PrevAddress = Addr;
+        }
+        std::stringstream Suffix;
+        Suffix << "_" << Index++;
+        while (!module.findSymbols(NewName.str() + Suffix.str()).empty()) {
+          Suffix.seekp(0);
+          Suffix << "_" << Index++;
+        }
+        NewName << Suffix.str();
+        AmbiguousSymbols.insert({Sym, NewName.str()});
+      }
     }
-    return false;
-  }
-  return true;
-};
-
-void PrettyPrinterBase::NameAmbiguousSymbols(const std::string& SharedName) {
-  assert(isAmbiguousSymbol(SharedName));
-  std::vector<const gtirb::Symbol*> SymbolsSharingName;
-  auto SymbolRange = module.findSymbols(SharedName);
-  for (auto& S : SymbolRange) {
-    SymbolsSharingName.push_back(&S);
-  }
-  std::sort(SymbolsSharingName.begin(), SymbolsSharingName.end(),
-            &SymbolAddrLessThan);
-  unsigned long I = 0;
-  std::optional<gtirb::Addr> PrevAddress;
-  for (auto SymIter = SymbolsSharingName.begin();
-       SymIter != SymbolsSharingName.end(); ++I, ++SymIter) {
-    auto Addr = (*SymIter)->getAddress();
-    // We don't want to rename external symbols, even if they
-    // are ambiguous. However, isAmbiguousSymbol will
-    // still return true, so they still need an entry in
-    // AmbiguousSymbolsRenamed.
-    // (For our purposes, external symbols are (1) symbols with
-    // no address and no referent, (2) symbols that refer to
-    // a ProxyBlock)
-    if ((!Addr && !(*SymIter)->hasReferent()) ||
-        (*SymIter)->getReferent<gtirb::ProxyBlock>() != nullptr) {
-      AmbiguousSymbolsRenamed.insert({*SymIter, (*SymIter)->getName()});
-      continue;
-    }
-    std::stringstream NewName;
-    NewName << (*SymIter)->getName() << "_disambig";
-    if (Addr) {
-      NewName << "_" << Addr;
-    }
-    if (Addr != PrevAddress) {
-      I = 0;
-      PrevAddress = Addr;
-    }
-    std::stringstream Suffix;
-    Suffix << "_" << I;
-    while (!module.findSymbols(NewName.str() + Suffix.str()).empty()) {
-      ++I;
-      Suffix.seekp(0);
-      Suffix << "_" << I;
-    }
-    NewName << Suffix.str();
-    AmbiguousSymbolsRenamed.insert({*SymIter, NewName.str()});
   }
 }
 
@@ -1464,8 +1426,9 @@ std::string PrettyPrinterBase::getFunctionName(gtirb::Addr x) const {
 
 std::string
 PrettyPrinterBase::getSymbolName(const gtirb::Symbol& Symbol) const {
-  if (isAmbiguousSymbol(Symbol.getName())) {
-    auto newName = AmbiguousSymbolsRenamed.find(&Symbol)->second;
+  if (auto Renaming = AmbiguousSymbols.find(&Symbol);
+      Renaming != AmbiguousSymbols.end()) {
+    auto newName = Renaming->second;
     assert(module.findSymbols(newName).empty());
     return syntax.formatSymbolName(newName);
   } else {

@@ -77,9 +77,18 @@ class NameConflictTest(unittest.TestCase):
         db = add_data_block(bi2, b"hello")
         add_symbol(m, "f1_disambig_0x1000_0", db)
         add_function(m, "f1", cb)
+        add_function(m, "f2", cb)
+        add_function(m, "f2", cb)
         add_function(m, "f1", cb2)
         add_symbol(m, "f1", cb)
         asm = pprinter_helpers.run_asm_pprinter(ir)
-        self.assertTrue("f1_disambig_0x1000_1:" in asm)
-        self.assertTrue("f1_disambig_0x1000_2:" in asm)
-        self.assertTrue("f1_disambig_0x1001_0:" in asm)
+        print(asm)
+        # f1_0x1000 should start counting from 1,
+        # since 0 produces a conflict,
+        # but f2_0x1000 should start counting from 0
+        self.assertIn("f1_disambig_0x1000_1:", asm)
+        self.assertIn("f1_disambig_0x1000_2:", asm)
+        self.assertIn("f1_disambig_0x1001_0:", asm)
+
+        self.assertIn("f2_disambig_0x1000_0", asm)
+        self.assertIn("f2_disambig_0x1000_1", asm)
