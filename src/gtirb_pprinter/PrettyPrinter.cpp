@@ -370,7 +370,7 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
       gtirb::Addr PrevAddress{0};
       for (auto& [Addr, Sym] : Group) {
         std::stringstream NewName;
-        NewName << Sym->getName() << "_disambig_" << Addr;
+        NewName << Name << "_disambig_" << Addr;
         if (Addr != PrevAddress) {
           Index = 0;
           PrevAddress = Addr;
