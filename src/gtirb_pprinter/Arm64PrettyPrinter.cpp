@@ -46,6 +46,17 @@ void Arm64PrettyPrinter::printHeader(std::ostream& os) {
   os << '\n';
 }
 
+void Arm64PrettyPrinter::printAlignment(std::ostream& OS, uint64_t Align) {
+  // In ARM64 Assembly Language, `.align N` aligns the next element to multiple
+  // of 2^N. In other ISAs, `.align N` aligns the next element to N.
+  int X = Align, Log2X = 0;
+  while (X >>= 1) {
+    ++Log2X;
+  }
+
+  ElfPrettyPrinter::printAlignment(OS, Log2X);
+}
+
 std::string Arm64PrettyPrinter::getRegisterName(unsigned int reg) const {
   return reg == ARM64_REG_INVALID ? "" : cs_reg_name(this->csHandle, reg);
 }
