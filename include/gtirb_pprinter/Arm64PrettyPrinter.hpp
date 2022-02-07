@@ -22,6 +22,13 @@
 
 namespace gtirb_pprint {
 
+class Arm64Syntax : public ElfSyntax {
+public:
+  SyntaxAlignmentStyle alignmentStyle() const override {
+    return SyntaxAlignmentZeros;
+  };
+};
+
 class Arm64PrettyPrinter : public ElfPrettyPrinter {
 public:
   Arm64PrettyPrinter(gtirb::Context& context, gtirb::Module& module,
@@ -36,7 +43,6 @@ protected:
                         const gtirb::Offset& offset) override;
 
   void printHeader(std::ostream& os) override;
-  void printAlignment(std::ostream& OS, uint64_t Align) override;
   void printOperandList(std::ostream& os, const gtirb::CodeBlock& block,
                         const cs_insn& inst) override;
   void printOperand(std::ostream& os, const gtirb::CodeBlock& block,

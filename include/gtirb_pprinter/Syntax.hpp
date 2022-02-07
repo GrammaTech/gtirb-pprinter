@@ -21,6 +21,14 @@
 
 namespace gtirb_pprint {
 
+// See binutils docs regarding .align:
+// https://sourceware.org/binutils/docs/as/Align.html#Align
+enum SyntaxAlignmentStyle {
+  SyntaxAlignmentBytes, // number of bytes to which the address is aligned
+  SyntaxAlignmentZeros, // number of low-order zero bits in the aligned address
+                        // (i.e., 2^N bytes)
+};
+
 class DEBLOAT_PRETTYPRINTER_EXPORT_API Syntax {
 public:
   virtual ~Syntax() = default;
@@ -28,6 +36,9 @@ public:
   // Styles
   virtual const std::string& tab() const { return TabStyle; }
   virtual const std::string& comment() const = 0;
+  virtual SyntaxAlignmentStyle alignmentStyle() const {
+    return SyntaxAlignmentBytes;
+  }
 
   // Sections
   virtual const std::string& textSection() const { return TextSection; }

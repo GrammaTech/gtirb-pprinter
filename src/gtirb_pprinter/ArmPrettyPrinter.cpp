@@ -53,17 +53,6 @@ void ArmPrettyPrinter::setDecodeMode(std::ostream& os,
   }
 }
 
-void ArmPrettyPrinter::printAlignment(std::ostream& OS, uint64_t Align) {
-  // In ARM Assembly Language, `.align N` aligns the next element to multiple
-  // of 2^N.
-  int X = Align, Log2X = 0;
-  while (X >>= 1) {
-    ++Log2X;
-  }
-
-  ElfPrettyPrinter::printAlignment(OS, Log2X);
-}
-
 void ArmPrettyPrinter::printInstruction(std::ostream& os,
                                         const gtirb::CodeBlock& block,
                                         const cs_insn& inst,

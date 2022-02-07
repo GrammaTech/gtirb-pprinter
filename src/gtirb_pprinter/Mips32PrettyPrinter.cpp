@@ -31,7 +31,7 @@ std::unique_ptr<PrettyPrinterBase>
 Mips32PrettyPrinterFactory::create(gtirb::Context& gtirb_context,
                                    gtirb::Module& module,
                                    const PrintingPolicy& policy) {
-  static const ElfSyntax syntax{};
+  static const Mips32Syntax syntax{};
   static const GasAssembler assembler{};
   return std::make_unique<Mips32PrettyPrinter>(gtirb_context, module, syntax,
                                                assembler, policy);
@@ -88,17 +88,6 @@ void Mips32PrettyPrinter::printHeader(std::ostream& os) {
 
   // we already account for delay slots; don't let the assembler insert them
   os << ".set noreorder" << std::endl;
-}
-
-void Mips32PrettyPrinter::printAlignment(std::ostream& OS, uint64_t Align) {
-  // In MIPS Assembly Language, `.align N` aligns the next element to multiple
-  // of 2^N. In other ISAs, `.align N` aligns the next element to N.
-  int X = Align, Log2X = 0;
-  while (X >>= 1) {
-    ++Log2X;
-  }
-
-  ElfPrettyPrinter::printAlignment(OS, Log2X);
 }
 
 // Workaround for correct printing of the following instructions:

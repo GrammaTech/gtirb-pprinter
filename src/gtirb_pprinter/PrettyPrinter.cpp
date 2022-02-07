@@ -1401,6 +1401,18 @@ PrettyPrinterBase::getAlignment(const gtirb::DataBlock& Block) {
 }
 
 void PrettyPrinterBase::printAlignment(std::ostream& OS, uint64_t Alignment) {
+  // `.align N` specifies the number of low-order zero bits in the aligned
+  // address (i.e., an alignment of 2^N).
+  // In other styles, `.align N` aligns the next element to N bytes.
+  if (syntax.alignmentStyle() == SyntaxAlignmentZeros) {
+
+    uint64_t X = Alignment, Log2X = 0;
+    while (X >>= 1) {
+      ++Log2X;
+    }
+    Alignment = Log2X;
+  }
+
   OS << syntax.align() << ' ' << Alignment << '\n';
 }
 
