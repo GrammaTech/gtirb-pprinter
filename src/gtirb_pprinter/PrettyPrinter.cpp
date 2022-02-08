@@ -318,7 +318,7 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
   }
 
   for (auto const& Function : aux_data::getFunctionBlocks(module_)) {
-    assert(function.second.size() > 0);
+    assert(Function.second.size() > 0);
     gtirb::Addr LastAddr{0};
     for (auto& BlockUuid : Function.second) {
       const auto* Block = nodeFromUUID<gtirb::CodeBlock>(context, BlockUuid);
