@@ -15,8 +15,8 @@
 #include "ElfBinaryPrinter.hpp"
 
 #include "AuxDataSchema.hpp"
-#include "driver/Logger.h"
 #include "aux_data_util.hpp"
+#include "driver/Logger.h"
 #include "file_utils.hpp"
 #include <boost/filesystem.hpp>
 #include <fstream>
@@ -98,10 +98,10 @@ bool ElfBinaryPrinter::generateDummySO(
         std::string copyName = sym->getName() + "_copy";
         if (auto copySymRange = sym->getModule()->findSymbols(copyName)) {
           if (copySymRange.empty()) {
-          LOG_WARNING << "Symbol not in symbol table [" << sym->getName()
-                      << "] while generating dummy SO\n";
-          assert(false); // Should've been filtered out in prepareDummySOLibs.
-          return false;
+            LOG_WARNING << "Symbol not in symbol table [" << sym->getName()
+                        << "] while generating dummy SO\n";
+            assert(false); // Should've been filtered out in prepareDummySOLibs.
+            return false;
           }
           has_copy = true;
           SymInfo = aux_data::getElfSymbolInfo(*(copySymRange.begin()));
