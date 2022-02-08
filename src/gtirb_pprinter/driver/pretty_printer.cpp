@@ -446,8 +446,8 @@ int main(int argc, char** argv) {
     int i = 0;
     for (gtirb::Module& m : ir->modules()) {
       fs::path name = getAsmFileName(asmPath, i);
-      if (auto errc = binaryPrinter->assemble(name.string(), ctx, m)) {
-        (void)errc; // currently unused;
+      if (auto Errc = binaryPrinter->assemble(name.string(), ctx, m)) {
+        (void)Errc; // currently unused;
         LOG_ERROR << "Unable to assemble '" << name.string() << "'.\n";
         return EXIT_FAILURE;
       }
@@ -476,8 +476,8 @@ int main(int argc, char** argv) {
                 << "' is an unsupported binary printing format.\n";
       return EXIT_FAILURE;
     }
-    if (auto errc = binaryPrinter->link(binaryPath.string(), ctx, *ir)) {
-      (void)errc; // currently unused;
+    if (auto Errc = binaryPrinter->link(binaryPath.string(), ctx, *ir)) {
+      (void)Errc; // currently unused;
       return EXIT_FAILURE;
     }
   }

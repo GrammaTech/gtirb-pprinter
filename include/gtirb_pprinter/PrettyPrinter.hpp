@@ -207,8 +207,8 @@ public:
   /// \param context context to use for allocating AuxData objects if needed
   /// \param module      the module to pretty-print
   ///
-  int print(std::ostream& stream, gtirb::Context& context,
-            gtirb::Module& module) const;
+  int print(std::ostream& Stream, gtirb::Context& Context,
+            gtirb::Module& Module) const;
 
   PolicyOptions& functionPolicy() { return FunctionPolicy; }
   const PolicyOptions& functionPolicy() const { return FunctionPolicy; }

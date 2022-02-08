@@ -96,15 +96,15 @@ bool ElfBinaryPrinter::generateDummySO(
       if (!SymInfo) {
         // See if we have a symbol for "foo_copy", if so use its info
         std::string copyName = sym->getName() + "_copy";
-        if (auto copySymRange = sym->getModule()->findSymbols(copyName)) {
-          if (copySymRange.empty()) {
+        if (auto CopySymRange = sym->getModule()->findSymbols(copyName)) {
+          if (CopySymRange.empty()) {
             LOG_WARNING << "Symbol not in symbol table [" << sym->getName()
                         << "] while generating dummy SO\n";
             assert(false); // Should've been filtered out in prepareDummySOLibs.
             return false;
           }
           has_copy = true;
-          SymInfo = aux_data::getElfSymbolInfo(*(copySymRange.begin()));
+          SymInfo = aux_data::getElfSymbolInfo(*(CopySymRange.begin()));
         } else {
           return false;
         }
@@ -199,20 +199,20 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
   // Collect all libs we need to handle
   std::vector<std::string> libs;
   for (const gtirb::Module& module : ir.modules()) {
-    for (const auto& library : aux_data::getLibraries(module)) {
+    for (const auto& Library : aux_data::getLibraries(module)) {
       // Skip blacklisted libs
-      if (BlacklistedLibraries.count(library)) {
+      if (BlacklistedLibraries.count(Library)) {
         continue;
       }
 
       // TODO: skip any explicit library that isn't just
       // a filename. Do these actually occur?
-      if (boost::filesystem::path(library).has_parent_path()) {
+      if (boost::filesystem::path(Library).has_parent_path()) {
         std::cerr << "ERROR: Skipping explicit lib w/ parent directory: "
-                  << library << "\n";
+                  << Library << "\n";
         continue;
       }
-      libs.push_back(library);
+      libs.push_back(Library);
     }
   }
   if (libs.empty()) {
@@ -240,11 +240,11 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
         if (!SymInfo) {
           // See if we have a symbol for "foo_copy", if so use its info
           std::string copyName = sym.getName() + "_copy";
-          if (auto copySymRange = module.findSymbols(copyName)) {
-            if (copySymRange.empty()) {
+          if (auto CopySymRange = module.findSymbols(copyName)) {
+            if (CopySymRange.empty()) {
               return false;
             }
-            SymInfo = aux_data::getElfSymbolInfo(*copySymRange.begin());
+            SymInfo = aux_data::getElfSymbolInfo(*CopySymRange.begin());
           } else {
             LOG_WARNING << "Symbol not in symbol table [" << sym.getName()
                         << "] while preparing dummy SO\n";
@@ -303,30 +303,30 @@ void ElfBinaryPrinter::addOrigLibraryArgs(
 
   for (const gtirb::Module& module : ir.modules()) {
 
-    auto binaryLibraryPaths = aux_data::getLibraryPaths(module);
-    allBinaryPaths.insert(allBinaryPaths.end(), binaryLibraryPaths.begin(),
-                          binaryLibraryPaths.begin());
+    auto BinaryLibraryPaths = aux_data::getLibraryPaths(module);
+    allBinaryPaths.insert(allBinaryPaths.end(), BinaryLibraryPaths.begin(),
+                          BinaryLibraryPaths.begin());
   }
 
   // add needed libraries
   for (const gtirb::Module& module : ir.modules()) {
-    for (const auto& library : aux_data::getLibraries(module)) {
+    for (const auto& Library : aux_data::getLibraries(module)) {
       // if they're a blacklisted name, skip them
-      if (BlacklistedLibraries.count(library)) {
+      if (BlacklistedLibraries.count(Library)) {
         continue;
       }
       // if they match the lib*.so pattern we let the compiler look for them
-      std::optional<std::string> infixLibraryName =
-          getInfixLibraryName(library);
-      if (infixLibraryName) {
-        args.push_back("-l" + *infixLibraryName);
+      std::optional<std::string> InfixLibraryName =
+          getInfixLibraryName(Library);
+      if (InfixLibraryName) {
+        args.push_back("-l" + *InfixLibraryName);
       } else {
         // otherwise we try to find them here
-        if (std::optional<std::string> libraryLocation =
-                findLibrary(library, allBinaryPaths)) {
-          args.push_back(*libraryLocation);
+        if (std::optional<std::string> LibraryLocation =
+                findLibrary(Library, allBinaryPaths)) {
+          args.push_back(*LibraryLocation);
         } else {
-          std::cerr << "ERROR: Could not find library " << library << std::endl;
+          std::cerr << "ERROR: Could not find library " << Library << std::endl;
         }
       }
     }
@@ -338,9 +338,9 @@ void ElfBinaryPrinter::addOrigLibraryArgs(
   }
   // add binary library paths (add them to rpath as well)
   for (const gtirb::Module& module : ir.modules()) {
-    for (const auto& libraryPath : aux_data::getLibraryPaths(module)) {
-      args.push_back("-L" + libraryPath);
-      args.push_back("-Wl,-rpath," + libraryPath);
+    for (const auto& LibraryPath : aux_data::getLibraryPaths(module)) {
+      args.push_back("-L" + LibraryPath);
+      args.push_back("-Wl,-rpath," + LibraryPath);
     }
   }
 }
@@ -365,30 +365,30 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
     for (gtirb::Module& M : ir.modules()) {
       // if DYN, pie. if EXEC, no-pie. if both, pie overrides no-pie. If none,
       // do not specify either argument.
-      bool pie = false;
-      bool noPie = false;
+      bool Pie = false;
+      bool NoPie = false;
 
       for (const auto& BinTypeStr : aux_data::getBinaryType(M)) {
         if (BinTypeStr == "DYN") {
-          pie = true;
-          noPie = false;
+          Pie = true;
+          NoPie = false;
         } else if (BinTypeStr == "EXEC") {
-          if (!pie) {
-            noPie = true;
-            pie = false;
+          if (!Pie) {
+            NoPie = true;
+            Pie = false;
           }
         } else {
           assert(!"Unknown binary type!");
         }
       }
 
-      if (pie) {
+      if (Pie) {
         args.push_back("-pie");
       }
-      if (noPie) {
+      if (NoPie) {
         args.push_back("-no-pie");
       }
-      if (pie || noPie) {
+      if (Pie || NoPie) {
         break;
       }
     }

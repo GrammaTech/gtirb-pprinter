@@ -48,13 +48,13 @@ bool validateAuxData(const gtirb::Module& Mod, std::string TargetFormat) {
 }
 
 gtirb::schema::FunctionEntries::Type
-getFunctionEntries(const gtirb::Module& mod) {
-  return util::getOrDefault<gtirb::schema::FunctionEntries>(mod);
+getFunctionEntries(const gtirb::Module& Mod) {
+  return util::getOrDefault<gtirb::schema::FunctionEntries>(Mod);
 }
 
 std::map<gtirb::UUID, std::set<gtirb::UUID>>
-getFunctionBlocks(const gtirb::Module& mod) {
-  return util::getOrDefault<gtirb::schema::FunctionBlocks>(mod);
+getFunctionBlocks(const gtirb::Module& Mod) {
+  return util::getOrDefault<gtirb::schema::FunctionBlocks>(Mod);
 }
 
 // There's an extra vector allocated here
@@ -62,34 +62,34 @@ getFunctionBlocks(const gtirb::Module& mod) {
 // to structure the output without allocating a new
 // vector is a lot of work
 std::optional<std::vector<CFIDirective>>
-getCFIDirectives(const gtirb::Offset& offset, const gtirb::Module& mod) {
-  if (auto lst = util::getByOffset<gtirb::schema::CfiDirectives>(offset, mod)) {
-    std::vector<CFIDirective> dirs;
-    for (const auto& directive : *lst) {
-      dirs.emplace_back(directive);
+getCFIDirectives(const gtirb::Offset& Offset, const gtirb::Module& Mod) {
+  if (auto Lst = util::getByOffset<gtirb::schema::CfiDirectives>(Offset, Mod)) {
+    std::vector<CFIDirective> Dirs;
+    for (const auto& Directive : *Lst) {
+      Dirs.emplace_back(Directive);
     }
-    return dirs;
+    return Dirs;
   }
   return std::nullopt;
 }
 
-std::optional<std::string> getEncodingType(const gtirb::DataBlock& dataBlock) {
+std::optional<std::string> getEncodingType(const gtirb::DataBlock& DataBlock) {
   return util::getByNode<gtirb::schema::Encodings>(
-      dataBlock, *(dataBlock.getByteInterval()->getSection()->getModule()));
+      DataBlock, *(DataBlock.getByteInterval()->getSection()->getModule()));
 }
-std::optional<uint64_t> getSymbolicExpressionSize(const gtirb::Offset& offset,
+std::optional<uint64_t> getSymbolicExpressionSize(const gtirb::Offset& Offset,
                                                   const gtirb::Module& Mod) {
-  return util::getByOffset<gtirb::schema::SymbolicExpressionSizes>(offset, Mod);
+  return util::getByOffset<gtirb::schema::SymbolicExpressionSizes>(Offset, Mod);
 }
 
 gtirb::schema::Alignment::Type getAlignments(const gtirb::Module& Mod) {
   return util::getOrDefault<gtirb::schema::Alignment>(Mod);
 }
 
-std::optional<uint64_t> getAlignment(const gtirb::UUID& uuid,
-                                     const gtirb::Module& mod) {
+std::optional<uint64_t> getAlignment(const gtirb::UUID& Uuid,
+                                     const gtirb::Module& Mod) {
   return util::getByKey<gtirb::schema::Alignment>(
-      uuid, mod.getAuxData<gtirb::schema::Alignment>());
+      Uuid, Mod.getAuxData<gtirb::schema::Alignment>());
 }
 
 std::optional<gtirb::UUID> getForwardedSymbol(const gtirb::Symbol* Symbol) {
@@ -121,51 +121,51 @@ const gtirb::schema::Comments::Type* getComments(const gtirb::Module& Module) {
 }
 
 std::optional<aux_data::ElfSymbolInfo>
-getElfSymbolInfo(const gtirb::Symbol& sym) {
-  if (sym.getModule())
-    return util::getByNode<gtirb::schema::ElfSymbolInfo>(sym,
-                                                         *(sym.getModule()));
+getElfSymbolInfo(const gtirb::Symbol& Sym) {
+  if (Sym.getModule())
+    return util::getByNode<gtirb::schema::ElfSymbolInfo>(Sym,
+                                                         *(Sym.getModule()));
   return std::nullopt;
 }
 
-void setElfSymbolInfo(gtirb::Symbol& sym, aux_data::ElfSymbolInfo& info) {
-  auto* Table = sym.getModule()->getAuxData<gtirb::schema::ElfSymbolInfo>();
-  (*Table)[sym.getUUID()] = info.asAuxData();
+void setElfSymbolInfo(gtirb::Symbol& Sym, aux_data::ElfSymbolInfo& Info) {
+  auto* Table = Sym.getModule()->getAuxData<gtirb::schema::ElfSymbolInfo>();
+  (*Table)[Sym.getUUID()] = Info.asAuxData();
 }
 
 std::optional<std::tuple<uint64_t, uint64_t>>
-getElfSectionProperties(const gtirb::Section& section) {
-  if (section.getModule())
+getElfSectionProperties(const gtirb::Section& Section) {
+  if (Section.getModule())
     return util::getByNode<gtirb::schema::ElfSectionProperties>(
-        section, *section.getModule());
+        Section, *Section.getModule());
   return std::nullopt;
 };
 
-std::optional<uint64_t> getPeSectionProperties(const gtirb::Section& section) {
+std::optional<uint64_t> getPeSectionProperties(const gtirb::Section& Section) {
   return util::getByNode<gtirb::schema::PeSectionProperties>(
-      section, *section.getModule());
+      Section, *Section.getModule());
 }
 
-gtirb::schema::ImportEntries::Type getImportEntries(const gtirb::Module& M_) {
-  return util::getOrDefault<gtirb::schema::ImportEntries>(M_);
+gtirb::schema::ImportEntries::Type getImportEntries(const gtirb::Module& M) {
+  return util::getOrDefault<gtirb::schema::ImportEntries>(M);
 }
 
-gtirb::schema::ExportEntries::Type getExportEntries(const gtirb::Module& M_) {
-  return util::getOrDefault<gtirb::schema::ExportEntries>(M_);
+gtirb::schema::ExportEntries::Type getExportEntries(const gtirb::Module& M) {
+  return util::getOrDefault<gtirb::schema::ExportEntries>(M);
 }
 
-gtirb::schema::PEResources::Type getPEResources(const gtirb::Module& M_) {
-  return util::getOrDefault<gtirb::schema::PEResources>(M_);
+gtirb::schema::PEResources::Type getPEResources(const gtirb::Module& M) {
+  return util::getOrDefault<gtirb::schema::PEResources>(M);
 };
 
 gtirb::schema::PeImportedSymbols::Type
-getPeImportedSymbols(const gtirb::Module& M_) {
-  return util::getOrDefault<gtirb::schema::PeImportedSymbols>(M_);
+getPeImportedSymbols(const gtirb::Module& M) {
+  return util::getOrDefault<gtirb::schema::PeImportedSymbols>(M);
 }
 
 gtirb::schema::PeExportedSymbols::Type
-getPeExportedSymbols(const gtirb::Module& M_) {
-  return util::getOrDefault<gtirb::schema::PeExportedSymbols>(M_);
+getPeExportedSymbols(const gtirb::Module& M) {
+  return util::getOrDefault<gtirb::schema::PeExportedSymbols>(M);
 }
 
 } // namespace aux_data

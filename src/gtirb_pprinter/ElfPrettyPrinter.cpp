@@ -288,8 +288,8 @@ void ElfPrettyPrinter::printSectionHeaderDirective(
 void ElfPrettyPrinter::printSectionProperties(std::ostream& os,
                                               const gtirb::Section& section) {
 
-  if (auto sectionProperties = aux_data::getElfSectionProperties(section)) {
-    auto& [type, flags] = *sectionProperties;
+  if (auto SectionProperties = aux_data::getElfSectionProperties(section)) {
+    auto& [type, flags] = *SectionProperties;
     os << " ,\"";
     if (flags & SHF_WRITE)
       os << "w";
@@ -325,17 +325,17 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
       return;
     }
 
-    auto name = getSymbolName(sym);
+    auto Name = getSymbolName(sym);
     printBar(os, false);
-    bool unique = false;
+    bool Unique = false;
     if (SymbolInfo->Binding == "GLOBAL") {
-      os << syntax.global() << ' ' << name << '\n';
+      os << syntax.global() << ' ' << Name << '\n';
     } else if (SymbolInfo->Binding == "WEAK") {
-      os << elfSyntax.weak() << ' ' << name << '\n';
+      os << elfSyntax.weak() << ' ' << Name << '\n';
     } else if (SymbolInfo->Binding == "UNIQUE" ||
                SymbolInfo->Binding == "GNU_UNIQUE") {
-      os << elfSyntax.global() << ' ' << name << '\n';
-      unique = true;
+      os << elfSyntax.global() << ' ' << Name << '\n';
+      Unique = true;
     } else {
       assert(!"unknown binding in elfSymbolInfo!");
     }
@@ -343,11 +343,11 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
     if (SymbolInfo->Visibility == "DEFAULT") {
       // do nothing
     } else if (SymbolInfo->Visibility == "HIDDEN") {
-      os << elfSyntax.hidden() << ' ' << name << '\n';
+      os << elfSyntax.hidden() << ' ' << Name << '\n';
     } else if (SymbolInfo->Visibility == "PROTECTED") {
-      os << elfSyntax.protected_() << ' ' << name << '\n';
+      os << elfSyntax.protected_() << ' ' << Name << '\n';
     } else if (SymbolInfo->Visibility == "INTERNAL") {
-      os << elfSyntax.internal() << ' ' << name << '\n';
+      os << elfSyntax.internal() << ' ' << Name << '\n';
     } else {
       assert(!"unknown visibility in elfSymbolInfo!");
     }
@@ -362,8 +362,8 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
     if (TypeNameIt == TypeNameConversion.end()) {
       assert(!"unknown type in elfSymbolInfo!");
     } else {
-      const auto& TypeName = unique ? "gnu_unique_object" : TypeNameIt->second;
-      os << elfSyntax.type() << ' ' << name << ", "
+      const auto& TypeName = Unique ? "gnu_unique_object" : TypeNameIt->second;
+      os << elfSyntax.type() << ' ' << Name << ", "
          << elfSyntax.attributePrefix() << TypeName << "\n";
     }
 

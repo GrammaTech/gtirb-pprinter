@@ -139,10 +139,10 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
 }
 
 void MasmPrettyPrinter::printIncludes(std::ostream& os) {
-  for (const auto& library : aux_data::getLibraries(module)) {
+  for (const auto& Library : aux_data::getLibraries(module)) {
     // Include import libs later generated using synthesized DEF files passed
     // through lib.exe.  Have observed .dll and .drv files
-    os << "INCLUDELIB " << gtirb_bprint::replaceExtension(library, ".lib")
+    os << "INCLUDELIB " << gtirb_bprint::replaceExtension(Library, ".lib")
        << '\n';
   }
   os << '\n';
@@ -156,10 +156,10 @@ void MasmPrettyPrinter::printExterns(std::ostream& os) {
     return;
   }
 
-  for (auto& forward : Forwarding) {
-    if (const auto* symbol = dyn_cast_or_null<gtirb::Symbol>(
-            gtirb::Node::getByUUID(context, forward.second))) {
-      std::string Name = getSymbolName(*symbol);
+  for (auto& Forward : Forwarding) {
+    if (const auto* Symbol = dyn_cast_or_null<gtirb::Symbol>(
+            gtirb::Node::getByUUID(context, Forward.second))) {
+      std::string Name = getSymbolName(*Symbol);
       // This is not completely understood why, but link.exe (msvc) mangles
       // differently.  We'll apply this heuristic until it's fully understood.
       Externs.insert(module.getISA() == gtirb::ISA::IA32 && Name[0] != '?'
@@ -245,27 +245,27 @@ void MasmPrettyPrinter::printSectionHeaderDirective(
 void MasmPrettyPrinter::printSectionProperties(std::ostream& os,
                                                const gtirb::Section& section) {
 
-  if (const auto sectionProperties =
+  if (const auto SectionProperties =
           aux_data::getPeSectionProperties(section)) {
-    uint64_t flags = *sectionProperties;
+    uint64_t Flags = *SectionProperties;
 
-    if (flags & IMAGE_SCN_MEM_READ)
+    if (Flags & IMAGE_SCN_MEM_READ)
       os << " READ";
-    if (flags & IMAGE_SCN_MEM_WRITE)
+    if (Flags & IMAGE_SCN_MEM_WRITE)
       os << " WRITE";
-    if (flags & IMAGE_SCN_MEM_EXECUTE)
+    if (Flags & IMAGE_SCN_MEM_EXECUTE)
       os << " EXECUTE";
-    if (flags & IMAGE_SCN_MEM_SHARED)
+    if (Flags & IMAGE_SCN_MEM_SHARED)
       os << " SHARED";
-    if (flags & IMAGE_SCN_MEM_NOT_PAGED)
+    if (Flags & IMAGE_SCN_MEM_NOT_PAGED)
       os << " NOPAGE";
-    if (flags & IMAGE_SCN_MEM_NOT_CACHED)
+    if (Flags & IMAGE_SCN_MEM_NOT_CACHED)
       os << " NOCACHE";
-    if (flags & IMAGE_SCN_MEM_DISCARDABLE)
+    if (Flags & IMAGE_SCN_MEM_DISCARDABLE)
       os << " DISCARD";
-    if (flags & IMAGE_SCN_CNT_CODE)
+    if (Flags & IMAGE_SCN_CNT_CODE)
       os << " 'CODE'";
-    if (flags & IMAGE_SCN_CNT_INITIALIZED_DATA)
+    if (Flags & IMAGE_SCN_CNT_INITIALIZED_DATA)
       os << " 'DATA'";
   }
 };

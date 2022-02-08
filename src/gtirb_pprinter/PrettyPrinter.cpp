@@ -238,13 +238,13 @@ const PrintingPolicy& PrettyPrinter::getPolicy(gtirb::Module& Module) const {
                                  : *Factory.findNamedPolicy(PolicyName);
 }
 
-int PrettyPrinter::print(std::ostream& stream, gtirb::Context& context,
-                         gtirb::Module& module) const {
+int PrettyPrinter::print(std::ostream& Stream, gtirb::Context& Context,
+                         gtirb::Module& Module) const {
   // Find pretty printer factory.
-  PrettyPrinterFactory& Factory = getFactory(module);
+  PrettyPrinterFactory& Factory = getFactory(Module);
 
   // Configure printing policy.
-  PrintingPolicy policy(getPolicy(module));
+  PrintingPolicy policy(getPolicy(Module));
   policy.LstMode = LstMode;
   policy.Shared = Shared;
   FunctionPolicy.apply(policy.skipFunctions);
@@ -253,8 +253,8 @@ int PrettyPrinter::print(std::ostream& stream, gtirb::Context& context,
   ArraySectionPolicy.apply(policy.arraySections);
 
   // Create the pretty printer and print the IR.
-  if (aux_data::validateAuxData(module, m_format)) {
-    if (Factory.create(context, module, policy)->print(stream)) {
+  if (aux_data::validateAuxData(Module, m_format)) {
+    if (Factory.create(Context, Module, policy)->print(Stream)) {
       return 0;
     }
   }
@@ -304,32 +304,32 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
       LstMode(policy.LstMode), context(context_), module(module_),
       functionEntry(), functionLastBlock(), PreferredEOLCommentPos(64) {
 
-  for (auto const& function : aux_data::getFunctionBlocks(module_)) {
-    for (auto& entryBlockUUID : function.second) {
-      const auto* block =
-          nodeFromUUID<gtirb::CodeBlock>(context, entryBlockUUID);
-      if (block)
-        functionEntry.insert(*block->getAddress());
+  for (auto const& Function : aux_data::getFunctionBlocks(module_)) {
+    for (auto& EntryBlockUuid : Function.second) {
+      const auto* Block =
+          nodeFromUUID<gtirb::CodeBlock>(context, EntryBlockUuid);
+      if (Block)
+        functionEntry.insert(*Block->getAddress());
       else
-        LOG_WARNING << "UUID " << boost::uuids::to_string(entryBlockUUID)
+        LOG_WARNING << "UUID " << boost::uuids::to_string(EntryBlockUuid)
                     << " in functionEntries table references non-existent "
                     << "block.\n";
     }
   }
 
-  for (auto const& function : aux_data::getFunctionBlocks(module_)) {
+  for (auto const& Function : aux_data::getFunctionBlocks(module_)) {
     assert(function.second.size() > 0);
-    gtirb::Addr lastAddr{0};
-    for (auto& blockUUID : function.second) {
-      const auto* block = nodeFromUUID<gtirb::CodeBlock>(context, blockUUID);
-      if (!block)
-        LOG_WARNING << "UUID " << boost::uuids::to_string(blockUUID)
+    gtirb::Addr LastAddr{0};
+    for (auto& BlockUuid : Function.second) {
+      const auto* Block = nodeFromUUID<gtirb::CodeBlock>(context, BlockUuid);
+      if (!Block)
+        LOG_WARNING << "UUID " << boost::uuids::to_string(BlockUuid)
                     << " in functionBlocks table references non-existent "
                     << "block.\n";
-      if (block && block->getAddress() > lastAddr)
-        lastAddr = *block->getAddress();
+      if (Block && Block->getAddress() > LastAddr)
+        LastAddr = *Block->getAddress();
     }
-    functionLastBlock.insert(lastAddr);
+    functionLastBlock.insert(LastAddr);
   }
 
   // FIXME: Make getContainerFunctionName return multiple labels, remove this.
@@ -924,10 +924,10 @@ void PrettyPrinterBase::printNonZeroDataBlock(
   std::map<gtirb::Offset, std::string>::const_iterator CommentsIt;
   std::map<gtirb::Offset, std::string>::const_iterator CommentsEnd;
   if (this->LstMode == ListingDebug) {
-    if (const auto* comments = aux_data::getComments(module)) {
+    if (const auto* Comments = aux_data::getComments(module)) {
       HasComments = true;
-      CommentsIt = comments->lower_bound(CurrOffset);
-      CommentsEnd = comments->end();
+      CommentsIt = Comments->lower_bound(CurrOffset);
+      CommentsEnd = Comments->end();
     }
   }
   auto printCommentsBetween = [&](uint64_t Size) {
@@ -1011,10 +1011,10 @@ void PrettyPrinterBase::printComments(std::ostream& os,
   if (this->LstMode != ListingDebug)
     return;
 
-  if (const auto* comments = aux_data::getComments(module)) {
+  if (const auto* Comments = aux_data::getComments(module)) {
     gtirb::Offset endOffset(offset.ElementId, offset.Displacement + range);
-    for (auto p = comments->lower_bound(offset);
-         p != comments->end() && p->first < endOffset; ++p) {
+    for (auto p = Comments->lower_bound(offset);
+         p != Comments->end() && p->first < endOffset; ++p) {
       os << syntax.comment();
       if (p->first.Displacement > offset.Displacement)
         os << "+" << p->first.Displacement - offset.Displacement << ":";
@@ -1055,9 +1055,9 @@ void PrettyPrinterBase::printCFIDirectives(std::ostream& os,
   if (this->LstMode == ListingUI)
     return;
 
-  if (auto cfiDirectives = aux_data::getCFIDirectives(offset, module)) {
-    for (auto& cfiDirective : *cfiDirectives) {
-      std::string Directive = cfiDirective.Directive;
+  if (auto CfiDirectives = aux_data::getCFIDirectives(offset, module)) {
+    for (auto& CfiDirective : *CfiDirectives) {
+      std::string Directive = CfiDirective.Directive;
 
       if (Directive == ".cfi_startproc") {
         CFIStartProc = programCounter;
@@ -1068,19 +1068,19 @@ void PrettyPrinterBase::printCFIDirectives(std::ostream& os,
       }
 
       os << Directive << " ";
-      const std::vector<int64_t>& operands = cfiDirective.Operands;
-      for (auto it = operands.begin(); it != operands.end(); it++) {
-        if (it != operands.begin())
+      const std::vector<int64_t>& Operands = CfiDirective.Operands;
+      for (auto It = Operands.begin(); It != Operands.end(); It++) {
+        if (It != Operands.begin())
           os << ", ";
-        os << *it;
+        os << *It;
       }
 
-      gtirb::Symbol* symbol =
-          nodeFromUUID<gtirb::Symbol>(context, cfiDirective.Uuid);
-      if (symbol) {
-        if (operands.size() > 0)
+      gtirb::Symbol* Symbol =
+          nodeFromUUID<gtirb::Symbol>(context, CfiDirective.Uuid);
+      if (Symbol) {
+        if (Operands.size() > 0)
           os << ", ";
-        printSymbolReference(os, symbol);
+        printSymbolReference(os, Symbol);
       }
 
       os << std::endl;
