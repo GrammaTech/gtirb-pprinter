@@ -48,6 +48,10 @@
 
 namespace aux_data {
 
+// Check that a Module's AuxData contains all tables required for printing.
+bool validateAuxData(const gtirb::Module& Mod, std::string TargetFormat);
+
+// Templated access patterns for AuxData tables
 namespace util {
 
 // Dereference an AuxData table or initialize a default value.
@@ -77,14 +81,14 @@ getByKey(KeyType K, const typename Schema::Type* SchemaPtr) {
   return std::nullopt;
 }
 
-// Access a map-typed AuxData schema by key value.
+// Access a map-typed AuxData schema keyed by gtirb::Offset.
 template <typename Schema>
 std::optional<typename Schema::Type::mapped_type>
 getByOffset(const gtirb::Offset Offset, const gtirb::Module& Mod) {
   return getByKey<Schema, gtirb::Offset>(Offset, Mod.getAuxData<Schema>());
 }
 
-// Access a map-typed AuxData keyed by gtirb::Offset.
+// Access a map-typed AuxData schema keyed by gtirb::UUID.
 template <typename Schema>
 std::optional<typename Schema::Type::mapped_type>
 getByNode(const gtirb::Node& Node, const gtirb::Module& Mod) {
@@ -96,7 +100,7 @@ getByNode(const gtirb::Node& Node, const gtirb::Module& Mod) {
 
 namespace elf {
 
-// Table maps ELF flag labels to assembly keywords.
+// Table mapping ELF flag labels to assembly keywords.
 static const std::unordered_map<std::string, std::string> TypeNameConversion = {
     {"FUNC", "function"},  {"OBJECT", "object"},
     {"NOTYPE", "notype"},  {"NONE", "notype"},
@@ -150,6 +154,7 @@ struct CFIDirective {
   AuxDataType asAuxData() { return AuxDataType{Directive, Operands, Uuid}; }
 };
 
+// Find the encoding for a DataBlock in the `Encodings` AuxData table.
 std::optional<std::string> getEncodingType(const gtirb::DataBlock& DataBlock);
 
 // Find CFI directives for some location in a byte interval in the
@@ -158,7 +163,7 @@ std::optional<std::vector<CFIDirective>>
 getCFIDirectives(const gtirb::Offset& Offset, const gtirb::Module& Mod);
 
 // Load all function entry nodes from the `functionEntries' Auxdata table.
-gtirb::schema::FunctionEntries::Type
+std::map<gtirb::UUID, std::set<gtirb::UUID>>
 getFunctionEntries(const gtirb::Module& Mod);
 
 // Load all function block UUIDs from the `functionBlocks' AuxData table.
@@ -170,8 +175,10 @@ std::optional<uint64_t> getSymbolicExpressionSize(const gtirb::Offset& Offset,
                                                   const gtirb::Module& Mod);
 
 // Load all alignment entries from the `alignment' AuxData table.
-gtirb::schema::Alignment::Type getAlignments(const gtirb::Module& Mod);
+std::map<gtirb::UUID, uint64_t> getAlignments(const gtirb::Module& Mod);
 
+// Get the alignment information for a specific node from the
+// `alignment' AuxData table
 std::optional<uint64_t> getAlignment(const gtirb::UUID& Uuid,
                                      const gtirb::Module& Mod);
 
@@ -193,7 +200,8 @@ std::map<gtirb::UUID, gtirb::UUID>
 getSymbolForwarding(const gtirb::Module& Module);
 
 // Load all comments for instructions from the `comments' AuxData table.
-const gtirb::schema::Comments::Type* getComments(const gtirb::Module& Module);
+const std::map<gtirb::Offset, std::string>*
+getComments(const gtirb::Module& Module);
 
 // Check that a Module's AuxData contains all tables required for printing.
 bool validateAuxData(const gtirb::Module& Mod, std::string TargetFormat);
@@ -211,27 +219,27 @@ std::optional<std::tuple<uint64_t, uint64_t>>
 getElfSectionProperties(const gtirb::Section& Section);
 
 // Load the section properties of a PE binary section from the
-// `elfSectionProperties' AuxData tables.
+// `peSectionProperties' AuxData tables.
 std::optional<uint64_t> getPeSectionProperties(const gtirb::Section& Section);
 
-// Load list UUIDs for symbols imported by a PE binary from the
-// `peImportedSymbols' AuxData table.
+// Load all imported symbol properties for a PE binary from the
+// `peImportEntries' AuxData table.
 gtirb::schema::ImportEntries::Type getImportEntries(const gtirb::Module& M);
 
-// Load list UUIDs for symbols exported by a PE binary from the
-// `peExportedSymbols' AuxData table.
+// Load all exported symbol properties for a PE binary from the
+// `peExportEntries' AuxData table.
 gtirb::schema::ExportEntries::Type getExportEntries(const gtirb::Module& M);
 
 // Load all PE resources from the `peResources' AuxData table.
 gtirb::schema::PEResources::Type getPEResources(const gtirb::Module& M);
 
-// Load all imported symbol properties for a PE binary from the
-// `peImportEntries' AuxData table.
+// Load list of UUIDs for symbols imported by a PE binary from the
+// `peImportedSymbols' AuxData table.
 gtirb::schema::PeImportedSymbols::Type
 getPeImportedSymbols(const gtirb::Module& M);
 
-// Load all exported symbol properties for a PE binary from the
-// `peExportEntries' AuxData table.
+// Load list of UUIDs for symbols exported by a PE binary from the
+// `peExportedSymbols' AuxData table.
 gtirb::schema::PeExportedSymbols::Type
 getPeExportedSymbols(const gtirb::Module& M);
 
