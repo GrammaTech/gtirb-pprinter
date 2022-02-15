@@ -1284,7 +1284,8 @@ bool PrettyPrinterBase::shouldSkip(const gtirb::DataBlock& block) const {
     return true;
   }
 
-  return false;
+  auto FunctionName = getContainerFunctionName(*block.getAddress());
+  return FunctionName && policy.skipFunctions.count(*FunctionName);
 }
 
 bool PrettyPrinterBase::isFunctionEntry(const gtirb::Addr x) const {
