@@ -75,6 +75,9 @@ protected:
                   unsigned int value);
   void printExtender(std::ostream& os, const arm64_extender& ext,
                      const arm64_shifter shiftType, uint64_t shiftValue);
+
+private:
+  bool IsPrintingGroupedOperands = false;
 };
 
 class Arm64PrettyPrinterFactory : public ElfPrettyPrinterFactory {

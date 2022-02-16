@@ -106,11 +106,88 @@ void Arm64PrettyPrinter::printOperandList(std::ostream& os,
   cs_arm64& detail = inst.detail->arm64;
   int opCount = detail.op_count;
 
-  for (int i = 0; i < opCount; i++) {
+  struct InsnOperandGrouping {
+    arm64_insn insn;
+    uint8_t start;
+  };
+
+  InsnOperandGrouping Groupings[] = {
+      {ARM64_INS_LD1, 0},     {ARM64_INS_LD1B, 0},    {ARM64_INS_LD1D, 0},
+      {ARM64_INS_LD1H, 0},    {ARM64_INS_LD1R, 0},    {ARM64_INS_LD1RB, 0},
+      {ARM64_INS_LD1RD, 0},   {ARM64_INS_LD1RH, 0},   {ARM64_INS_LD1RQB, 0},
+      {ARM64_INS_LD1RQD, 0},  {ARM64_INS_LD1RQH, 0},  {ARM64_INS_LD1RQW, 0},
+      {ARM64_INS_LD1RSB, 0},  {ARM64_INS_LD1RSH, 0},  {ARM64_INS_LD1RSW, 0},
+      {ARM64_INS_LD1RW, 0},   {ARM64_INS_LD1SB, 0},   {ARM64_INS_LD1SH, 0},
+      {ARM64_INS_LD1SW, 0},   {ARM64_INS_LD1W, 0},    {ARM64_INS_LD2, 0},
+      {ARM64_INS_LD2B, 0},    {ARM64_INS_LD2D, 0},    {ARM64_INS_LD2H, 0},
+      {ARM64_INS_LD2R, 0},    {ARM64_INS_LD2W, 0},    {ARM64_INS_LD3, 0},
+      {ARM64_INS_LD3B, 0},    {ARM64_INS_LD3D, 0},    {ARM64_INS_LD3H, 0},
+      {ARM64_INS_LD3R, 0},    {ARM64_INS_LD3W, 0},    {ARM64_INS_LD4, 0},
+      {ARM64_INS_LD4B, 0},    {ARM64_INS_LD4D, 0},    {ARM64_INS_LD4H, 0},
+      {ARM64_INS_LD4R, 0},    {ARM64_INS_LD4W, 0},    {ARM64_INS_LDFF1B, 0},
+      {ARM64_INS_LDFF1D, 0},  {ARM64_INS_LDFF1H, 0},  {ARM64_INS_LDFF1SB, 0},
+      {ARM64_INS_LDFF1SH, 0}, {ARM64_INS_LDFF1SW, 0}, {ARM64_INS_LDFF1W, 0},
+      {ARM64_INS_LDNF1B, 0},  {ARM64_INS_LDNF1D, 0},  {ARM64_INS_LDNF1H, 0},
+      {ARM64_INS_LDNF1SB, 0}, {ARM64_INS_LDNF1SH, 0}, {ARM64_INS_LDNF1SW, 0},
+      {ARM64_INS_LDNF1W, 0},  {ARM64_INS_LDNT1B, 0},  {ARM64_INS_LDNT1D, 0},
+      {ARM64_INS_LDNT1H, 0},  {ARM64_INS_LDNT1W, 0},  {ARM64_INS_ST1, 0},
+      {ARM64_INS_ST1, 0},     {ARM64_INS_ST1, 0},     {ARM64_INS_ST1, 0},
+      {ARM64_INS_ST1B, 0},    {ARM64_INS_ST1D, 0},    {ARM64_INS_ST1H, 0},
+      {ARM64_INS_ST1W, 0},    {ARM64_INS_ST2B, 0},    {ARM64_INS_ST2D, 0},
+      {ARM64_INS_ST2H, 0},    {ARM64_INS_ST2W, 0},    {ARM64_INS_ST3B, 0},
+      {ARM64_INS_ST3D, 0},    {ARM64_INS_ST3H, 0},    {ARM64_INS_ST3W, 0},
+      {ARM64_INS_ST4B, 0},    {ARM64_INS_ST4D, 0},    {ARM64_INS_ST4H, 0},
+      {ARM64_INS_ST4W, 0},    {ARM64_INS_STNT1B, 0},  {ARM64_INS_STNT1D, 0},
+      {ARM64_INS_STNT1H, 0},  {ARM64_INS_STNT1W, 0},  {ARM64_INS_TBL, 1}};
+
+  InsnOperandGrouping* Grouping = nullptr;
+  for (uint8_t i = 0; i < sizeof(Groupings) / sizeof(Groupings[0]); i++) {
+    if (Groupings[i].insn == static_cast<arm64_insn>(inst.id)) {
+      Grouping = &Groupings[i];
+      break;
+    }
+  }
+
+  for (uint8_t i = 0; i < opCount; i++) {
     if (i != 0) {
       os << ',';
     }
+
+    if (Grouping && Grouping->start == i) {
+      os << "{";
+      IsPrintingGroupedOperands = true;
+    }
+
     printOperand(os, block, inst, i);
+
+    if (IsPrintingGroupedOperands) {
+      uint8_t offset = 0;
+
+      if (static_cast<arm64_insn>(inst.id) == ARM64_INS_TBL) {
+        // Special case: TBL instructions have a trailing ungrouped operand.
+        offset = 1;
+      }
+
+      // Expect grouped operands to all be registers with a VAS specifier.
+      // Close the grouping when we find an operand that does not match this,
+      // or if there are no more operands.
+      if (i + 1 + offset < opCount) {
+        cs_arm64_op& nextOp = inst.detail->arm64.operands[i + 1];
+        if (nextOp.type != ARM64_OP_REG || nextOp.vas == ARM64_VAS_INVALID) {
+          IsPrintingGroupedOperands = false;
+        }
+      } else {
+        IsPrintingGroupedOperands = false;
+      }
+
+      if (!IsPrintingGroupedOperands) {
+        os << "}";
+        cs_arm64_op& op = inst.detail->arm64.operands[i];
+        if (op.vector_index != -1) {
+          os << "[" << op.vector_index << "]";
+        }
+      }
+    }
   }
 
   auto arm64Cc2String = [](arm64_cc cc) {
@@ -280,8 +357,11 @@ void Arm64PrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
     };
 
     os << "." << arm64Vas2String(op.vas);
-    if (op.vector_index != -1) {
-      os << "[" << op.vector_index << "]";
+    if (!IsPrintingGroupedOperands) {
+      // Grouped operands print the index following the group.
+      if (op.vector_index != -1) {
+        os << "[" << op.vector_index << "]";
+      }
     }
   }
 
