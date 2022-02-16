@@ -243,6 +243,48 @@ void Arm64PrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
          "printOpRegdirect called without a register operand");
   os << getRegisterName(op.reg);
 
+  if (op.vas != ARM64_VAS_INVALID) {
+    auto arm64Vas2String = [](arm64_vas vas) {
+      switch (vas) {
+      case ARM64_VAS_16B:
+        return "16b";
+      case ARM64_VAS_8B:
+        return "8b";
+      case ARM64_VAS_4B:
+        return "4b";
+      case ARM64_VAS_1B:
+        return "b";
+      case ARM64_VAS_8H:
+        return "8h";
+      case ARM64_VAS_4H:
+        return "4h";
+      case ARM64_VAS_2H:
+        return "2h";
+      case ARM64_VAS_1H:
+        return "h";
+      case ARM64_VAS_4S:
+        return "4s";
+      case ARM64_VAS_2S:
+        return "2s";
+      case ARM64_VAS_1S:
+        return "s";
+      case ARM64_VAS_2D:
+        return "2d";
+      case ARM64_VAS_1D:
+        return "d";
+      case ARM64_VAS_1Q:
+        return "q";
+      default:
+        return "";
+      }
+    };
+
+    os << "." << arm64Vas2String(op.vas);
+    if (op.vector_index != -1) {
+      os << "[" << op.vector_index << "]";
+    }
+  }
+
   auto arm64Shifter2String = [](arm64_shifter sft) {
     switch (sft) {
     case ARM64_SFT_INVALID:
