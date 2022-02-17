@@ -27,6 +27,12 @@ public:
   SyntaxAlignmentStyle alignmentStyle() const override {
     return SyntaxAlignmentZeros;
   };
+
+  const std::string& wordData() const override { return WordDirective; }
+
+private:
+  // ".word" on aarch64 is 4 bytes, so we must use .short instead.
+  const std::string WordDirective{".short"};
 };
 
 class Arm64PrettyPrinter : public ElfPrettyPrinter {
