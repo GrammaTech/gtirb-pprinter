@@ -159,6 +159,8 @@ std::optional<std::string> getEncodingType(const gtirb::DataBlock& DataBlock);
 
 // Find CFI directives for some location in a byte interval in the
 // `cfiDirectives' AuxData table.
+// Retuns std::nullopt if either the `cfiDirectives` table is absent,
+// or if there is no entry in the table for `Offset`.
 std::optional<std::vector<CFIDirective>>
 getCFIDirectives(const gtirb::Offset& Offset, const gtirb::Module& Mod);
 

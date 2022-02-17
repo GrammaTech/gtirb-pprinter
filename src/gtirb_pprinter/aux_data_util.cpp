@@ -57,18 +57,16 @@ getFunctionBlocks(const gtirb::Module& Mod) {
   return util::getOrDefault<gtirb::schema::FunctionBlocks>(Mod);
 }
 
-// There's an extra vector allocated here
-// that doesn't need to be, but getting c++
-// to structure the output without allocating a new
-// vector is a lot of work
 std::optional<std::vector<CFIDirective>>
 getCFIDirectives(const gtirb::Offset& Offset, const gtirb::Module& Mod) {
   if (auto Lst = util::getByOffset<gtirb::schema::CfiDirectives>(Offset, Mod)) {
-    std::vector<CFIDirective> Dirs;
-    for (const auto& Directive : *Lst) {
-      Dirs.emplace_back(Directive);
+    if (!(*Lst).empty()) {
+      std::vector<CFIDirective> Dirs;
+      for (const auto& Directive : *Lst) {
+        Dirs.emplace_back(Directive);
+      }
+      return Dirs;
     }
-    return Dirs;
   }
   return std::nullopt;
 }
