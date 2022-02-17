@@ -1,4 +1,4 @@
-#include "aux_data_util.hpp"
+#include "AuxDataUtils.hpp"
 #include <iostream>
 
 namespace aux_data {

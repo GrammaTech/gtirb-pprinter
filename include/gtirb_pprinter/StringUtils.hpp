@@ -1,4 +1,4 @@
-//===- string_utils.cpp -----------------------------------------*- C++ -*-===//
+//===- StringUtils.hpp -----------------------------------------*- C++ -*-===//
 //
 //  Copyright (C) 2019 GrammaTech, Inc.
 //
@@ -12,22 +12,12 @@
 //  endorsement should be inferred.
 //
 //===----------------------------------------------------------------------===//
+#ifndef GTIRB_PP_StringUtils_H
+#define GTIRB_PP_StringUtils_H
 
-#include "string_utils.hpp"
+#include <string>
 
-#include <algorithm>
-#include <cctype>
+std::string ascii_str_tolower(std::string s);
+std::string ascii_str_toupper(std::string s);
 
-std::string ascii_str_tolower(std::string s) {
-  std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) {
-    return static_cast<unsigned char>(std::tolower(c));
-  });
-  return s;
-}
-
-std::string ascii_str_toupper(std::string s) {
-  std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) {
-    return static_cast<unsigned char>(std::toupper(c));
-  });
-  return s;
-}
+#endif /* GTIRB_PP_StringUtils_H */

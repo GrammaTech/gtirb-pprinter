@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 #include "AttPrettyPrinter.hpp"
 #include "driver/Logger.h"
-#include "string_utils.hpp"
+#include "StringUtils.hpp"
 #include "version.h"
 
 namespace gtirb_pprint {

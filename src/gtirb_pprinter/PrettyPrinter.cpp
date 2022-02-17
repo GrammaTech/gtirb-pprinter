@@ -13,11 +13,11 @@
 //
 //===----------------------------------------------------------------------===//
 #include "PrettyPrinter.hpp"
-#include "aux_data_util.hpp"
+#include "AuxDataUtils.hpp"
 #include "driver/Logger.h"
 
 #include "AuxDataSchema.hpp"
-#include "string_utils.hpp"
+#include "StringUtils.hpp"
 #include <boost/lexical_cast.hpp>
 #include <boost/range/algorithm/find_if.hpp>
 #include <boost/uuid/uuid_io.hpp>

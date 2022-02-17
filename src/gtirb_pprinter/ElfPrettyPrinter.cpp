@@ -13,7 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 #include "ElfPrettyPrinter.hpp"
-#include "aux_data_util.hpp"
+#include "AuxDataUtils.hpp"
 #include "driver/Logger.h"
 
 #include "AuxDataSchema.hpp"

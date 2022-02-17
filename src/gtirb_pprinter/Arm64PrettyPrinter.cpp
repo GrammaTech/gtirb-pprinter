@@ -19,7 +19,7 @@
 
 #include "Arm64PrettyPrinter.hpp"
 #include "AuxDataSchema.hpp"
-#include "string_utils.hpp"
+#include "StringUtils.hpp"
 
 #include <capstone/capstone.h>
 

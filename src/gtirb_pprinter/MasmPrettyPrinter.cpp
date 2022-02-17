@@ -16,10 +16,10 @@
 #include "MasmPrettyPrinter.hpp"
 
 #include "AuxDataSchema.hpp"
-#include "aux_data_util.hpp"
-#include "file_utils.hpp"
+#include "AuxDataUtils.hpp"
+#include "FileUtils.hpp"
+#include "StringUtils.hpp"
 #include "regex"
-#include "string_utils.hpp"
 #include <boost/algorithm/string/replace.hpp>
 
 namespace gtirb_pprint {

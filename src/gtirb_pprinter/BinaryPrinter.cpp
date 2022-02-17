@@ -13,7 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 #include "BinaryPrinter.hpp"
-#include "file_utils.hpp"
+#include "FileUtils.hpp"
 
 namespace gtirb_bprint {
 bool BinaryPrinter::prepareSource(gtirb::Context& ctx, gtirb::Module& mod,

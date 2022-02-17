@@ -1,4 +1,4 @@
-//===- file_utils.hpp ----------------------------------------------*- C++ ---//
+//===- FileUtils.hpp ----------------------------------------------*- C++ ---//
 //
 //  Copyright (C) 2020 GrammaTech, Inc.
 //
@@ -12,8 +12,8 @@
 //  endorsement should be inferred.
 //
 //===----------------------------------------------------------------------===//
-#ifndef GTIRB_FILE_UTILS_H
-#define GTIRB_FILE_UTILS_H
+#ifndef GTIRB_FileUtils_H
+#define GTIRB_FileUtils_H
 
 #include <fstream>
 #include <optional>
@@ -69,4 +69,4 @@ std::optional<int> execute(const std::string& tool,
                            const std::vector<std::string>& args);
 
 } // namespace gtirb_bprint
-#endif /* GTIRB_FILE_UTILS_H */
+#endif /* GTIRB_FileUtils_H */

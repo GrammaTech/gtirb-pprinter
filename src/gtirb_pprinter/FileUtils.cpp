@@ -1,4 +1,4 @@
-//===- file_utils.cpp -------------------------------------------*- C++ -*-===//
+//===- FileUtils.cpp -------------------------------------------*- C++ -*-===//
 //
 //  Copyright (C) 2020 GrammaTech, Inc.
 //
@@ -12,7 +12,7 @@
 //  endorsement should be inferred.
 //
 //===----------------------------------------------------------------------===//
-#include "file_utils.hpp"
+#include "FileUtils.hpp"
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpragmas"

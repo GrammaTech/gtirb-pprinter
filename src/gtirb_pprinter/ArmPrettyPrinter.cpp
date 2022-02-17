@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "ArmPrettyPrinter.hpp"
-#include "string_utils.hpp"
+#include "StringUtils.hpp"
 #include <iostream>
 
 namespace gtirb_pprint {
