@@ -13,8 +13,8 @@
 //
 //===----------------------------------------------------------------------===//
 #include "AttPrettyPrinter.hpp"
-#include "driver/Logger.h"
 #include "StringUtils.hpp"
+#include "driver/Logger.h"
 #include "version.h"
 
 namespace gtirb_pprint {
