@@ -304,7 +304,7 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
       LstMode(policy.LstMode), context(context_), module(module_),
       functionEntry(), functionLastBlock(), PreferredEOLCommentPos(64) {
 
-  for (auto const& Function : aux_data::getFunctionBlocks(module_)) {
+  for (auto const& Function : aux_data::getFunctionEntries(module_)) {
     for (auto& EntryBlockUuid : Function.second) {
       const auto* Block =
           nodeFromUUID<gtirb::CodeBlock>(context, EntryBlockUuid);
