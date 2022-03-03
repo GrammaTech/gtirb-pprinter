@@ -106,12 +106,7 @@ void Arm64PrettyPrinter::printOperandList(std::ostream& os,
   cs_arm64& detail = inst.detail->arm64;
   int opCount = detail.op_count;
 
-  struct InsnOperandGrouping {
-    arm64_insn insn;
-    uint8_t start;
-  };
-
-  InsnOperandGrouping Groupings[] = {
+  const static std::map<arm64_insn, uint8_t> Groupings = {
       {ARM64_INS_LD1, 0},     {ARM64_INS_LD1B, 0},    {ARM64_INS_LD1D, 0},
       {ARM64_INS_LD1H, 0},    {ARM64_INS_LD1R, 0},    {ARM64_INS_LD1RB, 0},
       {ARM64_INS_LD1RD, 0},   {ARM64_INS_LD1RH, 0},   {ARM64_INS_LD1RQB, 0},
@@ -140,12 +135,10 @@ void Arm64PrettyPrinter::printOperandList(std::ostream& os,
       {ARM64_INS_ST4W, 0},    {ARM64_INS_STNT1B, 0},  {ARM64_INS_STNT1D, 0},
       {ARM64_INS_STNT1H, 0},  {ARM64_INS_STNT1W, 0},  {ARM64_INS_TBL, 1}};
 
-  InsnOperandGrouping* Grouping = nullptr;
-  for (uint8_t i = 0; i < sizeof(Groupings) / sizeof(Groupings[0]); i++) {
-    if (Groupings[i].insn == static_cast<arm64_insn>(inst.id)) {
-      Grouping = &Groupings[i];
-      break;
-    }
+  std::optional<uint8_t> GroupingStart;
+  if (auto It = Groupings.find(static_cast<arm64_insn>(inst.id));
+      It != Groupings.end()) {
+    GroupingStart = It->second;
   }
 
   for (uint8_t i = 0; i < opCount; i++) {
@@ -153,7 +146,7 @@ void Arm64PrettyPrinter::printOperandList(std::ostream& os,
       os << ',';
     }
 
-    if (Grouping && Grouping->start == i) {
+    if (GroupingStart && *GroupingStart == i) {
       os << "{";
       IsPrintingGroupedOperands = true;
     }
