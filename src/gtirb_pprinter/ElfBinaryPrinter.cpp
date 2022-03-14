@@ -305,7 +305,7 @@ void ElfBinaryPrinter::addOrigLibraryArgs(
 
     auto BinaryLibraryPaths = aux_data::getLibraryPaths(module);
     allBinaryPaths.insert(allBinaryPaths.end(), BinaryLibraryPaths.begin(),
-                          BinaryLibraryPaths.begin());
+                          BinaryLibraryPaths.end());
   }
 
   // add needed libraries
