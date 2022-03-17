@@ -197,85 +197,85 @@ void ElfPrettyPrinter::fixupSharedObject() {
         }
       }
     }
+  }
 
-    // make a hidden alias for every global symbol that is called
-    // directly by a code block
-    using GlobalToHiddenSymsType =
-        std::unordered_map<gtirb::Symbol*, gtirb::Symbol*>;
-    GlobalToHiddenSymsType GlobalToHiddenSyms;
+  // make a hidden alias for every global symbol that is called
+  // directly by a code block
+  using GlobalToHiddenSymsType =
+      std::unordered_map<gtirb::Symbol*, gtirb::Symbol*>;
+  GlobalToHiddenSymsType GlobalToHiddenSyms;
 
-    for (auto* Symbol : SymbolsToAlias) {
-      struct SetHiddenSymbolReferent {
-        gtirb::Symbol* S;
-        SetHiddenSymbolReferent(gtirb::Symbol* Sym) : S{Sym} {}
-        void operator()(gtirb::Addr A) { S->setAddress(A); }
-        void operator()(gtirb::CodeBlock* B) { S->setReferent(B); }
-        void operator()(gtirb::DataBlock* B) { S->setReferent(B); }
-        void operator()(gtirb::ProxyBlock* B) { S->setReferent(B); }
-      };
+  for (auto* Symbol : SymbolsToAlias) {
+    struct SetHiddenSymbolReferent {
+      gtirb::Symbol* S;
+      SetHiddenSymbolReferent(gtirb::Symbol* Sym) : S{Sym} {}
+      void operator()(gtirb::Addr A) { S->setAddress(A); }
+      void operator()(gtirb::CodeBlock* B) { S->setReferent(B); }
+      void operator()(gtirb::DataBlock* B) { S->setReferent(B); }
+      void operator()(gtirb::ProxyBlock* B) { S->setReferent(B); }
+    };
 
-      auto* HiddenSymbol = module.addSymbol(
-          context, ".gtirb_pprinter.hidden_alias." + Symbol->getName());
-      Symbol->visit(SetHiddenSymbolReferent(HiddenSymbol));
-      auto SymInfo = *aux_data::getElfSymbolInfo(*Symbol);
-      aux_data::ElfSymbolInfo NewSymInfo{SymInfo};
-      NewSymInfo.Visibility = "HIDDEN";
-      aux_data::setElfSymbolInfo(*HiddenSymbol, NewSymInfo);
-      GlobalToHiddenSyms[Symbol] = HiddenSymbol;
-    }
+    auto* HiddenSymbol = module.addSymbol(
+        context, ".gtirb_pprinter.hidden_alias." + Symbol->getName());
+    Symbol->visit(SetHiddenSymbolReferent(HiddenSymbol));
+    auto SymInfo = *aux_data::getElfSymbolInfo(*Symbol);
+    aux_data::ElfSymbolInfo NewSymInfo{SymInfo};
+    NewSymInfo.Visibility = "HIDDEN";
+    aux_data::setElfSymbolInfo(*HiddenSymbol, NewSymInfo);
+    GlobalToHiddenSyms[Symbol] = HiddenSymbol;
+  }
 
-    // reassign bad code block references to hidden symbols
-    for (auto SEE : SEEsToAlias) {
-      auto SEToAdd = std::visit(
-          [&GlobalToHiddenSyms](const auto& SE) -> gtirb::SymbolicExpression {
-            using T = std::decay_t<decltype(SE)>;
-            T NewSE{SE};
+  // reassign bad code block references to hidden symbols
+  for (auto SEE : SEEsToAlias) {
+    auto SEToAdd = std::visit(
+        [&GlobalToHiddenSyms](const auto& SE) -> gtirb::SymbolicExpression {
+          using T = std::decay_t<decltype(SE)>;
+          T NewSE{SE};
 
-            if constexpr (std::is_same_v<T, gtirb::SymAddrAddr>) {
-              if (auto It = GlobalToHiddenSyms.find(SE.Sym1);
-                  It != GlobalToHiddenSyms.end()) {
-                NewSE.Sym1 = It->second;
-              }
-              if (auto It = GlobalToHiddenSyms.find(SE.Sym2);
-                  It != GlobalToHiddenSyms.end()) {
-                NewSE.Sym2 = It->second;
-              }
-            } else if constexpr (std::is_same_v<T, gtirb::SymAddrConst>) {
-              NewSE.Sym = GlobalToHiddenSyms.at(SE.Sym);
+          if constexpr (std::is_same_v<T, gtirb::SymAddrAddr>) {
+            if (auto It = GlobalToHiddenSyms.find(SE.Sym1);
+                It != GlobalToHiddenSyms.end()) {
+              NewSE.Sym1 = It->second;
             }
-
-            return {NewSE};
-          },
-          SEE.getSymbolicExpression());
-      SEE.getByteInterval()->addSymbolicExpression(SEE.getOffset(), SEToAdd);
-    }
-
-    // make bad code block references to extern symbols go through the PLT
-    for (auto SEE : SEEsToPLT) {
-      auto SEToAdd = std::visit(
-          [this](const auto& SE) -> gtirb::SymbolicExpression {
-            using T = std::decay_t<decltype(SE)>;
-            T NewSE{SE};
-            NewSE.Attributes.addFlag(gtirb::SymAttribute::PltRef);
-
-            if constexpr (std::is_same_v<T, gtirb::SymAddrAddr>) {
-              if (auto Target = this->getForwardedSymbol(SE.Sym1)) {
-                NewSE.Sym1 = Target;
-              }
-              if (auto Target = this->getForwardedSymbol(SE.Sym2)) {
-                NewSE.Sym2 = Target;
-              }
-            } else if constexpr (std::is_same_v<T, gtirb::SymAddrConst>) {
-              if (auto Target = this->getForwardedSymbol(SE.Sym)) {
-                NewSE.Sym = Target;
-              }
+            if (auto It = GlobalToHiddenSyms.find(SE.Sym2);
+                It != GlobalToHiddenSyms.end()) {
+              NewSE.Sym2 = It->second;
             }
+          } else if constexpr (std::is_same_v<T, gtirb::SymAddrConst>) {
+            NewSE.Sym = GlobalToHiddenSyms.at(SE.Sym);
+          }
 
-            return {NewSE};
-          },
-          SEE.getSymbolicExpression());
-      SEE.getByteInterval()->addSymbolicExpression(SEE.getOffset(), SEToAdd);
-    }
+          return {NewSE};
+        },
+        SEE.getSymbolicExpression());
+    SEE.getByteInterval()->addSymbolicExpression(SEE.getOffset(), SEToAdd);
+  }
+
+  // make bad code block references to extern symbols go through the PLT
+  for (auto SEE : SEEsToPLT) {
+    auto SEToAdd = std::visit(
+        [this](const auto& SE) -> gtirb::SymbolicExpression {
+          using T = std::decay_t<decltype(SE)>;
+          T NewSE{SE};
+          NewSE.Attributes.addFlag(gtirb::SymAttribute::PltRef);
+
+          if constexpr (std::is_same_v<T, gtirb::SymAddrAddr>) {
+            if (auto Target = this->getForwardedSymbol(SE.Sym1)) {
+              NewSE.Sym1 = Target;
+            }
+            if (auto Target = this->getForwardedSymbol(SE.Sym2)) {
+              NewSE.Sym2 = Target;
+            }
+          } else if constexpr (std::is_same_v<T, gtirb::SymAddrConst>) {
+            if (auto Target = this->getForwardedSymbol(SE.Sym)) {
+              NewSE.Sym = Target;
+            }
+          }
+
+          return {NewSE};
+        },
+        SEE.getSymbolicExpression());
+    SEE.getByteInterval()->addSymbolicExpression(SEE.getOffset(), SEToAdd);
   }
 }
 
