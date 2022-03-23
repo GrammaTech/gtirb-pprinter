@@ -257,7 +257,7 @@ void ArmPrettyPrinter::printOperand(std::ostream& os,
 void ArmPrettyPrinter::printSymExprPrefix(std::ostream& OS,
                                           const gtirb::SymAttributeSet& Attrs,
                                           bool /* IsNotBranch */) {
-  if (Attrs.isFlagSet(gtirb::SymAttribute::PcAlignAdjust3)) {
+  if (Attrs.isFlagSet(gtirb::SymAttribute::PcAlignAdjust2)) {
     OS << "(";
   }
 }
@@ -267,8 +267,8 @@ void ArmPrettyPrinter::printSymExprSuffix(std::ostream& OS,
                                           bool /*IsNotBranch*/) {
   if (Attrs.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
     OS << "(GOT)";
-  } else if (Attrs.isFlagSet(gtirb::SymAttribute::PcAlignAdjust3)) {
-    OS << ") & ~3";
+  } else if (Attrs.isFlagSet(gtirb::SymAttribute::PcAlignAdjust2)) {
+    OS << ") & ~0b11";
   }
 }
 
