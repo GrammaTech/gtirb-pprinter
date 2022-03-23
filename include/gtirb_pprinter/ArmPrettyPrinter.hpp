@@ -29,6 +29,11 @@ public:
     return SyntaxAlignmentZeros;
   };
 
+  const std::string& byteData() const override { return ByteDirective; }
+  const std::string& longData() const override { return WordDirective; }
+  const std::string& quadData() const override { return QuadDirective; }
+  const std::string& wordData() const override { return HWordDirective; }
+
 private:
   const std::string AttributePrefix{"%"};
 };
@@ -63,10 +68,16 @@ protected:
                        const cs_insn& inst, uint64_t index) override;
   bool printSymbolReference(std::ostream& os,
                             const gtirb::Symbol* symbol) override;
+  void printSymExprPrefix(std::ostream& OS, const gtirb::SymAttributeSet& Attrs,
+                          bool IsNotBranch = false) override;
   void printSymExprSuffix(std::ostream& OS, const gtirb::SymAttributeSet& Attrs,
                           bool IsNotBranch = false) override;
 
   std::string getFunctionName(gtirb::Addr x) const override;
+
+private:
+  /// Cortex-M
+  bool m_mclass;
 };
 
 class ArmPrettyPrinterFactory : public ElfPrettyPrinterFactory {

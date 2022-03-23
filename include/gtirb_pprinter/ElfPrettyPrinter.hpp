@@ -62,11 +62,6 @@ private:
 
   const std::string AttributePrefix{"@"};
 
-  const std::string ByteDirective{".byte"};
-  const std::string LongDirective{".long"};
-  const std::string QuadDirective{".quad"};
-  const std::string WordDirective{".word"};
-
   const std::string TextDirective{".text"};
   const std::string DataDirective{".data"};
   const std::string BssDirective{".bss"};
@@ -85,6 +80,13 @@ private:
   const std::string InternalDirective{".internal"};
   const std::string ULEB128Directive{".uleb128"};
   const std::string SLEB128Directive{".sleb128"};
+
+protected:
+  const std::string ByteDirective{".byte"};
+  const std::string HWordDirective{".hword"};
+  const std::string LongDirective{".long"};
+  const std::string QuadDirective{".quad"};
+  const std::string WordDirective{".word"};
 };
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API ElfPrettyPrinter

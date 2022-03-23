@@ -14,6 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "ArmPrettyPrinter.hpp"
+#include "AuxDataSchema.hpp"
 #include "StringUtils.hpp"
 #include <iostream>
 
@@ -30,6 +31,17 @@ ArmPrettyPrinter::ArmPrettyPrinter(gtirb::Context& context_,
   [[maybe_unused]] cs_err err = cs_open(
       CS_ARCH_ARM, (cs_mode)(CS_MODE_ARM | CS_MODE_V8), &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
+
+  if (auto AuxData = module.getAuxData<gtirb::schema::BinaryAttribute>()) {
+    if (!AuxData->empty()) {
+      std::string BinaryAttribute = AuxData->front();
+      if (BinaryAttribute.find("Cortex-M") != std::string::npos) {
+        m_mclass = true;
+      } else {
+        m_mclass = false;
+      }
+    }
+  }
 }
 
 void ArmPrettyPrinter::printHeader(std::ostream& os) {
@@ -37,8 +49,10 @@ void ArmPrettyPrinter::printHeader(std::ostream& os) {
 
   os << "# ARM " << std::endl;
   os << ".syntax unified" << std::endl;
-  os << ".arch_extension idiv" << std::endl;
-  os << ".arch_extension sec" << std::endl;
+  if (!m_mclass) {
+    os << ".arch_extension idiv" << std::endl;
+    os << ".arch_extension sec" << std::endl;
+  }
 }
 
 void ArmPrettyPrinter::setDecodeMode(std::ostream& os,
@@ -46,7 +60,13 @@ void ArmPrettyPrinter::setDecodeMode(std::ostream& os,
   // 1 for THUMB 0 for regular ARM
   if (x.getDecodeMode()) {
     os << ".thumb" << std::endl;
-    cs_option(this->csHandle, CS_OPT_MODE, CS_MODE_THUMB | CS_MODE_V8);
+
+    if (m_mclass) {
+      cs_option(this->csHandle, CS_OPT_MODE,
+                CS_MODE_THUMB | CS_MODE_V8 | CS_MODE_MCLASS);
+    } else {
+      cs_option(this->csHandle, CS_OPT_MODE, CS_MODE_THUMB | CS_MODE_V8);
+    }
   } else {
     os << ".arm" << std::endl;
     cs_option(this->csHandle, CS_OPT_MODE, CS_MODE_ARM | CS_MODE_V8);
@@ -234,11 +254,21 @@ void ArmPrettyPrinter::printOperand(std::ostream& os,
   }
 }
 
+void ArmPrettyPrinter::printSymExprPrefix(std::ostream& OS,
+                                          const gtirb::SymAttributeSet& Attrs,
+                                          bool /* IsNotBranch */) {
+  if (Attrs.isFlagSet(gtirb::SymAttribute::PcAlignAdjust3)) {
+    OS << "(";
+  }
+}
+
 void ArmPrettyPrinter::printSymExprSuffix(std::ostream& OS,
                                           const gtirb::SymAttributeSet& Attrs,
                                           bool /*IsNotBranch*/) {
   if (Attrs.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
     OS << "(GOT)";
+  } else if (Attrs.isFlagSet(gtirb::SymAttribute::PcAlignAdjust3)) {
+    OS << ") & ~3";
   }
 }
 
@@ -453,7 +483,10 @@ void ArmPrettyPrinter::printOpImmediate(
     std::ostream& os, const gtirb::SymbolicExpression* symbolic,
     const cs_insn& inst, uint64_t index) {
   const cs_arm_op& op = inst.detail->arm.operands[index];
-  if (const gtirb::SymAddrConst* s = this->getSymbolicImmediate(symbolic)) {
+  if (const auto* SAA = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
+    printSymbolicExpression(os, SAA, false);
+  } else if (const gtirb::SymAddrConst* s =
+                 this->getSymbolicImmediate(symbolic)) {
     // The operand is symbolic.
     if (inst.id == ARM_INS_MOV)
       os << "#:lower16:";
