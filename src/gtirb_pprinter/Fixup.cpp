@@ -49,8 +49,8 @@ void fixupSharedObject(gtirb::Context& Context, gtirb::Module& Module) {
           [](const auto& SE) -> std::vector<gtirb::Symbol*> {
             using T = std::decay_t<decltype(SE)>;
 
-            if (SE.Attributes.isFlagSet(gtirb::SymAttribute::PltRef) ||
-                SE.Attributes.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
+            if (SE.Attributes.count(gtirb::SymAttribute::PLT) ||
+                SE.Attributes.count(gtirb::SymAttribute::GOT)) {
               return {}; // PLT/GOT references are allowed in shared objects
             }
 
@@ -145,7 +145,7 @@ void fixupSharedObject(gtirb::Context& Context, gtirb::Module& Module) {
         [&Context](const auto& SE) -> gtirb::SymbolicExpression {
           using T = std::decay_t<decltype(SE)>;
           T NewSE{SE};
-          NewSE.Attributes.addFlag(gtirb::SymAttribute::PltRef);
+          NewSE.Attributes.insert(gtirb::SymAttribute::PLT);
 
           if constexpr (std::is_same_v<T, gtirb::SymAddrAddr>) {
             if (auto Target = aux_data::getForwardedSymbol(SE.Sym1)) {

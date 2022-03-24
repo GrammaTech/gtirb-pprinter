@@ -130,7 +130,7 @@ void ElfPrettyPrinter::printInstruction(std::ostream& os,
 
     if (symbolic) {
       if (const auto* expr = std::get_if<gtirb::SymAddrConst>(symbolic)) {
-        if (expr->Attributes.isFlagSet(gtirb::SymAttribute::TlsGd)) {
+        if (expr->Attributes.count(gtirb::SymAttribute::TLSGD)) {
           TlsGdSequence = true;
           os << syntax.tab() << "  .byte 0x66\n";
         }
@@ -286,38 +286,38 @@ void ElfPrettyPrinter::printSymbolSize(
 void ElfPrettyPrinter::printSymExprSuffix(std::ostream& OS,
                                           const gtirb::SymAttributeSet& Attrs,
                                           bool IsNotBranch) {
-  if (Attrs.isFlagSet(gtirb::SymAttribute::PltRef)) {
+  if (Attrs.count(gtirb::SymAttribute::PLT)) {
     if (!IsNotBranch) {
       OS << "@PLT";
     }
-  } else if (Attrs.isFlagSet(gtirb::SymAttribute::GotOff)) {
-    if (Attrs.isFlagSet(gtirb::SymAttribute::NtpOff)) {
+  } else if (Attrs.count(gtirb::SymAttribute::GOT)) {
+    if (Attrs.count(gtirb::SymAttribute::PCREL)) {
+      OS << "@GOTPCREL";
+    } else if (Attrs.count(gtirb::SymAttribute::NTPOFF)) {
       OS << "@GOTNTPOFF";
-    } else if (Attrs.isFlagSet(gtirb::SymAttribute::GotRef)) {
-      OS << "@GOT";
-    } else {
-      OS << "@GOTOFF";
-    }
-  } else if (Attrs.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
-    if (Attrs.isFlagSet(gtirb::SymAttribute::TpOff)) {
+    } else if (Attrs.count(gtirb::SymAttribute::TPOFF)) {
       OS << "@GOTTPOFF";
     } else {
-      OS << "@GOTPCREL";
+      OS << "@GOT";
     }
-  } else if (Attrs.isFlagSet(gtirb::SymAttribute::TpOff)) {
+  } else if (Attrs.count(gtirb::SymAttribute::GOTOFF)) {
+    OS << "@GOTOFF";
+  } else if (Attrs.count(gtirb::SymAttribute::TPOFF)) {
     OS << "@TPOFF";
-  } else if (Attrs.isFlagSet(gtirb::SymAttribute::NtpOff)) {
+  } else if (Attrs.count(gtirb::SymAttribute::NTPOFF)) {
     OS << "@NTPOFF";
-  } else if (Attrs.isFlagSet(gtirb::SymAttribute::DtpOff)) {
+  } else if (Attrs.count(gtirb::SymAttribute::DTPOFF)) {
     OS << "@DTPOFF";
-  } else if (Attrs.isFlagSet(gtirb::SymAttribute::TlsGd)) {
+  } else if (Attrs.count(gtirb::SymAttribute::TLSGD)) {
     OS << "@TLSGD";
-  } else if (Attrs.isFlagSet(gtirb::SymAttribute::TlsLd)) {
-    if (module.getISA() == gtirb::ISA::IA32) {
-      OS << "@TLSLDM";
-    } else {
-      OS << "@TLSLD";
-    }
+  } else if (Attrs.count(gtirb::SymAttribute::TLSLD)) {
+    OS << "@TLSLD";
+  } else if (Attrs.count(gtirb::SymAttribute::TLSLDM)) {
+    OS << "@TLSLDM";
+  } else if (Attrs.count(gtirb::SymAttribute::TLSDESC)) {
+    OS << "@TLSDESC";
+  } else if (Attrs.count(gtirb::SymAttribute::TLSCALL)) {
+    OS << "@TLSCALL";
   }
 }
 

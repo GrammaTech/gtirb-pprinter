@@ -87,7 +87,7 @@ void AttPrettyPrinter::printSymbolicExpression(
     std::ostream& Stream, const gtirb::SymAddrAddr* SymExpr, bool IsNotBranch) {
 
   // Print offset expression, e.g. _GLOBAL_OFFSET_TABLE_+(.Ltmp0-.L0$pb)
-  if (SymExpr->Attributes.isFlagSet(gtirb::SymAttribute::GotOff)) {
+  if (SymExpr->Attributes.count(gtirb::SymAttribute::GOTPC)) {
     Stream << "_GLOBAL_OFFSET_TABLE_+(";
     printSymbolReference(Stream, SymExpr->Sym1);
     Stream << '-';

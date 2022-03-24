@@ -471,7 +471,7 @@ void ArmPrettyPrinter::printOperand(std::ostream& os,
 void ArmPrettyPrinter::printSymExprSuffix(std::ostream& OS,
                                           const gtirb::SymAttributeSet& Attrs,
                                           bool /*IsNotBranch*/) {
-  if (Attrs.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
+  if (Attrs.count(gtirb::SymAttribute::GOT)) {
     OS << "(GOT)";
   }
 }

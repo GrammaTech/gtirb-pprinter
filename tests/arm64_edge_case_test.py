@@ -39,7 +39,7 @@ class Arm64EdgeCases(PPrinterTest):
             0,
             sym,
             attributes=[
-                gtirb.symbolicexpression.SymbolicExpression.Attribute.GotRef
+                gtirb.symbolicexpression.SymbolicExpression.Attribute.GOT
             ],
         )
         bi.symbolic_expressions[0] = sym_expr
@@ -95,7 +95,7 @@ class Arm64EdgeCases(PPrinterTest):
             0,
             got_sym,
             attributes=[
-                gtirb.symbolicexpression.SymbolicExpression.Attribute.GotRef
+                gtirb.symbolicexpression.SymbolicExpression.Attribute.GOT
             ],
         )
         bi.symbolic_expressions[0] = sym_expr
@@ -139,7 +139,7 @@ class Arm64EdgeCases(PPrinterTest):
             0,
             sym,
             attributes=[
-                gtirb.symbolicexpression.SymbolicExpression.Attribute.Lo12
+                gtirb.symbolicexpression.SymbolicExpression.Attribute.LO12
             ],
         )
 

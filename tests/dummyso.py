@@ -26,17 +26,17 @@ def build_gtirb():
     proxy_a = gth.add_proxy_block(module)
     symbol_a = gth.add_symbol(module, "a", proxy_a)
     se_a = gtirb.SymAddrConst(
-        0, symbol_a, {gtirb.SymbolicExpression.Attribute.PltRef}
+        0, symbol_a, {gtirb.SymbolicExpression.Attribute.PLT}
     )
     proxy_a2 = gth.add_proxy_block(module)
     symbol_a2 = gth.add_symbol(module, "a2", proxy_a2)
     se_a2 = gtirb.SymAddrConst(
-        0, symbol_a, {gtirb.SymbolicExpression.Attribute.PltRef}
+        0, symbol_a, {gtirb.SymbolicExpression.Attribute.PLT}
     )
     proxy_b = gth.add_proxy_block(module)
     symbol_b = gth.add_symbol(module, "b", proxy_b)
     se_b = gtirb.SymAddrConst(
-        0, symbol_b, {gtirb.SymbolicExpression.Attribute.PltRef}
+        0, symbol_b, {gtirb.SymbolicExpression.Attribute.PLT}
     )
 
     # For the following code:

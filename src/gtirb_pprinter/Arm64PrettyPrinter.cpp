@@ -42,7 +42,7 @@ void Arm64PrettyPrinter::buildSymGotRefTable(void) {
   for (auto It : module.symbolic_expressions()) {
     auto SymExpr = It.getSymbolicExpression();
     if (const auto* SymAddr = std::get_if<gtirb::SymAddrConst>(&SymExpr)) {
-      if (SymAddr->Attributes.isFlagSet(gtirb::SymAttribute::GotRef)) {
+      if (SymAddr->Attributes.count(gtirb::SymAttribute::GOT)) {
         if (auto Found = aux_data::getForwardedSymbol(SymAddr->Sym)) {
           // the SymExpr will reference the got entry itself, so we need to
           // look up the forwarded symbol.
@@ -107,7 +107,7 @@ void Arm64PrettyPrinter::printInstruction(std::ostream& os,
     if (Symex != nullptr) {
       const gtirb::SymAddrConst* Symaddr = this->getSymbolicImmediate(Symex);
       if (Symaddr != nullptr &&
-          Symaddr->Attributes.isFlagSet(gtirb::SymAttribute::GotRef)) {
+          Symaddr->Attributes.count(gtirb::SymAttribute::GOT)) {
         opcode = "adrp";
 
         // Print a comment indicating the substitution
@@ -340,13 +340,13 @@ void Arm64PrettyPrinter::printOperand(std::ostream& os,
 void Arm64PrettyPrinter::printSymExprPrefix(std::ostream& OS,
                                             const gtirb::SymAttributeSet& Attrs,
                                             bool /* IsNotBranch */) {
-  if (Attrs.isFlagSet(gtirb::SymAttribute::GotRef)) {
-    if (Attrs.isFlagSet(gtirb::SymAttribute::Lo12)) {
+  if (Attrs.count(gtirb::SymAttribute::GOT)) {
+    if (Attrs.count(gtirb::SymAttribute::LO12)) {
       OS << ":got_lo12:";
     } else {
       OS << ":got:";
     }
-  } else if (Attrs.isFlagSet(gtirb::SymAttribute::Lo12)) {
+  } else if (Attrs.count(gtirb::SymAttribute::LO12)) {
     OS << ":lo12:";
   }
 }
