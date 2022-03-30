@@ -321,14 +321,17 @@ void ElfPrettyPrinter::printFooter(std::ostream& /* os */){};
 void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
                                          const gtirb::Symbol& sym) {
   if (auto SymbolInfo = aux_data::getElfSymbolInfo(sym)) {
-    if (SymbolInfo->Binding == "LOCAL") {
+    if (SymbolInfo->Binding == "LOCAL" && SymbolInfo->Visibility == "DEFAULT" &&
+        (SymbolInfo->Type == "NOTYPE" || SymbolInfo->Type == "NONE")) {
       return;
     }
 
     auto Name = getSymbolName(sym);
     printBar(os, false);
     bool Unique = false;
-    if (SymbolInfo->Binding == "GLOBAL") {
+    if (SymbolInfo->Binding == "LOCAL") {
+      // do nothing
+    } else if (SymbolInfo->Binding == "GLOBAL") {
       os << syntax.global() << ' ' << Name << '\n';
     } else if (SymbolInfo->Binding == "WEAK") {
       os << elfSyntax.weak() << ' ' << Name << '\n';
@@ -354,9 +357,13 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
 
     static const std::unordered_map<std::string, std::string>
         TypeNameConversion = {
-            {"FUNC", "function"},  {"OBJECT", "object"},
-            {"NOTYPE", "notype"},  {"NONE", "notype"},
-            {"TLS", "tls_object"}, {"GNU_IFUNC", "gnu_indirect_function"},
+            {"FUNC", "function"},
+            {"FILE", "file"},
+            {"OBJECT", "object"},
+            {"NOTYPE", "notype"},
+            {"NONE", "notype"},
+            {"TLS", "tls_object"},
+            {"GNU_IFUNC", "gnu_indirect_function"},
         };
     auto TypeNameIt = TypeNameConversion.find(SymbolInfo->Type);
     if (TypeNameIt == TypeNameConversion.end()) {
