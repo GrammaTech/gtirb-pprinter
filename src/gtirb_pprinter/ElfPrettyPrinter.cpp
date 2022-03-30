@@ -321,8 +321,13 @@ void ElfPrettyPrinter::printFooter(std::ostream& /* os */){};
 void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
                                          const gtirb::Symbol& sym) {
   if (auto SymbolInfo = aux_data::getElfSymbolInfo(sym)) {
+    // Do not print symbol headers for default attributes.
     if (SymbolInfo->Binding == "LOCAL" && SymbolInfo->Visibility == "DEFAULT" &&
         (SymbolInfo->Type == "NOTYPE" || SymbolInfo->Type == "NONE")) {
+      return;
+    }
+    // We never print FILE symbols.
+    if (SymbolInfo->Type == "FILE") {
       return;
     }
 
@@ -357,13 +362,9 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
 
     static const std::unordered_map<std::string, std::string>
         TypeNameConversion = {
-            {"FUNC", "function"},
-            {"FILE", "file"},
-            {"OBJECT", "object"},
-            {"NOTYPE", "notype"},
-            {"NONE", "notype"},
-            {"TLS", "tls_object"},
-            {"GNU_IFUNC", "gnu_indirect_function"},
+            {"FUNC", "function"},  {"OBJECT", "object"},
+            {"NOTYPE", "notype"},  {"NONE", "notype"},
+            {"TLS", "tls_object"}, {"GNU_IFUNC", "gnu_indirect_function"},
         };
     auto TypeNameIt = TypeNameConversion.find(SymbolInfo->Type);
     if (TypeNameIt == TypeNameConversion.end()) {
