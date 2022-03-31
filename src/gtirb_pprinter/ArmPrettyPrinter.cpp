@@ -32,13 +32,27 @@ ArmPrettyPrinter::ArmPrettyPrinter(gtirb::Context& context_,
       CS_ARCH_ARM, (cs_mode)(CS_MODE_ARM | CS_MODE_V8), &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
 
-  if (auto AuxData = module.getAuxData<gtirb::schema::BinaryAttribute>()) {
-    if (!AuxData->empty()) {
-      std::string BinaryAttribute = AuxData->front();
-      if (BinaryAttribute.find("Cortex-M") != std::string::npos) {
-        m_mclass = true;
-      } else {
-        m_mclass = false;
+  m_mclass = false;
+  for(const auto& Section : module_.sections())
+  {
+    if(Section.getName() == ".ARM.attributes")
+    {
+      for(const auto& ByteInterval : Section.byte_intervals())
+      {
+        const char* RawChars = ByteInterval.rawBytes<const char>();
+        // Remove zeros
+        std::vector<char> Chars;
+        for(size_t I=0; I<ByteInterval.getSize(); ++I)
+        {
+            if(RawChars[I] != 0)
+                Chars.push_back(RawChars[I]);
+        }
+        std::string SectStr(Chars.begin(), Chars.end());
+        if(SectStr.find("Cortex-M") != std::string::npos)
+        {
+          m_mclass = true;
+          break;
+        }
       }
     }
   }
@@ -645,6 +659,7 @@ ArmPrettyPrinterFactory::ArmPrettyPrinterFactory() {
   DynamicPolicy.skipSections.emplace(".init_array");
   DynamicPolicy.skipSections.emplace(".fini_array");
   DynamicPolicy.skipSections.emplace(".ARM.exidx");
+  DynamicPolicy.skipSections.emplace(".ARM.attributes");
 
   DynamicPolicy.skipSymbols.emplace("_fini");
 }
