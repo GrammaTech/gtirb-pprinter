@@ -40,8 +40,8 @@ ArmPrettyPrinter::ArmPrettyPrinter(gtirb::Context& context_,
         // Remove zeros
         std::vector<char> Chars;
         for (size_t I = 0; I < ByteInterval.getSize(); ++I) {
-            if (RawChars[I] != 0)
-                Chars.push_back(RawChars[I]);
+          if (RawChars[I] != 0)
+            Chars.push_back(RawChars[I]);
         }
         std::string SectStr(Chars.begin(), Chars.end());
         if (SectStr.find("Cortex-M") != std::string::npos) {
