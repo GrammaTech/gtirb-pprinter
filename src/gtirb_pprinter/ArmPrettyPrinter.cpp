@@ -33,23 +33,18 @@ ArmPrettyPrinter::ArmPrettyPrinter(gtirb::Context& context_,
   assert(err == CS_ERR_OK && "Capstone failure");
 
   m_mclass = false;
-  for(const auto& Section : module_.sections())
-  {
-    if(Section.getName() == ".ARM.attributes")
-    {
-      for(const auto& ByteInterval : Section.byte_intervals())
-      {
+  for (const auto& Section : module_.sections()) {
+    if (Section.getName() == ".ARM.attributes") {
+      for (const auto& ByteInterval : Section.byte_intervals()) {
         const char* RawChars = ByteInterval.rawBytes<const char>();
         // Remove zeros
         std::vector<char> Chars;
-        for(size_t I = 0; I < ByteInterval.getSize(); ++I)
-        {
-            if(RawChars[I] != 0)
+        for (size_t I = 0; I < ByteInterval.getSize(); ++I) {
+            if (RawChars[I] != 0)
                 Chars.push_back(RawChars[I]);
         }
         std::string SectStr(Chars.begin(), Chars.end());
-        if(SectStr.find("Cortex-M") != std::string::npos)
-        {
+        if (SectStr.find("Cortex-M") != std::string::npos) {
           m_mclass = true;
           break;
         }
