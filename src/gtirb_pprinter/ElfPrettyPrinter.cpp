@@ -288,7 +288,7 @@ void ElfPrettyPrinter::printSectionHeaderDirective(
 void ElfPrettyPrinter::printSectionProperties(std::ostream& os,
                                               const gtirb::Section& section) {
 
-  if (auto SectionProperties = aux_data::getElfSectionProperties(section)) {
+  if (auto SectionProperties = aux_data::getSectionProperties(section)) {
     auto& [type, flags] = *SectionProperties;
     os << " ,\"";
     if (flags & SHF_WRITE)

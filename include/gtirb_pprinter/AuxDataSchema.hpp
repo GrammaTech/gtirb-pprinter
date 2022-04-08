@@ -35,16 +35,10 @@ struct Encodings {
   typedef std::map<gtirb::UUID, std::string> Type;
 };
 
-/// \brief Auxiliary data covering ELF section properties.
-struct ElfSectionProperties {
-  static constexpr const char* Name = "elfSectionProperties";
+/// \brief Auxiliary data covering section properties.
+struct SectionProperties {
+  static constexpr const char* Name = "sectionProperties";
   typedef std::map<gtirb::UUID, std::tuple<uint64_t, uint64_t>> Type;
-};
-
-/// \brief Auxiliary data covering PE section properties.
-struct PeSectionProperties {
-  static constexpr const char* Name = "peSectionProperties";
-  typedef std::map<gtirb::UUID, uint64_t> Type;
 };
 
 /// \brief Auxiliary data covering cfi directives.

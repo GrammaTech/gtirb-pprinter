@@ -18,9 +18,7 @@
  *          FunctionBlocks
  *      elf:
  *           elfSymbolInfo
- *          elfSectionProperties
- *      Pe:
- *          PeSectionProperties
+ *          sectionProperties
  *    Optional:
  *      all:
  *          Encodings
@@ -215,14 +213,10 @@ getElfSymbolInfo(const gtirb::Symbol& Sym);
 // Store the properties of a symbol to the `elfSymbolInfo' AuxData table.
 void setElfSymbolInfo(gtirb::Symbol& Sym, aux_data::ElfSymbolInfo& Info);
 
-// Load the section properties of an ELF binary section from the
-// `elfSectionProperties' AuxData tables.
+// Load the section properties of a binary section from the
+// `sectionProperties' AuxData tables.
 std::optional<std::tuple<uint64_t, uint64_t>>
-getElfSectionProperties(const gtirb::Section& Section);
-
-// Load the section properties of a PE binary section from the
-// `peSectionProperties' AuxData tables.
-std::optional<uint64_t> getPeSectionProperties(const gtirb::Section& Section);
+getSectionProperties(const gtirb::Section& Section);
 
 // Load all imported symbol properties for a PE binary from the
 // `peImportEntries' AuxData table.
