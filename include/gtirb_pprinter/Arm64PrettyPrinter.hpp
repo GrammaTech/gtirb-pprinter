@@ -82,7 +82,7 @@ private:
 
 class Arm64PrettyPrinterFactory : public ElfPrettyPrinterFactory {
 public:
-  Arm64PrettyPrinterFactory();
+  Arm64PrettyPrinterFactory() {}
 
   std::unique_ptr<PrettyPrinterBase>
   create(gtirb::Context& context, gtirb::Module& module,
