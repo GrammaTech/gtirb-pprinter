@@ -608,9 +608,6 @@ ArmPrettyPrinterFactory::create(gtirb::Context& gtirb_context,
 
 ArmPrettyPrinterFactory::ArmPrettyPrinterFactory() {
   auto& DynamicPolicy = *findRegisteredNamedPolicy("dynamic");
-  DynamicPolicy.arraySections.clear();
-  DynamicPolicy.skipSections.emplace(".init_array");
-  DynamicPolicy.skipSections.emplace(".fini_array");
   DynamicPolicy.skipSections.emplace(".ARM.exidx");
 
   DynamicPolicy.skipSymbols.emplace("_fini");

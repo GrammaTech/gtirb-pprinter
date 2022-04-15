@@ -122,6 +122,11 @@ class GtirbPprinterConan(Properties, ConanFile):
         else:
             self.build_cmake()
 
+    def add_dep_lib_path(self, *deps):
+        lib_dirs = sum([self.deps_cpp_info[dep].lib_paths for dep in deps], [])
+        new_ld_lib_path = [os.environ.get("LD_LIBRARY_PATH", "")] + lib_dirs
+        os.environ["LD_LIBRARY_PATH"] = os.pathsep.join(new_ld_lib_path)
+
     def build_cmake(self):
         defs = {"CMAKE_VERBOSE_MAKEFILE:BOOL": "ON", "ENABLE_CONAN:BOOL": "ON"}
         if self.settings.os == "Windows":
@@ -138,6 +143,7 @@ class GtirbPprinterConan(Properties, ConanFile):
 
         if self.settings.build_type == "Release":
             cmake.build_type = "RelWithDebInfo"
+        self.add_dep_lib_path("capstone")
         cmake.configure(source_folder=".", defs=defs)
         cmake.build()
         # The tests need the built gtirb-pprinter on the path

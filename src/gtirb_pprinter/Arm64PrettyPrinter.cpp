@@ -712,11 +712,4 @@ Arm64PrettyPrinterFactory::create(gtirb::Context& gtirb_context,
                                               assembler, policy);
 }
 
-Arm64PrettyPrinterFactory::Arm64PrettyPrinterFactory() {
-  auto& DynamicPolicy = *findRegisteredNamedPolicy("dynamic");
-  DynamicPolicy.arraySections.clear();
-  DynamicPolicy.skipSections.emplace(".init_array");
-  DynamicPolicy.skipSections.emplace(".fini_array");
-}
-
 } // namespace gtirb_pprint
