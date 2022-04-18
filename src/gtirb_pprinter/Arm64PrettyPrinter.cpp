@@ -60,6 +60,7 @@ void Arm64PrettyPrinter::printInstruction(std::ostream& os,
 
   ////////////////////////////////////////////////////////////////////
   // special cases
+  std::string opcode = std::string();
 
   if (inst.id == ARM64_INS_NOP) {
     InstructLine << "  " << syntax.nop();
@@ -74,12 +75,37 @@ void Arm64PrettyPrinter::printInstruction(std::ostream& os,
     printCommentableLine(InstructLine, os, ea);
     os << '\n';
     return;
+  } else if (inst.id == ARM64_INS_ADR) {
+    // The assembler does not allow :got: on adr instructions, but sometimes
+    // it substitutes an adrp x0, :got:symbol for an adr instruction. In order
+    // to print something that can be reassembled, reverse this substitution
+    // and print an adrp.
+
+    const gtirb::SymbolicExpression* Symex =
+        block.getByteInterval()->getSymbolicExpression(
+            ea - *block.getByteInterval()->getAddress());
+    if (Symex != nullptr) {
+      const gtirb::SymAddrConst* Symaddr = this->getSymbolicImmediate(Symex);
+      if (Symaddr != nullptr &&
+          Symaddr->Attributes.isFlagSet(gtirb::SymAttribute::GotRef)) {
+        opcode = "adrp";
+
+        // Print a comment indicating the substitution
+
+        os << syntax.comment()
+           << " Instruction substituted from adr to adrp to support :got: "
+              "reference.\n";
+      }
+    }
   }
 
   // end special cases
   ////////////////////////////////////////////////////////////////////
 
-  std::string opcode = ascii_str_tolower(inst.mnemonic);
+  if (opcode.empty()) {
+    opcode = ascii_str_tolower(inst.mnemonic);
+  }
+
   InstructLine << "  " << opcode << ' ';
 
   // Make sure the initial m_accum_comment is empty.
