@@ -47,6 +47,7 @@ public:
 protected:
   const ArmSyntax& armSyntax;
 
+  void fixupInstruction(cs_insn& inst) override;
   std::string getRegisterName(unsigned int reg) const override;
   void printHeader(std::ostream& os) override;
   void setDecodeMode(std::ostream& os, const gtirb::CodeBlock& x) override;
@@ -68,8 +69,6 @@ protected:
                        const cs_insn& inst, uint64_t index) override;
   bool printSymbolReference(std::ostream& os,
                             const gtirb::Symbol* symbol) override;
-  void printSymExprPrefix(std::ostream& OS, const gtirb::SymAttributeSet& Attrs,
-                          bool IsNotBranch = false) override;
   void printSymExprSuffix(std::ostream& OS, const gtirb::SymAttributeSet& Attrs,
                           bool IsNotBranch = false) override;
 

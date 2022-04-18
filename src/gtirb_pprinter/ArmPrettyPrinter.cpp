@@ -80,6 +80,29 @@ void ArmPrettyPrinter::setDecodeMode(std::ostream& os,
   }
 }
 
+void ArmPrettyPrinter::fixupInstruction(cs_insn& inst) {
+  ElfPrettyPrinter::fixupInstruction(inst);
+
+  cs_arm& Detail = inst.detail->arm;
+
+  // Convert "add r, pc, offset" to "adr r, label".
+  // Assume that pprinter is given the corresponding SymAddrConst for the
+  // label.
+  switch (inst.id) {
+  case ARM_INS_ADD:
+  case ARM_INS_ADDW:
+    if (Detail.op_count == 3) {
+      cs_arm_op& Op1 = Detail.operands[1];
+      if (Op1.type == ARM_OP_REG && Op1.reg == ARM_REG_PC) {
+        inst.id = ARM_INS_ADR;
+        strncpy(inst.mnemonic, "ADR", 4);
+        Op1.type = ARM_OP_IMM;
+        Detail.op_count = 2;
+      }
+    }
+  }
+}
+
 void ArmPrettyPrinter::printInstruction(std::ostream& os,
                                         const gtirb::CodeBlock& block,
                                         const cs_insn& inst,
@@ -261,21 +284,11 @@ void ArmPrettyPrinter::printOperand(std::ostream& os,
   }
 }
 
-void ArmPrettyPrinter::printSymExprPrefix(std::ostream& OS,
-                                          const gtirb::SymAttributeSet& Attrs,
-                                          bool /* IsNotBranch */) {
-  if (Attrs.isFlagSet(gtirb::SymAttribute::PcAlignAdjust2)) {
-    OS << "(";
-  }
-}
-
 void ArmPrettyPrinter::printSymExprSuffix(std::ostream& OS,
                                           const gtirb::SymAttributeSet& Attrs,
                                           bool /*IsNotBranch*/) {
   if (Attrs.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
     OS << "(GOT)";
-  } else if (Attrs.isFlagSet(gtirb::SymAttribute::PcAlignAdjust2)) {
-    OS << ") & ~0b11";
   }
 }
 
