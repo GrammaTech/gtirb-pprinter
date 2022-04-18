@@ -288,7 +288,7 @@ void ElfPrettyPrinter::printSectionHeaderDirective(
 void ElfPrettyPrinter::printSectionProperties(std::ostream& os,
                                               const gtirb::Section& section) {
 
-  if (auto SectionProperties = aux_data::getElfSectionProperties(section)) {
+  if (auto SectionProperties = aux_data::getSectionProperties(section)) {
     auto& [type, flags] = *SectionProperties;
     os << " ,\"";
     if (flags & SHF_WRITE)
@@ -321,14 +321,22 @@ void ElfPrettyPrinter::printFooter(std::ostream& /* os */){};
 void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
                                          const gtirb::Symbol& sym) {
   if (auto SymbolInfo = aux_data::getElfSymbolInfo(sym)) {
-    if (SymbolInfo->Binding == "LOCAL") {
+    // Do not print symbol headers for default attributes.
+    if (SymbolInfo->Binding == "LOCAL" && SymbolInfo->Visibility == "DEFAULT" &&
+        (SymbolInfo->Type == "NOTYPE" || SymbolInfo->Type == "NONE")) {
+      return;
+    }
+    // We never print FILE symbols.
+    if (SymbolInfo->Type == "FILE") {
       return;
     }
 
     auto Name = getSymbolName(sym);
     printBar(os, false);
     bool Unique = false;
-    if (SymbolInfo->Binding == "GLOBAL") {
+    if (SymbolInfo->Binding == "LOCAL") {
+      // do nothing
+    } else if (SymbolInfo->Binding == "GLOBAL") {
       os << syntax.global() << ' ' << Name << '\n';
     } else if (SymbolInfo->Binding == "WEAK") {
       os << elfSyntax.weak() << ' ' << Name << '\n';

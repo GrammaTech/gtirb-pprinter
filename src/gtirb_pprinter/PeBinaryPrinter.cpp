@@ -559,28 +559,21 @@ std::optional<std::string> getPeMachine(const gtirb::IR& IR) {
 // Find an entrypoint symbol defined in any Module.
 // NOTE: `ml64.exe' cannot automatically determine what the entrypoint is.
 std::optional<std::string> getEntrySymbol(const gtirb::IR& IR) {
-  // Find the first Module with an entry point.
+  // Find out whether there are modules with entry points.
   auto Found = std::find_if(
       IR.modules_begin(), IR.modules_end(),
       [](const gtirb::Module& M) { return M.getEntryPoint() != nullptr; });
 
-  // Find first symbol referencing the entry CodeBlock.
   if (Found != IR.modules_end()) {
-    const gtirb::CodeBlock* Block = Found->getEntryPoint();
-    if (Block && Block->getAddress()) {
-      auto It = Found->findSymbols(*Block->getAddress());
-
-      std::string Name = (&*It.begin())->getName();
-
-      // ML (PE32) will implicitly prefix the symbol with an additional '_', so
-      // we remove one for the command-line option.
-      if (Found->getISA() == gtirb::ISA::IA32 && Name.size() &&
-          Name[0] == '_') {
-        Name = Name.substr(1);
-      }
-
-      return Name;
+    // The MASM pprint always adds an __EntryPoint symbol
+    // pointing to the entry point CodeBlock.
+    std::string Name("__EntryPoint");
+    // ML (PE32) will implicitly prefix the symbol with an additional '_', so
+    // we remove one for the command-line option.
+    if (Found->getISA() == gtirb::ISA::IA32 && Name.size() && Name[0] == '_') {
+      Name = Name.substr(1);
     }
+    return Name;
   }
   return std::nullopt;
 }

@@ -52,7 +52,7 @@ def add_standard_aux_data_tables(m: gtirb.Module) -> None:
     m.aux_data["comments"] = gtirb.AuxData(
         type_name="mapping<Offset,string>", data=dict()
     )
-    m.aux_data["elfSectionProperties"] = gtirb.AuxData(
+    m.aux_data["sectionProperties"] = gtirb.AuxData(
         type_name="mapping<UUID,tuple<uint64_t,uint64_t>>", data=dict()
     )
     m.aux_data["encodings"] = gtirb.AuxData(

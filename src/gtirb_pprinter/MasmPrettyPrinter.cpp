@@ -245,9 +245,8 @@ void MasmPrettyPrinter::printSectionHeaderDirective(
 void MasmPrettyPrinter::printSectionProperties(std::ostream& os,
                                                const gtirb::Section& section) {
 
-  if (const auto SectionProperties =
-          aux_data::getPeSectionProperties(section)) {
-    uint64_t Flags = *SectionProperties;
+  if (const auto SectionProperties = aux_data::getSectionProperties(section)) {
+    auto& Flags = std::get<1>(*SectionProperties);
 
     if (Flags & IMAGE_SCN_MEM_READ)
       os << " READ";

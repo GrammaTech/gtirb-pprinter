@@ -36,8 +36,8 @@ bool validateAuxData(const gtirb::Module& Mod, std::string TargetFormat) {
       //     gtirb_pprint::pprinter_error::MissingAuxData, Msg.str());
       return false;
     }
-    if (!Mod.getAuxData<gtirb::schema::ElfSectionProperties>()) {
-      std::string Msg{"Missing ElfSectionProperties in module "};
+    if (!Mod.getAuxData<gtirb::schema::SectionProperties>()) {
+      std::string Msg{"Missing SectionProperties in module "};
       Msg += Mod.getName();
       // return gtirb::createStringError(
       //     gtirb_pprint::pprinter_error::MissingAuxData, Msg.str());
@@ -132,17 +132,12 @@ void setElfSymbolInfo(gtirb::Symbol& Sym, aux_data::ElfSymbolInfo& Info) {
 }
 
 std::optional<std::tuple<uint64_t, uint64_t>>
-getElfSectionProperties(const gtirb::Section& Section) {
+getSectionProperties(const gtirb::Section& Section) {
   if (Section.getModule())
-    return util::getByNode<gtirb::schema::ElfSectionProperties>(
+    return util::getByNode<gtirb::schema::SectionProperties>(
         Section, *Section.getModule());
   return std::nullopt;
 };
-
-std::optional<uint64_t> getPeSectionProperties(const gtirb::Section& Section) {
-  return util::getByNode<gtirb::schema::PeSectionProperties>(
-      Section, *Section.getModule());
-}
 
 gtirb::schema::ImportEntries::Type getImportEntries(const gtirb::Module& M) {
   return util::getOrDefault<gtirb::schema::ImportEntries>(M);
