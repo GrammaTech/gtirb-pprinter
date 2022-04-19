@@ -16,9 +16,9 @@
  *      all:
  *          FunctionEntries
  *          FunctionBlocks
- *      elf:
- *           elfSymbolInfo
  *          sectionProperties
+ *      elf:
+ *          elfSymbolInfo
  *    Optional:
  *      all:
  *          Encodings
