@@ -244,6 +244,11 @@ void MasmPrettyPrinter::printSectionHeaderDirective(
 
 void MasmPrettyPrinter::printSectionProperties(std::ostream& os,
                                                const gtirb::Section& section) {
+  // Skip printing section properties for predefined segments.
+  std::string Name = syntax.formatSectionName(section.getName());
+  if (Name == "_TEXT" || Name == "_DATA") {
+    return;
+  }
 
   if (const auto SectionProperties = aux_data::getSectionProperties(section)) {
     uint64_t Flags = std::get<1>(*SectionProperties);
