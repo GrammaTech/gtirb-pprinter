@@ -97,6 +97,12 @@ void ArmPrettyPrinter::fixupInstruction(cs_insn& inst) {
         inst.id = ARM_INS_ADR;
         strncpy(inst.mnemonic, "ADR", 4);
         Op1.type = ARM_OP_IMM;
+        // The second operand will be rendered as symbolic.
+        // In case when no symbolic operand is provided,
+        // keep the offset as the second operand of the adr instruction.
+        cs_arm_op& Op2 = Detail.operands[2];
+        assert(Op2.type == ARM_OP_IMM);
+        Op1.imm = Op2.imm;
         Detail.op_count = 2;
       }
     }
