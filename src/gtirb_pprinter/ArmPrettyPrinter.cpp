@@ -43,7 +43,7 @@ ArmPrettyPrinter::ArmPrettyPrinter(gtirb::Context& context_,
           Chars.push_back(RawChars[I]);
       }
       std::string SectStr(Chars.begin(), Chars.end());
-      if (SectStr.find("v7E-M") != std::string::npos) {
+      if (SectStr.find("Cortex-M7") != std::string::npos) {
         m_mclass = true;
         break;
       }
