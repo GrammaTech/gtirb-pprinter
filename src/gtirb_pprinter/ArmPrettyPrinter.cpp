@@ -33,6 +33,7 @@ ArmPrettyPrinter::ArmPrettyPrinter(gtirb::Context& context_,
   assert(err == CS_ERR_OK && "Capstone failure");
 
   m_mclass = false;
+  m_archtype_from_elf = false;
   for (const auto& Section : module_.findSections(".ARM.attributes")) {
     for (const auto& ByteInterval : Section.byte_intervals()) {
       const char* RawChars = ByteInterval.rawBytes<const char>();
@@ -48,6 +49,7 @@ ArmPrettyPrinter::ArmPrettyPrinter(gtirb::Context& context_,
         break;
       }
     }
+    m_archtype_from_elf = true;
   }
 }
 
@@ -68,11 +70,34 @@ void ArmPrettyPrinter::setDecodeMode(std::ostream& os,
   if (x.getDecodeMode()) {
     os << ".thumb" << std::endl;
 
-    if (m_mclass) {
-      cs_option(this->csHandle, CS_OPT_MODE,
-                CS_MODE_THUMB | CS_MODE_V8 | CS_MODE_MCLASS);
+    if (m_archtype_from_elf) {
+      if (m_mclass) {
+        cs_option(this->csHandle, CS_OPT_MODE,
+                  CS_MODE_THUMB | CS_MODE_V8 | CS_MODE_MCLASS);
+      } else {
+        cs_option(this->csHandle, CS_OPT_MODE, CS_MODE_THUMB | CS_MODE_V8);
+      }
     } else {
+      // If the arch type is not available, try decoding the block to see if
+      // it's Cortex-M.
+      gtirb::Addr addr = *x.getAddress();
+      cs_insn* insn;
+      cs_option(this->csHandle, CS_OPT_DETAIL, CS_OPT_OFF);
+
+      // Try non-MCLASS first.
       cs_option(this->csHandle, CS_OPT_MODE, CS_MODE_THUMB | CS_MODE_V8);
+      size_t count = cs_disasm(this->csHandle, x.rawBytes<uint8_t>(),
+                               x.getSize(),
+                               static_cast<uint64_t>(addr), 0, &insn);
+      size_t total_size = 0;
+      for (size_t i = 0; i < count; i++) {
+        total_size += insn[i].size;
+      }
+      // If the total size of the decoded instructons does not match to the
+      // block size, try MCLASS mode.
+      if (total_size != x.getSize()) {
+        cs_option(this->csHandle, CS_OPT_MODE, CS_MODE_THUMB | CS_MODE_V8 | CS_MODE_MCLASS);
+      }
     }
   } else {
     os << ".arm" << std::endl;
