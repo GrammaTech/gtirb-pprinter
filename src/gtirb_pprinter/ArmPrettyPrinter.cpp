@@ -119,12 +119,14 @@ void ArmPrettyPrinter::printBlockContents(std::ostream& Os,
     // If the total size of the decoded instructons does not match to the
     // block size, try the other mode.
     if (TotalSize != X.getSize()) {
-      cs_option(this->csHandle, CS_OPT_MODE, CS_MODE_THUMB | CS_MODE_V8 | (Mclass ? (cs_mode)0 : CS_MODE_MCLASS));
+      cs_option(this->csHandle, CS_OPT_MODE,
+                CS_MODE_THUMB | CS_MODE_V8 |
+                    (Mclass ? (cs_mode)0 : CS_MODE_MCLASS));
 
       cs_insn* TmpInsn2;
-      size_t Count2 = cs_disasm(this->csHandle, X.rawBytes<uint8_t>() + Offset,
-                        X.getSize() - Offset,
-                        static_cast<uint64_t>(Addr) + Offset, 0, &TmpInsn2);
+      size_t Count2 = cs_disasm(
+          this->csHandle, X.rawBytes<uint8_t>() + Offset, X.getSize() - Offset,
+          static_cast<uint64_t>(Addr) + Offset, 0, &TmpInsn2);
 
       // Exception-safe cleanup of instructions
       std::unique_ptr<cs_insn, std::function<void(cs_insn*)>> freeInsn2(
@@ -144,7 +146,7 @@ void ArmPrettyPrinter::printBlockContents(std::ostream& Os,
       }
     }
   }
-  if(Insn == nullptr) {
+  if (Insn == nullptr) {
     Insn = TmpInsn;
   }
 
