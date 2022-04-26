@@ -51,6 +51,9 @@ protected:
   std::string getRegisterName(unsigned int reg) const override;
   void printHeader(std::ostream& os) override;
   void setDecodeMode(std::ostream& os, const gtirb::CodeBlock& x) override;
+  void printBlockContents(std::ostream& os,
+                          const gtirb::CodeBlock& x,
+                          uint64_t offset);
   void printInstruction(std::ostream& os, const gtirb::CodeBlock& block,
                         const cs_insn& inst,
                         const gtirb::Offset& offset) override;
@@ -76,7 +79,8 @@ protected:
 
 private:
   /// Cortex-M
-  bool m_mclass;
+  bool Mclass;
+  bool ArchtypeFromElf;
 };
 
 class ArmPrettyPrinterFactory : public ElfPrettyPrinterFactory {
