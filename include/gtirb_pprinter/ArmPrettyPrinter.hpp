@@ -52,7 +52,7 @@ protected:
   void printHeader(std::ostream& os) override;
   void setDecodeMode(std::ostream& os, const gtirb::CodeBlock& x) override;
   void printBlockContents(std::ostream& os, const gtirb::CodeBlock& x,
-                          uint64_t offset);
+                          uint64_t offset) override;
   void printInstruction(std::ostream& os, const gtirb::CodeBlock& block,
                         const cs_insn& inst,
                         const gtirb::Offset& offset) override;
