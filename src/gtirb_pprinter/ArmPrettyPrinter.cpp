@@ -32,24 +32,24 @@ ArmPrettyPrinter::ArmPrettyPrinter(gtirb::Context& context_,
       CS_ARCH_ARM, (cs_mode)(CS_MODE_ARM | CS_MODE_V8), &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
 
-  m_mclass = false;
-  m_archtype_from_elf = false;
+  Mclass = false;
+  ArchtypeFromElf = false;
   for (const auto& Section : module_.findSections(".ARM.attributes")) {
     for (const auto& ByteInterval : Section.byte_intervals()) {
       const char* RawChars = ByteInterval.rawBytes<const char>();
       // Remove zeros
       std::vector<char> Chars;
-      for (size_t I = 0; I < ByteInterval.getInitializedSize(); ++I) {
+      for (size_t I = 0; I < ByteInterval.getSize(); ++I) {
         if (RawChars[I] != 0)
           Chars.push_back(RawChars[I]);
       }
       std::string SectStr(Chars.begin(), Chars.end());
       if (SectStr.find("Cortex-M7") != std::string::npos) {
-        m_mclass = true;
+        Mclass = true;
         break;
       }
     }
-    m_archtype_from_elf = true;
+    ArchtypeFromElf = true;
   }
 }
 
@@ -58,51 +58,105 @@ void ArmPrettyPrinter::printHeader(std::ostream& os) {
 
   os << "# ARM " << std::endl;
   os << ".syntax unified" << std::endl;
-  if (!m_mclass) {
+  if (!Mclass) {
     os << ".arch_extension idiv" << std::endl;
     os << ".arch_extension sec" << std::endl;
   }
 }
 
-void ArmPrettyPrinter::setDecodeMode(std::ostream& os,
+void ArmPrettyPrinter::setDecodeMode(std::ostream& Os,
                                      const gtirb::CodeBlock& x) {
   // 1 for THUMB 0 for regular ARM
   if (x.getDecodeMode()) {
-    os << ".thumb" << std::endl;
+    Os << ".thumb" << std::endl;
 
-    if (m_archtype_from_elf) {
-      if (m_mclass) {
-        cs_option(this->csHandle, CS_OPT_MODE,
-                  CS_MODE_THUMB | CS_MODE_V8 | CS_MODE_MCLASS);
-      } else {
-        cs_option(this->csHandle, CS_OPT_MODE, CS_MODE_THUMB | CS_MODE_V8);
-      }
+    if (Mclass) {
+      cs_option(this->csHandle, CS_OPT_MODE,
+                CS_MODE_THUMB | CS_MODE_V8 | CS_MODE_MCLASS);
     } else {
-      // If the arch type is not available, try decoding the block to see if
-      // it's Cortex-M.
-      gtirb::Addr addr = *x.getAddress();
-      cs_insn* insn;
-      cs_option(this->csHandle, CS_OPT_DETAIL, CS_OPT_OFF);
-
-      // Try non-MCLASS first.
       cs_option(this->csHandle, CS_OPT_MODE, CS_MODE_THUMB | CS_MODE_V8);
-      size_t count = cs_disasm(this->csHandle, x.rawBytes<uint8_t>(),
-                               x.getSize(),
-                               static_cast<uint64_t>(addr), 0, &insn);
-      size_t total_size = 0;
-      for (size_t i = 0; i < count; i++) {
-        total_size += insn[i].size;
-      }
-      // If the total size of the decoded instructons does not match to the
-      // block size, try MCLASS mode.
-      if (total_size != x.getSize()) {
-        cs_option(this->csHandle, CS_OPT_MODE, CS_MODE_THUMB | CS_MODE_V8 | CS_MODE_MCLASS);
-      }
     }
   } else {
-    os << ".arm" << std::endl;
+    Os << ".arm" << std::endl;
     cs_option(this->csHandle, CS_OPT_MODE, CS_MODE_ARM | CS_MODE_V8);
   }
+}
+
+void ArmPrettyPrinter::printBlockContents(std::ostream& Os,
+                                          const gtirb::CodeBlock& X,
+                                          uint64_t Offset) {
+  if (Offset > X.getSize()) {
+    return;
+  }
+
+  gtirb::Addr Addr = *X.getAddress();
+  Os << '\n';
+
+  cs_insn* Insn = nullptr;
+  cs_insn* TmpInsn;
+  cs_option(this->csHandle, CS_OPT_DETAIL, CS_OPT_ON);
+  size_t Count = cs_disasm(this->csHandle, X.rawBytes<uint8_t>() + Offset,
+                           X.getSize() - Offset,
+                           static_cast<uint64_t>(Addr) + Offset, 0, &TmpInsn);
+
+  // Exception-safe cleanup of instructions
+  std::unique_ptr<cs_insn, std::function<void(cs_insn*)>> freeInsn(
+      TmpInsn, [Count](cs_insn* I) { cs_free(I, Count); });
+
+  // NOTE: The current version of Capstone fails to decode 'mrs' and
+  // 'msr' instructions correctly without CS_MODE_MCLASS.
+  // Also, it fails to decode 'blx' instruction correctly with
+  // CS_MODE_MCLASS.
+  //
+  // If the decoding fails, try different CS modes to see if it works.
+  // This is done only when it's Thumb state, and the arch type info is not
+  // available.
+  if (X.getDecodeMode() && !ArchtypeFromElf) {
+    size_t TotalSize = 0;
+    for (size_t I = 0; I < Count; I++) {
+      TotalSize += TmpInsn[I].size;
+    }
+    // If the total size of the decoded instructons does not match to the
+    // block size, try the other mode.
+    if (TotalSize != X.getSize()) {
+      cs_option(this->csHandle, CS_OPT_MODE, CS_MODE_THUMB | CS_MODE_V8 | (Mclass ? (cs_mode)0 : CS_MODE_MCLASS));
+
+      cs_insn* TmpInsn2;
+      size_t Count2 = cs_disasm(this->csHandle, X.rawBytes<uint8_t>() + Offset,
+                        X.getSize() - Offset,
+                        static_cast<uint64_t>(Addr) + Offset, 0, &TmpInsn2);
+
+      // Exception-safe cleanup of instructions
+      std::unique_ptr<cs_insn, std::function<void(cs_insn*)>> freeInsn2(
+          TmpInsn2, [Count2](cs_insn* I) { cs_free(I, Count2); });
+
+      TotalSize = 0;
+      for (size_t I = 0; I < Count2; I++) {
+        TotalSize += TmpInsn2[I].size;
+      }
+      // If the total size of the decoded instructons does not match to the
+      // block size, try the other mode.
+      // Otherwise, keep the current mode.
+      if (TotalSize == X.getSize()) {
+        Mclass = !Mclass;
+        Insn = TmpInsn2;
+        Count = Count2;
+      }
+    }
+  }
+  if(Insn == nullptr) {
+    Insn = TmpInsn;
+  }
+
+  gtirb::Offset BlockOffset(X.getUUID(), Offset);
+  for (size_t I = 0; I < Count; I++) {
+    fixupInstruction(Insn[I]);
+    printInstruction(Os, X, Insn[I], BlockOffset);
+    BlockOffset.Displacement += Insn[I].size;
+  }
+  // print any CFI directives located at the end of the block
+  // e.g. '.cfi_endproc' is usually attached to the end of the block
+  printCFIDirectives(Os, BlockOffset);
 }
 
 void ArmPrettyPrinter::fixupInstruction(cs_insn& inst) {
