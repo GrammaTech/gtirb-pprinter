@@ -134,9 +134,9 @@ void ArmPrettyPrinter::printBlockContents(std::ostream& Os,
 
     bool DoBreak = false;
 
-    if (CsModeCount == 1 || (I + 1 == CsModeCount)) {
+    if (I + 1 == CsModeCount) {
       DoBreak = true;
-    } else if (CsModeCount > 1) {
+    } else {
       size_t TotalSize = 0;
       for (size_t J = 0; J < TmpCount; J++) {
         TotalSize += Insn[J].size;
@@ -145,7 +145,7 @@ void ArmPrettyPrinter::printBlockContents(std::ostream& Os,
       // indicates the decoding succeeded.
       DoBreak = (TotalSize == X.getSize());
     }
-    // Keep the decoding attemp.
+    // Keep the decoding attempt.
     if (DoBreak) {
       // Assign the ownership of TmpInsnPtr to InsnPtr. This passes along the
       // deleter as well.
