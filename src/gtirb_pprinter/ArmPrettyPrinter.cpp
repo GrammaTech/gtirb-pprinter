@@ -111,7 +111,7 @@ void ArmPrettyPrinter::printBlockContents(std::ostream& Os,
   }
 
   std::unique_ptr<cs_insn, std::function<void(cs_insn*)>> InsnPtr;
-  size_t InsnCount;
+  size_t InsnCount = 0;
 
   // NOTE: For Thumb state binaries, the current version of Capstone fails to
   // decode 'mrs' and 'msr' instructions correctly without CS_MODE_MCLASS.
