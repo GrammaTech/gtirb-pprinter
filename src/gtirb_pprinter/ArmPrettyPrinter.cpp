@@ -120,14 +120,13 @@ void ArmPrettyPrinter::printBlockContents(std::ostream& Os,
   //
   // This loop is to try out multiple CS modes to see if decoding succeeds.
   // Currently, this is done only when the arch type info is not available.
-  for (size_t I = 0; I < CsModeCount; I++)
-  {
+  for (size_t I = 0; I < CsModeCount; I++) {
     cs_insn* Insn = nullptr;
     cs_option(this->csHandle, CS_OPT_DETAIL, CS_OPT_ON);
     cs_option(this->csHandle, CS_OPT_MODE, CsModes[I]);
     size_t TmpCount = cs_disasm(this->csHandle, X.rawBytes<uint8_t>() + Offset,
-                             X.getSize() - Offset,
-                             static_cast<uint64_t>(Addr) + Offset, 0, &Insn);
+                                X.getSize() - Offset,
+                                static_cast<uint64_t>(Addr) + Offset, 0, &Insn);
 
     // Exception-safe cleanup of instructions
     std::unique_ptr<cs_insn, std::function<void(cs_insn*)>> TmpInsnPtr(
@@ -148,11 +147,12 @@ void ArmPrettyPrinter::printBlockContents(std::ostream& Os,
     }
     // Keep the decoding attemp.
     if (DoBreak) {
-       // Assign the ownership of TmpInsnPtr to InsnPtr. This passes along the deleter as well.
-       // https://en.cppreference.com/w/cpp/memory/unique_ptr/operator%3D
-       InsnPtr = std::move(TmpInsnPtr);
-       InsnCount = TmpCount;
-       break;
+      // Assign the ownership of TmpInsnPtr to InsnPtr. This passes along the
+      // deleter as well.
+      // https://en.cppreference.com/w/cpp/memory/unique_ptr/operator%3D
+      InsnPtr = std::move(TmpInsnPtr);
+      InsnCount = TmpCount;
+      break;
     }
   }
 
