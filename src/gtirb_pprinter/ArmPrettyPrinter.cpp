@@ -39,7 +39,7 @@ ArmPrettyPrinter::ArmPrettyPrinter(gtirb::Context& context_,
       const char* RawChars = ByteInterval.rawBytes<const char>();
       // Remove zeros
       std::vector<char> Chars;
-      for (size_t I = 0; I < ByteInterval.getSize(); ++I) {
+      for (size_t I = 0; I < ByteInterval.getInitializedSize(); ++I) {
         if (RawChars[I] != 0)
           Chars.push_back(RawChars[I]);
       }
