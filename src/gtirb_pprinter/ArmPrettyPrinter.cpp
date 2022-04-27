@@ -104,8 +104,13 @@ void ArmPrettyPrinter::printBlockContents(std::ostream& Os,
         CsModes[0] = (CS_MODE_THUMB | CS_MODE_V8);
       }
     } else {
-      CsModes[0] = (CS_MODE_THUMB | CS_MODE_V8);
-      CsModes[1] = (CS_MODE_THUMB | CS_MODE_V8 | CS_MODE_MCLASS);
+      if (Mclass) {
+        CsModes[1] = (CS_MODE_THUMB | CS_MODE_V8 | CS_MODE_MCLASS);
+        CsModes[0] = (CS_MODE_THUMB | CS_MODE_V8);
+      } else {
+        CsModes[0] = (CS_MODE_THUMB | CS_MODE_V8);
+        CsModes[1] = (CS_MODE_THUMB | CS_MODE_V8 | CS_MODE_MCLASS);
+      }
       CsModeCount = 2;
     }
   }
@@ -152,6 +157,9 @@ void ArmPrettyPrinter::printBlockContents(std::ostream& Os,
       // https://en.cppreference.com/w/cpp/memory/unique_ptr/operator%3D
       InsnPtr = std::move(TmpInsnPtr);
       InsnCount = TmpCount;
+      if ((CsModes[I] & CS_MODE_MCLASS) != 0) {
+        Mclass = true;
+      }
       break;
     }
   }
