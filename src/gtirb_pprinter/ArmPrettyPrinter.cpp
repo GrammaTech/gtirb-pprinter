@@ -92,70 +92,77 @@ void ArmPrettyPrinter::printBlockContents(std::ostream& Os,
   gtirb::Addr Addr = *X.getAddress();
   Os << '\n';
 
-  cs_insn* Insn = nullptr;
-  cs_insn* TmpInsn;
-  cs_option(this->csHandle, CS_OPT_DETAIL, CS_OPT_ON);
-  size_t Count = cs_disasm(this->csHandle, X.rawBytes<uint8_t>() + Offset,
-                           X.getSize() - Offset,
-                           static_cast<uint64_t>(Addr) + Offset, 0, &TmpInsn);
+  size_t CsModes[2];
+  size_t CsModeCount = 1;
+  if (!X.getDecodeMode()) {
+    CsModes[0] = (CS_MODE_ARM | CS_MODE_V8);
+  } else {
+    if (ArchtypeFromElf) {
+      if (Mclass) {
+        CsModes[0] = (CS_MODE_THUMB | CS_MODE_V8 | CS_MODE_MCLASS);
+      } else {
+        CsModes[0] = (CS_MODE_THUMB | CS_MODE_V8);
+      }
+    } else {
+      CsModes[0] = (CS_MODE_THUMB | CS_MODE_V8);
+      CsModes[1] = (CS_MODE_THUMB | CS_MODE_V8 | CS_MODE_MCLASS);
+      CsModeCount = 2;
+    }
+  }
 
-  // Exception-safe cleanup of instructions
-  std::unique_ptr<cs_insn, std::function<void(cs_insn*)>> freeInsn(
-      TmpInsn, [Count](cs_insn* I) { cs_free(I, Count); });
+  std::unique_ptr<cs_insn, std::function<void(cs_insn*)>> InsnPtr;
+  size_t InsnCount;
 
-  // NOTE: The current version of Capstone fails to decode 'mrs' and
-  // 'msr' instructions correctly without CS_MODE_MCLASS.
+  // NOTE: For Thumb state binaries, the current version of Capstone fails to
+  // decode 'mrs' and 'msr' instructions correctly without CS_MODE_MCLASS.
   // Also, it fails to decode 'blx' instruction correctly with
   // CS_MODE_MCLASS.
   //
-  // If the decoding fails, try different CS modes to see if it works.
-  // This is done only when it's Thumb state, and the arch type info is not
-  // available.
-  if (X.getDecodeMode() && !ArchtypeFromElf) {
-    size_t TotalSize = 0;
-    for (size_t I = 0; I < Count; I++) {
-      TotalSize += TmpInsn[I].size;
-    }
-    // If the total size of the decoded instructons does not match to the
-    // block size, try the other mode.
-    if (TotalSize != X.getSize()) {
-      cs_option(this->csHandle, CS_OPT_MODE,
-                CS_MODE_THUMB | CS_MODE_V8 |
-                    (Mclass ? (cs_mode)0 : CS_MODE_MCLASS));
+  // This loop is to try out multiple CS modes to see if decoding succeeds.
+  // Currently, this is done only when the arch type info is not available.
+  for (size_t I = 0; I < CsModeCount; I++)
+  {
+    cs_insn* Insn = nullptr;
+    cs_option(this->csHandle, CS_OPT_DETAIL, CS_OPT_ON);
+    cs_option(this->csHandle, CS_OPT_MODE, CsModes[I]);
+    size_t TmpCount = cs_disasm(this->csHandle, X.rawBytes<uint8_t>() + Offset,
+                             X.getSize() - Offset,
+                             static_cast<uint64_t>(Addr) + Offset, 0, &Insn);
 
-      cs_insn* TmpInsn2;
-      size_t Count2 = cs_disasm(
-          this->csHandle, X.rawBytes<uint8_t>() + Offset, X.getSize() - Offset,
-          static_cast<uint64_t>(Addr) + Offset, 0, &TmpInsn2);
+    // Exception-safe cleanup of instructions
+    std::unique_ptr<cs_insn, std::function<void(cs_insn*)>> TmpInsnPtr(
+        Insn, [TmpCount](cs_insn* Instr) { cs_free(Instr, TmpCount); });
 
-      // Exception-safe cleanup of instructions
-      std::unique_ptr<cs_insn, std::function<void(cs_insn*)>> freeInsn2(
-          TmpInsn2, [Count2](cs_insn* I) { cs_free(I, Count2); });
+    bool DoBreak = false;
 
-      TotalSize = 0;
-      for (size_t I = 0; I < Count2; I++) {
-        TotalSize += TmpInsn2[I].size;
+    if (CsModeCount == 1 || (I + 1 == CsModeCount)) {
+      DoBreak = true;
+    } else if (CsModeCount > 1) {
+      size_t TotalSize = 0;
+      for (size_t J = 0; J < TmpCount; J++) {
+        TotalSize += Insn[J].size;
       }
-      // If the total size of the decoded instructons does not match to the
-      // block size, try the other mode.
-      // Otherwise, keep the current mode.
-      if (TotalSize == X.getSize()) {
-        Mclass = !Mclass;
-        Insn = TmpInsn2;
-        Count = Count2;
-      }
+      // If the sum of the instruction sizes equals to the block size, that
+      // indicates the decoding succeeded.
+      DoBreak = (TotalSize == X.getSize());
     }
-  }
-  if (Insn == nullptr) {
-    Insn = TmpInsn;
+    // Keep the decoding attemp.
+    if (DoBreak) {
+       // Assign the ownership of TmpInsnPtr to InsnPtr. This passes along the deleter as well.
+       // https://en.cppreference.com/w/cpp/memory/unique_ptr/operator%3D
+       InsnPtr = std::move(TmpInsnPtr);
+       InsnCount = TmpCount;
+       break;
+    }
   }
 
   gtirb::Offset BlockOffset(X.getUUID(), Offset);
-  for (size_t I = 0; I < Count; I++) {
-    fixupInstruction(Insn[I]);
-    printInstruction(Os, X, Insn[I], BlockOffset);
-    BlockOffset.Displacement += Insn[I].size;
+  for (size_t I = 0; I < InsnCount; I++) {
+    fixupInstruction((&(*InsnPtr))[I]);
+    printInstruction(Os, X, (&(*InsnPtr))[I], BlockOffset);
+    BlockOffset.Displacement += (&(*InsnPtr))[I].size;
   }
+
   // print any CFI directives located at the end of the block
   // e.g. '.cfi_endproc' is usually attached to the end of the block
   printCFIDirectives(Os, BlockOffset);
