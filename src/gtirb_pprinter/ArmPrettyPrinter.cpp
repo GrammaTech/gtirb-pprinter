@@ -118,10 +118,12 @@ void ArmPrettyPrinter::printBlockContents(std::ostream& Os,
   std::unique_ptr<cs_insn, std::function<void(cs_insn*)>> InsnPtr;
   size_t InsnCount = 0;
 
-  // NOTE: For Thumb state binaries, the current version of Capstone fails to
-  // decode 'mrs' and 'msr' instructions correctly without CS_MODE_MCLASS.
-  // Also, it fails to decode 'blx' instruction correctly with
-  // CS_MODE_MCLASS.
+  // NOTE: If the ARM CPU profile is not known, we may have to switch modes
+  // to successfully decode all instructions.
+  // Thumb2 MRS and MSR instructions support a larger set of `<spec_reg>` on
+  // M-profile devices, so they do not decode without CS_MODE_MCLASS.
+  // The Thumb 'blx label' instruction does not decode with CS_MODE_MCLASS,
+  // because it is not a supported instruction on M-profile devices.
   //
   // This loop is to try out multiple CS modes to see if decoding succeeds.
   // Currently, this is done only when the arch type info is not available.
