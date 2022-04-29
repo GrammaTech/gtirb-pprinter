@@ -34,7 +34,9 @@ ArmPrettyPrinter::ArmPrettyPrinter(gtirb::Context& context_,
 
   Mclass = false;
   ArchtypeFromElf = false;
-  for (const auto& Section : module_.findSections(".ARM.attributes")) {
+  const auto& Sections = module_.findSections(".ARM.attributes");
+  if (!Sections.empty()) {
+    const auto& Section = *Sections.begin();
     for (const auto& ByteInterval : Section.byte_intervals()) {
       const char* RawChars = ByteInterval.rawBytes<const char>();
       // Remove zeros
@@ -131,13 +133,13 @@ void ArmPrettyPrinter::printBlockContents(std::ostream& Os,
     cs_insn* Insn = nullptr;
     cs_option(this->csHandle, CS_OPT_DETAIL, CS_OPT_ON);
     cs_option(this->csHandle, CS_OPT_MODE, CsModes[I]);
-    size_t TmpCount = cs_disasm(this->csHandle, X.rawBytes<uint8_t>() + Offset,
-                                X.getSize() - Offset,
-                                static_cast<uint64_t>(Addr) + Offset, 0, &Insn);
+    InsnCount = cs_disasm(this->csHandle, X.rawBytes<uint8_t>() + Offset,
+                          X.getSize() - Offset,
+                          static_cast<uint64_t>(Addr) + Offset, 0, &Insn);
 
     // Exception-safe cleanup of instructions
     std::unique_ptr<cs_insn, std::function<void(cs_insn*)>> TmpInsnPtr(
-        Insn, [TmpCount](cs_insn* Instr) { cs_free(Instr, TmpCount); });
+        Insn, [InsnCount](cs_insn* Instr) { cs_free(Instr, InsnCount); });
 
     bool DoBreak = false;
 
@@ -145,12 +147,12 @@ void ArmPrettyPrinter::printBlockContents(std::ostream& Os,
       DoBreak = true;
     } else {
       size_t TotalSize = 0;
-      for (size_t J = 0; J < TmpCount; J++) {
+      for (size_t J = 0; J < InsnCount; J++) {
         TotalSize += Insn[J].size;
       }
       // If the sum of the instruction sizes equals to the block size, that
       // indicates the decoding succeeded.
-      DoBreak = (TotalSize == X.getSize());
+      DoBreak = (TotalSize == X.getSize() - Offset);
     }
     // Keep the decoding attempt.
     if (DoBreak) {
@@ -158,7 +160,6 @@ void ArmPrettyPrinter::printBlockContents(std::ostream& Os,
       // deleter as well.
       // https://en.cppreference.com/w/cpp/memory/unique_ptr/operator%3D
       InsnPtr = std::move(TmpInsnPtr);
-      InsnCount = TmpCount;
       if ((CsModes[I] & CS_MODE_MCLASS) != 0) {
         Mclass = true;
       }
