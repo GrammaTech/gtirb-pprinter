@@ -80,6 +80,12 @@ struct PeExportedSymbols {
   typedef std::vector<gtirb::UUID> Type;
 };
 
+/// \brief Auxiliary data for the UUIDs of PE exception handlers.
+struct PeExceptionHandlers {
+  static constexpr const char* Name = "peExceptionHandlers";
+  typedef std::set<gtirb::UUID> Type;
+};
+
 /// \brief Auxiliary data for extra symbol info.
 struct ElfSymbolInfo {
   static constexpr const char* Name = "elfSymbolInfo";

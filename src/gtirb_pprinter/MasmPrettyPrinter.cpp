@@ -180,6 +180,54 @@ void MasmPrettyPrinter::printExterns(std::ostream& os) {
 
   os << '\n';
 
+  if (const auto Handlers = aux_data::getPeExceptionHandlers(module);
+      Handlers.size() > 0) {
+
+    // Print synthetic linker variables.
+    os << masmSyntax.extrn() << " ___safe_se_handler_table:PTR\n";
+    os << masmSyntax.extrn() << " ___safe_se_handler_count:BYTE\n";
+    os << '\n';
+
+    // Print macro definition of the load config data directory.
+    os << "IMAGE_LOAD_CONFIG_DIRECTORY32 STRUCT \n"
+       << "Size_                         DWORD ? \n"
+       << "TimeDateStamp                 DWORD ? \n"
+       << "MajorVersion                  WORD  ? \n"
+       << "MinorVersion                  WORD  ? \n"
+       << "GlobalFlagsClear              DWORD ? \n"
+       << "GlobalFlagsSet                DWORD ? \n"
+       << "CriticalSectionDefaultTimeout DWORD ? \n"
+       << "DeCommitFreeBlockThreshold    DWORD ? \n"
+       << "DeCommitTotalFreeThreshold    DWORD ? \n"
+       << "LockPrefixTable               DWORD ? \n"
+       << "MaximumAllocationSize         DWORD ? \n"
+       << "VirtualMemoryThreshold        DWORD ? \n"
+       << "ProcessHeapFlags              DWORD ? \n"
+       << "ProcessAffinityMask           DWORD ? \n"
+       << "CSDVersion                    WORD  ? \n"
+       << "Reserved1                     WORD  ? \n"
+       << "EditList                      DWORD ? \n"
+       << "SecurityCookie                DWORD 0 \n"
+       << "SEHandlerTable                DWORD ? \n"
+       << "SEHandlerCount                DWORD ? \n"
+       << "IMAGE_LOAD_CONFIG_DIRECTORY32 ENDS \n";
+
+    os << '\n';
+
+    // Print the synthetic `_load_config_used' declaration.
+    os << "_RDATA SEGMENT READ 'DATA'\n\n"
+       << "PUBLIC __load_config_used\n"
+       << "__load_config_used IMAGE_LOAD_CONFIG_DIRECTORY32 {\\\n"
+       << "    SIZEOF IMAGE_LOAD_CONFIG_DIRECTORY32,\n"
+       << "    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n"
+       << "    OFFSET ___safe_se_handler_table,\n"
+       << "    OFFSET ___safe_se_handler_count\\\n"
+       << "}\n\n"
+       << "_RDATA ENDS\n";
+
+    os << '\n';
+  }
+
   os << masmSyntax.extrn() << " "
      << (module.getISA() == gtirb::ISA::IA32 ? "___ImageBase" : "__ImageBase")
      << ":BYTE\n";
@@ -438,20 +486,28 @@ std::string MasmPrettyPrinter::getRegisterName(unsigned int Reg) const {
   return PrettyPrinterBase::getRegisterName(Reg);
 }
 
-void MasmPrettyPrinter::printSymbolDefinition(std::ostream& os,
-                                              const gtirb::Symbol& symbol) {
-  bool Exported = Exports.count(symbol.getUUID()) > 0;
-  if (symbol.getReferent<gtirb::DataBlock>()) {
+void MasmPrettyPrinter::printSymbolDefinition(std::ostream& Stream,
+                                              const gtirb::Symbol& Symbol) {
+  std::string Name = getSymbolName(Symbol);
+  bool Exported = Exports.count(Symbol.getUUID()) > 0;
+  if (Symbol.getReferent<gtirb::DataBlock>()) {
     if (Exported) {
-      os << syntax.global() << ' ' << getSymbolName(symbol) << '\n';
+      Stream << syntax.global() << ' ' << Name << '\n';
     }
-    os << getSymbolName(symbol) << (symbol.getAtEnd() ? ":\n" : " ");
+    Stream << Name << (Symbol.getAtEnd() ? ":\n" : " ");
   } else {
+    const gtirb::CodeBlock* Block = Symbol.getReferent<gtirb::CodeBlock>();
+    bool SafeSeh =
+        aux_data::getPeExceptionHandlers(module).count(Block->getUUID()) > 0;
     if (Exported) {
-      os << symbol.getName() << ' ' << masmSyntax.proc() << " EXPORT\n"
-         << symbol.getName() << ' ' << masmSyntax.endp() << '\n';
+      Stream << Name << ' ' << masmSyntax.proc() << " EXPORT\n"
+             << Name << ' ' << masmSyntax.endp() << '\n';
+    } else if (SafeSeh) {
+      Stream << Name << ' ' << masmSyntax.proc() << "\n"
+             << ".SAFESEH " << Name << "\n"
+             << Name << ' ' << masmSyntax.endp() << '\n';
     } else {
-      os << getSymbolName(symbol) << ":\n";
+      Stream << Name << ":\n";
     }
   }
 }
