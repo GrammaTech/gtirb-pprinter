@@ -60,10 +60,19 @@ void ArmPrettyPrinter::printHeader(std::ostream& os) {
 
   os << "# ARM " << std::endl;
   os << ".syntax unified" << std::endl;
-  if (!Mclass) {
+  // For Cortex-M7 (Capstone MCLASS mode), architectural extension 'idiv'
+  // is not allowed.
+  // If !ArchtypeFromElf, we don't know if it's MCLASS mode or not at this
+  // point. So, do not print out the diretive by default in that case.
+  // NOTE: This could be problematic for binaries with !ArchtypeFromElf that
+  // need idiv extension.
+  // TODO: We could (1) scan the binary in front to detect Cortex-M7, or
+  // (2) to detect architecture that needs idiv extension, or
+  // (3) have gtirb-pprinter take a user input to choose the extension.
+  if (ArchtypeFromElf && !Mclass) {
     os << ".arch_extension idiv" << std::endl;
-    os << ".arch_extension sec" << std::endl;
   }
+  os << ".arch_extension sec" << std::endl;
 }
 
 void ArmPrettyPrinter::setDecodeMode(std::ostream& Os,
