@@ -387,10 +387,10 @@ TypePrinter::layoutStruct(const GtType_t<Index::Struct>& StructType,
   std::stringstream ss;
   ss << "s" << StructNames.size();
   Stream << "struct" << Size << " {";
-  for (auto Iter1 = Fields.begin(); Iter1 != Fields.end(); ++Iter1) {
-    auto& [Offset, FieldType] = *Iter1;
-    printType(FieldType, Stream);
-    auto Iter2 = Iter1 + 1;
+  for (auto FieldIter = Fields.begin(); FieldIter != Fields.end();
+       ++FieldIter) {
+    printType(std::get<gtirb::UUID>(*FieldIter), Stream);
+    auto Iter2 = FieldIter + 1;
     if (Iter2 != Fields.end())
       Stream << ", ";
   }
