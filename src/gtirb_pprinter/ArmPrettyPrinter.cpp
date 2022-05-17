@@ -63,7 +63,7 @@ void ArmPrettyPrinter::printHeader(std::ostream& os) {
   // For Cortex-M7 (Capstone MCLASS mode), architectural extension 'idiv'
   // is not allowed.
   // If !ArchtypeFromElf, we don't know if it's MCLASS mode or not at this
-  // point. So, do not print out the diretive by default in that case.
+  // point. So, do not print out the directive by default in that case.
   // NOTE: This could be problematic for binaries with !ArchtypeFromElf that
   // need idiv extension.
   // TODO: We could (1) scan the binary in front to detect Cortex-M7, or
