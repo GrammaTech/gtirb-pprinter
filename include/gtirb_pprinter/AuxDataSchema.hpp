@@ -135,6 +135,41 @@ struct PEResources {
 };
 
 } // namespace schema
+
+namespace provisional_schema {
+
+// Type descriptors used by gtirb-types
+typedef std::variant<
+    uint64_t,                                          // Unknown{Width}
+    std::tuple<uint8_t>,                               // Bool
+    std::tuple<int8_t, uint64_t>,                      // Int{Signed, Width}
+    uint64_t,                                          // Char{Width}
+    uint64_t,                                          // Float{Width}
+    std::tuple<gtirb::UUID, std::vector<gtirb::UUID>>, // Function{ReturnType,
+                                                       // ArgumentTypes}
+    gtirb::UUID,                                       // Pointer{Type}
+    std::tuple<gtirb::UUID, uint64_t>,                 // Array {Type, Size}
+    std::tuple<uint64_t,
+               std::vector<std::tuple<uint64_t, gtirb::UUID>>>, // Struct {Size,
+                                                                // Fields}
+    std::tuple<uint8_t>,                                        // Void
+    gtirb::UUID>                                                // Alias {Type}
+    GtirbType;
+
+struct TypeTable {
+  // Map assigning each type used a UUID
+  static constexpr const char* Name = "typeTable";
+  typedef std::map<gtirb::UUID, GtirbType> Type;
+};
+
+struct PrototypeTable {
+  // Map from UUIDs of functions to UUIDs for their types in typeTable
+  static constexpr const char* Name = "prototypeTable";
+  typedef std::map<gtirb::UUID, gtirb::UUID> Type;
+};
+
+} // namespace provisional_schema
+
 } // namespace gtirb
 
 #endif // GTIRB_PPRINTER_AUXDATASCHEMA_HPP

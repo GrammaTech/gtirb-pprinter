@@ -341,7 +341,8 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
                                      const PrintingPolicy& policy_)
     : syntax(syntax_), assembler(assembler_), policy(policy_),
       LstMode(policy.LstMode), context(context_), module(module_),
-      functionEntry(), functionLastBlock(), PreferredEOLCommentPos(64) {
+      functionEntry(), functionLastBlock(),
+      PreferredEOLCommentPos(64), type_printer{module_, context_} {
 
   for (auto const& Function : aux_data::getFunctionEntries(module_)) {
     for (auto& EntryBlockUuid : Function.second) {
@@ -674,12 +675,27 @@ void PrettyPrinterBase::x86FixupInstruction(cs_insn& inst) {
   }
 }
 
+void PrettyPrinterBase::printPrototype(std::ostream& os,
+                                       const gtirb::CodeBlock& block,
+                                       const gtirb::Offset& offset) {
+
+  if (this->LstMode != ListingDebug && this->LstMode != ListingUI) {
+    return;
+  }
+  auto Addr = *block.getAddress() + offset.Displacement;
+  if (auto Iter = functionEntry.find(Addr); Iter != functionEntry.end()) {
+    os << syntax.comment();
+    type_printer.printPrototype(Addr, os) << std::endl;
+  }
+}
+
 void PrettyPrinterBase::printInstruction(std::ostream& os,
                                          const gtirb::CodeBlock& block,
                                          const cs_insn& inst,
                                          const gtirb::Offset& offset) {
   gtirb::Addr ea(inst.address);
   printComments(os, offset, inst.size);
+  printPrototype(os, block, offset);
   printCFIDirectives(os, offset);
 
   ////////////////////////////////////////////////////////////////////

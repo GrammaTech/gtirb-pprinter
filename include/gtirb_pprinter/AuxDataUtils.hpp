@@ -248,7 +248,87 @@ getPeExportedSymbols(const gtirb::Module& M);
 // `peSafeExceptionHandlers' AuxData table.
 gtirb::schema::PeSafeExceptionHandlers::Type
 getPeSafeExceptionHandlers(const gtirb::Module& M);
+// Load map from UUIDs to type descriptors
+gtirb::provisional_schema::TypeTable::Type getTypeTable(const gtirb::Module& M);
+
+// Load map from UUIDs for functions to UUIDs for their type signatures
+gtirb::provisional_schema::PrototypeTable::Type
+getPrototypeTable(const gtirb::Module& M);
 
 } // namespace aux_data
+
+// Utilities for dealing with TypeTable auxdata in particular
+namespace gtirb_types {
+namespace schema = gtirb::provisional_schema;
+typedef schema::TypeTable::Type TypeMap;
+typedef TypeMap::mapped_type TypeTableEntry;
+typedef schema::PrototypeTable::Type PrototypeTable;
+
+enum class Index : size_t {
+  Unknown = 0,
+  Bool,
+  Int,
+  Char,
+  Float,
+  Function,
+  Pointer,
+  Array,
+  Struct,
+  Void,
+  Alias,
+};
+
+template <Index I>
+using GtType_t = typename std::variant_alternative_t<static_cast<size_t>(I),
+                                                     schema::GtirbType>;
+
+template <Index I> GtType_t<I> getVariant(const schema::GtirbType& Var) {
+  return std::get<static_cast<size_t>(I)>(Var);
+};
+
+struct TypePrinter {
+
+  TypePrinter(const gtirb::Module& Module, gtirb::Context& C);
+  std::ostream& printPrototype(const gtirb::Addr& Addr, std::ostream& S);
+  std::ostream& printPrototype(const gtirb::UUID& FnId, std::ostream& S);
+  std::ostream& layoutStruct(const GtType_t<Index::Struct>& StructType,
+                             std::ostream& Stream, gtirb::UUID Id);
+  std::ostream& printType(const gtirb::UUID& TypeID, std::ostream& Stream);
+
+  void makeName(const gtirb::UUID& StructId);
+  // Simple types
+  std::ostream& printUnknown(const GtType_t<Index::Unknown>& UnknownType,
+                             std::ostream& Stream);
+  std::ostream& printBool(std::ostream& Stream);
+  std::ostream& printInt(const GtType_t<Index::Int>& IntType,
+                         std::ostream& Stream);
+  std::ostream& printChar(const GtType_t<Index::Char>& CharType,
+                          std::ostream& Stream);
+  std::ostream& printFloat(const GtType_t<Index::Float>& FloatType,
+                           std::ostream& Stream);
+  std::ostream& printVoid(std::ostream& Stream);
+
+  // Compound types
+  std::ostream& printFunction(const GtType_t<Index::Function>& FunType,
+                              std::ostream& Stream);
+  std::ostream& printArray(const GtType_t<Index::Array>& ArrayType,
+                           std::ostream& Stream);
+  // This one doesn't follow the same pattern, because structs are complicated
+  // and we don't want to print them in place
+  std::ostream& printStruct(const gtirb::UUID& Id, std::ostream& Stream);
+  std::ostream& printPointer(const GtType_t<Index::Pointer>& PointerType,
+                             std::ostream& Stream);
+  std::ostream& printAlias(const GtType_t<Index::Alias>& AliasType,
+                           std::ostream& Stream);
+  std::optional<gtirb::UUID> getStructId(const gtirb::UUID& TypeId);
+
+  std::map<gtirb::UUID, std::string> StructNames;
+  TypeMap Types;
+  PrototypeTable Prototypes;
+  std::map<gtirb::Addr, gtirb::UUID> functionEntries;
+  const gtirb::Module& Module;
+  gtirb::Context& Context;
+};
+} // namespace gtirb_types
 
 #endif

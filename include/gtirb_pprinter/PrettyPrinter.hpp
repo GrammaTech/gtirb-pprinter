@@ -16,6 +16,7 @@
 #define GTIRB_PP_PRETTY_PRINTER_H
 
 #include "Assembler.hpp"
+#include "AuxDataUtils.hpp"
 #include "Export.hpp"
 #include "Syntax.hpp"
 
@@ -366,6 +367,8 @@ protected:
   virtual void printCommentableLine(std::stringstream& LineContents,
                                     std::ostream& OutStream, gtirb::Addr EA);
   virtual void printCFIDirectives(std::ostream& os, const gtirb::Offset& ea);
+  virtual void printPrototype(std::ostream& os, const gtirb::CodeBlock& block,
+                              const gtirb::Offset& offset);
   virtual void printSymbolicData(
       std::ostream& os,
       const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE,
@@ -483,6 +486,7 @@ private:
   // When emitting end-of-line comments, what is the preferred (minimum) column
   // position to use?
   const size_t PreferredEOLCommentPos;
+  gtirb_types::TypePrinter type_printer;
 
   template <typename BlockType>
   void printBlockImpl(std::ostream& OS, BlockType& Block);

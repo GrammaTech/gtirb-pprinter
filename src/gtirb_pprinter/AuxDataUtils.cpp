@@ -171,5 +171,231 @@ gtirb::schema::PeSafeExceptionHandlers::Type
 getPeSafeExceptionHandlers(const gtirb::Module& M) {
   return util::getOrDefault<gtirb::schema::PeSafeExceptionHandlers>(M);
 }
+gtirb::provisional_schema::TypeTable::Type
+getTypeTable(const gtirb::Module& M) {
+  return util::getOrDefault<gtirb::provisional_schema::TypeTable>(M);
+}
+
+gtirb::provisional_schema::PrototypeTable::Type
+getPrototypeTable(const gtirb::Module& M) {
+  return util::getOrDefault<gtirb::provisional_schema::PrototypeTable>(M);
+}
 
 } // namespace aux_data
+
+namespace gtirb_types {
+template <class T> T* nodeFromUUID(gtirb::Context& C, gtirb::UUID id) {
+  return dyn_cast_or_null<T>(gtirb::Node::getByUUID(C, id));
+}
+
+TypePrinter::TypePrinter(const gtirb::Module& M, gtirb::Context& C)
+    : Types(aux_data::getTypeTable(M)),
+      Prototypes(aux_data::getPrototypeTable(M)), Module(M), Context(C) {
+  for (auto& [Uuid, TypeObj] : Types) {
+    if (static_cast<Index>(TypeObj.index()) == Index::Struct) {
+      makeName(Uuid);
+    };
+  }
+
+  for (auto& [FnId, Entries] : aux_data::getFunctionEntries(M)) {
+    for (auto& EntryBlockUUID : Entries) {
+      auto* Block = nodeFromUUID<gtirb::CodeBlock>(C, EntryBlockUUID);
+      if (Block) {
+        functionEntries[*Block->getAddress()] = FnId;
+      }
+    }
+  }
+}
+
+void TypePrinter::makeName(const gtirb::UUID& UUID) {
+  std::stringstream ss;
+  ss << "s" << StructNames.size();
+  StructNames[UUID] = ss.str();
+}
+
+std::ostream& TypePrinter::printPrototype(const gtirb::UUID& FnId,
+                                          std::ostream& Stream) {
+  if (auto TypeIter = Prototypes.find(FnId); TypeIter != Prototypes.end()) {
+    return printType(TypeIter->second, Stream);
+  }
+  return Stream;
+}
+
+std::ostream& TypePrinter::printPrototype(const gtirb::Addr& Addr,
+                                          std::ostream& Stream) {
+  if (auto FnIter = functionEntries.find(Addr);
+      FnIter != functionEntries.end()) {
+    return printPrototype(FnIter->second, Stream);
+  }
+  return Stream;
+}
+
+std::ostream& TypePrinter::printType(const gtirb::UUID& TypeId,
+                                     std::ostream& Stream) {
+  auto EntryIter = this->Types.find(TypeId);
+  if (EntryIter == Types.end()) {
+    // Warn
+    return Stream;
+  }
+  auto& Entry = EntryIter->second;
+  switch ((Index)Entry.index()) {
+  case Index::Unknown:
+    return printUnknown(getVariant<Index::Unknown>(Entry), Stream);
+  case Index::Bool:
+    return printBool(Stream);
+  case Index::Int:
+    return printInt(getVariant<Index::Int>(Entry), Stream);
+  case Index::Char:
+    return printChar(getVariant<Index::Char>(Entry), Stream);
+  case Index::Float:
+    return printFloat(getVariant<Index::Float>(Entry), Stream);
+  case Index::Function:
+    return printFunction(getVariant<Index::Function>(Entry), Stream);
+  case Index::Pointer:
+    return printPointer(getVariant<Index::Pointer>(Entry), Stream);
+  case Index::Array:
+    return printArray(getVariant<Index::Array>(Entry), Stream);
+  case Index::Struct:
+    return printStruct(TypeId, Stream);
+  case Index::Void:
+    return printVoid(Stream);
+  case Index::Alias:
+    return printAlias(getVariant<Index::Alias>(Entry), Stream);
+  default:
+    assert(0 && "Unknown variant in type table entry");
+    exit(1);
+  }
+};
+
+std::ostream& TypePrinter::printUnknown(const GtType_t<Index::Unknown>& Width,
+                                        std::ostream& Stream) {
+  Stream << "unknown" << Width;
+  return Stream;
+};
+
+std::ostream& TypePrinter::printBool(std::ostream& Stream) {
+  Stream << "bool";
+  return Stream;
+}
+
+std::ostream& TypePrinter::printInt(const GtType_t<Index::Int>& Obj,
+                                    std::ostream& Stream) {
+  auto& [Signed, Width] = Obj;
+  if (!Signed) {
+    Stream << "u";
+  }
+  Stream << "int" << Width;
+  return Stream;
+}
+
+std::ostream& TypePrinter::printChar(const GtType_t<Index::Char>& Width,
+                                     std::ostream& Stream) {
+  Stream << "char" << Width;
+  return Stream;
+}
+
+std::ostream& TypePrinter::printFloat(const GtType_t<Index::Float>& Width,
+                                      std::ostream& Stream) {
+  Stream << "float" << Width;
+  return Stream;
+}
+
+std::ostream& TypePrinter::printVoid(std::ostream& Stream) {
+  Stream << "void";
+  return Stream;
+}
+
+std::ostream& TypePrinter::printArray(const GtType_t<Index::Array>& ArrayType,
+                                      std::ostream& Stream) {
+  auto& [TypeId, Length] = ArrayType;
+  printType(TypeId, Stream) << "[" << Length << "]";
+  return Stream;
+}
+
+std::optional<gtirb::UUID> TypePrinter::getStructId(const gtirb::UUID& TypeId) {
+  auto Iter = Types.find(TypeId);
+  auto Type = Iter->second;
+  gtirb::UUID Candidate;
+  switch ((Index)Type.index()) {
+  case Index::Struct:
+    return TypeId;
+  case Index::Alias:
+    return getVariant<Index::Alias>(Type);
+    break;
+  case Index::Pointer:
+    return getVariant<Index::Pointer>(Type);
+    break;
+  case Index::Array:
+    return std::get<0>(getVariant<Index::Array>(Type));
+    break;
+  default:
+    return {};
+  }
+  auto CandidateType = Types.find(Candidate)->second;
+  if (static_cast<Index>(CandidateType.index()) == Index::Struct) {
+    return Candidate;
+  } else {
+    return {};
+  }
+}
+
+std::ostream&
+TypePrinter::printFunction(const GtType_t<Index::Function>& FunType,
+                           std::ostream& Stream) {
+  auto& [RetType, ParamTypes] = FunType;
+  Stream << "(";
+  for (auto Iter = ParamTypes.begin(); Iter != ParamTypes.end(); ++Iter) {
+    auto& UUID = *Iter;
+    printType(UUID, Stream);
+    auto Iter2 = Iter;
+    ++Iter2;
+    if (Iter2 != ParamTypes.end()) {
+      Stream << ",";
+    }
+  }
+  Stream << ")->";
+  printType(RetType, Stream);
+  return Stream;
+}
+
+std::ostream& TypePrinter::printPointer(const GtType_t<Index::Pointer>& PtrType,
+                                        std::ostream& Stream) {
+  printType(PtrType, Stream) << " *";
+  return Stream;
+}
+
+std::ostream& TypePrinter::printAlias(const GtType_t<Index::Alias>& AliasType,
+                                      std::ostream& Stream) {
+  return printType(AliasType, Stream);
+}
+
+std::ostream& TypePrinter::printStruct(const gtirb::UUID& Id,
+                                       std::ostream& Stream) {
+  if (auto Name = StructNames.find(Id); Name != StructNames.end()) {
+    Stream << "struct " << Name->second;
+  } else {
+    Stream << "unknown_struct";
+  }
+  return Stream;
+}
+
+std::ostream&
+TypePrinter::layoutStruct(const GtType_t<Index::Struct>& StructType,
+                          std::ostream& Stream, gtirb::UUID Id) {
+  static std::vector<gtirb::UUID> StructIds;
+  auto& [Size, Fields] = StructType;
+  std::stringstream ss;
+  ss << "s" << StructNames.size();
+  Stream << "struct" << Size << " {";
+  for (auto Iter1 = Fields.begin(); Iter1 != Fields.end(); ++Iter1) {
+    auto& [Offset, FieldType] = *Iter1;
+    printType(FieldType, Stream);
+    auto Iter2 = Iter1 + 1;
+    if (Iter2 != Fields.end())
+      Stream << ", ";
+  }
+  Stream << "} " << StructNames[Id];
+  return Stream;
+}
+
+} // namespace gtirb_types
