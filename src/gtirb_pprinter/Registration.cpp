@@ -27,6 +27,7 @@
 namespace gtirb_pprint {
 void registerAuxDataTypes() {
   using namespace gtirb::schema;
+  using namespace gtirb::provisional_schema;
   gtirb::AuxDataContainer::registerAuxDataType<Comments>();
   gtirb::AuxDataContainer::registerAuxDataType<FunctionEntries>();
   gtirb::AuxDataContainer::registerAuxDataType<FunctionBlocks>();
@@ -46,6 +47,8 @@ void registerAuxDataTypes() {
   gtirb::AuxDataContainer::registerAuxDataType<BinaryType>();
   gtirb::AuxDataContainer::registerAuxDataType<ArchInfo>();
   gtirb::AuxDataContainer::registerAuxDataType<PEResources>();
+  gtirb::AuxDataContainer::registerAuxDataType<TypeTable>();
+  gtirb::AuxDataContainer::registerAuxDataType<PrototypeTable>();
 }
 
 void registerPrettyPrinters() {

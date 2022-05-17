@@ -214,18 +214,27 @@ void TypePrinter::makeName(const gtirb::UUID& UUID) {
 }
 
 std::ostream& TypePrinter::printPrototype(const gtirb::UUID& FnId,
-                                          std::ostream& Stream) {
+                                          std::ostream& Stream,
+                                          const std::string Comment) {
   if (auto TypeIter = Prototypes.find(FnId); TypeIter != Prototypes.end()) {
-    return printType(TypeIter->second, Stream);
+    printType(TypeIter->second, Stream);
+    auto StructsReferenced = collectStructs(TypeIter->second);
+    for (auto& StructId : StructsReferenced) {
+      const auto& Struct = getVariant<Index::Struct>(Types[StructId]);
+      Stream << Comment << " ";
+      layoutStruct(Struct, Stream, StructId) << "\n";
+    }
+    Stream << Comment << " ";
   }
   return Stream;
 }
 
 std::ostream& TypePrinter::printPrototype(const gtirb::Addr& Addr,
-                                          std::ostream& Stream) {
+                                          std::ostream& Stream,
+                                          const std::string Comment) {
   if (auto FnIter = functionEntries.find(Addr);
       FnIter != functionEntries.end()) {
-    return printPrototype(FnIter->second, Stream);
+    return printPrototype(FnIter->second, Stream, Comment);
   }
   return Stream;
 }
@@ -350,7 +359,7 @@ TypePrinter::printFunction(const GtType_t<Index::Function>& FunType,
     auto Iter2 = Iter;
     ++Iter2;
     if (Iter2 != ParamTypes.end()) {
-      Stream << ",";
+      Stream << ", ";
     }
   }
   Stream << ")->";
@@ -386,7 +395,7 @@ TypePrinter::layoutStruct(const GtType_t<Index::Struct>& StructType,
   auto& [Size, Fields] = StructType;
   std::stringstream ss;
   ss << "s" << StructNames.size();
-  Stream << "struct" << Size << " {";
+  Stream << "struct " << StructNames[Id] << " {";
   for (auto FieldIter = Fields.begin(); FieldIter != Fields.end();
        ++FieldIter) {
     printType(std::get<gtirb::UUID>(*FieldIter), Stream);
@@ -394,8 +403,56 @@ TypePrinter::layoutStruct(const GtType_t<Index::Struct>& StructType,
     if (Iter2 != Fields.end())
       Stream << ", ";
   }
-  Stream << "} " << StructNames[Id];
+  Stream << "}";
   return Stream;
+}
+
+std::set<gtirb::UUID> TypePrinter::collectStructs(const gtirb::UUID& TypeId) {
+  std::set<gtirb::UUID> Ids;
+  collectStructs(TypeId, Ids);
+  return Ids;
+}
+
+void TypePrinter::collectStructs(const gtirb::UUID& TypeId,
+                                 std::set<gtirb::UUID>& Accum) {
+  if (Accum.count(TypeId) > 0)
+    return;
+  auto Iter = Types.find(TypeId);
+  auto Type = Iter->second;
+  gtirb::UUID RetId;
+  std::vector<gtirb::UUID> ArgIds;
+  switch ((Index)Type.index()) {
+  case Index::Struct: {
+    Accum.insert(TypeId);
+    auto [Size, Fields] = getVariant<Index::Struct>(Type);
+    (void)Size;
+    for (auto& [FSize, Id] : Fields) {
+      (void)FSize;
+      if (Accum.count(Id) == 0) {
+        collectStructs(Id, Accum);
+      }
+    }
+  } break;
+  case Index::Alias:
+    collectStructs(getVariant<Index::Alias>(Type), Accum);
+    break;
+  case Index::Pointer:
+    collectStructs(getVariant<Index::Pointer>(Type), Accum);
+    break;
+  case Index::Array:
+    collectStructs(std::get<0>(getVariant<Index::Array>(Type)), Accum);
+    break;
+  case Index::Function:
+    RetId = std::get<decltype(RetId)>(getVariant<Index::Function>(Type));
+    ArgIds = std::get<decltype(ArgIds)>(getVariant<Index::Function>(Type));
+    collectStructs(RetId, Accum);
+    for (auto& ArgId : ArgIds) {
+      collectStructs(ArgId, Accum);
+    }
+    break;
+  default:
+    return;
+  }
 }
 
 } // namespace gtirb_types

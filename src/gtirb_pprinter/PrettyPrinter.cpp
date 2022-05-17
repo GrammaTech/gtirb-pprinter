@@ -678,14 +678,12 @@ void PrettyPrinterBase::x86FixupInstruction(cs_insn& inst) {
 void PrettyPrinterBase::printPrototype(std::ostream& os,
                                        const gtirb::CodeBlock& block,
                                        const gtirb::Offset& offset) {
-
   if (this->LstMode != ListingDebug && this->LstMode != ListingUI) {
     return;
   }
   auto Addr = *block.getAddress() + offset.Displacement;
   if (auto Iter = functionEntry.find(Addr); Iter != functionEntry.end()) {
-    os << syntax.comment();
-    type_printer.printPrototype(Addr, os) << std::endl;
+    type_printer.printPrototype(Addr, os, syntax.comment()) << std::endl;
   }
 }
 

@@ -289,8 +289,10 @@ template <Index I> GtType_t<I> getVariant(const schema::GtirbType& Var) {
 struct TypePrinter {
 
   TypePrinter(const gtirb::Module& Module, gtirb::Context& C);
-  std::ostream& printPrototype(const gtirb::Addr& Addr, std::ostream& S);
-  std::ostream& printPrototype(const gtirb::UUID& FnId, std::ostream& S);
+  std::ostream& printPrototype(const gtirb::Addr& Addr, std::ostream& S,
+                               const std::string Comment = "#");
+  std::ostream& printPrototype(const gtirb::UUID& FnId, std::ostream& S,
+                               const std::string Comment = "#");
   std::ostream& layoutStruct(const GtType_t<Index::Struct>& StructType,
                              std::ostream& Stream, gtirb::UUID Id);
   std::ostream& printType(const gtirb::UUID& TypeID, std::ostream& Stream);
@@ -322,6 +324,8 @@ struct TypePrinter {
                            std::ostream& Stream);
   std::optional<gtirb::UUID> getStructId(const gtirb::UUID& TypeId);
 
+  std::set<gtirb::UUID> collectStructs(const gtirb::UUID& FnId);
+  void collectStructs(const gtirb::UUID& Id, std::set<gtirb::UUID>& Out);
   std::map<gtirb::UUID, std::string> StructNames;
   TypeMap Types;
   PrototypeTable Prototypes;
