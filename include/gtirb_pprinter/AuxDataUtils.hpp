@@ -322,8 +322,6 @@ struct TypePrinter {
                              std::ostream& Stream);
   std::ostream& printAlias(const GtType_t<Index::Alias>& AliasType,
                            std::ostream& Stream);
-  std::optional<gtirb::UUID> getStructId(const gtirb::UUID& TypeId);
-
   std::set<gtirb::UUID> collectStructs(const gtirb::UUID& FnId);
   void collectStructs(const gtirb::UUID& Id, std::set<gtirb::UUID>& Out);
   std::map<gtirb::UUID, std::string> StructNames;

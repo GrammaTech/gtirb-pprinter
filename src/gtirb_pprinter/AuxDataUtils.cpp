@@ -321,33 +321,6 @@ std::ostream& TypePrinter::printArray(const GtType_t<Index::Array>& ArrayType,
   return Stream;
 }
 
-std::optional<gtirb::UUID> TypePrinter::getStructId(const gtirb::UUID& TypeId) {
-  auto Iter = Types.find(TypeId);
-  auto Type = Iter->second;
-  gtirb::UUID Candidate;
-  switch ((Index)Type.index()) {
-  case Index::Struct:
-    return TypeId;
-  case Index::Alias:
-    return getVariant<Index::Alias>(Type);
-    break;
-  case Index::Pointer:
-    return getVariant<Index::Pointer>(Type);
-    break;
-  case Index::Array:
-    return std::get<0>(getVariant<Index::Array>(Type));
-    break;
-  default:
-    return {};
-  }
-  auto CandidateType = Types.find(Candidate)->second;
-  if (static_cast<Index>(CandidateType.index()) == Index::Struct) {
-    return Candidate;
-  } else {
-    return {};
-  }
-}
-
 std::ostream&
 TypePrinter::printFunction(const GtType_t<Index::Function>& FunType,
                            std::ostream& Stream) {
