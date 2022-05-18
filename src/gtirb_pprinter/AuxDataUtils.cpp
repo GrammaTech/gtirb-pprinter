@@ -392,7 +392,7 @@ std::ostream&
 TypePrinter::layoutStruct(const GtType_t<Index::Struct>& StructType,
                           std::ostream& Stream, gtirb::UUID Id) {
   static std::vector<gtirb::UUID> StructIds;
-  auto& [Size, Fields] = StructType;
+  const auto& Fields = std::get<1>(StructType);
   std::stringstream ss;
   ss << "s" << StructNames.size();
   Stream << "struct " << StructNames[Id] << " {";
