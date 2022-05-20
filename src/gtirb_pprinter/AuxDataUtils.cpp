@@ -218,8 +218,7 @@ std::ostream& TypePrinter::printPrototype(const gtirb::UUID& FnId,
                                           const std::string Comment) {
   if (auto TypeIter = Prototypes.find(FnId); TypeIter != Prototypes.end()) {
     printType(TypeIter->second, Stream);
-    auto StructsReferenced = collectStructs(TypeIter->second);
-    for (auto& StructId : StructsReferenced) {
+    for (auto& StructId : collectStructs(TypeIter->second)) {
       const auto& Struct = getVariant<Index::Struct>(Types[StructId]);
       Stream << Comment << " ";
       layoutStruct(Struct, Stream, StructId) << "\n";
@@ -326,12 +325,10 @@ TypePrinter::printFunction(const GtType_t<Index::Function>& FunType,
                            std::ostream& Stream) {
   auto& [RetType, ParamTypes] = FunType;
   Stream << "(";
-  for (auto Iter = ParamTypes.begin(); Iter != ParamTypes.end(); ++Iter) {
+  for (auto Iter = ParamTypes.begin(); Iter != ParamTypes.end();) {
     auto& UUID = *Iter;
     printType(UUID, Stream);
-    auto Iter2 = Iter;
-    ++Iter2;
-    if (Iter2 != ParamTypes.end()) {
+    if (++Iter != ParamTypes.end()) {
       Stream << ", ";
     }
   }
