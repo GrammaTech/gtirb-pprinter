@@ -288,6 +288,7 @@ template <Index I> GtType_t<I> getVariant(const schema::GtirbType& Var) {
 
 struct TypePrinter {
 
+public:
   TypePrinter(const gtirb::Module& Module, gtirb::Context& C);
   std::ostream& printPrototype(const gtirb::Addr& Addr, std::ostream& S,
                                const std::string Comment = "#");
@@ -297,6 +298,7 @@ struct TypePrinter {
                              std::ostream& Stream, const gtirb::UUID& Id);
   std::ostream& printType(const gtirb::UUID& TypeID, std::ostream& Stream);
 
+protected:
   void makeName(const gtirb::UUID& StructId);
   // Simple types
   std::ostream& printUnknown(const GtType_t<Index::Unknown>& UnknownType,
