@@ -294,7 +294,7 @@ struct TypePrinter {
   std::ostream& printPrototype(const gtirb::UUID& FnId, std::ostream& S,
                                const std::string Comment = "#");
   std::ostream& layoutStruct(const GtType_t<Index::Struct>& StructType,
-                             std::ostream& Stream, gtirb::UUID Id);
+                             std::ostream& Stream, const gtirb::UUID& Id);
   std::ostream& printType(const gtirb::UUID& TypeID, std::ostream& Stream);
 
   void makeName(const gtirb::UUID& StructId);

@@ -217,13 +217,13 @@ std::ostream& TypePrinter::printPrototype(const gtirb::UUID& FnId,
                                           std::ostream& Stream,
                                           const std::string Comment) {
   if (auto TypeIter = Prototypes.find(FnId); TypeIter != Prototypes.end()) {
-    printType(TypeIter->second, Stream);
+    Stream << Comment << " ";
+    printType(TypeIter->second, Stream) << "\n";
     for (auto& StructId : collectStructs(TypeIter->second)) {
       const auto& Struct = getVariant<Index::Struct>(Types[StructId]);
       Stream << Comment << " ";
       layoutStruct(Struct, Stream, StructId) << "\n";
     }
-    Stream << Comment << " ";
   }
   return Stream;
 }
@@ -360,20 +360,21 @@ std::ostream& TypePrinter::printStruct(const gtirb::UUID& Id,
 
 std::ostream&
 TypePrinter::layoutStruct(const GtType_t<Index::Struct>& StructType,
-                          std::ostream& Stream, gtirb::UUID Id) {
+                          std::ostream& Stream, const gtirb::UUID& Id) {
   static std::vector<gtirb::UUID> StructIds;
-  const auto& Fields = std::get<1>(StructType);
+  const auto& [Size, Fields] = StructType;
   std::stringstream ss;
   ss << "s" << StructNames.size();
   Stream << "struct " << StructNames[Id] << " {";
-  for (auto FieldIter = Fields.begin(); FieldIter != Fields.end();
-       ++FieldIter) {
+  size_t S = 0;
+  for (auto FieldIter = Fields.begin(); FieldIter != Fields.end();) {
+    auto& [Offset, Field] = *FieldIter;
+
     printType(std::get<gtirb::UUID>(*FieldIter), Stream);
-    auto Iter2 = FieldIter + 1;
-    if (Iter2 != Fields.end())
-      Stream << ", ";
+    if (++FieldIter != Fields.end())
+      Stream << "; ";
   }
-  Stream << "}";
+  Stream << "}; ";
   return Stream;
 }
 
