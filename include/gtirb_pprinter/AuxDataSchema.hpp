@@ -81,8 +81,8 @@ struct PeExportedSymbols {
 };
 
 /// \brief Auxiliary data for the UUIDs of PE exception handlers.
-struct PeExceptionHandlers {
-  static constexpr const char* Name = "peExceptionHandlers";
+struct PeSafeExceptionHandlers {
+  static constexpr const char* Name = "peSafeExceptionHandlers";
   typedef std::set<gtirb::UUID> Type;
 };
 

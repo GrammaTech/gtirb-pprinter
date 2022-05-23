@@ -180,7 +180,7 @@ void MasmPrettyPrinter::printExterns(std::ostream& os) {
 
   os << '\n';
 
-  if (const auto Handlers = aux_data::getPeExceptionHandlers(module);
+  if (const auto Handlers = aux_data::getPeSafeExceptionHandlers(module);
       Handlers.size() > 0) {
 
     // Print synthetic linker variables.
@@ -497,8 +497,8 @@ void MasmPrettyPrinter::printSymbolDefinition(std::ostream& Stream,
     Stream << Name << (Symbol.getAtEnd() ? ":\n" : " ");
   } else {
     const gtirb::CodeBlock* Block = Symbol.getReferent<gtirb::CodeBlock>();
-    bool SafeSeh =
-        aux_data::getPeExceptionHandlers(module).count(Block->getUUID()) > 0;
+    bool SafeSeh = aux_data::getPeSafeExceptionHandlers(module).count(
+                       Block->getUUID()) > 0;
     if (Exported) {
       Stream << Name << ' ' << masmSyntax.proc() << " EXPORT\n"
              << Name << ' ' << masmSyntax.endp() << '\n';

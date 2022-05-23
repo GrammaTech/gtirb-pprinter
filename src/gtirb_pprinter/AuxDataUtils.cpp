@@ -161,9 +161,9 @@ getPeExportedSymbols(const gtirb::Module& M) {
   return util::getOrDefault<gtirb::schema::PeExportedSymbols>(M);
 }
 
-gtirb::schema::PeExceptionHandlers::Type
-getPeExceptionHandlers(const gtirb::Module& M) {
-  return util::getOrDefault<gtirb::schema::PeExceptionHandlers>(M);
+gtirb::schema::PeSafeExceptionHandlers::Type
+getPeSafeExceptionHandlers(const gtirb::Module& M) {
+  return util::getOrDefault<gtirb::schema::PeSafeExceptionHandlers>(M);
 }
 
 } // namespace aux_data

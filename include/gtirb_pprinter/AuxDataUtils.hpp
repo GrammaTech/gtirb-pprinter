@@ -240,9 +240,9 @@ gtirb::schema::PeExportedSymbols::Type
 getPeExportedSymbols(const gtirb::Module& M);
 
 // Load set of UUIDs for PE exception handlers.
-// `peExceptionHandlers' AuxData table.
-gtirb::schema::PeExceptionHandlers::Type
-getPeExceptionHandlers(const gtirb::Module& M);
+// `peSafeExceptionHandlers' AuxData table.
+gtirb::schema::PeSafeExceptionHandlers::Type
+getPeSafeExceptionHandlers(const gtirb::Module& M);
 
 } // namespace aux_data
 
