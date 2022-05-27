@@ -350,7 +350,7 @@ std::ostream& TypePrinter::printAlias(const GtType_t<Index::Alias>& AliasType,
 
 std::ostream& TypePrinter::printStruct(const gtirb::UUID& Id,
                                        std::ostream& Stream) {
-  Stream << "struct " << StructNames[Id]->second;
+  Stream << "struct " << StructNames[Id];
   return Stream;
 }
 
@@ -358,7 +358,7 @@ std::ostream&
 TypePrinter::layoutStruct(const GtType_t<Index::Struct>& StructType,
                           std::ostream& Stream, const gtirb::UUID& Id) {
   static std::vector<gtirb::UUID> StructIds;
-  const auto& [Size, Fields] = StructType;
+  const auto& Fields = std::get<1>(StructType);
   std::stringstream ss;
   ss << "s" << StructNames.size();
   Stream << "struct " << StructNames[Id] << " {";
