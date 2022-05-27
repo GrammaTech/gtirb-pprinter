@@ -6,7 +6,7 @@ namespace aux_data {
 bool validateAuxData(const gtirb::Module& Mod, std::string TargetFormat) {
   if (!Mod.getAuxData<gtirb::schema::FunctionEntries>()) {
     std::string Msg = "Missing FunctionEntries in module " + Mod.getName();
-    std::cerr << Msg;
+    std::cerr << Msg << std::endl;
     // return gtirb::createStringError(
     //     gtirb_pprint::pprinter_error::MissingAuxData, Msg.str());
     return false;
@@ -14,7 +14,7 @@ bool validateAuxData(const gtirb::Module& Mod, std::string TargetFormat) {
   auto Blocks = Mod.getAuxData<gtirb::schema::FunctionBlocks>();
   if (!Blocks) {
     std::string Msg = "Missing FunctionBlocks in module " + Mod.getName();
-    std::cerr << Msg;
+    std::cerr << Msg << std::endl;
     // return gtirb::createStringError(
     //     gtirb_pprint::pprinter_error::MissingAuxData, Msg.str());
     return false;
@@ -31,14 +31,14 @@ bool validateAuxData(const gtirb::Module& Mod, std::string TargetFormat) {
   if (TargetFormat == "elf") {
     if (!Mod.getAuxData<gtirb::schema::ElfSymbolInfo>()) {
       std::string Msg = "Missing ElfSymbolInfo in module " + Mod.getName();
-      std::cerr << Msg;
+      std::cerr << Msg << std::endl;
       // return gtirb::createStringError(
       //     gtirb_pprint::pprinter_error::MissingAuxData, Msg.str());
       return false;
     }
     if (!Mod.getAuxData<gtirb::schema::SectionProperties>()) {
-      std::string Msg{"Missing SectionProperties in module "};
-      Msg += Mod.getName();
+      std::string Msg = "Missing SectionProperties in module " + Mod.getName();
+      std::cerr << Msg << std::endl;
       // return gtirb::createStringError(
       //     gtirb_pprint::pprinter_error::MissingAuxData, Msg.str());
       return false;
