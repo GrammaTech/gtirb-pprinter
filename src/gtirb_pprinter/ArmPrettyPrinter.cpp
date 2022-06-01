@@ -199,6 +199,8 @@ void ArmPrettyPrinter::fixupInstruction(cs_insn& inst) {
   switch (inst.id) {
   case ARM_INS_ADD:
   case ARM_INS_ADDW:
+  case ARM_INS_SUB:
+  case ARM_INS_SUBW:
     if (Detail.op_count == 3) {
       cs_arm_op& Op1 = Detail.operands[1];
       cs_arm_op& Op2 = Detail.operands[2];
