@@ -87,11 +87,11 @@ class Properties:
 
 class GtirbPprinterConan(Properties, ConanFile):
     boost_version = "1.69.0"
-    gtirb_version = "dev"
-    capstone_version = "dev"
+    gtirb_version = "1.10.7"
+    capstone_version = "5.0.0-gt2"
     requires = (
         "boost/%s" % (boost_version),
-        "gtirb/%s@rewriting+gtirb/master" % (gtirb_version),
+        "gtirb/%s@rewriting+gtirb/stable" % (gtirb_version),
         "capstone/%s@rewriting+extra-packages/next" % (capstone_version),
     )
     author = "GrammaTech Inc."
