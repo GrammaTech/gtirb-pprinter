@@ -1,6 +1,10 @@
+1.8.4 (Unreleased)
+
+  * TBD
+
 1.8.3
 
-* Rename `elfSectionProperties` to sectionProperties`, and remove
+  * Rename `elfSectionProperties` to sectionProperties`, and remove
   `peSectionProperties`.
 
 1.8.2
