@@ -333,7 +333,6 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
 
     auto Name = getSymbolName(sym);
     printBar(os, false);
-    bool Unique = false;
     if (SymbolInfo->Binding == "LOCAL") {
       // do nothing
     } else if (SymbolInfo->Binding == "GLOBAL") {
@@ -343,7 +342,6 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
     } else if (SymbolInfo->Binding == "UNIQUE" ||
                SymbolInfo->Binding == "GNU_UNIQUE") {
       os << elfSyntax.global() << ' ' << Name << '\n';
-      Unique = true;
     } else {
       assert(!"unknown binding in elfSymbolInfo!");
     }
@@ -359,23 +357,30 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
     } else {
       assert(!"unknown visibility in elfSymbolInfo!");
     }
-
-    static const std::unordered_map<std::string, std::string>
-        TypeNameConversion = {
-            {"FUNC", "function"},  {"OBJECT", "object"},
-            {"NOTYPE", "notype"},  {"NONE", "notype"},
-            {"TLS", "tls_object"}, {"GNU_IFUNC", "gnu_indirect_function"},
-        };
-    auto TypeNameIt = TypeNameConversion.find(SymbolInfo->Type);
-    if (TypeNameIt == TypeNameConversion.end()) {
-      assert(!"unknown type in elfSymbolInfo!");
-    } else {
-      const auto& TypeName = Unique ? "gnu_unique_object" : TypeNameIt->second;
-      os << elfSyntax.type() << ' ' << Name << ", "
-         << elfSyntax.attributePrefix() << TypeName << "\n";
-    }
-
+    printSymbolType(os, Name, *SymbolInfo);
     printBar(os, false);
+  }
+}
+
+void ElfPrettyPrinter::printSymbolType(
+    std::ostream& os, std::string& Name,
+    const aux_data::ElfSymbolInfo& SymbolInfo) {
+  static const std::unordered_map<std::string, std::string> TypeNameConversion =
+      {
+          {"FUNC", "function"},  {"OBJECT", "object"},
+          {"NOTYPE", "notype"},  {"NONE", "notype"},
+          {"TLS", "tls_object"}, {"GNU_IFUNC", "gnu_indirect_function"},
+      };
+  auto TypeNameIt = TypeNameConversion.find(SymbolInfo.Type);
+  if (TypeNameIt == TypeNameConversion.end()) {
+    assert(!"unknown type in elfSymbolInfo!");
+  } else {
+    const auto& TypeName =
+        (SymbolInfo.Binding == "UNIQUE" || SymbolInfo.Binding == "GNU_UNIQUE")
+            ? "gnu_unique_object"
+            : TypeNameIt->second;
+    os << elfSyntax.type() << ' ' << Name << ", " << elfSyntax.attributePrefix()
+       << TypeName << "\n";
   }
 }
 

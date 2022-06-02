@@ -15,6 +15,7 @@
 #ifndef GTIRB_PP_ELF_PRINTER_H
 #define GTIRB_PP_ELF_PRINTER_H
 
+#include "AuxDataUtils.hpp"
 #include "PrettyPrinter.hpp"
 
 namespace gtirb_pprint {
@@ -134,7 +135,10 @@ protected:
 
   virtual void printHeader(std::ostream& os) override;
 
-  void printSymbolHeader(std::ostream& os, const gtirb::Symbol& symbol);
+  virtual void printSymbolHeader(std::ostream& os, const gtirb::Symbol& symbol);
+
+  void printSymbolType(std::ostream& os, std::string& Name,
+                       const aux_data::ElfSymbolInfo& SymbolInfo);
 
   void printString(std::ostream& Stream, const gtirb::DataBlock& Block,
                    uint64_t Offset, bool NullTerminated = true) override;

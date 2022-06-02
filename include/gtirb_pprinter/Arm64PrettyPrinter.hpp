@@ -73,9 +73,18 @@ protected:
                   unsigned int value);
   void printExtender(std::ostream& os, const arm64_extender& ext,
                      const arm64_shifter shiftType, uint64_t shiftValue);
+  void printSymbolHeader(std::ostream& os, const gtirb::Symbol& sym) override;
 
 private:
+  void buildSymGotRefTable(void);
+
   bool IsPrintingGroupedOperands = false;
+
+  /*
+  UUIDs of symbols in the Module where at least one of the references to that
+  symbol are via the GOT.
+  */
+  std::set<gtirb::UUID> LocalGotSyms = {};
 };
 
 class Arm64PrettyPrinterFactory : public ElfPrettyPrinterFactory {

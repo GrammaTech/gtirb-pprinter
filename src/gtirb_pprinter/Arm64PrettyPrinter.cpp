@@ -17,6 +17,7 @@
 
 #include "Arm64PrettyPrinter.hpp"
 #include "AuxDataSchema.hpp"
+#include "AuxDataUtils.hpp"
 #include "StringUtils.hpp"
 
 #include <capstone/capstone.h>
@@ -33,6 +34,27 @@ Arm64PrettyPrinter::Arm64PrettyPrinter(gtirb::Context& context_,
   [[maybe_unused]] cs_err err =
       cs_open(CS_ARCH_ARM64, CS_MODE_ARM, &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
+
+  buildSymGotRefTable();
+}
+
+void Arm64PrettyPrinter::buildSymGotRefTable(void) {
+  for (auto It : module.symbolic_expressions()) {
+    auto SymExpr = It.getSymbolicExpression();
+    if (const auto* SymAddr = std::get_if<gtirb::SymAddrConst>(&SymExpr)) {
+      if (SymAddr->Attributes.isFlagSet(gtirb::SymAttribute::GotRef)) {
+        if (auto Found = aux_data::getForwardedSymbol(SymAddr->Sym)) {
+          // the SymExpr will reference the got entry itself, so we need to
+          // look up the forwarded symbol.
+          auto ForwardedSymbol = dyn_cast_or_null<gtirb::Symbol>(
+              gtirb::Node::getByUUID(context, *Found));
+          if (ForwardedSymbol) {
+            LocalGotSyms.insert(ForwardedSymbol->getUUID());
+          }
+        }
+      }
+    }
+  }
 }
 
 void Arm64PrettyPrinter::printHeader(std::ostream& os) {
@@ -724,6 +746,39 @@ void Arm64PrettyPrinter::printExtender(std::ostream& os,
     assert(shiftType == ARM64_SFT_LSL && "unexpected shift type in extender");
     os << " #" << shiftValue;
   }
+}
+
+void Arm64PrettyPrinter::printSymbolHeader(std::ostream& os,
+                                           const gtirb::Symbol& sym) {
+  if (LocalGotSyms.find(sym.getUUID()) != LocalGotSyms.end()) {
+    if (auto SymbolInfo = aux_data::getElfSymbolInfo(sym)) {
+      if (SymbolInfo->Binding == "LOCAL" &&
+          SymbolInfo->Visibility == "DEFAULT") {
+        // If there is a :got: reference to this symbol, we need it to be a
+        // global symbol. Otherwise, the linker fails to generate .got entries
+        // properly. Using ld from binutils 2.34, I observed where it would
+        // generate a single entry in the .got for *all* symbols defined in the
+        // binary referenced via :got:, so they all resolved to the same
+        // (usually incorrect) symbol. We also apply hidden, so when linked into
+        // a shared object or executable, the symbol is converted back to a
+        // local symbol. These attributes match how the symbol would have
+        // originally appeared in the assembly in an individual object file; to
+        // be referenced via the got, the reference would be across compilation
+        // units, so it would have to be global in the original object.
+        auto Name = getSymbolName(sym);
+        printBar(os, false);
+        os << syntax.global() << ' ' << Name << '\n';
+        os << elfSyntax.hidden() << ' ' << Name << '\n';
+
+        printSymbolType(os, Name, *SymbolInfo);
+        printBar(os, false);
+        return;
+      }
+    }
+  }
+
+  // With no got references, print it normally.
+  ElfPrettyPrinter::printSymbolHeader(os, sym);
 }
 
 std::unique_ptr<PrettyPrinterBase>
