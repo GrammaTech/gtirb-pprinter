@@ -273,6 +273,15 @@ def add_elf_symbol_info(
     )
 
 
+def add_symbol_forwarding(
+    module: gtirb.Module, from_sym: gtirb.Symbol, to_sym: gtirb.Symbol
+) -> None:
+    """
+    Adds an entry to the symbolForwarding aux data table.
+    """
+    module.aux_data["symbolForwarding"].data[from_sym] = to_sym
+
+
 def add_function(
     module: gtirb.Module,
     sym_or_name: Union[str, gtirb.Symbol],
