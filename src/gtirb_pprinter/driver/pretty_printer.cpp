@@ -245,28 +245,7 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
 
-  // Layout IR in memory without overlap.
-  if (vm.count("layout") || gtirb_layout::layoutRequired(*ir)) {
-    for (auto& M : ir->modules()) {
-      LOG_INFO << "Applying new layout to module " << M.getUUID() << "..."
-               << std::endl;
-      gtirb_layout::layoutModule(ctx, M);
-    }
-  } else {
-    for (auto& M : ir->modules()) {
-      if (std::any_of(M.symbols_begin(), M.symbols_end(),
-                      [](const gtirb::Symbol& Sym) {
-                        return !Sym.hasReferent() && Sym.getAddress();
-                      })) {
-        LOG_INFO << "Module " << M.getUUID()
-                 << " has integral symbols; attempting to assign referents..."
-                 << std::endl;
-        gtirb_layout::fixIntegralSymbols(ctx, M);
-      }
-    }
-  }
-
-  // Perform the Pretty Printing step.
+  // Configure the pretty-printer
   gtirb_pprint::PrettyPrinter pp;
   std::string LstMode =
       vm.count("listing-mode") ? vm["listing-mode"].as<std::string>() : "";
@@ -394,6 +373,38 @@ int main(int argc, char** argv) {
     pp.setShared(true);
   }
 
+  // Layout IR in memory without overlap.
+  bool new_layout;
+  if (vm.count("layout")) {
+    for (auto& M : ir->modules()) {
+      LOG_INFO << "Applying new layout to module " << M.getUUID() << "..."
+               << std::endl;
+      gtirb_layout::layoutModule(ctx, M);
+      new_layout = true;
+    }
+  } else {
+    for (auto& M : ir->modules()) {
+      auto SkipSections = pp.getPolicy(M).skipSections;
+      pp.sectionPolicy().apply(SkipSections);
+      if (gtirb_layout::layoutRequired(M, SkipSections)) {
+        gtirb_layout::layoutModule(ctx, M);
+        new_layout = true;
+      }
+    }
+  }
+  if (!new_layout) {
+    for (auto& M : ir->modules()) {
+      if (std::any_of(M.symbols_begin(), M.symbols_end(),
+                      [](const gtirb::Symbol& Sym) {
+                        return !Sym.hasReferent() && Sym.getAddress();
+                      })) {
+        LOG_INFO << "Module " << M.getUUID()
+                 << " has integral symbols; attempting to assign referents..."
+                 << std::endl;
+        gtirb_layout::fixIntegralSymbols(ctx, M);
+      }
+    }
+  }
   // Write ASM to a file.
   if (vm.count("asm") != 0) {
     const auto asmPath = fs::path(vm["asm"].as<std::string>());

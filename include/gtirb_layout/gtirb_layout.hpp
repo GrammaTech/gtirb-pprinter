@@ -37,7 +37,8 @@ bool GTIRB_LAYOUT_EXPORT_API layoutRequired(gtirb::IR& Ir);
 /// \param M  Module to check.
 ///
 /// \return \c true if the Module cannot be pretty printed.
-bool GTIRB_LAYOUT_EXPORT_API layoutRequired(gtirb::Module& M);
+bool GTIRB_LAYOUT_EXPORT_API layoutRequired(
+    gtirb::Module& M, std::unordered_set<std::string> SkipSections = {});
 
 /// Assigns referents to every integral symbol that preserve the symbol's
 /// address. If a block does not exist at the required address, a new block
