@@ -374,7 +374,7 @@ int main(int argc, char** argv) {
   }
 
   // Layout IR in memory without overlap.
-  bool new_layout;
+  bool new_layout = false;
   if (vm.count("layout")) {
     for (auto& M : ir->modules()) {
       LOG_INFO << "Applying new layout to module " << M.getUUID() << "..."
