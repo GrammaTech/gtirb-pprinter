@@ -123,41 +123,6 @@ bool ::gtirb_layout::layoutRequired(
   return false;
 }
 
-namespace gtirb_layout {
-std::vector<std::reference_wrapper<Section>>
-sectionsToLayout(gtirb::Module& M) {
-  std::vector<std::reference_wrapper<Section>> Sections;
-  if (!M.sections().empty()) {
-    for (auto SecIt = M.sections_begin(); SecIt != M.sections_end(); ++SecIt) {
-      if (!SecIt->getAddress()) {
-        // The pretty-printer requires that every section must have an address.
-        Sections.push_back(*SecIt);
-      }
-      if (auto Next = std::next(SecIt); Next != M.sections_end()) {
-        // There is a section following this one. Because the module has an
-        // address, we know all of the sections have addresses.
-        if (addressRange(*Next)->lower() < addressRange(*SecIt)->upper()) {
-          // Sections overlap.
-          Sections.push_back(*SecIt);
-        }
-      }
-
-      // Because the section has an address, we know it has at least one byte
-      // interval and each of its byte intervals has an address.
-      for (auto BiIt = SecIt->byte_intervals_begin(), Next = std::next(BiIt);
-           Next != SecIt->byte_intervals_end(); ++BiIt, ++Next) {
-        if (addressRange(*Next)->lower() < addressRange(*BiIt)->upper()) {
-          // Byte intervals overlap.
-          Sections.push_back(*SecIt);
-          break;
-        }
-      }
-    }
-  }
-  return Sections;
-}
-} // namespace gtirb_layout
-
 bool ::gtirb_layout::layoutRequired(IR& Ir) {
   for (auto& M : Ir.modules())
     if (layoutRequired(M))
