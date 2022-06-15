@@ -1,6 +1,6 @@
 1.8.4 (Unreleased)
 
-  * TBD
+  * Ubuntu 18 and gcc 7 are no longer supported.
 
 1.8.3
 
