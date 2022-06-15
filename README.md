@@ -23,8 +23,6 @@ should be installed:
     * filesystem
     * program_options
     * system
-  * Ubuntu 18 and earlier provide out of date versions;
-    build from source on those Ubuntu versions.
 
 Note that these versions are newer than what your package manager may provide
 by default: This is true on Ubuntu 18, Debian 10, and others. Prefer building
