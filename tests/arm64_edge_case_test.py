@@ -110,3 +110,42 @@ class Arm64EdgeCases(PPrinterTest):
         self.assertIn(".globl my_local", asm)
         self.assertIn(".hidden my_local", asm)
         self.assertIn("my_local:", asm)
+
+    def test_print_zero_displacement_symbol(self):
+        """
+        Test that indirect operand prints symbolized displacement even if zero.
+
+        For example, an instruction that would normally be printed as:
+
+            ldr q0,[x0]
+
+        must print the symbolic displacement if it exists, e.g.:
+
+            ldr q0,[x0,:lo12:.L_18000]
+        """
+        ir, m = create_test_module(
+            file_format=gtirb.Module.FileFormat.ELF,
+            isa=gtirb.Module.ISA.ARM64,
+        )
+        s, bi = add_text_section(m)
+
+        insn_bytes = b"\x00\x00\xc0\x3d"  # ldr q0,[x0]
+        code = add_code_block(bi, insn_bytes)
+
+        # it doesn't matter where the symbol points for this test. the
+        # pprinter doesn't care if the values are coherent.
+        sym = gtirb.symbol.Symbol("my_sym", payload=code, module=m)
+        sym_expr = gtirb.symbolicexpression.SymAddrConst(
+            0,
+            sym,
+            attributes=[
+                gtirb.symbolicexpression.SymbolicExpression.Attribute.Lo12
+            ],
+        )
+
+        bi.symbolic_expressions[0] = sym_expr
+
+        asm = run_asm_pprinter(ir)
+
+        # Verify that the instruction is printed correctly.
+        self.assertIn("ldr q0,[x0,:lo12:my_sym]", asm)

@@ -493,11 +493,13 @@ void Arm64PrettyPrinter::printOpIndirect(
   }
 
   // Displacement (constant)
-  if (op.mem.disp != 0) {
+  // Must always be printed if symbolic, even if disp is zero.
+  const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic);
+  if (op.mem.disp != 0 || s) {
     if (!first) {
       os << ",";
     }
-    if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
+    if (s) {
       printSymbolicExpression(os, s, false);
     } else {
       os << "#" << op.mem.disp;
