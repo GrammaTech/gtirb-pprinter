@@ -15,6 +15,7 @@
 
 #include "ArmPrettyPrinter.hpp"
 #include "AuxDataSchema.hpp"
+#include "AuxDataUtils.hpp"
 #include "StringUtils.hpp"
 #include <iostream>
 
@@ -33,25 +34,12 @@ ArmPrettyPrinter::ArmPrettyPrinter(gtirb::Context& context_,
   assert(err == CS_ERR_OK && "Capstone failure");
 
   Mclass = false;
-  ArchtypeFromElf = false;
-  const auto& Sections = module_.findSections(".ARM.attributes");
-  if (!Sections.empty()) {
-    const auto& Section = *Sections.begin();
-    for (const auto& ByteInterval : Section.byte_intervals()) {
-      const char* RawChars = ByteInterval.rawBytes<const char>();
-      // Remove zeros
-      std::vector<char> Chars;
-      for (size_t I = 0; I < ByteInterval.getInitializedSize(); ++I) {
-        if (RawChars[I] != 0)
-          Chars.push_back(RawChars[I]);
-      }
-      std::string SectStr(Chars.begin(), Chars.end());
-      if (SectStr.find("Cortex-M7") != std::string::npos) {
-        Mclass = true;
-        break;
-      }
+  ArchInfoExists = false;
+  for (const auto& ArchInfo : aux_data::getArchInfo(module_)) {
+    ArchInfoExists = true;
+    if (ArchInfo == "Microcontroller") {
+      Mclass = true;
     }
-    ArchtypeFromElf = true;
   }
 }
 
@@ -60,16 +48,7 @@ void ArmPrettyPrinter::printHeader(std::ostream& os) {
 
   os << "# ARM " << std::endl;
   os << ".syntax unified" << std::endl;
-  // For Cortex-M7 (Capstone MCLASS mode), architectural extension 'idiv'
-  // is not allowed.
-  // If !ArchtypeFromElf, we don't know if it's MCLASS mode or not at this
-  // point. So, do not print out the directive by default in that case.
-  // NOTE: This could be problematic for binaries with !ArchtypeFromElf that
-  // need idiv extension.
-  // TODO: We could (1) scan the binary in front to detect Cortex-M7, or
-  // (2) to detect architecture that needs idiv extension, or
-  // (3) have gtirb-pprinter take a user input to choose the extension.
-  if (ArchtypeFromElf && !Mclass) {
+  if (!Mclass) {
     os << ".arch_extension idiv" << std::endl;
   }
   os << ".arch_extension sec" << std::endl;
@@ -108,7 +87,7 @@ void ArmPrettyPrinter::printBlockContents(std::ostream& Os,
   if (!X.getDecodeMode()) {
     CsModes[0] = (CS_MODE_ARM | CS_MODE_V8);
   } else {
-    if (ArchtypeFromElf) {
+    if (ArchInfoExists) {
       if (Mclass) {
         CsModes[0] = (CS_MODE_THUMB | CS_MODE_V8 | CS_MODE_MCLASS);
       } else {

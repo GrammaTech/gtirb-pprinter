@@ -79,7 +79,7 @@ protected:
 private:
   /// Cortex-M
   bool Mclass;
-  bool ArchtypeFromElf;
+  bool ArchInfoExists;
 };
 
 class ArmPrettyPrinterFactory : public ElfPrettyPrinterFactory {

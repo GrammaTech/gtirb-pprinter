@@ -44,6 +44,7 @@ void registerAuxDataTypes() {
   gtirb::AuxDataContainer::registerAuxDataType<ElfSymbolInfo>();
   gtirb::AuxDataContainer::registerAuxDataType<SymbolicExpressionSizes>();
   gtirb::AuxDataContainer::registerAuxDataType<BinaryType>();
+  gtirb::AuxDataContainer::registerAuxDataType<ArchInfo>();
   gtirb::AuxDataContainer::registerAuxDataType<PEResources>();
 }
 

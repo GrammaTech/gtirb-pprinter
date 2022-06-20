@@ -109,6 +109,10 @@ std::vector<std::string> getBinaryType(const gtirb::Module& Module) {
   return util::getOrDefault<gtirb::schema::BinaryType>(Module);
 }
 
+std::vector<std::string> getArchInfo(const gtirb::Module& Module) {
+  return util::getOrDefault<gtirb::schema::ArchInfo>(Module);
+}
+
 std::map<gtirb::UUID, gtirb::UUID>
 getSymbolForwarding(const gtirb::Module& Module) {
   return util::getOrDefault<gtirb::schema::SymbolForwarding>(Module);

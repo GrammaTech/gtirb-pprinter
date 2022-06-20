@@ -29,6 +29,7 @@
  *          Libraries
  *          LibraryPaths
  *          BinaryType
+ *          ArchInfo
  *      pe:
  *          PeImportedSymbols
  *          PeExportedSymbols
@@ -194,6 +195,9 @@ std::vector<std::string> getLibraryPaths(const gtirb::Module& Module);
 
 // Load all binary type specifiers from the `binaryType' AuxData table.
 std::vector<std::string> getBinaryType(const gtirb::Module& Module);
+
+// Load all architecture information from the `archInfo' AuxData table.
+std::vector<std::string> getArchInfo(const gtirb::Module& Module);
 
 // Load symbol forwarding mapping from the `symbolForwarding' AuxData table.
 std::map<gtirb::UUID, gtirb::UUID>
