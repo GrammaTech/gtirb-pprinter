@@ -33,13 +33,12 @@ ArmPrettyPrinter::ArmPrettyPrinter(gtirb::Context& context_,
       CS_ARCH_ARM, (cs_mode)(CS_MODE_ARM | CS_MODE_V8), &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
 
+  const auto& ArchInfo = aux_data::getArchInfo(module_);
+  ArchInfoExists = !ArchInfo.empty();
   Mclass = false;
-  ArchInfoExists = false;
-  for (const auto& ArchInfo : aux_data::getArchInfo(module_)) {
-    ArchInfoExists = true;
-    if (ArchInfo == "Microcontroller") {
-      Mclass = true;
-    }
+  if (std::find(ArchInfo.begin(), ArchInfo.end(), "Microcontroller") !=
+      ArchInfo.end()) {
+    Mclass = true;
   }
 }
 
