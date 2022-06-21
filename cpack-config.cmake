@@ -32,7 +32,7 @@ if("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "deb-lib")
     )
   else()
     message(
-      SEND_ERROR "Uknown / missing value for CPACK_DEBIAN_PACKAGE_RELEASE.")
+      SEND_ERROR "Unknown / missing value for CPACK_DEBIAN_PACKAGE_RELEASE.")
   endif()
 elseif("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "deb-lib-dbg")
   set(CPACK_DEBIAN_PACKAGE_NAME
@@ -53,7 +53,7 @@ elseif("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "deb-dev")
     )
   else()
     message(
-      SEND_ERROR "Uknown / missing value for CPACK_DEBIAN_PACKAGE_RELEASE.")
+      SEND_ERROR "Unknown / missing value for CPACK_DEBIAN_PACKAGE_RELEASE.")
   endif()
 
 elseif("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "deb-driver")
@@ -66,7 +66,7 @@ elseif("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "deb-driver")
     )
   else()
     message(
-      SEND_ERROR "Uknown / missing value for CPACK_DEBIAN_PACKAGE_RELEASE.")
+      SEND_ERROR "Unknown / missing value for CPACK_DEBIAN_PACKAGE_RELEASE.")
   endif()
 elseif("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "deb-driver-dbg")
   set(CPACK_DEBIAN_PACKAGE_NAME
