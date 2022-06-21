@@ -31,9 +31,8 @@ if("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "deb-lib")
         "gcc, libstdc++6, libc6, libgcc1, libgtirb${CPACK_GTIRB_SUFFIX} (=${CPACK_GTIRB_DEB_VERSION}), libboost-filesystem1.71.0, libcapstone-dev${CPACK_CAPSTONE_PKG_SUFFIX} (=${CPACK_CAPSTONE_PKG_VERSION})"
     )
   else()
-    set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "gcc, libstdc++6, libc6, libgcc1, libgtirb${CPACK_GTIRB_SUFFIX} (=${CPACK_GTIRB_DEB_VERSION}), libboost (>=1.67) | libboost1.67, libcapstone-dev${CPACK_CAPSTONE_PKG_SUFFIX} (=${CPACK_CAPSTONE_PKG_VERSION})"
-    )
+    message(
+      SEND_ERROR "Unknown / missing value for CPACK_DEBIAN_PACKAGE_RELEASE.")
   endif()
 elseif("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "deb-lib-dbg")
   set(CPACK_DEBIAN_PACKAGE_NAME
@@ -53,9 +52,8 @@ elseif("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "deb-dev")
         "libstdc++6, libc6, libgcc1, libgtirb-dev${CPACK_GTIRB_SUFFIX} (=${CPACK_GTIRB_DEB_VERSION}), libgtirb-pprinter${CPACK_GTIRB_PPRINTER_SUFFIX} (=${CPACK_GTIRB_PPRINTER_DEB_VERSION}), libboost-dev, libcapstone-dev${CPACK_CAPSTONE_PKG_SUFFIX} (=${CPACK_CAPSTONE_PKG_VERSION})"
     )
   else()
-    set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "libstdc++6, libc6, libgcc1, libgtirb-dev${CPACK_GTIRB_SUFFIX} (=${CPACK_GTIRB_DEB_VERSION}), libgtirb-pprinter${CPACK_GTIRB_PPRINTER_SUFFIX} (=${CPACK_GTIRB_PPRINTER_DEB_VERSION}), libboost-dev (>=1.67) | libboost1.67-dev, libcapstone-dev${CPACK_CAPSTONE_PKG_SUFFIX} (=${CPACK_CAPSTONE_PKG_VERSION})"
-    )
+    message(
+      SEND_ERROR "Unknown / missing value for CPACK_DEBIAN_PACKAGE_RELEASE.")
   endif()
 
 elseif("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "deb-driver")
@@ -67,9 +65,8 @@ elseif("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "deb-driver")
         "libstdc++6, libc6, libgcc1, libgtirb${CPACK_GTIRB_SUFFIX} (=${CPACK_GTIRB_DEB_VERSION}), libgtirb-pprinter${CPACK_GTIRB_PPRINTER_SUFFIX} (=${CPACK_GTIRB_PPRINTER_DEB_VERSION}), libboost-filesystem1.71.0, libboost-program-options1.71.0, libcapstone-dev${CPACK_CAPSTONE_PKG_SUFFIX} (=${CPACK_CAPSTONE_PKG_VERSION})"
     )
   else()
-    set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "libstdc++6, libc6, libgcc1, libgtirb${CPACK_GTIRB_SUFFIX} (=${CPACK_GTIRB_DEB_VERSION}), libgtirb-pprinter${CPACK_GTIRB_PPRINTER_SUFFIX} (=${CPACK_GTIRB_PPRINTER_DEB_VERSION}), libboost (>=1.67) | libboost1.67, libcapstone-dev${CPACK_CAPSTONE_PKG_SUFFIX} (=${CPACK_CAPSTONE_PKG_VERSION})"
-    )
+    message(
+      SEND_ERROR "Unknown / missing value for CPACK_DEBIAN_PACKAGE_RELEASE.")
   endif()
 elseif("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "deb-driver-dbg")
   set(CPACK_DEBIAN_PACKAGE_NAME
