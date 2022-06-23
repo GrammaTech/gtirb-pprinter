@@ -29,6 +29,7 @@
  *          Libraries
  *          LibraryPaths
  *          BinaryType
+ *      arm:
  *          ArchInfo
  *      pe:
  *          PeImportedSymbols
