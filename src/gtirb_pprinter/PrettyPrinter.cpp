@@ -43,9 +43,13 @@ getFactories() {
   return factories;
 }
 
-static std::map<std::pair<std::string, std::string>, std::string>&
+static std::map<std::tuple<std::string, std::string, gtirb_pprint::ListingMode>,
+                std::string>&
 getSyntaxes() {
-  static std::map<std::pair<std::string, std::string>, std::string> defaults;
+  static std::map<
+      std::tuple<std::string, std::string, gtirb_pprint::ListingMode>,
+      std::string>
+      defaults;
   return defaults;
 }
 
@@ -59,12 +63,23 @@ getAssemblers() {
 
 namespace gtirb_pprint {
 
+static std::optional<ListingMode> string_to_listing_mode(std::string ModeName) {
+  if (ModeName == "debug") {
+    return ListingDebug;
+  } else if (ModeName == "ui") {
+    return ListingUI;
+  } else if (ModeName == "assembler" || ModeName == "") {
+    return ListingAssembler;
+  } else {
+    return std::nullopt;
+  }
+}
+
 bool registerPrinter(std::initializer_list<std::string> formats,
                      std::initializer_list<std::string> isas,
                      std::initializer_list<std::string> syntaxes,
                      std::initializer_list<std::string> assemblers,
-                     std::shared_ptr<PrettyPrinterFactory> f,
-                     bool isDefaultSyntax, bool isDefaultAssembler) {
+                     std::shared_ptr<PrettyPrinterFactory> f) {
   assert(formats.size() > 0 && "No formats to register!");
   assert(isas.size() > 0 && "No ISAs to register!");
   assert(syntaxes.size() > 0 && "No syntaxes to register!");
@@ -74,12 +89,6 @@ bool registerPrinter(std::initializer_list<std::string> formats,
       for (const std::string& syntax : syntaxes) {
         for (const std::string& assembler : assemblers) {
           getFactories()[std::make_tuple(format, isa, syntax, assembler)] = f;
-          if (isDefaultSyntax) {
-            setDefaultSyntax(format, isa, syntax);
-          }
-          if (isDefaultAssembler) {
-            setDefaultAssembler(format, isa, syntax, assembler);
-          }
         }
       }
     }
@@ -145,22 +154,54 @@ std::optional<std::string> getDefaultAssembler(const std::string& format,
   return it != defaults.end() ? std::make_optional(it->second) : std::nullopt;
 }
 
-void setDefaultAssembler(const std::string& format, const std::string& isa,
-                         const std::string& syntax,
+void setDefaultAssembler(std::initializer_list<std::string> formats,
+                         std::initializer_list<std::string> isas,
+                         std::initializer_list<std::string> syntaxes,
                          const std::string& assembler) {
-  getAssemblers()[std::tuple(format, isa, syntax)] = assembler;
+  for (auto format : formats) {
+    for (auto isa : isas) {
+      for (auto syntax : syntaxes) {
+        getAssemblers()[std::tuple(format, isa, syntax)] = assembler;
+      }
+    }
+  }
 }
 
-void setDefaultSyntax(const std::string& format, const std::string& isa,
+bool setDefaultSyntax(std::initializer_list<std::string> formats,
+                      std::initializer_list<std::string> isas,
+                      std::initializer_list<std::string> modes,
                       const std::string& syntax) {
-  getSyntaxes()[std::pair(format, isa)] = syntax;
+  for (auto format : formats) {
+    for (auto isa : isas) {
+      for (auto mode : modes) {
+        auto maybe_mode = string_to_listing_mode(mode);
+        if (maybe_mode) {
+          getSyntaxes()[std::tuple(format, isa, *maybe_mode)] = syntax;
+        } else {
+          return false;
+        }
+      }
+    }
+  }
+  return false;
 }
 
 std::optional<std::string> getDefaultSyntax(const std::string& format,
-                                            const std::string& isa) {
-  std::map<std::pair<std::string, std::string>, std::string> defaults =
-      getSyntaxes();
-  auto it = defaults.find(std::pair(format, isa));
+                                            const std::string& isa,
+                                            const std::string& mode) {
+  auto maybe_mode = string_to_listing_mode(mode);
+  if (maybe_mode) {
+    return getDefaultSyntax(format, isa, *maybe_mode);
+  }
+  return std::nullopt;
+}
+
+DEBLOAT_PRETTYPRINTER_EXPORT_API std::optional<std::string>
+getDefaultSyntax(const std::string& format, const std::string& isa,
+                 ListingMode mode) {
+  std::map<std::tuple<std::string, std::string, ListingMode>, std::string>
+      defaults = getSyntaxes();
+  auto it = defaults.find(std::tuple(format, isa, mode));
   return it != defaults.end() ? std::make_optional(it->second) : std::nullopt;
 }
 
@@ -177,24 +218,20 @@ void PrettyPrinter::setTarget(
 
 void PrettyPrinter::setFormat(const std::string& format,
                               const std::string& isa) {
-  const std::string& syntax = getDefaultSyntax(format, isa).value_or("");
+  const std::string& syntax =
+      getDefaultSyntax(format, isa, LstMode).value_or("");
   const std::string& assembler =
       getDefaultAssembler(format, isa, syntax).value_or("");
   setTarget(std::make_tuple(format, isa, syntax, assembler));
 }
 
 bool PrettyPrinter::setListingMode(const std::string& ModeName) {
-  if (ModeName == "debug") {
-    LstMode = ListingDebug;
-  } else if (ModeName == "ui") {
-    LstMode = ListingUI;
-  } else if (ModeName == "assembler" || ModeName == "") {
-    LstMode = ListingAssembler;
-    setDefaultSyntax(m_format, m_isa, "att");
-  } else {
-    return false;
+  auto maybe_mode = string_to_listing_mode(ModeName);
+  if (maybe_mode) {
+    LstMode = *maybe_mode;
+    return true;
   }
-  return true;
+  return false;
 }
 
 std::set<std::string> PrettyPrinter::policyNames() const {
@@ -225,7 +262,8 @@ PrettyPrinterFactory& PrettyPrinter::getFactory(gtirb::Module& Module) const {
   if (m_format.empty()) {
     const std::string& format = gtirb_pprint::getModuleFileFormat(Module);
     const std::string& isa = gtirb_pprint::getModuleISA(Module);
-    const std::string& syntax = getDefaultSyntax(format, isa).value_or("");
+    const std::string& syntax =
+        getDefaultSyntax(format, isa, LstMode).value_or("");
     const std::string& assembler =
         getDefaultAssembler(format, isa, syntax).value_or("");
     target = std::make_tuple(format, isa, syntax, assembler);

@@ -66,10 +66,6 @@ using string_range = boost::any_range<std::string, boost::forward_traversal_tag,
 /// \param syntaxes   the (non-empty) syntaxes produced by the factory
 /// \param assemblers the (non-empty) assemblers produced by the factory
 /// \param f          the (non-empty) \link PrettyPrinterFactory object
-/// \param isDefaultSyntax  optionally make this the default factory for the
-///                   named format and syntax parameters
-/// \param isDefaultAssembler optionally make this the default factory for the
-///                   named format, syntax, and assembler parameters
 ///
 /// \return \c true.
 DEBLOAT_PRETTYPRINTER_EXPORT_API bool
@@ -77,8 +73,7 @@ registerPrinter(std::initializer_list<std::string> formats,
                 std::initializer_list<std::string> isas,
                 std::initializer_list<std::string> syntaxes,
                 std::initializer_list<std::string> assemblers,
-                std::shared_ptr<PrettyPrinterFactory> f,
-                bool isDefaultSyntax = false, bool isDefaultAssembler = false);
+                std::shared_ptr<PrettyPrinterFactory> f);
 
 /// Return the current set of syntaxes with registered factories.
 DEBLOAT_PRETTYPRINTER_EXPORT_API
@@ -93,24 +88,32 @@ getModuleFileFormat(const gtirb::Module& module);
 DEBLOAT_PRETTYPRINTER_EXPORT_API std::string
 getModuleISA(const gtirb::Module& module);
 
-/// Set the default assembler for a file format, isa, and syntax.
+/// Set the default assembler for the given file formats, isas, and syntaxes.
 DEBLOAT_PRETTYPRINTER_EXPORT_API void
-setDefaultAssembler(const std::string& format, const std::string& isa,
-                    const std::string& syntax, const std::string& assembler);
+setDefaultAssembler(std::initializer_list<std::string> formats,
+                    std::initializer_list<std::string> isas,
+                    std::initializer_list<std::string> syntaxes,
+                    const std::string& assembler);
 
 /// Return the default assembler for a file format and syntax.
 DEBLOAT_PRETTYPRINTER_EXPORT_API std::optional<std::string>
 getDefaultAssembler(const std::string& format, const std::string& isa,
                     const std::string& syntax);
 
-/// Set the default syntax for a file format and isa.
-DEBLOAT_PRETTYPRINTER_EXPORT_API void
-setDefaultSyntax(const std::string& format, const std::string& isa,
+/// Set the default syntax for the given file formats, isas, and listing modes.
+DEBLOAT_PRETTYPRINTER_EXPORT_API bool
+setDefaultSyntax(std::initializer_list<std::string> formats,
+                 std::initializer_list<std::string> isas,
+                 std::initializer_list<std::string> modes,
                  const std::string& syntax);
 
-/// Return the default syntax for a file format.
+/// Return the default syntax for a file format, isa, and listing mode.
 DEBLOAT_PRETTYPRINTER_EXPORT_API std::optional<std::string>
-getDefaultSyntax(const std::string& format, const std::string& isa);
+getDefaultSyntax(const std::string& format, const std::string& isa,
+                 const std::string& mode);
+DEBLOAT_PRETTYPRINTER_EXPORT_API std::optional<std::string>
+getDefaultSyntax(const std::string& format, const std::string& isa,
+                 ListingMode mode);
 
 /// A set of options to give to PrettyPrinterBase's policy in one category.
 /// Essentially, contains whether or not a set of strings to skip is cleared,

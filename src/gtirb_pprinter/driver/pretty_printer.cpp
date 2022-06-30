@@ -263,7 +263,7 @@ int main(int argc, char** argv) {
   const std::string& syntax =
       vm.count("syntax")
           ? vm["syntax"].as<std::string>()
-          : gtirb_pprint::getDefaultSyntax(format, isa).value_or("");
+          : gtirb_pprint::getDefaultSyntax(format, isa, LstMode).value_or("");
   const std::string& assembler =
       vm.count("assembler")
           ? vm["assembler"].as<std::string>()
