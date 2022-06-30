@@ -491,6 +491,12 @@ install(
   DESTINATION lib/gtirb_pprinter
   COMPONENT cmake_target)
 
+# Install License
+install(
+  FILES "${CMAKE_SOURCE_DIR}/LICENSE.txt"
+  COMPONENT license
+  DESTINATION licenses/gtirb-pprinter)
+
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------

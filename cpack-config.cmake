@@ -2,7 +2,7 @@ set(CPACK_COMPONENTS_GROUPING ALL_COMPONENTS_IN_ONE)
 
 set(CPACK_DEB_COMPONENT_INSTALL ON)
 
-set(LIB_COMPONENTS pprinter_library layout_library)
+set(LIB_COMPONENTS pprinter_library layout_library license)
 set(DEV_COMPONENTS pprinter_headers layout_headers cmake_config cmake_target)
 set(DRIVER_COMPONENTS pprinter_driver layout_driver)
 
