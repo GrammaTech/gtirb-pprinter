@@ -17,6 +17,7 @@ class Arm64InstructionsTest(PPrinterTest):
             (b"\x47\x90\x00\x0D", "st1 {v7.s}[1],[x2]"),
             (b"\x9D\x0E\x9E\x0D", "st1 {v29.b}[3],[x20],lr"),
             (b"\x40\x1E\xB2\x4E", "mov v0.16b,v18.16b"),
+            (b"\x00\xBC\x21\x1E", "fcsel s0,s0,s1,lt"),
             # TODO: capstone bug, see
             # https://github.com/capstone-engine/capstone/issues/1842
             # (b"\xDD\x9F\x2D\x05", "splice z29.b,p7,{z30.b,z31.b}"),

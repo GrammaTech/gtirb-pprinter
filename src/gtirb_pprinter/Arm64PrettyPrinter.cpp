@@ -267,16 +267,23 @@ void Arm64PrettyPrinter::printOperandList(std::ostream& os,
     }
   };
 
-  auto isCondInstr = [](const std::string& opcode) {
-    static std::vector<std::string> cond_instrs{
-        "ccmn", "ccmp",  "cinc",  "cinv",  "cneg", "csel",
-        "cset", "csetm", "csinc", "csinv", "csneg"};
+  // This set of special cases is required to handle conditional operands,
+  // which capstone does not represent as an explicit operand. See the capstone
+  // issue: https://github.com/capstone-engine/capstone/issues/1889
+  auto isCondInstr = [](const arm64_insn opcode) {
+    static std::vector<arm64_insn> cond_instrs{
+        ARM64_INS_CCMN,   ARM64_INS_CCMP,  ARM64_INS_CINC,  ARM64_INS_CINV,
+        ARM64_INS_CNEG,   ARM64_INS_CSEL,  ARM64_INS_CSET,  ARM64_INS_CSETM,
+        ARM64_INS_CSINC,  ARM64_INS_CSINV, ARM64_INS_CSNEG, ARM64_INS_FCCMP,
+        ARM64_INS_FCCMPE, ARM64_INS_FCSEL,
+    };
+
     return (std::find(std::begin(cond_instrs), std::end(cond_instrs), opcode) !=
             std::end(cond_instrs));
   };
 
-  std::string opcode = ascii_str_tolower(inst.mnemonic);
-  if (isCondInstr(opcode) && inst.detail->arm64.cc != ARM64_CC_INVALID) {
+  if (inst.detail->arm64.cc != ARM64_CC_INVALID &&
+      isCondInstr(static_cast<arm64_insn>(inst.id))) {
     std::string cc = arm64Cc2String(inst.detail->arm64.cc);
     os << ',' << cc;
   }
