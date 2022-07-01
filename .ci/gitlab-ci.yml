@@ -136,8 +136,8 @@ conan-windows-release:
      ubuntu20) JOB_NAME='debian-installer-ubuntu20' ;;
      esac
   # download capstone & gtirb
-  - curl -L https://git.grammatech.com/rewriting/extra-packages/-/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
-  - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=${JOB_NAME} --output "gtirb.zip"
+  - curl -L https://git.grammatech.com/api/v4/projects/rewriting%2Fextra-packages/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
+  - curl -L https://git.grammatech.com/api/v4/projects/rewriting%2Fgtirb/jobs/artifacts/${GTIRB_BRANCH}/download?job=${JOB_NAME} --output "gtirb.zip"
   - for pkg in gtirb capstone; do unzip $pkg.zip; done
   - dpkg -i libcapstone-dev.deb libgtirb.deb libgtirb-dev.deb
 
@@ -205,7 +205,7 @@ build-static:
   stage: build
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/static
   script:
-    - curl -L https://git.grammatech.com/rewriting/extra-packages/-/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
+    - curl -L https://git.grammatech.com/api/v4/projects/rewriting%2Fextra-packages/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
     - unzip capstone.zip
     - dpkg -i libcapstone-dev.deb
     - git clone https://git.grammatech.com/rewriting/gtirb.git
@@ -234,7 +234,7 @@ static-drivers:
     paths:
       - build
   script:
-    - curl -L https://git.grammatech.com/rewriting/extra-packages/-/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
+    - curl -L https://git.grammatech.com/api/v4/projects/rewriting%2Fextra-packages/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
     - unzip capstone.zip
     - dpkg -i libcapstone-dev.deb
     - git clone https://git.grammatech.com/rewriting/gtirb.git
@@ -383,8 +383,8 @@ build-ubuntu20-packages:
   script:
     - mkdir apt-repo
     - cp build/*.deb apt-repo
-    - curl -L https://git.grammatech.com/rewriting/extra-packages/-/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
-    - curl -L https://git.grammatech.com/rewriting/gtirb/-/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-$OS --output "gtirb.zip"
+    - curl -L https://git.grammatech.com/api/v4/projects/rewriting%2Fextra-packages/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
+    - curl -L https://git.grammatech.com/api/v4/projects/rewriting%2Fgtirb/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-$OS --output "gtirb.zip"
     - for pkg in gtirb capstone; do unzip $pkg.zip -d apt-repo; done
     - cd apt-repo && dpkg-scanpackages . /dev/null > Packages
 
