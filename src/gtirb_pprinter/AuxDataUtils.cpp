@@ -22,6 +22,8 @@ bool validateAuxData(const gtirb::Module& Mod, std::string TargetFormat) {
   for (auto& [UUID, BlockUUIDS] : *Blocks) {
     (void)UUID; // unused
     if (BlockUUIDS.empty()) {
+      std::string Msg = "Function with no blocks in module " + Mod.getName();
+      std::cerr << Msg << std::endl;
       // return gtirb::createStringError(
       //     gtirb_pprint::pprinter_error::EmptyFunction,
       //     "Function with no blocks in module " + Mod.getName());
