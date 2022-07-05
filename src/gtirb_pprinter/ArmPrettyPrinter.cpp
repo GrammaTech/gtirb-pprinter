@@ -22,6 +22,8 @@
 namespace gtirb_pprint {
 
 // Replace special characters rejected by assembler with '.' character.
+// NOTE: It was observed that the IAR compiler produces such symbols with these
+// special characters.
 static std::string replaceSpecialChars(const std::string& S) {
   std::string Name(S);
   for (size_t I = 0; I < Name.size(); I++) {
