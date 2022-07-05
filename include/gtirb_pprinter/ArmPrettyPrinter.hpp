@@ -34,6 +34,11 @@ public:
   const std::string& quadData() const override { return QuadDirective; }
   const std::string& wordData() const override { return HWordDirective; }
 
+  // Formatting helpers
+  std::string formatSectionName(const std::string& x) const override;
+  std::string formatFunctionName(const std::string& x) const override;
+  std::string formatSymbolName(const std::string& x) const override;
+
 private:
   const std::string AttributePrefix{"%"};
 };

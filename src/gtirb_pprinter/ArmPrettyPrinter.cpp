@@ -21,6 +21,39 @@
 
 namespace gtirb_pprint {
 
+// Replace special characters rejected by assembler with '.' character.
+static std::string replaceSpecialChars(const std::string& S) {
+  std::string Name(S);
+  for (size_t I = 0; I < Name.size(); I++) {
+    switch (Name[I]) {
+    case '?':
+    case '(':
+    case ')':
+    case '{':
+    case '}':
+    case ' ':
+    case ':':
+      Name[I] = '.';
+      continue;
+    default:
+      continue;
+    }
+  }
+  return Name;
+}
+
+std::string ArmSyntax::formatSectionName(const std::string& S) const {
+  return replaceSpecialChars(S);
+}
+
+std::string ArmSyntax::formatFunctionName(const std::string& S) const {
+  return replaceSpecialChars(S);
+}
+
+std::string ArmSyntax::formatSymbolName(const std::string& S) const {
+  return replaceSpecialChars(S);
+}
+
 ArmPrettyPrinter::ArmPrettyPrinter(gtirb::Context& context_,
                                    gtirb::Module& module_,
                                    const ArmSyntax& syntax_,
@@ -166,6 +199,65 @@ void ArmPrettyPrinter::printBlockContents(std::ostream& Os,
   printCFIDirectives(Os, BlockOffset);
 }
 
+static std::string armCc2String(arm_cc CC, bool Upper = false) {
+  std::string Ans = "";
+  switch (CC) {
+  case ARM_CC_EQ:
+    Ans = "eq";
+    break;
+  case ARM_CC_NE:
+    Ans = "ne";
+    break;
+  case ARM_CC_HS:
+    Ans = "hs";
+    break;
+  case ARM_CC_LO:
+    Ans = "lo";
+    break;
+  case ARM_CC_MI:
+    Ans = "mi";
+    break;
+  case ARM_CC_PL:
+    Ans = "pl";
+    break;
+  case ARM_CC_VS:
+    Ans = "vs";
+    break;
+  case ARM_CC_VC:
+    Ans = "vc";
+    break;
+  case ARM_CC_HI:
+    Ans = "hi";
+    break;
+  case ARM_CC_LS:
+    Ans = "ls";
+    break;
+  case ARM_CC_GE:
+    Ans = "ge";
+    break;
+  case ARM_CC_LT:
+    Ans = "lt";
+    break;
+  case ARM_CC_GT:
+    Ans = "gt";
+    break;
+  case ARM_CC_LE:
+    Ans = "le";
+    break;
+  case ARM_CC_AL:
+    Ans = "al";
+    break;
+  default:
+    assert(!"Invalid arm_cc");
+    Ans = "Invalid arm_cc";
+    break;
+  }
+  if (Upper) {
+    std::transform(Ans.begin(), Ans.end(), Ans.begin(), ::toupper);
+  }
+  return Ans;
+}
+
 void ArmPrettyPrinter::fixupInstruction(cs_insn& inst) {
   ElfPrettyPrinter::fixupInstruction(inst);
 
@@ -184,8 +276,15 @@ void ArmPrettyPrinter::fixupInstruction(cs_insn& inst) {
       cs_arm_op& Op2 = Detail.operands[2];
       if (Op1.type == ARM_OP_REG && Op1.reg == ARM_REG_PC &&
           Op2.type == ARM_OP_IMM) {
+        std::stringstream SS;
+        SS << "ADR";
+
+        if (Detail.cc != ARM_CC_AL) {
+          std::string CC = armCc2String(Detail.cc, true);
+          SS << CC;
+        }
         inst.id = ARM_INS_ADR;
-        strncpy(inst.mnemonic, "ADR", 4);
+        strncpy(inst.mnemonic, SS.str().c_str(), SS.str().length() + 1);
         Op1.type = ARM_OP_IMM;
         // The second operand will be rendered as symbolic.
         // In case when no symbolic operand is provided,
@@ -209,44 +308,6 @@ void ArmPrettyPrinter::printInstruction(std::ostream& os,
   std::string opcode = ascii_str_tolower(inst.mnemonic);
   if (auto index = opcode.rfind(".w"); index != std::string::npos)
     opcode = opcode.substr(0, index);
-
-  auto armCc2String = [](arm_cc cc) {
-    switch (cc) {
-    case ARM_CC_EQ:
-      return "eq";
-    case ARM_CC_NE:
-      return "ne";
-    case ARM_CC_HS:
-      return "hs";
-    case ARM_CC_LO:
-      return "lo";
-    case ARM_CC_MI:
-      return "mi";
-    case ARM_CC_PL:
-      return "pl";
-    case ARM_CC_VS:
-      return "vs";
-    case ARM_CC_VC:
-      return "vc";
-    case ARM_CC_HI:
-      return "hi";
-    case ARM_CC_LS:
-      return "ls";
-    case ARM_CC_GE:
-      return "ge";
-    case ARM_CC_LT:
-      return "lt";
-    case ARM_CC_GT:
-      return "gt";
-    case ARM_CC_LE:
-      return "le";
-    case ARM_CC_AL:
-      return "al";
-    default:
-      assert(!"Invalid arm_cc");
-      return "Invalid arm_cc";
-    }
-  };
 
   auto isItInstr = [](const std::string& i) {
     static std::vector<std::string> it_instrs{
