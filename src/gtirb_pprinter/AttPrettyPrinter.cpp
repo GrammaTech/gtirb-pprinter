@@ -60,7 +60,7 @@ void AttPrettyPrinter::printSymbolicExpression(
 
   // Print offset expression, e.g. _GLOBAL_OFFSET_TABLE_+(.Ltmp0-.L0$pb)
   if (SymExpr->Attributes.isFlagSet(gtirb::SymAttribute::GotOff)) {
-    Stream << " $_GLOBAL_OFFSET_TABLE_+(";
+    Stream << "_GLOBAL_OFFSET_TABLE_+(";
     printSymbolReference(Stream, SymExpr->Sym1);
     Stream << '-';
     printSymbolReference(Stream, SymExpr->Sym2);
