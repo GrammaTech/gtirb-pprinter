@@ -1,5 +1,4 @@
 set(PROJECT_NAME gtirb_pprinter)
-
 # headers
 configure_file("${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/version.h.in"
                "${CMAKE_BINARY_DIR}/include/gtirb_pprinter/version.h" @ONLY)
@@ -10,6 +9,7 @@ set(${PROJECT_NAME}_H
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/BinaryPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Export.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/FileUtils.hpp
+    ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/GtirbUtils.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/PrettyPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Syntax.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Arm64PrettyPrinter.hpp
@@ -28,6 +28,7 @@ set(${PROJECT_NAME}_H
 
 # sources
 set(${PROJECT_NAME}_SRC
+    GtirbUtils.cpp
     ArmPrettyPrinter.cpp
     AuxDataUtils.cpp
     Arm64PrettyPrinter.cpp

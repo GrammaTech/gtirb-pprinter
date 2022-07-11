@@ -96,7 +96,7 @@ protected:
 class DEBLOAT_PRETTYPRINTER_EXPORT_API ElfPrettyPrinter
     : public PrettyPrinterBase {
 public:
-  ElfPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
+  ElfPrettyPrinter(gtirb::Context& context, const gtirb::Module& module,
                    const ElfSyntax& syntax, const PrintingPolicy& policy);
 
 protected:
@@ -135,7 +135,7 @@ protected:
       const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE,
       uint64_t Size, std::optional<std::string> Type) override;
 
-  virtual void printHeader(std::ostream& os) override;
+  virtual void printHeader(std::ostream& /*os*/) override{};
 
   virtual void printSymbolHeader(std::ostream& os, const gtirb::Symbol& symbol);
 
@@ -145,11 +145,6 @@ protected:
   void printString(std::ostream& Stream, const gtirb::DataBlock& Block,
                    uint64_t Offset, bool NullTerminated = true) override;
 
-  /// Called in the constructor when the --shared option was specified.
-  /// By default, fixes up any direct references to global symbols, which
-  /// are illegal relocations in shared objects. Override this if your
-  /// ISA has differing procedures regarding relocations in shared objects.
-  virtual void fixupSharedObject();
 
   void skipVersionSymbols();
 

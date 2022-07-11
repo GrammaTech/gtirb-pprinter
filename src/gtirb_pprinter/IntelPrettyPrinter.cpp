@@ -18,9 +18,10 @@
 namespace gtirb_pprint {
 
 IntelPrettyPrinter::IntelPrettyPrinter(gtirb::Context& context_,
-                                       gtirb::Module& module_,
+                                       const gtirb::Module& module_,
                                        const IntelSyntax& syntax_,
                                        const PrintingPolicy& policy_)
+
     : ElfPrettyPrinter(context_, module_, syntax_, policy_),
       intelSyntax(syntax_) {
   // Setup Capstone.
@@ -31,6 +32,8 @@ IntelPrettyPrinter::IntelPrettyPrinter(gtirb::Context& context_,
   [[maybe_unused]] cs_err err = cs_open(CS_ARCH_X86, Mode, &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
 }
+
+
 
 void IntelPrettyPrinter::fixupInstruction(cs_insn& inst) {
   ElfPrettyPrinter::fixupInstruction(inst);
@@ -61,7 +64,6 @@ void IntelPrettyPrinter::fixupInstruction(cs_insn& inst) {
 }
 
 void IntelPrettyPrinter::printHeader(std::ostream& os) {
-  ElfPrettyPrinter::printHeader(os);
 
   this->printBar(os);
   os << ".intel_syntax noprefix\n";
@@ -162,7 +164,7 @@ void IntelPrettyPrinter::printSymbolicExpression(
 
 std::unique_ptr<PrettyPrinterBase>
 IntelPrettyPrinterFactory::create(gtirb::Context& gtirb_context,
-                                  gtirb::Module& module,
+                                  const gtirb::Module& module,
                                   const PrintingPolicy& policy) {
   static const IntelSyntax syntax{};
   return std::make_unique<IntelPrettyPrinter>(gtirb_context, module, syntax,

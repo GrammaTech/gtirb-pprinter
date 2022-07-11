@@ -20,7 +20,7 @@
 namespace gtirb_pprint {
 
 AttPrettyPrinter::AttPrettyPrinter(gtirb::Context& context_,
-                                   gtirb::Module& module_,
+                                   const gtirb::Module& module_,
                                    const ElfSyntax& syntax_,
 
                                    const PrintingPolicy& policy_)
@@ -191,7 +191,7 @@ void AttPrettyPrinter::printOpIndirect(
 
 std::unique_ptr<PrettyPrinterBase>
 AttPrettyPrinterFactory::create(gtirb::Context& gtirb_context,
-                                gtirb::Module& module,
+                                const gtirb::Module& module,
                                 const PrintingPolicy& policy) {
   static const ElfSyntax syntax{};
   return std::make_unique<AttPrettyPrinter>(gtirb_context, module, syntax,

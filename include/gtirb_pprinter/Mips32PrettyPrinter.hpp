@@ -30,7 +30,7 @@ public:
 class DEBLOAT_PRETTYPRINTER_EXPORT_API Mips32PrettyPrinter
     : public ElfPrettyPrinter {
 public:
-  Mips32PrettyPrinter(gtirb::Context& context, gtirb::Module& module,
+  Mips32PrettyPrinter(gtirb::Context& context, const gtirb::Module& module,
                       const ElfSyntax& syntax, const PrintingPolicy& policy);
 
 protected:
@@ -74,7 +74,7 @@ public:
   defaultPrintingPolicy(gtirb::Module& Module) const override;
 
   std::unique_ptr<PrettyPrinterBase>
-  create(gtirb::Context& context, gtirb::Module& module,
+  create(gtirb::Context& context, const gtirb::Module& module,
          const PrintingPolicy& policy) override;
 };
 

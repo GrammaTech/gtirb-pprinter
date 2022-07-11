@@ -57,7 +57,7 @@ std::string ArmSyntax::formatSymbolName(const std::string& S) const {
 }
 
 ArmPrettyPrinter::ArmPrettyPrinter(gtirb::Context& context_,
-                                   gtirb::Module& module_,
+                                   const gtirb::Module& module_,
                                    const ArmSyntax& syntax_,
 
                                    const PrintingPolicy& policy_)
@@ -78,8 +78,6 @@ ArmPrettyPrinter::ArmPrettyPrinter(gtirb::Context& context_,
 }
 
 void ArmPrettyPrinter::printHeader(std::ostream& os) {
-  ElfPrettyPrinter::printHeader(os);
-
   os << "# ARM " << std::endl;
   os << ".syntax unified" << std::endl;
   if (!Mclass) {
@@ -782,9 +780,9 @@ void ArmPrettyPrinter::printOpIndirect(
 }
 
 std::string ArmPrettyPrinter::getFunctionName(gtirb::Addr x) const {
-  if (isFunctionEntry(x)) {
-    for (gtirb::Symbol& s : module.findSymbols(x)) {
-      if (AmbiguousSymbols.count(&s) > 0)
+  if (mod_info.isFunctionEntry(x)) {
+    for (auto& s : module.findSymbols(x)) {
+      if (mod_info.AmbiguousSymbols.count(&s) > 0)
         continue;
       // local symbol
       if (s.getName().find('.') == 0)
@@ -793,7 +791,7 @@ std::string ArmPrettyPrinter::getFunctionName(gtirb::Addr x) const {
     }
   }
 
-  return PrettyPrinterBase::getFunctionName(x);
+  return mod_info.getFunctionName(x);
 }
 
 bool ArmPrettyPrinter::printSymbolReference(std::ostream& OS,
@@ -807,7 +805,7 @@ bool ArmPrettyPrinter::printSymbolReference(std::ostream& OS,
 
 std::unique_ptr<PrettyPrinterBase>
 ArmPrettyPrinterFactory::create(gtirb::Context& gtirb_context,
-                                gtirb::Module& module,
+                                const gtirb::Module& module,
                                 const PrintingPolicy& policy) {
   static const ArmSyntax syntax{};
   return std::make_unique<ArmPrettyPrinter>(gtirb_context, module, syntax,

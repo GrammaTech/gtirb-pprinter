@@ -19,8 +19,7 @@
 
 namespace gtirb_pprint {
 PePrettyPrinter::PePrettyPrinter(gtirb::Context& context_,
-                                 gtirb::Module& module_, const Syntax& syntax_,
-
+                                 const gtirb::Module& module_, const Syntax& syntax_,
                                  const PrintingPolicy& policy_)
     : PrettyPrinterBase(context_, module_, syntax_, policy_) {}
 

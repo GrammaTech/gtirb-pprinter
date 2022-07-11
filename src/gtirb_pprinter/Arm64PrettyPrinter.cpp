@@ -25,7 +25,7 @@
 namespace gtirb_pprint {
 
 Arm64PrettyPrinter::Arm64PrettyPrinter(gtirb::Context& context_,
-                                       gtirb::Module& module_,
+                                       const gtirb::Module& module_,
                                        const ElfSyntax& syntax_,
 
                                        const PrintingPolicy& policy_)
@@ -58,8 +58,6 @@ void Arm64PrettyPrinter::buildSymGotRefTable(void) {
 }
 
 void Arm64PrettyPrinter::printHeader(std::ostream& os) {
-  ElfPrettyPrinter::printHeader(os);
-
   this->printBar(os);
   os << ".arch armv8-a\n";
   this->printBar(os);
@@ -792,7 +790,7 @@ void Arm64PrettyPrinter::printSymbolHeader(std::ostream& os,
 
 std::unique_ptr<PrettyPrinterBase>
 Arm64PrettyPrinterFactory::create(gtirb::Context& gtirb_context,
-                                  gtirb::Module& module,
+                                  const gtirb::Module& module,
                                   const PrintingPolicy& policy) {
   static const Arm64Syntax syntax{};
   return std::make_unique<Arm64PrettyPrinter>(gtirb_context, module, syntax,

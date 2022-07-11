@@ -45,7 +45,7 @@ private:
 
 class ArmPrettyPrinter : public ElfPrettyPrinter {
 public:
-  ArmPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
+  ArmPrettyPrinter(gtirb::Context& context, const gtirb::Module& module,
                    const ArmSyntax& syntax, const PrintingPolicy& policy);
 
 protected:
@@ -90,7 +90,7 @@ class ArmPrettyPrinterFactory : public ElfPrettyPrinterFactory {
 public:
   ArmPrettyPrinterFactory();
   std::unique_ptr<PrettyPrinterBase>
-  create(gtirb::Context& context, gtirb::Module& module,
+  create(gtirb::Context& context, const gtirb::Module& module,
          const PrintingPolicy& policy) override;
 };
 

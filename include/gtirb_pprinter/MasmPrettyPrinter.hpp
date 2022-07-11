@@ -92,7 +92,7 @@ private:
 class DEBLOAT_PRETTYPRINTER_EXPORT_API MasmPrettyPrinter
     : public PePrettyPrinter {
 public:
-  MasmPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
+  MasmPrettyPrinter(gtirb::Context& context, const gtirb::Module& module,
                     const MasmSyntax& syntax, const PrintingPolicy& policy);
 
 protected:
@@ -156,8 +156,8 @@ protected:
 
 private:
   gtirb::Addr BaseAddress;
-  gtirb::Symbol* ImageBase;
-  std::optional<gtirb::Symbol*> EntryPoint;
+  const gtirb::Symbol* ImageBase;
+  std::optional<const gtirb::Symbol*> EntryPoint;
   std::unordered_set<gtirb::UUID> Imports;
   std::unordered_set<gtirb::UUID> Exports;
   std::unordered_map<gtirb::UUID, std::string> RenamedSections;
@@ -167,7 +167,7 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API MasmPrettyPrinterFactory
     : public PePrettyPrinterFactory {
 public:
   std::unique_ptr<PrettyPrinterBase>
-  create(gtirb::Context& context, gtirb::Module& module,
+  create(gtirb::Context& context, const gtirb::Module& module,
          const PrintingPolicy& policy) override;
 };
 
@@ -175,7 +175,7 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API UasmPrettyPrinter
     : public MasmPrettyPrinter {
 
 public:
-  UasmPrettyPrinter(gtirb::Context& context_, gtirb::Module& module_,
+  UasmPrettyPrinter(gtirb::Context& context_, const gtirb::Module& module_,
                     const MasmSyntax& syntax_, const PrintingPolicy& policy_)
       : MasmPrettyPrinter(context_, module_, syntax_, policy_) {}
   void printHeader(std::ostream& os) override;
@@ -185,7 +185,7 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API UasmPrettyPrinterFactory
     : public PePrettyPrinterFactory {
 public:
   std::unique_ptr<PrettyPrinterBase>
-  create(gtirb::Context& context, gtirb::Module& module,
+  create(gtirb::Context& context, const gtirb::Module& module,
          const PrintingPolicy& policy) override;
 };
 

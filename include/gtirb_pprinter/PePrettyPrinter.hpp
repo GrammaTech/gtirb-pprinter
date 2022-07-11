@@ -35,7 +35,7 @@ enum SECTION_CHARACTERISTICS {
 class DEBLOAT_PRETTYPRINTER_EXPORT_API PePrettyPrinter
     : public PrettyPrinterBase {
 public:
-  PePrettyPrinter(gtirb::Context& context, gtirb::Module& module,
+  PePrettyPrinter(gtirb::Context& context, const gtirb::Module& module,
                   const Syntax& syntax, const PrintingPolicy& policy);
 };
 

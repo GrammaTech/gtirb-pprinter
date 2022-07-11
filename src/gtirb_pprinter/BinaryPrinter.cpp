@@ -19,6 +19,7 @@ namespace gtirb_bprint {
 bool BinaryPrinter::prepareSource(gtirb::Context& ctx, gtirb::Module& mod,
                                   TempFile& tempFile) const {
   if (tempFile.isOpen()) {
+
     Printer.print(tempFile, ctx, mod);
     tempFile.close();
     return true;

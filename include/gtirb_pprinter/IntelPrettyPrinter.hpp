@@ -33,7 +33,7 @@ private:
 class DEBLOAT_PRETTYPRINTER_EXPORT_API IntelPrettyPrinter
     : public ElfPrettyPrinter {
 public:
-  IntelPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
+  IntelPrettyPrinter(gtirb::Context& context, const gtirb::Module& module,
                      const IntelSyntax& syntax, const PrintingPolicy& policy);
 
 protected:
@@ -58,7 +58,7 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API IntelPrettyPrinterFactory
     : public ElfPrettyPrinterFactory {
 public:
   std::unique_ptr<PrettyPrinterBase>
-  create(gtirb::Context& context, gtirb::Module& module,
+  create(gtirb::Context& context, const gtirb::Module& module,
          const PrintingPolicy& policy) override;
 };
 

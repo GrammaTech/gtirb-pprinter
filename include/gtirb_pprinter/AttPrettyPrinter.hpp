@@ -22,7 +22,7 @@ namespace gtirb_pprint {
 class DEBLOAT_PRETTYPRINTER_EXPORT_API AttPrettyPrinter
     : public ElfPrettyPrinter {
 public:
-  AttPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
+  AttPrettyPrinter(gtirb::Context& context, const gtirb::Module& module,
                    const ElfSyntax& syntax, const PrintingPolicy& policy);
 
 protected:
@@ -46,7 +46,7 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API AttPrettyPrinterFactory
     : public ElfPrettyPrinterFactory {
 public:
   std::unique_ptr<PrettyPrinterBase>
-  create(gtirb::Context& context, gtirb::Module& module,
+  create(gtirb::Context& context, const gtirb::Module& module,
          const PrintingPolicy& policy) override;
 };
 

@@ -17,6 +17,7 @@
 
 #include "AuxDataUtils.hpp"
 #include "Export.hpp"
+#include "GtirbUtils.hpp"
 #include "Syntax.hpp"
 
 #include <gtirb/gtirb.hpp>
@@ -150,6 +151,8 @@ struct DEBLOAT_PRETTYPRINTER_EXPORT_API PrintingPolicy {
   ListingMode LstMode = ListingAssembler;
   bool Shared = false;
   bool IgnoreSymbolVersions = false;
+
+  void findAdditionalSkips(const gtirb::Module& Mod);
 };
 
 using NamedPolicyMap = std::unordered_map<std::string, PrintingPolicy>;
@@ -195,6 +198,13 @@ public:
 
   /// Indicates whether symbol versions should be ignored (only for ELF).
   bool getIgnoreSymbolVersions() const { return IgnoreSymbolVersions; }
+  /// fixes up any direct references to global symbols, which
+  /// are illegal relocations in shared objects.
+  void fixupSharedObject(gtirb::Context& Ctx, gtirb::Module& Mod,
+                         const PrintingPolicy& Policy) const;
+
+  /// fixup to ensure that PE entry symbols are correctly named
+  void fixupPESymbols(gtirb::Context& Ctx, gtirb::Module& Mod) const;
 
   /// Pretty-print the IR module to a stream. The default output target is
   /// deduced from the file format of the IR if it is not explicitly set with
@@ -251,7 +261,7 @@ public:
 
   /// Create the pretty printer instance.
   virtual std::unique_ptr<PrettyPrinterBase>
-  create(gtirb::Context& context, gtirb::Module& module,
+  create(gtirb::Context& context, const gtirb::Module& module,
          const PrintingPolicy& policy) = 0;
 
   /// Return a list of all named policies.
@@ -280,7 +290,7 @@ private:
 /// print().
 class DEBLOAT_PRETTYPRINTER_EXPORT_API PrettyPrinterBase {
 public:
-  PrettyPrinterBase(gtirb::Context& context, gtirb::Module& module,
+  PrettyPrinterBase(gtirb::Context& context, const gtirb::Module& module,
                     const Syntax& syntax, const PrintingPolicy& policy);
   virtual ~PrettyPrinterBase();
 
@@ -289,6 +299,7 @@ public:
 protected:
   const Syntax& syntax;
   PrintingPolicy policy;
+  ModuleInfo mod_info;
 
   /// Return the SymAddrConst expression if it refers to a printed symbol.
   ///
@@ -415,48 +426,24 @@ protected:
                                    const gtirb::Symbol& symbol) = 0;
   virtual void printUndefinedSymbol(std::ostream& os,
                                     const gtirb::Symbol& symbol) = 0;
-
-  virtual bool shouldSkip(const gtirb::Section& section) const;
-  virtual bool shouldSkip(const gtirb::Symbol& symbol) const;
-  virtual bool shouldSkip(const gtirb::CodeBlock& block) const;
-  virtual bool shouldSkip(const gtirb::DataBlock& block) const;
-
   // This method assumes sections do not overlap
   const std::optional<const gtirb::Section*>
   getContainerSection(const gtirb::Addr addr) const;
-
-  /// Get the name of the function containing an effective address. This
-  /// implementation assumes that functions are tightly packed within a
-  /// module; that is, it assumes that all addresses from the start of one
-  /// function to the next is part of the first. It also assumes that the
-  /// body of the last function in a module extends to the end of the module.
-  ///
-  /// The locations of the functions are found in the "functionEntry" AuxData
-  /// table.
-  ///
-  /// \param x the address to check
-  ///
-  /// \return the name of the containing function if one is found.
-  std::optional<std::string>
-  getContainerFunctionName(const gtirb::Addr x) const;
-
-  bool isFunctionEntry(const gtirb::Addr x) const;
-  bool isFunctionLastBlock(const gtirb::Addr x) const;
 
   csh csHandle;
 
   ListingMode LstMode = ListingAssembler;
 
   gtirb::Context& context;
-  gtirb::Module& module;
+  const gtirb::Module& module;
 
-  virtual std::string getFunctionName(gtirb::Addr x) const;
+  virtual std::string getFunctionName(gtirb::Addr x) const {
+    return mod_info.getFunctionName(x);
+  }
   virtual std::string getSymbolName(const gtirb::Symbol& symbol) const;
   virtual std::optional<std::string>
   getForwardedSymbolName(const gtirb::Symbol* symbol) const;
   virtual gtirb::Symbol* getForwardedSymbol(const gtirb::Symbol* Sym) const;
-
-  std::map<const gtirb::Symbol*, std::string> AmbiguousSymbols;
 
   // Currently, this only works for symbolic expressions in data blocks.
   // For the symbolic expressions that are part of code blocks, Capstone
@@ -468,8 +455,6 @@ protected:
   std::optional<uint64_t> getAlignment(gtirb::Addr Addr) const;
 
 private:
-  std::set<gtirb::Addr> functionEntry;
-  std::set<gtirb::Addr> functionLastBlock;
   gtirb::Addr programCounter;
 
   std::optional<gtirb::Addr> CFIStartProc;

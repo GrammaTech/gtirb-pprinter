@@ -29,7 +29,7 @@ const PrintingPolicy& Mips32PrettyPrinterFactory::defaultPrintingPolicy(
 
 std::unique_ptr<PrettyPrinterBase>
 Mips32PrettyPrinterFactory::create(gtirb::Context& gtirb_context,
-                                   gtirb::Module& module,
+                                   const gtirb::Module& module,
                                    const PrintingPolicy& policy) {
   static const Mips32Syntax syntax{};
   return std::make_unique<Mips32PrettyPrinter>(gtirb_context, module, syntax,
@@ -60,7 +60,7 @@ Mips32PrettyPrinterFactory::Mips32PrettyPrinterFactory() {
 }
 
 Mips32PrettyPrinter::Mips32PrettyPrinter(gtirb::Context& context_,
-                                         gtirb::Module& module_,
+                                         const gtirb::Module& module_,
                                          const ElfSyntax& syntax_,
                                          const PrintingPolicy& policy_)
     : ElfPrettyPrinter(context_, module_, syntax_, policy_) {
@@ -82,8 +82,6 @@ Mips32PrettyPrinter::Mips32PrettyPrinter(gtirb::Context& context_,
 }
 
 void Mips32PrettyPrinter::printHeader(std::ostream& os) {
-  ElfPrettyPrinter::printHeader(os);
-
   // we already account for delay slots; don't let the assembler insert them
   os << ".set noreorder" << std::endl;
 }

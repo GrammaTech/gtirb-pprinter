@@ -35,7 +35,7 @@ private:
 
 class Arm64PrettyPrinter : public ElfPrettyPrinter {
 public:
-  Arm64PrettyPrinter(gtirb::Context& context, gtirb::Module& module,
+  Arm64PrettyPrinter(gtirb::Context& context, const gtirb::Module& module,
                      const ElfSyntax& syntax, const PrintingPolicy& policy);
 
 protected:
@@ -91,7 +91,7 @@ public:
   Arm64PrettyPrinterFactory() {}
 
   std::unique_ptr<PrettyPrinterBase>
-  create(gtirb::Context& context, gtirb::Module& module,
+  create(gtirb::Context& context, const gtirb::Module& module,
          const PrintingPolicy& policy) override;
 };
 

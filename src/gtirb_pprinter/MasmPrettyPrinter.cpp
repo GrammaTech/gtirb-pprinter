@@ -89,7 +89,7 @@ std::string MasmSyntax::formatSymbolName(const std::string& x) const {
 }
 
 MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
-                                     gtirb::Module& module_,
+                                     const gtirb::Module& module_,
                                      const MasmSyntax& syntax_,
 
                                      const PrintingPolicy& policy_)
@@ -105,28 +105,15 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
 
   // TODO: Evaluate this syntax option.
   // cs_option(this->csHandle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_MASM);
-
   BaseAddress = module.getPreferredAddr();
+
   if (auto It = module.findSymbols("__ImageBase"); !It.empty()) {
     ImageBase = &*It.begin();
-    ImageBase->setReferent(module.addProxyBlock(context));
-    if (module.getISA() == gtirb::ISA::IA32) {
-      ImageBase->setName("___ImageBase");
-    }
   }
 
-  if (gtirb::CodeBlock* Block = module.getEntryPoint();
-      Block && Block->getAddress()) {
-    if (auto It = module.findSymbols(*Block->getAddress()); !It.empty()) {
-      // Use an existing symbol to the entry block.
-      EntryPoint = &*It.begin();
-    } else {
-      // Create a new symbol for the entry block.
-      EntryPoint =
-          gtirb::Symbol::Create(context, *Block->getAddress(), "__EntryPoint");
-      (*EntryPoint)->setReferent<gtirb::CodeBlock>(Block);
-      module.addSymbol(*EntryPoint);
-    }
+  if (auto* Block = module.getEntryPoint(); Block && Block->getAddress()) {
+    auto It = module.findSymbols(*Block->getAddress());
+    EntryPoint = &*It.begin();
   }
 
   for (const auto& UUID : aux_data::getPeImportedSymbols(module)) {
@@ -558,7 +545,7 @@ void MasmPrettyPrinter::printOpImmediate(
     // The operand is symbolic.
     gtirb::Symbol& sym = *(s->Sym);
 
-    if (!is_call && !is_jump && !shouldSkip(sym)) {
+    if (!is_call && !is_jump && !mod_info.shouldSkip(policy, sym)) {
 
       // MASM variables are given a 64-bit type for PE32+, which results in an
       // error when the symbol is written to a 32-bit register.
@@ -755,14 +742,16 @@ void MasmPrettyPrinter::printFooter(std::ostream& os) {
 }
 
 std::unique_ptr<PrettyPrinterBase>
-MasmPrettyPrinterFactory::create(gtirb::Context& context, gtirb::Module& module,
+MasmPrettyPrinterFactory::create(gtirb::Context& context,
+                                 const gtirb::Module& module,
                                  const PrintingPolicy& policy) {
   static const MasmSyntax syntax{};
   return std::make_unique<MasmPrettyPrinter>(context, module, syntax, policy);
 }
 
 std::unique_ptr<PrettyPrinterBase>
-UasmPrettyPrinterFactory::create(gtirb::Context& context, gtirb::Module& module,
+UasmPrettyPrinterFactory::create(gtirb::Context& context,
+                                 const gtirb::Module& module,
                                  const PrintingPolicy& policy) {
   static const MasmSyntax syntax{};
   return std::make_unique<UasmPrettyPrinter>(context, module, syntax, policy);
