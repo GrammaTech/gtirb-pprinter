@@ -130,7 +130,8 @@ int main(int argc, char** argv) {
   desc.add_options()(
       "policy,p", po::value<std::string>(),
       "The default set of objects to skip when printing assembly. To modify "
-      "this set further, use the --keep and --skip options.");
+      "this set further, use the --keep and --skip options. "
+      "Valid policies are 'static', 'dynamic', and 'complete'");
   desc.add_options()("shared,S", "Output a shared library, or assembly "
                                  "that can be compiled to a shared library.");
 
