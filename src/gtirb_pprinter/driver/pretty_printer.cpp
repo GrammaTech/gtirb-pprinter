@@ -113,13 +113,15 @@ int main(int argc, char** argv) {
                      "The index of the module to be printed if printing to the "
                      "standard output.");
   desc.add_options()("format,f", po::value<std::string>(),
-                     "The format of the target binary object.");
+                     "The format of the target binary object: elf, pe, or raw");
   desc.add_options()("isa,I", po::value<std::string>(),
-                     "The ISA of the target binary object.");
+                     "The ISA of the target binary object: "
+                     "arm, arm64, mips32, x86, or x64 ");
   desc.add_options()("syntax,s", po::value<std::string>(),
-                     "The syntax of the assembly file to generate.");
+                     "The syntax of the assembly file to generate: "
+                     "arm, arm64, att, intel, masm, mips32");
   desc.add_options()("assembler", po::value<std::string>(),
-                     "The assembler to use for rewriting.");
+                     "The assembler to use for rewriting: gas or icx");
   desc.add_options()("layout,l", "Layout code and data in memory to "
                                  "avoid overlap");
   desc.add_options()(
@@ -208,8 +210,8 @@ int main(int argc, char** argv) {
 
   public:
     ~ContextForgetter() { ctx.ForgetAllocations(); }
-    operator gtirb::Context &() { return ctx; }
-    operator const gtirb::Context &() const { return ctx; }
+    operator gtirb::Context&() { return ctx; }
+    operator const gtirb::Context&() const { return ctx; }
   };
 
   ContextForgetter ctx;
