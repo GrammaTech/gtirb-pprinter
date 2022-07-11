@@ -35,8 +35,21 @@ AttPrettyPrinter::AttPrettyPrinter(gtirb::Context& context_,
   cs_option(this->csHandle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
 }
 
-void AttPrettyPrinter::fixupInstruction(cs_insn& inst) {
-  x86FixupInstruction(inst);
+void AttPrettyPrinter::fixupInstruction(cs_insn& Insn) {
+  cs_x86& Detail = Insn.detail->x86;
+
+  switch (Insn.id) {
+  case X86_INS_SHL:
+    if (Insn.bytes[0] == 0xD3 && Detail.op_count == 1) {
+      // Add the %cl register as the source operand.
+      Detail.operands[1] = Detail.operands[0];
+      Detail.operands[0].type = X86_OP_REG;
+      Detail.operands[0].reg = X86_REG_CL;
+      Detail.op_count = 2;
+    }
+  }
+
+  x86FixupInstruction(Insn);
 }
 
 std::string AttPrettyPrinter::getRegisterName(unsigned int reg) const {
