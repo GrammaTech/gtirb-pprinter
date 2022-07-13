@@ -84,10 +84,6 @@ void IntelPrettyPrinter::printHeader(std::ostream& os) {
   os << ".intel_syntax noprefix\n";
   this->printBar(os);
   os << '\n';
-
-  for (int i = 0; i < 8; i++) {
-    os << syntax.nop() << '\n';
-  }
 }
 
 void IntelPrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
