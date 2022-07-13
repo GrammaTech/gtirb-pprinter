@@ -40,12 +40,26 @@ void AttPrettyPrinter::fixupInstruction(cs_insn& Insn) {
 
   switch (Insn.id) {
   case X86_INS_SHL:
-    if (Insn.bytes[0] == 0xD3 && Detail.op_count == 1) {
-      // Add the %cl register as the source operand.
-      Detail.operands[1] = Detail.operands[0];
-      Detail.operands[0].type = X86_OP_REG;
-      Detail.operands[0].reg = X86_REG_CL;
-      Detail.op_count = 2;
+  case X86_INS_SHR:
+    if (Detail.op_count == 1) {
+      // Check if %cl is a source register
+      cs_regs RegsRead, RegsWrite;
+      uint8_t RegsReadCount, RegsWriteCount;
+      if (cs_regs_access(this->csHandle, &Insn, RegsRead, &RegsReadCount,
+                         RegsWrite, &RegsWriteCount) != CS_ERR_OK) {
+        assert(!"cs_regs_access failed");
+      }
+
+      for (uint8_t i = 0; i < RegsReadCount; i++) {
+        if (RegsRead[i] == X86_REG_CL) {
+          // Add the %cl register as the source operand.
+          Detail.operands[1] = Detail.operands[0];
+          Detail.operands[0].type = X86_OP_REG;
+          Detail.operands[0].reg = X86_REG_CL;
+          Detail.op_count = 2;
+          break;
+        }
+      }
     }
   }
 
