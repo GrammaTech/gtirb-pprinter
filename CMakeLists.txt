@@ -45,6 +45,7 @@ include(CheckIncludeFile)
 option(ENABLE_CONAN "Use Conan to inject dependencies" OFF)
 if(ENABLE_CONAN)
   set(CONAN_SYSTEM_INCLUDES ON)
+  set(CMAKE_PACKAGE_POLICY "conan")
   include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
   conan_basic_setup()
 endif()
@@ -511,6 +512,26 @@ if(GTIRB_PPRINTER_ENABLE_TESTS)
   set_tests_properties(
     python_tests PROPERTIES ENVIRONMENT
                             "PPRINTER_PATH=$<TARGET_FILE:gtirb-pprinter>")
+endif()
+
+# ---------------------------------------------------------------------------
+# Package policy enforcement
+# ---------------------------------------------------------------------------
+
+if(CMAKE_PACKAGE_POLICY STREQUAL "debian")
+
+  # Provides copyright file required by Debian Package Policy
+  install(
+    FILES ${CMAKE_SOURCE_DIR}/LICENSE.txt
+    COMPONENT copyright
+    DESTINATION share/doc/gtirb
+    RENAME copyright)
+
+elseif(CMAKE_PACKAGE_POLICY STREQUAL "conan")
+
+  # Provides LICENSE.txt for conan packages
+  install(FILES ${CMAKE_SOURCE_DIR}/LICENSE.txt DESTINATION licenses)
+
 endif()
 
 # ---------------------------------------------------------------------------

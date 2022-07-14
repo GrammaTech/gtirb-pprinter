@@ -121,7 +121,7 @@ build-conan-linux-gcc9:
         done
       done
     - cd ./package
-    # Library Package
+    # Runtime Package
     - export PKG_FILENAME="${CI_PROJECT_DIR}\\${PKG_NAME}-${PKG_VERSION}.win10.${PKG_ARCH}.zip"
     - export PKG_MANIFEST=(
         "gtirb-pprinter/bin/capstone.dll"
@@ -130,15 +130,15 @@ build-conan-linux-gcc9:
         'gtirb-pprinter/bin/gtirb-layout.exe'
         "gtirb-pprinter/bin/gtirb_pprinter.dll"
         "gtirb-pprinter/bin/gtirb-pprinter.exe"
-        "gtirb-pprinter/licenses/gtirb-pprinter/*"
         "gtirb-pprinter/licenses/gtirb/*"
+        "gtirb-pprinter/licenses/gtirb-pprinter/*"
         "gtirb-pprinter/licenses/capstone/*"
       )
     - zip -r $PKG_FILENAME ${PKG_MANIFEST[@]}
     # Development Package
     - export PKG_FILENAME_DEV="${CI_PROJECT_DIR}\\${PKG_NAME}-dev-${PKG_VERSION}.win10.${PKG_ARCH}.zip"
-    - export PKG_MANIFEST_DEV=(${PKG_MANIFEST[@]})
-    - PKG_MANIFEST_DEV+=(
+    - export PKG_MANIFEST_DEV=(
+        "${PKG_MANIFEST[@]}"
         "gtirb-pprinter/include/capstone"
         "gtirb-pprinter/include/gtirb"
         "gtirb-pprinter/include/gtirb_layout"
