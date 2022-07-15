@@ -96,30 +96,33 @@ build-conan-linux-gcc9:
       # Python print() on Windows returns CRLF and will cause issues in CI - use "print('string', end='')" when outputting from python.
     - export CONAN_RECIPE=`python -c "import conanfile; print(conanfile.Properties().conan_recipe, end='')"`
     - conan install $CONAN_RECIPE -g deploy --install-folder="./conan-packages"
-    # Collate Package Files
+    # Merge Package Files
+    - export CONAN_PACKAGES="${CI_PROJECT_DIR}/conan-packages/*"
     - export WINDOWS_PACKAGE_NAME=`conan inspect . --raw name`
     - export WINDOWS_PACKAGE_VERSION=`conan inspect . --raw version`
     - export WINDOWS_PACKAGE_ARCH=`uname -m`
     - export WINDOWS_PACKAGE_DIR="${CI_PROJECT_DIR}/windows-package"
     - export WINDOWS_PACKAGE="${WINDOWS_PACKAGE_DIR}/${WINDOWS_PACKAGE_NAME}"
-    - export CONAN_PACKAGES="${CI_PROJECT_DIR}/conan-packages/*"
-    - mkdir -p $WINDOWS_PACKAGE/{bin,lib,include,licenses}
+    - mkdir -p $WINDOWS_PACKAGE
     - |+
       for CONAN_PACKAGE in $CONAN_PACKAGES; do
-        CONAN_PACKAGE_NAME=`basename $CONAN_PACKAGE`
-        mkdir -p "${WINDOWS_PACKAGE}/licenses/${CONAN_PACKAGE_NAME}"
-        cp -r $CONAN_PACKAGE/bin/* $WINDOWS_PACKAGE/bin/
-        cp -r $CONAN_PACKAGE/lib/* $WINDOWS_PACKAGE/lib/
-        cp -r $CONAN_PACKAGE/include/* $WINDOWS_PACKAGE/include/
-        cp -r $CONAN_PACKAGE/licenses/* ${WINDOWS_PACKAGE}/licenses/${CONAN_PACKAGE_NAME}/
+        if [ -d $CONAN_PACKAGE ]; then
+          rsync -a --exclude licenses $CONAN_PACKAGE/ $WINDOWS_PACKAGE/
+          if [ -d $CONAN_PACKAGE/licenses ]; then
+            CONAN_PACKAGE_NAME=`basename $CONAN_PACKAGE`
+            mkdir -p ${WINDOWS_PACKAGE}/licenses/${CONAN_PACKAGE_NAME}
+            rsync -a $CONAN_PACKAGE/licenses/ ${WINDOWS_PACKAGE}/licenses/${CONAN_PACKAGE_NAME}/
+          fi
+        fi
       done
+    - cd $WINDOWS_PACKAGE_DIR
     # Runtime Package
     - export WINDOWS_RUNTIME_PACKAGE_ARCHIVE="${CI_PROJECT_DIR}/${WINDOWS_PACKAGE_NAME}-${WINDOWS_PACKAGE_VERSION}.win10.${WINDOWS_PACKAGE_ARCH}.zip"
     - export WINDOWS_RUNTIME_PACKAGE_MANIFEST=(
         "gtirb-pprinter/bin/capstone.dll"
         "gtirb-pprinter/bin/gtirb.dll"
         "gtirb-pprinter/bin/gtirb_layout.dll"
-        'gtirb-pprinter/bin/gtirb-layout.exe'
+        "gtirb-pprinter/bin/gtirb-layout.exe"
         "gtirb-pprinter/bin/gtirb_pprinter.dll"
         "gtirb-pprinter/bin/gtirb-pprinter.exe"
         "gtirb-pprinter/licenses/capstone/*"
@@ -128,16 +131,17 @@ build-conan-linux-gcc9:
       )
     - zip -r $WINDOWS_RUNTIME_PACKAGE_ARCHIVE ${WINDOWS_RUNTIME_PACKAGE_MANIFEST[@]}
     # Developement Package
-    - export WINDOWS_DEVELOPEMENT_PACKAGE_ARCHIVE="${CI_PROJECT_DIR}/${WINDOWS_PACKAGE_NAME}-${WINDOWS_PACKAGE_VERSION}.win10.${WINDOWS_PACKAGE_ARCH}.zip"
+    - export WINDOWS_DEVELOPEMENT_PACKAGE_ARCHIVE="${CI_PROJECT_DIR}/${WINDOWS_PACKAGE_NAME}-${WINDOWS_PACKAGE_VERSION}-dev.win10.${WINDOWS_PACKAGE_ARCH}.zip"
     - export WINDOWS_DEVELOPEMENT_PACKAGE_MANIFEST=(
-        "${WINDOWS_RUNTIME_PACKAGE_MANIFEST[@]"
+        "${WINDOWS_RUNTIME_PACKAGE_MANIFEST[@]}"
         "gtirb-pprinter/lib/capstone.lib"
         "gtirb-pprinter/lib/gtirb.lib"
         "gtirb-pprinter/lib/gtirb_layout.lib"
         "gtirb-pprinter/lib/gtirb_pprinter.lib"
         "gtirb-pprinter/include/capstone"
         "gtirb-pprinter/include/gtirb"
-        "gtirb-pprinter/include/gtirb-pprinter"
+        "gtirb-pprinter/include/gtirb_layout"
+        "gtirb-pprinter/include/gtirb_pprinter"
       )
     - zip -r $WINDOWS_DEVELOPEMENT_PACKAGE_ARCHIVE ${WINDOWS_DEVELOPEMENT_PACKAGE_MANIFEST[@]}
 
