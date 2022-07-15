@@ -81,12 +81,12 @@ build-conan-linux-gcc9:
       - gtirb-pprinter*.zip
   script:
     # Setting CI_PROJECT_DIR to $(pwd) because CI doesn't properly set CI_PROJECT_DIR with VirtualBox runners.
-    - export CI_PROJECT_DIR=`cygpath -w $(pwd)`
+    - export CI_PROJECT_DIR=$(pwd)
     # Initialize
     - systeminfo
     - python -m pip install --upgrade conan pip
     - python -m pip install -r tests/requirements.txt $EXTRA_INDEX_URL
-    - export PYTHONPATH=$CI_PROJECT_DIR
+    - export PYTHONPATH=`cygpath -w $(pwd)`
     # Setup Remote and Authenticate
     - conan remote add gitlab ${CI_API_V4_URL}/packages/conan
     - CONAN_PASSWORD=$CI_JOB_TOKEN conan user ci_user -r gitlab -p
@@ -96,7 +96,7 @@ build-conan-linux-gcc9:
       # Python print() on Windows returns CRLF and will cause issues in CI - use "print('string', end='')" when outputting from python.
     - export CONAN_RECIPE=`python -c "import conanfile; print(conanfile.Properties().conan_recipe, end='')"`
     - conan install $CONAN_RECIPE -g deploy --install-folder="./conan-packages"
-    # Collate Packages
+    # Collate Package Files
     - export WINDOWS_PACKAGE_NAME=`conan inspect . --raw name`
     - export WINDOWS_PACKAGE_VERSION=`conan inspect . --raw version`
     - export WINDOWS_PACKAGE_ARCH=`uname -m`
