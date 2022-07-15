@@ -94,61 +94,52 @@ build-conan-linux-gcc9:
     - python .ci/build.py -s build_type=$BUILD_TYPE
     # Install
       # Python print() on Windows returns CRLF and will cause issues in CI - use "print('string', end='')" when outputting from python.
-    - export PKG_INSTALL_NAME=`python -c "import conanfile; print(conanfile.Properties().conan_recipe, end='')"`
-    - conan install $PKG_INSTALL_NAME -g deploy --build=missing --install-folder="./packages"
-    # Package
-    - export PKG_NAME=`conan inspect . --raw name`
-    - export PKG_VERSION=`conan inspect . --raw version`
-    - export PKG_ARCH=`uname -m`
+    - export CONAN_RECIPE=`python -c "import conanfile; print(conanfile.Properties().conan_recipe, end='')"`
+    - conan install $CONAN_RECIPE -g deploy --install-folder="./conan-packages"
+    # Collate Packages
+    - export WINDOWS_PACKAGE_NAME=`conan inspect . --raw name`
+    - export WINDOWS_PACKAGE_VERSION=`conan inspect . --raw version`
+    - export WINDOWS_PACKAGE_ARCH=`uname -m`
+    - export WINDOWS_PACKAGE_DIR="${CI_PROJECT_DIR}/windows-package"
+    - export WINDOWS_PACKAGE="${WINDOWS_PACKAGE_DIR}/${WINDOWS_PACKAGE_NAME}"
+    - export CONAN_PACKAGES="${CI_PROJECT_DIR}/conan-packages/*"
+    - mkdir -p $WINDOWS_PACKAGE/{bin,lib,include,licenses}
     - |+
-      for PKG_DIR in ./packages/*/; do
-        [ -d $PKG_DIR ] || continue
-        PKG_DIR_NAME=`basename $PKG_DIR`
-        for PKG_SUBDIR in ./packages/$PKG_DIR_NAME/*/; do
-          [ -d $PKG_SUBDIR ] || continue
-          PKG_SUBDIR_NAME=`basename $PKG_SUBDIR`
-          PKG_FILE_DEST="./package/${PKG_NAME}/${PKG_SUBDIR_NAME}"
-          [ -d $PKG_FILE_DEST ] || mkdir -p $PKG_FILE_DEST
-          if [ $PKG_SUBDIR_NAME != 'licenses' ]; then
-            cp -r $PKG_SUBDIR/* $PKG_FILE_DEST
-          else
-            for PKG_LICENSE in $PKG_SUBDIR/*; do
-              PKG_LICENSE_DEST="${PKG_FILE_DEST}/${PKG_DIR_NAME}"
-              [ -d $PKG_LICENSE_DEST ] || mkdir -p $PKG_LICENSE_DEST
-              cp -r $PKG_LICENSE $PKG_LICENSE_DEST/
-            done
-          fi
-        done
+      for CONAN_PACKAGE in $CONAN_PACKAGES; do
+        CONAN_PACKAGE_NAME=`basename $CONAN_PACKAGE`
+        mkdir -p "${WINDOWS_PACKAGE}/licenses/${CONAN_PACKAGE_NAME}"
+        cp -r $CONAN_PACKAGE/bin/* $WINDOWS_PACKAGE/bin/
+        cp -r $CONAN_PACKAGE/lib/* $WINDOWS_PACKAGE/lib/
+        cp -r $CONAN_PACKAGE/include/* $WINDOWS_PACKAGE/include/
+        cp -r $CONAN_PACKAGE/licenses/* ${WINDOWS_PACKAGE}/licenses/${CONAN_PACKAGE_NAME}/
       done
-    - cd ./package
     # Runtime Package
-    - export PKG_FILENAME="${CI_PROJECT_DIR}\\${PKG_NAME}-${PKG_VERSION}.win10.${PKG_ARCH}.zip"
-    - export PKG_MANIFEST=(
+    - export WINDOWS_RUNTIME_PACKAGE_ARCHIVE="${CI_PROJECT_DIR}/${WINDOWS_PACKAGE_NAME}-${WINDOWS_PACKAGE_VERSION}.win10.${WINDOWS_PACKAGE_ARCH}.zip"
+    - export WINDOWS_RUNTIME_PACKAGE_MANIFEST=(
         "gtirb-pprinter/bin/capstone.dll"
         "gtirb-pprinter/bin/gtirb.dll"
         "gtirb-pprinter/bin/gtirb_layout.dll"
         'gtirb-pprinter/bin/gtirb-layout.exe'
         "gtirb-pprinter/bin/gtirb_pprinter.dll"
         "gtirb-pprinter/bin/gtirb-pprinter.exe"
+        "gtirb-pprinter/licenses/capstone/*"
         "gtirb-pprinter/licenses/gtirb/*"
         "gtirb-pprinter/licenses/gtirb-pprinter/*"
-        "gtirb-pprinter/licenses/capstone/*"
       )
-    - zip -r $PKG_FILENAME ${PKG_MANIFEST[@]}
-    # Development Package
-    - export PKG_FILENAME_DEV="${CI_PROJECT_DIR}\\${PKG_NAME}-dev-${PKG_VERSION}.win10.${PKG_ARCH}.zip"
-    - export PKG_MANIFEST_DEV=(
-        "${PKG_MANIFEST[@]}"
-        "gtirb-pprinter/include/capstone"
-        "gtirb-pprinter/include/gtirb"
-        "gtirb-pprinter/include/gtirb_layout"
-        "gtirb-pprinter/include/gtirb_pprinter"
+    - zip -r $WINDOWS_RUNTIME_PACKAGE_ARCHIVE ${WINDOWS_RUNTIME_PACKAGE_MANIFEST[@]}
+    # Developement Package
+    - export WINDOWS_DEVELOPEMENT_PACKAGE_ARCHIVE="${CI_PROJECT_DIR}/${WINDOWS_PACKAGE_NAME}-${WINDOWS_PACKAGE_VERSION}.win10.${WINDOWS_PACKAGE_ARCH}.zip"
+    - export WINDOWS_DEVELOPEMENT_PACKAGE_MANIFEST=(
+        "${WINDOWS_RUNTIME_PACKAGE_MANIFEST[@]"
         "gtirb-pprinter/lib/capstone.lib"
         "gtirb-pprinter/lib/gtirb.lib"
         "gtirb-pprinter/lib/gtirb_layout.lib"
         "gtirb-pprinter/lib/gtirb_pprinter.lib"
+        "gtirb-pprinter/include/capstone"
+        "gtirb-pprinter/include/gtirb"
+        "gtirb-pprinter/include/gtirb-pprinter"
       )
-    - zip -r $PKG_FILENAME_DEV ${PKG_MANIFEST_DEV[@]}
+    - zip -r $WINDOWS_DEVELOPEMENT_PACKAGE_ARCHIVE ${WINDOWS_DEVELOPEMENT_PACKAGE_MANIFEST[@]}
 
 conan-windows-debug:
   variables:
