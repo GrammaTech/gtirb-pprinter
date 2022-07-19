@@ -21,7 +21,7 @@ class ATTInstructionsTest(PPrinterTest):
         asm = run_asm_pprinter(ir, ["--syntax=att"])
         self.assertIn("{%k1}{z}", asm)
 
-    def test_shll_att(self):
+    def test_shift_att(self):
         """
         Prevent regression on the following:
 
@@ -34,6 +34,7 @@ class ATTInstructionsTest(PPrinterTest):
             (b"\xD3\x65\xF8", "shll %cl,-8(%rbp)"),
             (b"\x48\xD3\x24\x24", "shlq %cl,(%rsp)"),
             (b"\x48\xD3\x6D\xB8", "shrq %cl,-72(%rbp)"),
+            (b"\x48\xD3\xBD\x78\xFF\xFF\xFF", "sarq %cl,-136(%rbp)"),
         ]
 
         for insn_bytes, insn_str in instructions:

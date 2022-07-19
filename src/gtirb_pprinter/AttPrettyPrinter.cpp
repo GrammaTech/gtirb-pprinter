@@ -41,6 +41,7 @@ void AttPrettyPrinter::fixupInstruction(cs_insn& Insn) {
   switch (Insn.id) {
   case X86_INS_SHL:
   case X86_INS_SHR:
+  case X86_INS_SAR:
     if (Detail.op_count == 1) {
       // Check if %cl is a source register
       cs_regs RegsRead, RegsWrite;
