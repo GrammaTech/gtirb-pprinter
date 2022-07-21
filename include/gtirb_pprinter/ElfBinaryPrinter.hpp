@@ -33,8 +33,7 @@ private:
   std::string compiler;
   bool debug = false;
   bool useDummySO = false;
-  std::optional<std::string>
-  getInfixLibraryName(const std::string& library) const;
+  bool isInfixLibraryName(const std::string& library) const;
   std::optional<std::string>
   findLibrary(const std::string& library,
               const std::vector<std::string>& paths) const;

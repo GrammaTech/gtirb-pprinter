@@ -28,14 +28,10 @@
 
 namespace gtirb_bprint {
 
-std::optional<std::string>
-ElfBinaryPrinter::getInfixLibraryName(const std::string& library) const {
+bool ElfBinaryPrinter::isInfixLibraryName(const std::string& library) const {
   std::regex libsoRegex("^lib(.*)\\.so.*");
   std::smatch m;
-  if (std::regex_match(library, m, libsoRegex)) {
-    return m.str(1);
-  }
-  return std::nullopt;
+  return std::regex_match(library, m, libsoRegex);
 }
 
 std::optional<std::string>
@@ -375,11 +371,9 @@ void ElfBinaryPrinter::addOrigLibraryArgs(
       if (isBlackListedLib(Library)) {
         continue;
       }
-      // if they match the lib*.so pattern we let the compiler look for them
-      std::optional<std::string> InfixLibraryName =
-          getInfixLibraryName(Library);
-      if (InfixLibraryName) {
-        args.push_back("-l" + *InfixLibraryName);
+      // if they match the lib*.so.* pattern we let the compiler look for them
+      if (isInfixLibraryName(Library)) {
+        args.push_back("-l:" + Library);
       } else {
         // otherwise we try to find them here
         if (std::optional<std::string> LibraryLocation =
