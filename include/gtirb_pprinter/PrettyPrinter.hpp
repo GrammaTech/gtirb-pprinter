@@ -149,6 +149,7 @@ struct DEBLOAT_PRETTYPRINTER_EXPORT_API PrintingPolicy {
 
   ListingMode LstMode = ListingAssembler;
   bool Shared = false;
+  bool IgnoreSymbolVersions = false;
 };
 
 using NamedPolicyMap = std::unordered_map<std::string, PrintingPolicy>;
@@ -189,6 +190,12 @@ public:
   /// Indicates whether or not we print assembly for shared libraries.
   bool getShared() const { return Shared; }
 
+  /// Set whether or not symbol versions should be ignored (only for ELF).
+  void setIgnoreSymbolVersions(bool Value) { IgnoreSymbolVersions = Value; }
+
+  /// Indicates whether symbol versions should be ignored (only for ELF).
+  bool getIgnoreSymbolVersions() const { return IgnoreSymbolVersions; }
+
   /// Pretty-print the IR module to a stream. The default output target is
   /// deduced from the file format of the IR if it is not explicitly set with
   /// \link setTarget.
@@ -227,6 +234,7 @@ private:
   PolicyOptions FunctionPolicy, SymbolPolicy, SectionPolicy, ArraySectionPolicy;
   std::string PolicyName = "default";
   bool Shared = false;
+  bool IgnoreSymbolVersions = false;
 
   PrettyPrinterFactory& getFactory(gtirb::Module& Module) const;
 };

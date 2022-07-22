@@ -26,6 +26,18 @@
 /// \brief AuxData types used by gtirb_pprinter that are not sanctioned.
 /// \see AUXDATA_GROUP
 
+namespace auxdata {
+/// Map from symbol version identifiers to the list of versions strings.
+/// The first element of the list is the version itself, the subsequent elements
+/// are predecessor versions.
+using ElfSymDefs = std::map<uint16_t, std::vector<std::string>>;
+/// Map from dynamic library names to the symbol versions that they need.
+/// For each library, we have a map from version identifiers to version strings.
+using ElfSymNeeded = std::map<std::string, std::map<uint16_t, std::string>>;
+//// Map from gtirb::Symbol UUIDs to symbol version identifiers.
+using ElfSymbolVersionsEntries = std::map<gtirb::UUID, uint16_t>;
+} // namespace auxdata
+
 namespace gtirb {
 namespace schema {
 
@@ -91,6 +103,16 @@ struct ElfSymbolInfo {
   static constexpr const char* Name = "elfSymbolInfo";
   typedef std::map<gtirb::UUID, std::tuple<uint64_t, std::string, std::string,
                                            std::string, uint64_t>>
+      Type;
+};
+
+/// \brief Auxiliary data for ELF symbol versions.
+/// This includes the symbol version definitions, the symbol version
+/// requirements, and the mapping from symbols to symbol versions.
+struct ElfSymbolVersions {
+  static constexpr const char* Name = "elfSymbolVersions";
+  typedef std::tuple<auxdata::ElfSymDefs, auxdata::ElfSymNeeded,
+                     auxdata::ElfSymbolVersionsEntries>
       Type;
 };
 

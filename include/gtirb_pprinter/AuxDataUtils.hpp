@@ -218,6 +218,11 @@ getElfSymbolInfo(const gtirb::Symbol& Sym);
 // Store the properties of a symbol to the `elfSymbolInfo' AuxData table.
 void setElfSymbolInfo(gtirb::Symbol& Sym, aux_data::ElfSymbolInfo& Info);
 
+const gtirb::schema::ElfSymbolVersions::Type*
+getSymbolVersions(const gtirb::Module& M);
+
+std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym);
+
 // Load the section properties of a binary section from the
 // `sectionProperties' AuxData tables.
 std::optional<std::tuple<uint64_t, uint64_t>>

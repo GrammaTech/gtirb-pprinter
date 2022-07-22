@@ -17,6 +17,7 @@ set(${PROJECT_NAME}_H
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/AttPrettyPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ElfBinaryPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ElfPrettyPrinter.hpp
+    ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ElfVersionScriptPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/IntelPrettyPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/StringUtils.hpp
     ${CMAKE_BINARY_DIR}/include/gtirb_pprinter/version.h
@@ -34,6 +35,7 @@ set(${PROJECT_NAME}_SRC
     BinaryPrinter.cpp
     ElfBinaryPrinter.cpp
     ElfPrettyPrinter.cpp
+    ElfVersionScriptPrinter.cpp
     FileUtils.cpp
     IntelPrettyPrinter.cpp
     PrettyPrinter.cpp

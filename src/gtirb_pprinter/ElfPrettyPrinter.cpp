@@ -88,14 +88,27 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
                                    const ElfSyntax& syntax_,
                                    const PrintingPolicy& policy_)
     : PrettyPrinterBase(context_, module_, syntax_, policy_),
-      elfSyntax(syntax_) {}
+      elfSyntax(syntax_) {
 
-std::string ElfPrettyPrinter::getSymbolName(const gtirb::Symbol& Symbol) const {
-  if (size_t I = Symbol.getName().find('@'); I != std::string::npos) {
-    // Strip version string from symbol name.
-    return Symbol.getName().substr(0, I);
+  skipVersionSymbols();
+}
+
+void ElfPrettyPrinter::skipVersionSymbols() {
+  const auto SymbolVersions = aux_data::getSymbolVersions(module);
+  if (!SymbolVersions) {
+    return;
   }
-  return PrettyPrinterBase::getSymbolName(Symbol);
+  auto& [SymDefs, SymNeeded, SymVersionEntries] = *SymbolVersions;
+  for (auto& [VerId, Versions] : SymDefs) {
+    for (const std::string& VerName : Versions) {
+      policy.skipSymbols.insert(VerName);
+    }
+  }
+  for (auto& [Library, VersionMap] : SymNeeded) {
+    for (auto& [VerId, VerName] : VersionMap) {
+      policy.skipSymbols.insert(VerName);
+    }
+  }
 }
 
 void ElfPrettyPrinter::printInstruction(std::ostream& os,
@@ -320,18 +333,26 @@ void ElfPrettyPrinter::printFooter(std::ostream& /* os */){};
 void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
                                          const gtirb::Symbol& sym) {
   if (auto SymbolInfo = aux_data::getElfSymbolInfo(sym)) {
+    auto Version = aux_data::getSymbolVersionString(sym);
+
     // Do not print symbol headers for default attributes.
     if (SymbolInfo->Binding == "LOCAL" && SymbolInfo->Visibility == "DEFAULT" &&
-        (SymbolInfo->Type == "NOTYPE" || SymbolInfo->Type == "NONE")) {
+        (SymbolInfo->Type == "NOTYPE" || SymbolInfo->Type == "NONE") &&
+        !Version) {
       return;
     }
     // We never print FILE symbols.
     if (SymbolInfo->Type == "FILE") {
       return;
     }
-
     auto Name = getSymbolName(sym);
     printBar(os, false);
+
+    if (!policy.IgnoreSymbolVersions && Version) {
+      os << elfSyntax.symVer() << ' ' << Name << "," << sym.getName()
+         << *Version << '\n';
+    }
+
     if (SymbolInfo->Binding == "LOCAL") {
       // do nothing
     } else if (SymbolInfo->Binding == "GLOBAL") {

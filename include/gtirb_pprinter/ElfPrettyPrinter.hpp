@@ -54,6 +54,7 @@ public:
   const std::string& internal() const { return InternalDirective; }
   const std::string& uleb128() const { return ULEB128Directive; }
   const std::string& sleb128() const { return SLEB128Directive; }
+  const std::string& symVer() const { return SymVerDirective; }
 
 private:
   const std::string CommentStyle{"#"};
@@ -81,6 +82,8 @@ private:
   const std::string InternalDirective{".internal"};
   const std::string ULEB128Directive{".uleb128"};
   const std::string SLEB128Directive{".sleb128"};
+
+  const std::string SymVerDirective{".symver"};
 
 protected:
   const std::string ByteDirective{".byte"};
@@ -148,9 +151,9 @@ protected:
   /// ISA has differing procedures regarding relocations in shared objects.
   virtual void fixupSharedObject();
 
-  std::optional<uint64_t> getAlignment(const gtirb::CodeBlock& Block) override;
+  void skipVersionSymbols();
 
-  std::string getSymbolName(const gtirb::Symbol& symbol) const override;
+  std::optional<uint64_t> getAlignment(const gtirb::CodeBlock& Block) override;
 
 private:
   bool TlsGdSequence = false;

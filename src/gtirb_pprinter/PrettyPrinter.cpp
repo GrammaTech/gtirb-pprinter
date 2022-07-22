@@ -240,6 +240,7 @@ int PrettyPrinter::print(std::ostream& Stream, gtirb::Context& Context,
   PrintingPolicy policy(getPolicy(Module));
   policy.LstMode = LstMode;
   policy.Shared = Shared;
+  policy.IgnoreSymbolVersions = IgnoreSymbolVersions;
   FunctionPolicy.apply(policy.skipFunctions);
   SymbolPolicy.apply(policy.skipSymbols);
   SectionPolicy.apply(policy.skipSections);

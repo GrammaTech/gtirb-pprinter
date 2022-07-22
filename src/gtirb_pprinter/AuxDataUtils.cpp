@@ -137,6 +137,39 @@ void setElfSymbolInfo(gtirb::Symbol& Sym, aux_data::ElfSymbolInfo& Info) {
   (*Table)[Sym.getUUID()] = Info.asAuxData();
 }
 
+const gtirb::schema::ElfSymbolVersions::Type*
+getSymbolVersions(const gtirb::Module& M) {
+  return M.getAuxData<gtirb::schema::ElfSymbolVersions>();
+}
+
+std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym) {
+  const auto SymbolVersions = getSymbolVersions(*Sym.getModule());
+  if (!SymbolVersions) {
+    return std::nullopt;
+  }
+  auto& [SymDefs, SymNeeded, SymVersionEntries] = *SymbolVersions;
+  auto VersionIt = SymVersionEntries.find(Sym.getUUID());
+  if (VersionIt == SymVersionEntries.end()) {
+    return std::nullopt;
+  }
+  uint16_t VersionId = VersionIt->second & 0x7FFF;
+  std::string Connector = VersionIt->second & 0x8000 ? "@" : "@@";
+  // Search for the version string
+  auto VersionDef = SymDefs.find(VersionId);
+  if (VersionDef != SymDefs.end()) {
+    return Connector + *VersionDef->second.begin();
+  }
+  Connector = "@";
+  for (auto& [Key, Val] : SymNeeded) {
+    auto VersionReq = Val.find(VersionId);
+    if (VersionReq != Val.end()) {
+      return Connector + VersionReq->second;
+    }
+  }
+  // This should not happen
+  return std::nullopt;
+}
+
 std::optional<std::tuple<uint64_t, uint64_t>>
 getSectionProperties(const gtirb::Section& Section) {
   if (Section.getModule())

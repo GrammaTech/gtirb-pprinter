@@ -16,6 +16,7 @@
 
 #include "AuxDataSchema.hpp"
 #include "AuxDataUtils.hpp"
+#include "ElfVersionScriptPrinter.hpp"
 #include "FileUtils.hpp"
 #include "driver/Logger.h"
 #include <boost/filesystem.hpp>
@@ -480,8 +481,17 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
   } else {
     // If we're not using synthetic libraries, we just need to pass
     // along the appropriate arguments.
+
     addOrigLibraryArgs(ir, libArgs);
   }
+
+  TempFile VersionScript(".map");
+  if (!Printer.getIgnoreSymbolVersions()) {
+    if (gtirb_pprint::printVersionScript(ir, VersionScript)) {
+      libArgs.push_back("-Wl,--version-script=" + VersionScript.fileName());
+    }
+  }
+  VersionScript.close();
 
   if (std::optional<int> ret =
           execute(compiler,

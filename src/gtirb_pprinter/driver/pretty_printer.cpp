@@ -6,6 +6,7 @@
 #include <fstream>
 #include <gtirb_layout/gtirb_layout.hpp>
 #include <gtirb_pprinter/ElfBinaryPrinter.hpp>
+#include <gtirb_pprinter/ElfVersionScriptPrinter.hpp>
 #include <gtirb_pprinter/PeBinaryPrinter.hpp>
 #include <gtirb_pprinter/PrettyPrinter.hpp>
 #include <gtirb_pprinter/version.h>
@@ -182,6 +183,14 @@ int main(int argc, char** argv) {
                      "libraries. Only relevant for ELF executables.");
   desc.add_options()("use-gcc", po::value<std::string>(),
                      "Specify the gcc binary to use for ELF binary printing.");
+  desc.add_options()(
+      "ignore-symbol-versions",
+      "Ignore symbol versions. If symbol versions are considered "
+      "many binaries will require a version linker script. "
+      "Only relevant for ELF executables.");
+  desc.add_options()("version-script", po::value<std::string>(),
+                     "Generate a version script file on the given path. Only "
+                     "relevant fo ELF executables.");
 
   po::positional_options_description pd;
   pd.add("ir", -1);
@@ -212,8 +221,8 @@ int main(int argc, char** argv) {
 
   public:
     ~ContextForgetter() { ctx.ForgetAllocations(); }
-    operator gtirb::Context &() { return ctx; }
-    operator const gtirb::Context &() const { return ctx; }
+    operator gtirb::Context&() { return ctx; }
+    operator const gtirb::Context&() const { return ctx; }
   };
 
   ContextForgetter ctx;
@@ -369,6 +378,16 @@ int main(int argc, char** argv) {
 
   if (vm.count("shared") != 0) {
     pp.setShared(true);
+  }
+
+  if (vm.count("ignore-symbol-versions") != 0) {
+    pp.setIgnoreSymbolVersions(true);
+  }
+  if (vm.count("version-script") != 0) {
+    const auto versionScriptPath =
+        fs::path(vm["version-script"].as<std::string>());
+    std::ofstream VersionStream(versionScriptPath);
+    gtirb_pprint::printVersionScript(*ir, VersionStream);
   }
 
   // Layout IR in memory without overlap.
