@@ -69,7 +69,7 @@ bool printVersionScript(const gtirb::IR& IR, std::ofstream& VersionScript) {
     }
   }
 
-  return true;
+  return VersionScript.tellp();
 }
 
 } // namespace gtirb_pprint
