@@ -47,9 +47,10 @@ ElfBinaryPrinter::findLibrary(const std::string& library,
   return std::nullopt;
 }
 
-static std::unordered_set<std::string> BlacklistedLibraries{{
-    "ld-linux-x86-64.so.2",
-}};
+bool isBlackListedLib(std::string Library) {
+  std::string Prefix = "ld-linux";
+  return (Library.substr(0, Prefix.length()) == Prefix);
+}
 
 // These are symbols that otherwise pass our screen for undefined
 // symbols but don't appear to need external linkage when rebuilding
@@ -201,7 +202,7 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
   for (const gtirb::Module& module : ir.modules()) {
     for (const auto& Library : aux_data::getLibraries(module)) {
       // Skip blacklisted libs
-      if (BlacklistedLibraries.count(Library)) {
+      if (isBlackListedLib(Library)) {
         continue;
       }
 
@@ -312,7 +313,7 @@ void ElfBinaryPrinter::addOrigLibraryArgs(
   for (const gtirb::Module& module : ir.modules()) {
     for (const auto& Library : aux_data::getLibraries(module)) {
       // if they're a blacklisted name, skip them
-      if (BlacklistedLibraries.count(Library)) {
+      if (isBlackListedLib(Library)) {
         continue;
       }
       // if they match the lib*.so pattern we let the compiler look for them

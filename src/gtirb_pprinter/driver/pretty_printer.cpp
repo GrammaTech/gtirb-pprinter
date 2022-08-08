@@ -68,11 +68,12 @@ static std::unique_ptr<gtirb_bprint::BinaryPrinter>
 getBinaryPrinter(const std::string& format,
                  const gtirb_pprint::PrettyPrinter& pp,
                  const std::vector<std::string>& extraCompileArgs,
-                 const std::vector<std::string>& libraryPaths, bool dummySO) {
+                 const std::vector<std::string>& libraryPaths,
+                 const std::string& gccExecutable, bool dummySO) {
   std::unique_ptr<gtirb_bprint::BinaryPrinter> binaryPrinter;
   if (format == "elf")
     return std::make_unique<gtirb_bprint::ElfBinaryPrinter>(
-        pp, extraCompileArgs, libraryPaths, true, dummySO);
+        pp, gccExecutable, extraCompileArgs, libraryPaths, true, dummySO);
   if (format == "pe")
     return std::make_unique<gtirb_bprint::PeBinaryPrinter>(pp, extraCompileArgs,
                                                            libraryPaths);
@@ -181,6 +182,8 @@ int main(int argc, char** argv) {
   desc.add_options()("dummy-so", po::value<bool>()->default_value(false),
                      "Use artificial .so files for linking rather than actual "
                      "libraries. Only relevant for ELF executables.");
+  desc.add_options()("use-gcc", po::value<std::string>(),
+                     "Specify the gcc binary to use for ELF binary printing.");
 
   po::positional_options_description pd;
   pd.add("ir", -1);
@@ -447,10 +450,13 @@ int main(int argc, char** argv) {
     std::vector<std::string> libraryPaths;
     if (vm.count("library-paths") != 0)
       libraryPaths = vm["library-paths"].as<std::vector<std::string>>();
+    std::string gccExecutable;
+    if (vm.count("use-gcc") != 0)
+      gccExecutable = vm["use-gcc"].as<std::string>();
 
     std::unique_ptr<gtirb_bprint::BinaryPrinter> binaryPrinter =
         getBinaryPrinter(format, pp, extraCompilerArgs, libraryPaths,
-                         vm["dummy-so"].as<bool>());
+                         gccExecutable, vm["dummy-so"].as<bool>());
     if (!binaryPrinter) {
       LOG_ERROR << "'" << format
                 << "' is an unsupported binary printing format.\n";
@@ -481,9 +487,13 @@ int main(int argc, char** argv) {
     if (vm.count("library-paths") != 0)
       libraryPaths = vm["library-paths"].as<std::vector<std::string>>();
 
+    std::string gccExecutable;
+    if (vm.count("use-gcc") != 0)
+      gccExecutable = vm["use-gcc"].as<std::string>();
+
     std::unique_ptr<gtirb_bprint::BinaryPrinter> binaryPrinter =
         getBinaryPrinter(format, pp, extraCompilerArgs, libraryPaths,
-                         vm["dummy-so"].as<bool>());
+                         gccExecutable, vm["dummy-so"].as<bool>());
 
     if (!binaryPrinter) {
       LOG_ERROR << "'" << format

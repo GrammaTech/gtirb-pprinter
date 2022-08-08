@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
   gtirb_pprint::PrettyPrinter pp;
   std::vector<std::string> extraCompileArgs, libraryPaths;
   auto binaryPrinter = std::make_unique<gtirb_bprint::ElfBinaryPrinter>(
-      pp, extraCompileArgs, libraryPaths, true, false);
+      pp, "", extraCompileArgs, libraryPaths, true, false);
 
   // load gtirb
   gtirb::IR* ir = nullptr;

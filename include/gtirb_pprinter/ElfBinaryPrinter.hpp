@@ -29,7 +29,8 @@ class TempFile;
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API ElfBinaryPrinter : public BinaryPrinter {
 private:
-  std::string compiler = "gcc";
+  const std::string defaultCompiler = "gcc";
+  std::string compiler;
   bool debug = false;
   bool useDummySO = false;
   std::optional<std::string>
@@ -53,10 +54,12 @@ private:
 public:
   /// Construct a ElfBinaryPrinter with the default configuration.
   explicit ElfBinaryPrinter(const gtirb_pprint::PrettyPrinter& prettyPrinter,
+                            const std::string& gccExecutable,
                             const std::vector<std::string>& extraCompileArgs,
                             const std::vector<std::string>& libraryPaths,
                             bool debugFlag, bool dummySOFlag)
       : BinaryPrinter(prettyPrinter, extraCompileArgs, libraryPaths),
+        compiler(gccExecutable.empty() ? defaultCompiler : gccExecutable),
         debug(debugFlag), useDummySO(dummySOFlag) {}
   virtual ~ElfBinaryPrinter() = default;
 
