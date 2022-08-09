@@ -7,7 +7,7 @@ class Module;
 } // namespace gtirb
 
 namespace gtirb_pprint {
-struct PrettyPrinter;
+class PrettyPrinter;
 
 void applyFixups(gtirb::Context& Ctx, gtirb::Module& Mod,
                  const PrettyPrinter& Printer);
