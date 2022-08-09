@@ -176,6 +176,10 @@ void PrettyPrinter::setTarget(const TargetTy& target) {
   m_syntax = syntax;
 }
 
+const TargetTy PrettyPrinter::getTarget() const {
+  return {m_format, m_isa, m_syntax};
+}
+
 void PrettyPrinter::setFormat(const std::string& format,
                               const std::string& isa) {
   const std::string& syntax =
@@ -255,162 +259,6 @@ void PrintingPolicy::findAdditionalSkips(const gtirb::Module& Mod) {
   }
 }
 
-void PrettyPrinter::fixupSharedObject(gtirb::Context& Context,
-                                      gtirb::Module& Module,
-                                      const PrintingPolicy& Policy) const {
-  std::unordered_set<gtirb::Symbol*> SymbolsToAlias;
-  std::vector<gtirb::ByteInterval::SymbolicExpressionElement> SEEsToAlias,
-      SEEsToPLT;
-  ModuleInfo ModInfo(Context, Module);
-  for (auto& CB : Module.code_blocks()) {
-    if (ModInfo.shouldSkip(Policy, CB)) {
-      continue;
-    }
-
-    for (auto SEE : CB.getByteInterval()->findSymbolicExpressionsAtOffset(
-             CB.getOffset(), CB.getOffset() + CB.getSize())) {
-      auto SymsToCheck = std::visit(
-          [](const auto& SE) -> std::vector<gtirb::Symbol*> {
-            using T = std::decay_t<decltype(SE)>;
-
-            if (SE.Attributes.isFlagSet(gtirb::SymAttribute::PltRef) ||
-                SE.Attributes.isFlagSet(gtirb::SymAttribute::GotRelPC)) {
-              return {}; // PLT/GOT references are allowed in shared objects
-            }
-
-            if constexpr (std::is_same_v<T, gtirb::SymAddrAddr>) {
-              return {SE.Sym1, SE.Sym2};
-            } else if constexpr (std::is_same_v<T, gtirb::SymAddrConst>) {
-              return {SE.Sym};
-            }
-          },
-          SEE.getSymbolicExpression());
-
-      for (auto* Symbol : SymsToCheck) {
-        if (!Symbol->hasReferent() && Symbol->getAddress()) {
-          continue; // integral symbols don't need fixed up
-        }
-
-        if (auto Info = aux_data::getElfSymbolInfo(*Symbol)) {
-          if (Info->Binding != "LOCAL" && Info->Visibility == "DEFAULT") {
-            // direct references to global symbols are not allowed in
-            // shared objects
-            if (!Symbol->hasReferent() ||
-                Symbol->getReferent<gtirb::ProxyBlock>() ||
-                aux_data::getForwardedSymbol(Symbol)) {
-              // need to turn into a PLT reference
-              SEEsToPLT.push_back(SEE);
-            } else {
-              // need to change to the hidden alias
-              SymbolsToAlias.insert(Symbol);
-              SEEsToAlias.push_back(SEE);
-            }
-          }
-        }
-      }
-    }
-  }
-
-  // make a hidden alias for every global symbol that is called
-  // directly by a code block
-  using GlobalToHiddenSymsType =
-      std::unordered_map<gtirb::Symbol*, gtirb::Symbol*>;
-  GlobalToHiddenSymsType GlobalToHiddenSyms;
-
-  for (auto* Symbol : SymbolsToAlias) {
-    struct SetHiddenSymbolReferent {
-      gtirb::Symbol* S;
-      SetHiddenSymbolReferent(gtirb::Symbol* Sym) : S{Sym} {}
-      void operator()(gtirb::Addr A) { S->setAddress(A); }
-      void operator()(gtirb::CodeBlock* B) { S->setReferent(B); }
-      void operator()(gtirb::DataBlock* B) { S->setReferent(B); }
-      void operator()(gtirb::ProxyBlock* B) { S->setReferent(B); }
-    };
-
-    auto* HiddenSymbol = Module.addSymbol(
-        Context, ".gtirb_pprinter.hidden_alias." + Symbol->getName());
-    Symbol->visit(SetHiddenSymbolReferent(HiddenSymbol));
-    auto SymInfo = *aux_data::getElfSymbolInfo(*Symbol);
-    aux_data::ElfSymbolInfo NewSymInfo{SymInfo};
-    NewSymInfo.Visibility = "HIDDEN";
-    aux_data::setElfSymbolInfo(*HiddenSymbol, NewSymInfo);
-    GlobalToHiddenSyms[Symbol] = HiddenSymbol;
-  }
-
-  // reassign bad code block references to hidden symbols
-  for (auto SEE : SEEsToAlias) {
-    auto SEToAdd = std::visit(
-        [&GlobalToHiddenSyms](const auto& SE) -> gtirb::SymbolicExpression {
-          using T = std::decay_t<decltype(SE)>;
-          T NewSE{SE};
-
-          if constexpr (std::is_same_v<T, gtirb::SymAddrAddr>) {
-            if (auto It = GlobalToHiddenSyms.find(SE.Sym1);
-                It != GlobalToHiddenSyms.end()) {
-              NewSE.Sym1 = It->second;
-            }
-            if (auto It = GlobalToHiddenSyms.find(SE.Sym2);
-                It != GlobalToHiddenSyms.end()) {
-              NewSE.Sym2 = It->second;
-            }
-          } else if constexpr (std::is_same_v<T, gtirb::SymAddrConst>) {
-            NewSE.Sym = GlobalToHiddenSyms.at(SE.Sym);
-          }
-
-          return {NewSE};
-        },
-        SEE.getSymbolicExpression());
-    SEE.getByteInterval()->addSymbolicExpression(SEE.getOffset(), SEToAdd);
-  }
-
-  // make bad code block references to extern symbols go through the PLT
-  for (auto SEE : SEEsToPLT) {
-    auto SEToAdd = std::visit(
-        [&Context](const auto& SE) -> gtirb::SymbolicExpression {
-          using T = std::decay_t<decltype(SE)>;
-          T NewSE{SE};
-          NewSE.Attributes.addFlag(gtirb::SymAttribute::PltRef);
-
-          if constexpr (std::is_same_v<T, gtirb::SymAddrAddr>) {
-            if (auto Target = aux_data::getForwardedSymbol(SE.Sym1)) {
-              NewSE.Sym1 = getByUUID<gtirb::Symbol>(Context, *Target);
-            }
-            if (auto Target = aux_data::getForwardedSymbol(SE.Sym2)) {
-              NewSE.Sym2 = getByUUID<gtirb::Symbol>(Context, *Target);
-            }
-          } else if constexpr (std::is_same_v<T, gtirb::SymAddrConst>) {
-            if (auto Target = aux_data::getForwardedSymbol(SE.Sym)) {
-              NewSE.Sym = getByUUID<gtirb::Symbol>(Context, *Target);
-            }
-          }
-
-          return {NewSE};
-        },
-        SEE.getSymbolicExpression());
-    SEE.getByteInterval()->addSymbolicExpression(SEE.getOffset(), SEToAdd);
-  }
-};
-
-void PrettyPrinter::fixupPESymbols(gtirb::Context& Context,
-                                   gtirb::Module& Module) const {
-  if (auto It = Module.findSymbols("__ImageBase"); !It.empty()) {
-    auto& ImageBase = *It.begin();
-    ImageBase.setReferent(Module.addProxyBlock(Context));
-    if (Module.getISA() == gtirb::ISA::IA32) {
-      ImageBase.setName("___ImageBase");
-    }
-  }
-
-  if (auto* Block = Module.getEntryPoint(); Block && Block->getAddress()) {
-    if (auto It = Module.findSymbols(*Block->getAddress()); It.empty()) {
-      auto* EntryPoint =
-          gtirb::Symbol::Create(Context, *Block->getAddress(), "__EntryPoint");
-      EntryPoint->setReferent<gtirb::CodeBlock>(Block);
-      Module.addSymbol(EntryPoint);
-    }
-  }
-};
-
 int PrettyPrinter::print(std::ostream& Stream, gtirb::Context& Context,
                          gtirb::Module& Module) const {
   // Find pretty printer factory.
@@ -426,12 +274,6 @@ int PrettyPrinter::print(std::ostream& Stream, gtirb::Context& Context,
   SectionPolicy.apply(policy.skipSections);
   ArraySectionPolicy.apply(policy.arraySections);
   policy.findAdditionalSkips(Module);
-
-  if (m_format == "pe") {
-    fixupPESymbols(Context, Module);
-  } else if (Shared) { // should this only be (m_format == "elf")?
-    fixupSharedObject(Context, Module, policy);
-  }
 
   // Create the pretty printer and print the IR.
   if (aux_data::validateAuxData(Module, m_format)) {
@@ -481,10 +323,77 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
                                      const Syntax& syntax_,
                                      const PrintingPolicy& policy_)
     : syntax(syntax_), policy(policy_),
-      mod_info(context_, module_), LstMode(policy.LstMode), context(context_),
-      module(module_),
-      PreferredEOLCommentPos(64), type_printer{module_, context_} {}
+      LstMode(policy.LstMode), context(context_), module(module_),
+      PreferredEOLCommentPos(64), type_printer{module_, context_} {
+  for (auto const& Function : aux_data::getFunctionEntries(module)) {
+    for (auto& EntryBlockUuid : Function.second) {
+      const auto* Block =
+          nodeFromUUID<gtirb::CodeBlock>(context, EntryBlockUuid);
+      if (Block)
+        functionEntry.insert(*Block->getAddress());
+      else
+        LOG_WARNING << "UUID " << boost::uuids::to_string(EntryBlockUuid)
+                    << " in functionEntries table references non-existent "
+                    << "block.\n";
+    }
+  }
+
+  for (auto const& Function : aux_data::getFunctionBlocks(module)) {
+    assert(Function.second.size() > 0);
+    gtirb::Addr LastAddr{0};
+    for (auto& BlockUuid : Function.second) {
+      const auto* Block = nodeFromUUID<gtirb::CodeBlock>(context, BlockUuid);
+      if (!Block)
+        LOG_WARNING << "UUID " << boost::uuids::to_string(BlockUuid)
+                    << " in functionBlocks table references non-existent "
+                    << "block.\n";
+      if (Block && Block->getAddress() > LastAddr)
+        LastAddr = *Block->getAddress();
+    }
+    functionLastBlock.insert(LastAddr);
+  }
+
+  // Collect all ambiguous symbols in the module and give them
+  // unique names
+  std::map<const std::string, std::multimap<gtirb::Addr, const gtirb::Symbol*>>
+      SymbolsByNameAddr;
+  for (auto& S : module.symbols()) {
+    auto Addr = S.getAddress().value_or(gtirb::Addr(0));
+    SymbolsByNameAddr[S.getName()].emplace(Addr, &S);
+  }
+  for (auto& [Name, Group] : SymbolsByNameAddr) {
+    if (Group.size() > 1) {
+      int Index = 0;
+      gtirb::Addr PrevAddress{0};
+      for (auto& [Addr, Sym] : Group) {
+        std::stringstream NewName;
+        NewName << Name << "_disambig_" << Addr;
+        if (Addr != PrevAddress) {
+          Index = 0;
+          PrevAddress = Addr;
+        }
+        std::stringstream Suffix;
+        Suffix << "_" << Index++;
+        while (!module.findSymbols(NewName.str() + Suffix.str()).empty()) {
+          Suffix.seekp(0);
+          Suffix << "_" << Index++;
+        }
+        NewName << Suffix.str();
+        AmbiguousSymbols.insert({Sym, NewName.str()});
+      }
+    }
+  }
+}
+
 PrettyPrinterBase::~PrettyPrinterBase() { cs_close(&this->csHandle); }
+
+bool PrettyPrinterBase::isFunctionEntry(gtirb::Addr x) const {
+  return functionEntry.count(x) > 0;
+}
+
+bool PrettyPrinterBase::isFunctionLastBlock(gtirb::Addr x) const {
+  return functionLastBlock.count(x) > 0;
+}
 
 const gtirb::SymAddrConst* PrettyPrinterBase::getSymbolicImmediate(
     const gtirb::SymbolicExpression* symex) {
@@ -507,7 +416,7 @@ std::ostream& PrettyPrinterBase::print(std::ostream& os) {
   // print integral symbols
   for (const auto& sym : module.symbols_by_name()) {
     if (auto addr = sym.getAddress();
-        addr && !sym.hasReferent() && !mod_info.shouldSkip(policy, sym)) {
+        addr && !sym.hasReferent() && !shouldSkip(policy, sym)) {
       os << syntax.comment() << " WARNING: integral symbol " << sym.getName()
          << " may not have been correctly relocated\n";
       printIntegralSymbol(os, sym);
@@ -515,7 +424,7 @@ std::ostream& PrettyPrinterBase::print(std::ostream& os) {
     if (!sym.getAddress() &&
         (!sym.hasReferent() ||
          sym.getReferent<gtirb::ProxyBlock>() != nullptr) &&
-        !mod_info.shouldSkip(policy, sym)) {
+        !shouldSkip(policy, sym)) {
       printUndefinedSymbol(os, sym);
     }
   }
@@ -607,6 +516,24 @@ void PrettyPrinterBase::printBar(std::ostream& os, bool heavy) {
   }
 }
 
+std::string PrettyPrinterBase::getFunctionName(gtirb::Addr x) const {
+  // Is this address an entry point to a function with a symbol?
+  if (isFunctionEntry(x)) {
+    const auto symbols = module.findSymbols(x);
+    if (symbols.empty()) {
+      // This is a function entry with no associated symbol?
+      std::stringstream name;
+      name << "unknown_function_" << std::hex << static_cast<uint64_t>(x);
+      return name.str();
+    } else {
+      const gtirb::Symbol& s = symbols.front();
+      return s.getName();
+    }
+  }
+  // This doesn't seem to be a function.
+  return std::string{};
+}
+
 bool PrettyPrinterBase::printSymbolReference(std::ostream& os,
                                              const gtirb::Symbol* symbol) {
   if (!symbol)
@@ -634,7 +561,7 @@ bool PrettyPrinterBase::printSymbolReference(std::ostream& os,
       }
     }
   }
-  if (mod_info.shouldSkip(policy, *symbol)) {
+  if (shouldSkip(policy, *symbol)) {
     if (LstMode == ListingDebug || LstMode == ListingUI) {
       os << static_cast<uint64_t>(*symbol->getAddress());
     } else {
@@ -741,7 +668,7 @@ void PrettyPrinterBase::printPrototype(std::ostream& os,
     return;
   }
   auto Addr = *block.getAddress() + offset.Displacement;
-  if (mod_info.isFunctionEntry(Addr)) {
+  if (isFunctionEntry(Addr)) {
     type_printer.printPrototype(Addr, os, syntax.comment()) << std::endl;
   }
 }
@@ -909,7 +836,7 @@ void PrettyPrinterBase::printOperand(std::ostream& os,
 
 template <typename BlockType>
 void PrettyPrinterBase::printBlockImpl(std::ostream& os, BlockType& block) {
-  if (mod_info.shouldSkip(policy, block)) {
+  if (shouldSkip(policy, block)) {
     return;
   }
 
@@ -925,7 +852,7 @@ void PrettyPrinterBase::printBlockImpl(std::ostream& os, BlockType& block) {
     offset = programCounter - addr;
     printOverlapWarning(os, addr);
     for (const auto& sym : module.findSymbols(block)) {
-      if (!sym.getAtEnd() && !mod_info.shouldSkip(policy, sym)) {
+      if (!sym.getAtEnd() && !shouldSkip(policy, sym)) {
         printSymbolDefinitionRelativeToPC(os, sym, programCounter);
       }
     }
@@ -939,7 +866,7 @@ void PrettyPrinterBase::printBlockImpl(std::ostream& os, BlockType& block) {
     }
 
     for (const auto& sym : module.findSymbols(block)) {
-      if (!sym.getAtEnd() && !mod_info.shouldSkip(policy, sym)) {
+      if (!sym.getAtEnd() && !shouldSkip(policy, sym)) {
         printSymbolDefinition(os, sym);
       }
     }
@@ -953,8 +880,7 @@ void PrettyPrinterBase::printBlockImpl(std::ostream& os, BlockType& block) {
     if (auto SymExpr =
             block.getByteInterval()->getSymbolicExpression(block.getOffset())) {
       if (std::holds_alternative<gtirb::SymAddrConst>(*SymExpr)) {
-        if (mod_info.shouldSkip(policy,
-                                *std::get<gtirb::SymAddrConst>(*SymExpr).Sym)) {
+        if (shouldSkip(policy, *std::get<gtirb::SymAddrConst>(*SymExpr).Sym)) {
           return;
         }
       } else {
@@ -971,7 +897,7 @@ void PrettyPrinterBase::printBlockImpl(std::ostream& os, BlockType& block) {
 
   // Print any symbols that should go at the end of this block.
   for (const auto& sym : module.findSymbols(block)) {
-    if (sym.getAtEnd() && !mod_info.shouldSkip(policy, sym)) {
+    if (sym.getAtEnd() && !shouldSkip(policy, sym)) {
       printSymbolDefinition(os, sym);
     }
   }
@@ -1317,6 +1243,89 @@ void PrettyPrinterBase::printSymbolicExpression(std::ostream& os,
   printSymExprSuffix(os, sexpr->Attributes, IsNotBranch);
 }
 
+std::optional<std::string>
+PrettyPrinterBase::getContainerFunctionName(gtirb::Addr x) const {
+  auto it = functionEntry.upper_bound(x);
+  if (it == functionEntry.begin())
+    return std::nullopt;
+  it--;
+  return this->getFunctionName(*it);
+}
+
+bool PrettyPrinterBase::shouldSkip(const PrintingPolicy& Policy,
+                                   const gtirb::Section& section) const {
+  if (Policy.LstMode == ListingDebug) {
+    return false;
+  }
+
+  // TODO: print bytes not covered by any block?
+  if (section.blocks().empty()) {
+    return true;
+  }
+
+  return Policy.skipSections.count(section.getName());
+}
+
+bool PrettyPrinterBase::shouldSkip(const PrintingPolicy& Policy,
+                                   const gtirb::Symbol& Symbol) const {
+  if (Policy.LstMode == ListingDebug) {
+    return false;
+  }
+
+  if (Policy.skipSymbols.count(Symbol.getName())) {
+    return true;
+  }
+
+  if (Symbol.hasReferent()) {
+    const auto* Referent = Symbol.getReferent<gtirb::Node>();
+    if (auto* CB = dyn_cast<gtirb::CodeBlock>(Referent)) {
+      return shouldSkip(Policy, *CB);
+    } else if (auto* DB = dyn_cast<gtirb::DataBlock>(Referent)) {
+      return shouldSkip(Policy, *DB);
+    } else if (isa<gtirb::ProxyBlock>(Referent)) {
+      return false;
+    } else {
+      assert(!"non block in symbol referent!");
+      return false;
+    }
+  } else if (auto Addr = Symbol.getAddress()) {
+    auto FunctionName = getContainerFunctionName(*Addr);
+    return FunctionName && Policy.skipFunctions.count(*FunctionName);
+  } else {
+    return false;
+  }
+}
+
+bool PrettyPrinterBase::shouldSkip(const PrintingPolicy& Policy,
+                                   const gtirb::CodeBlock& block) const {
+  if (Policy.LstMode == ListingDebug) {
+    return false;
+  }
+
+  if (Policy.skipSections.count(
+          block.getByteInterval()->getSection()->getName())) {
+    return true;
+  }
+
+  auto FunctionName = getContainerFunctionName(*block.getAddress());
+  return FunctionName && Policy.skipFunctions.count(*FunctionName);
+}
+
+bool PrettyPrinterBase::shouldSkip(const PrintingPolicy& Policy,
+                                   const gtirb::DataBlock& block) const {
+  if (Policy.LstMode == ListingDebug) {
+    return false;
+  }
+
+  if (Policy.skipSections.count(
+          block.getByteInterval()->getSection()->getName())) {
+    return true;
+  }
+
+  auto FunctionName = getContainerFunctionName(*block.getAddress());
+  return FunctionName && Policy.skipFunctions.count(*FunctionName);
+}
+
 const std::optional<const gtirb::Section*>
 PrettyPrinterBase::getContainerSection(const gtirb::Addr addr) const {
   auto found_sections = module.findSectionsOn(addr);
@@ -1427,8 +1436,8 @@ void PrettyPrinterBase::printAlignment(std::ostream& OS, uint64_t Alignment) {
 
 std::string
 PrettyPrinterBase::getSymbolName(const gtirb::Symbol& Symbol) const {
-  if (auto Renaming = mod_info.AmbiguousSymbols.find(&Symbol);
-      Renaming != mod_info.AmbiguousSymbols.end()) {
+  if (auto Renaming = AmbiguousSymbols.find(&Symbol);
+      Renaming != AmbiguousSymbols.end()) {
     auto newName = Renaming->second;
     assert(module.findSymbols(newName).empty());
     return syntax.formatSymbolName(newName);
@@ -1458,7 +1467,7 @@ PrettyPrinterBase::getForwardedSymbol(const gtirb::Symbol* Symbol) const {
 
 void PrettyPrinterBase::printSection(std::ostream& os,
                                      const gtirb::Section& section) {
-  if (mod_info.shouldSkip(policy, section)) {
+  if (shouldSkip(policy, section)) {
     return;
   }
   programCounter = gtirb::Addr{0};

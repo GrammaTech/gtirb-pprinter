@@ -9,7 +9,7 @@ set(${PROJECT_NAME}_H
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/BinaryPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Export.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/FileUtils.hpp
-    ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/GtirbUtils.hpp
+    ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Fixup.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/PrettyPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Syntax.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Arm64PrettyPrinter.hpp
@@ -28,7 +28,6 @@ set(${PROJECT_NAME}_H
 
 # sources
 set(${PROJECT_NAME}_SRC
-    GtirbUtils.cpp
     ArmPrettyPrinter.cpp
     AuxDataUtils.cpp
     Arm64PrettyPrinter.cpp
@@ -38,6 +37,7 @@ set(${PROJECT_NAME}_SRC
     ElfPrettyPrinter.cpp
     ElfVersionScriptPrinter.cpp
     FileUtils.cpp
+    Fixup.cpp
     IntelPrettyPrinter.cpp
     PrettyPrinter.cpp
     Registration.cpp

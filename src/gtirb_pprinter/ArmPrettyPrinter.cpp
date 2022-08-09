@@ -780,9 +780,9 @@ void ArmPrettyPrinter::printOpIndirect(
 }
 
 std::string ArmPrettyPrinter::getFunctionName(gtirb::Addr x) const {
-  if (mod_info.isFunctionEntry(x)) {
+  if (isFunctionEntry(x)) {
     for (auto& s : module.findSymbols(x)) {
-      if (mod_info.AmbiguousSymbols.count(&s) > 0)
+      if (AmbiguousSymbols.count(&s) > 0)
         continue;
       // local symbol
       if (s.getName().find('.') == 0)
@@ -791,7 +791,7 @@ std::string ArmPrettyPrinter::getFunctionName(gtirb::Addr x) const {
     }
   }
 
-  return mod_info.getFunctionName(x);
+  return getFunctionName(x);
 }
 
 bool ArmPrettyPrinter::printSymbolReference(std::ostream& OS,

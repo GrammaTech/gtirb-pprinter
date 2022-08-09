@@ -17,7 +17,6 @@
 
 #include "AuxDataUtils.hpp"
 #include "Export.hpp"
-#include "GtirbUtils.hpp"
 #include "Syntax.hpp"
 
 #include <gtirb/gtirb.hpp>
@@ -41,6 +40,21 @@ namespace gtirb_pprint {
 struct PrintingPolicy;
 class PrettyPrinterFactory;
 class PrettyPrinterBase;
+
+/// Utility functions for looking up nodes
+template <typename T>
+T* getByUUID(gtirb::Context& context, const gtirb::UUID& Uuid) {
+  return dyn_cast_or_null<T>(gtirb::Node::getByUUID(context, Uuid));
+}
+
+template <typename T>
+const T* getByUUID(const gtirb::Context& context, const gtirb::UUID& Uuid) {
+  return dyn_cast_or_null<T>(gtirb::Node::getByUUID(context, Uuid));
+}
+
+template <class T> T* nodeFromUUID(gtirb::Context& C, gtirb::UUID id) {
+  return dyn_cast_or_null<T>(gtirb::Node::getByUUID(C, id));
+}
 
 /// Whether a pretty printer should include debugging messages in it output.
 enum ListingMode {
@@ -154,13 +168,15 @@ struct DEBLOAT_PRETTYPRINTER_EXPORT_API PrintingPolicy {
 
   void findAdditionalSkips(const gtirb::Module& Mod);
 };
-
 using NamedPolicyMap = std::unordered_map<std::string, PrintingPolicy>;
 
 /// The primary interface for pretty-printing GTIRB objects. The typical flow
 /// is to create a PrettyPrinter, configure it (e.g., set the output syntax,
 /// enable/disable debugging messages, etc.), then print one or more IR objects.
 class DEBLOAT_PRETTYPRINTER_EXPORT_API PrettyPrinter {
+
+  using Target = std::tuple<std::string, std::string, std::string, std::string>;
+
 public:
   /// Construct a PrettyPrinter with the default configuration.
   PrettyPrinter() = default;
@@ -176,6 +192,8 @@ public:
   /// \param target compound indentifier of target format, isa, syntax, and
   /// assembler
   void setTarget(const TargetTy& target);
+
+  const TargetTy getTarget() const;
 
   /// Set the file format for which to pretty print.
   ///
@@ -299,7 +317,6 @@ public:
 protected:
   const Syntax& syntax;
   PrintingPolicy policy;
-  ModuleInfo mod_info;
 
   /// Return the SymAddrConst expression if it refers to a printed symbol.
   ///
@@ -437,13 +454,15 @@ protected:
   gtirb::Context& context;
   const gtirb::Module& module;
 
-  virtual std::string getFunctionName(gtirb::Addr x) const {
-    return mod_info.getFunctionName(x);
-  }
+  std::optional<std::string> getContainerFunctionName(gtirb::Addr Addr) const;
+  virtual std::string getFunctionName(gtirb::Addr x) const;
   virtual std::string getSymbolName(const gtirb::Symbol& symbol) const;
   virtual std::optional<std::string>
   getForwardedSymbolName(const gtirb::Symbol* symbol) const;
   virtual gtirb::Symbol* getForwardedSymbol(const gtirb::Symbol* Sym) const;
+
+  bool isFunctionEntry(gtirb::Addr Addr) const;
+  bool isFunctionLastBlock(gtirb::Addr Addr) const;
 
   // Currently, this only works for symbolic expressions in data blocks.
   // For the symbolic expressions that are part of code blocks, Capstone
@@ -453,6 +472,15 @@ protected:
       const gtirb::ByteInterval::ConstSymbolicExpressionElement& SEE) const;
 
   std::optional<uint64_t> getAlignment(gtirb::Addr Addr) const;
+
+  bool shouldSkip(const PrintingPolicy& Policy,
+                  const gtirb::Section& section) const;
+  bool shouldSkip(const PrintingPolicy& Policy,
+                  const gtirb::Symbol& symbol) const;
+  bool shouldSkip(const PrintingPolicy& Policy,
+                  const gtirb::CodeBlock& block) const;
+  bool shouldSkip(const PrintingPolicy& Policy,
+                  const gtirb::DataBlock& block) const;
 
 private:
   gtirb::Addr programCounter;
@@ -473,6 +501,9 @@ private:
   static bool x86InstHasMoffsetEncoding(const cs_insn& inst);
 
 protected:
+  std::set<gtirb::Addr> functionEntry;
+  std::set<gtirb::Addr> functionLastBlock;
+  std::map<const gtirb::Symbol*, std::string> AmbiguousSymbols;
   std::string m_accum_comment;
   static std::string s_symaddr_0_warning(uint64_t symAddr);
 };

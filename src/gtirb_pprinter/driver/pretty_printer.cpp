@@ -7,6 +7,7 @@
 #include <gtirb_layout/gtirb_layout.hpp>
 #include <gtirb_pprinter/ElfBinaryPrinter.hpp>
 #include <gtirb_pprinter/ElfVersionScriptPrinter.hpp>
+#include <gtirb_pprinter/Fixup.hpp>
 #include <gtirb_pprinter/PeBinaryPrinter.hpp>
 #include <gtirb_pprinter/PrettyPrinter.hpp>
 #include <gtirb_pprinter/version.h>
@@ -433,6 +434,11 @@ int main(int argc, char** argv) {
       }
     }
   }
+  // Apply any needed fixups
+  for (auto& M : ir->modules()) {
+    applyFixups(ctx, M, pp);
+  }
+
   // Write ASM to a file.
   if (vm.count("asm") != 0) {
     const auto asmPath = fs::path(vm["asm"].as<std::string>());

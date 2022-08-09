@@ -545,7 +545,7 @@ void MasmPrettyPrinter::printOpImmediate(
     // The operand is symbolic.
     gtirb::Symbol& sym = *(s->Sym);
 
-    if (!is_call && !is_jump && !mod_info.shouldSkip(policy, sym)) {
+    if (!is_call && !is_jump && !shouldSkip(policy, sym)) {
 
       // MASM variables are given a 64-bit type for PE32+, which results in an
       // error when the symbol is written to a 32-bit register.
