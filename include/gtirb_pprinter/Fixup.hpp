@@ -1,5 +1,6 @@
 #ifndef GT_PPRINTER_FIXUP_H
 #define GT_PPRINTER_FIXUP_H
+#include "Export.hpp"
 
 namespace gtirb {
 class Context;
@@ -9,8 +10,9 @@ class Module;
 namespace gtirb_pprint {
 class PrettyPrinter;
 
-void applyFixups(gtirb::Context& Ctx, gtirb::Module& Mod,
-                 const PrettyPrinter& Printer);
+void DEBLOAT_PRETTYPRINTER_EXPORT_API applyFixups(gtirb::Context& Ctx,
+                                                  gtirb::Module& Mod,
+                                                  const PrettyPrinter& Printer);
 
 /// fixes up any direct references to global symbols, which
 /// are illegal relocations in shared objects.
