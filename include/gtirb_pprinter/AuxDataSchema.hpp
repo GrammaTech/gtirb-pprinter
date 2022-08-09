@@ -35,7 +35,8 @@ using ElfSymDefs = std::map<uint16_t, std::vector<std::string>>;
 /// For each library, we have a map from version identifiers to version strings.
 using ElfSymNeeded = std::map<std::string, std::map<uint16_t, std::string>>;
 //// Map from gtirb::Symbol UUIDs to symbol version identifiers.
-using ElfSymbolVersionsEntries = std::map<gtirb::UUID, uint16_t>;
+using ElfSymbolVersionsEntries =
+    std::map<gtirb::UUID, std::tuple<uint16_t, bool>>;
 } // namespace auxdata
 
 namespace gtirb {

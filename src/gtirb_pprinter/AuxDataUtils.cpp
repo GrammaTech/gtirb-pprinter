@@ -152,8 +152,8 @@ std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym) {
   if (VersionIt == SymVersionEntries.end()) {
     return std::nullopt;
   }
-  uint16_t VersionId = VersionIt->second & 0x7FFF;
-  std::string Connector = VersionIt->second & 0x8000 ? "@" : "@@";
+  uint16_t VersionId = std::get<0>(VersionIt->second);
+  std::string Connector = std::get<1>(VersionIt->second) ? "@" : "@@";
   // Search for the version string
   auto VersionDef = SymDefs.find(VersionId);
   if (VersionDef != SymDefs.end()) {
