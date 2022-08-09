@@ -1,4 +1,4 @@
-1.8.4 (Unreleased)
+1.8.4
 
   * Ubuntu 18 and gcc 7 are no longer supported.
   * Default syntax in `assembler` mode changed to AT&T (i.e., `att`).
