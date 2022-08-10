@@ -486,7 +486,8 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
   }
 
   TempFile VersionScript(".map");
-  if (!Printer.getIgnoreSymbolVersions()) {
+  if (aux_data::hasVersionedSymDefs(ir) && !Printer.getIgnoreSymbolVersions()) {
+    // A version script is only needed if we define versioned symbols.
     if (gtirb_pprint::printVersionScript(ir, VersionScript)) {
       libArgs.push_back("-Wl,--version-script=" + VersionScript.fileName());
     }

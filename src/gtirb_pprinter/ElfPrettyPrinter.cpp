@@ -349,14 +349,19 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
     auto Name = getSymbolName(sym);
     printBar(os, false);
 
-    if (!policy.IgnoreSymbolVersions && Version) {
-      os << elfSyntax.symVer() << ' ' << Name << "," << sym.getName();
-      // If there is no disambiguation we rename the symbol rather
-      // than create and alias (@@@ instead of @@).
-      if (Name == sym.getName() && (*Version).substr(0, 2) == "@@") {
-        os << "@";
+    if (Version) {
+      if (policy.IgnoreSymbolVersions) {
+        LOG_WARNING << "Ignored symbol version for " << Name << *Version
+                    << "\n";
+      } else {
+        os << elfSyntax.symVer() << ' ' << Name << "," << sym.getName();
+        // If there is no disambiguation we rename the symbol rather
+        // than create and alias (@@@ instead of @@).
+        if (Name == sym.getName() && (*Version).substr(0, 2) == "@@") {
+          os << "@";
+        }
+        os << *Version << '\n';
       }
-      os << *Version << '\n';
     }
 
     if (SymbolInfo->Binding == "LOCAL") {

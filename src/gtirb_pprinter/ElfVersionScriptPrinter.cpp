@@ -30,6 +30,8 @@ bool printVersionScript(const gtirb::IR& IR, std::ofstream& VersionScript) {
 
   for (const gtirb::Module& Module : IR.modules()) {
     if (Module.getFileFormat() != gtirb::FileFormat::ELF) {
+      LOG_WARNING << "Module: " << Module.getBinaryPath()
+                  << "is not ELF; cannot generate symbol versions.\n";
       continue;
     }
     auto SymbolVersions = aux_data::getSymbolVersions(Module);

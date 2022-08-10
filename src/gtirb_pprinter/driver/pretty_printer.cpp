@@ -184,13 +184,13 @@ int main(int argc, char** argv) {
   desc.add_options()("use-gcc", po::value<std::string>(),
                      "Specify the gcc binary to use for ELF binary printing.");
   desc.add_options()(
-      "ignore-symbol-versions",
-      "Ignore symbol versions. If symbol versions are considered "
-      "many binaries will require a version linker script. "
-      "Only relevant for ELF executables.");
+      "symbol-versions", po::value<bool>()->default_value(true),
+      "Enable symbol versions. If symbol versions are considered many "
+      "binaries will require a version linker script. Only relevant for ELF "
+      "executables.");
   desc.add_options()("version-script", po::value<std::string>(),
                      "Generate a version script file on the given path. Only "
-                     "relevant fo ELF executables.");
+                     "relevant for ELF executables.");
 
   po::positional_options_description pd;
   pd.add("ir", -1);
@@ -380,10 +380,22 @@ int main(int argc, char** argv) {
     pp.setShared(true);
   }
 
-  if (vm.count("ignore-symbol-versions") != 0) {
-    pp.setIgnoreSymbolVersions(true);
+  bool EnableSymbolVersions = vm["symbol-versions"].as<bool>();
+  if (!EnableSymbolVersions) {
+    pp.setIgnoreSymbolVersions(!EnableSymbolVersions);
   }
+
   if (vm.count("version-script") != 0) {
+    if (!EnableSymbolVersions) {
+      LOG_ERROR
+          << "Cannot emit a version script while ignoring symbol versions\n";
+      return EXIT_FAILURE;
+    }
+
+    if (!aux_data::hasVersionedSymDefs(*ir)) {
+      LOG_INFO << "Generating version script, but it is not needed.\n";
+    }
+
     const auto versionScriptPath =
         fs::path(vm["version-script"].as<std::string>());
     std::ofstream VersionStream(versionScriptPath);
