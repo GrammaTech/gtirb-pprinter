@@ -38,12 +38,16 @@ bool printVersionScript(const gtirb::IR& IR, std::ofstream& VersionScript) {
                << "contains no symbol versions\n";
       continue;
     }
-    auto& [SymDefs, SymNeeded, SymVerEntries] = *SymbolVersions;
+    auto& [SymVerDefs, SymVersNeeded, SymVerEntries] = *SymbolVersions;
 
-    for (auto& [VerId, VerNames] : SymDefs) {
+    for (auto& [VerId, VerDef] : SymVerDefs) {
+      auto& VerNames = std::get<0>(VerDef);
+      uint16_t VerDefFlags = std::get<1>(VerDef);
+
       // ignore the base version, it just contains the name
       // of the module, not an actual symbol version.
-      if (VerId == 1) {
+      const uint16_t VER_FLG_BASE = 0x1;
+      if ((VerDefFlags & VER_FLG_BASE) == VER_FLG_BASE) {
         continue;
       }
       const std::string& MainVersion = *VerNames.begin();
@@ -59,7 +63,7 @@ bool printVersionScript(const gtirb::IR& IR, std::ofstream& VersionScript) {
       }
       VersionScript << ";\n\n";
     }
-    for (auto& [LibName, Versions] : SymNeeded) {
+    for (auto& [LibName, Versions] : SymVersNeeded) {
       for (auto& [VerId, VerName] : Versions) {
         if (Defined.find(VerName) == Defined.end()) {
           VersionScript << VerName << " {\n \n};\n";

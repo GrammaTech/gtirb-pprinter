@@ -98,13 +98,14 @@ void ElfPrettyPrinter::skipVersionSymbols() {
   if (!SymbolVersions) {
     return;
   }
-  auto& [SymDefs, SymNeeded, SymVersionEntries] = *SymbolVersions;
-  for (auto& [VerId, Versions] : SymDefs) {
-    for (const std::string& VerName : Versions) {
+  auto& [SymVerDefs, SymVersNeeded, SymVersionEntries] = *SymbolVersions;
+  for (auto& [VerId, VerDef] : SymVerDefs) {
+    auto& VerNames = std::get<0>(VerDef);
+    for (const std::string& VerName : VerNames) {
       policy.skipSymbols.insert(VerName);
     }
   }
-  for (auto& [Library, VersionMap] : SymNeeded) {
+  for (auto& [Library, VersionMap] : SymVersNeeded) {
     for (auto& [VerId, VerName] : VersionMap) {
       policy.skipSymbols.insert(VerName);
     }

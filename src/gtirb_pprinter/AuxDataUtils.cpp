@@ -147,7 +147,7 @@ std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym) {
   if (!SymbolVersions) {
     return std::nullopt;
   }
-  auto& [SymDefs, SymNeeded, SymVersionEntries] = *SymbolVersions;
+  auto& [SymVerDefs, SymVersNeeded, SymVersionEntries] = *SymbolVersions;
   auto VersionIt = SymVersionEntries.find(Sym.getUUID());
   if (VersionIt == SymVersionEntries.end()) {
     return std::nullopt;
@@ -155,12 +155,12 @@ std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym) {
   uint16_t VersionId = std::get<0>(VersionIt->second);
   std::string Connector = std::get<1>(VersionIt->second) ? "@" : "@@";
   // Search for the version string
-  auto VersionDef = SymDefs.find(VersionId);
-  if (VersionDef != SymDefs.end()) {
-    return Connector + *VersionDef->second.begin();
+  auto VersionDef = SymVerDefs.find(VersionId);
+  if (VersionDef != SymVerDefs.end()) {
+    return Connector + *std::get<0>(VersionDef->second).begin();
   }
   Connector = "@";
-  for (auto& [Key, Val] : SymNeeded) {
+  for (auto& [Key, Val] : SymVersNeeded) {
     auto VersionReq = Val.find(VersionId);
     if (VersionReq != Val.end()) {
       return Connector + VersionReq->second;
