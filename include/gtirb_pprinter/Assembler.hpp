@@ -26,7 +26,6 @@ public:
   virtual ~Assembler() = default;
 
   virtual std::string escapeByte(uint8_t b) const;
-  virtual std::string escapeSingleQuote(const std::string& s) const;
 };
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API GasAssembler : public Assembler {};
