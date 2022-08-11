@@ -12,14 +12,12 @@ set(${PROJECT_NAME}_H
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/FileUtils.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/PrettyPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Syntax.hpp
-    ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Assembler.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Arm64PrettyPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ArmPrettyPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/AttPrettyPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ElfBinaryPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/ElfPrettyPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/IntelPrettyPrinter.hpp
-    ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/IntelIcxPrettyPrinter.hpp
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/StringUtils.hpp
     ${CMAKE_BINARY_DIR}/include/gtirb_pprinter/version.h
     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/MasmPrettyPrinter.hpp
@@ -38,12 +36,10 @@ set(${PROJECT_NAME}_SRC
     ElfPrettyPrinter.cpp
     FileUtils.cpp
     IntelPrettyPrinter.cpp
-    IntelIcxPrettyPrinter.cpp
     PrettyPrinter.cpp
     Registration.cpp
     StringUtils.cpp
     Syntax.cpp
-    Assembler.cpp
     MasmPrettyPrinter.cpp
     PeBinaryPrinter.cpp
     PePrettyPrinter.cpp

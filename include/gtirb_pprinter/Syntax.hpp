@@ -70,7 +70,7 @@ public:
   virtual std::string formatFunctionName(const std::string& x) const;
   virtual std::string formatSymbolName(const std::string& x) const;
   virtual std::string avoidRegNameConflicts(const std::string& x) const;
-
+  virtual std::string escapeByte(uint8_t b) const;
   virtual std::optional<std::string> getSizeName(uint64_t bits) const;
 
 protected:

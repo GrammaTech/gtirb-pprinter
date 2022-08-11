@@ -23,8 +23,7 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API AttPrettyPrinter
     : public ElfPrettyPrinter {
 public:
   AttPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
-                   const ElfSyntax& syntax, const Assembler& assembler,
-                   const PrintingPolicy& policy);
+                   const ElfSyntax& syntax, const PrintingPolicy& policy);
 
 protected:
   std::string getRegisterName(unsigned int reg) const override;

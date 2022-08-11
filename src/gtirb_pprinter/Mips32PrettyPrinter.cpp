@@ -32,9 +32,8 @@ Mips32PrettyPrinterFactory::create(gtirb::Context& gtirb_context,
                                    gtirb::Module& module,
                                    const PrintingPolicy& policy) {
   static const Mips32Syntax syntax{};
-  static const GasAssembler assembler{};
   return std::make_unique<Mips32PrettyPrinter>(gtirb_context, module, syntax,
-                                               assembler, policy);
+                                               policy);
 }
 
 Mips32PrettyPrinterFactory::Mips32PrettyPrinterFactory() {
@@ -63,9 +62,8 @@ Mips32PrettyPrinterFactory::Mips32PrettyPrinterFactory() {
 Mips32PrettyPrinter::Mips32PrettyPrinter(gtirb::Context& context_,
                                          gtirb::Module& module_,
                                          const ElfSyntax& syntax_,
-                                         const GasAssembler& assembler_,
                                          const PrintingPolicy& policy_)
-    : ElfPrettyPrinter(context_, module_, syntax_, assembler_, policy_) {
+    : ElfPrettyPrinter(context_, module_, syntax_, policy_) {
 
   unsigned int mode = CS_MODE_MIPS32;
   if (module_.getByteOrder() == gtirb::ByteOrder::Big) {

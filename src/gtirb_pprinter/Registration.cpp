@@ -17,7 +17,6 @@
 #include "ArmPrettyPrinter.hpp"
 #include "AttPrettyPrinter.hpp"
 #include "AuxDataSchema.hpp"
-#include "IntelIcxPrettyPrinter.hpp"
 #include "IntelPrettyPrinter.hpp"
 #include "MasmPrettyPrinter.hpp"
 #include "Mips32PrettyPrinter.hpp"
@@ -54,8 +53,6 @@ void registerAuxDataTypes() {
 void registerPrettyPrinters() {
   registerPrinter({"elf", "raw"}, {"x86", "x64"}, {"intel"}, {"gas"},
                   std::make_shared<IntelPrettyPrinterFactory>());
-  registerPrinter({"elf", "raw"}, {"x86", "x64"}, {"intel"}, {"icx"},
-                  std::make_shared<IntelIcxPrettyPrinterFactory>());
   registerPrinter({"elf", "raw"}, {"x86", "x64"}, {"att"}, {"gas"},
                   std::make_shared<AttPrettyPrinterFactory>());
   setDefaultSyntax({"elf", "raw"}, {"x86", "x64"}, {"assembler"}, "att");

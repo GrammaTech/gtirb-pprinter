@@ -15,7 +15,6 @@
 #ifndef GTIRB_PP_PRETTY_PRINTER_H
 #define GTIRB_PP_PRETTY_PRINTER_H
 
-#include "Assembler.hpp"
 #include "AuxDataUtils.hpp"
 #include "Export.hpp"
 #include "Syntax.hpp"
@@ -288,15 +287,13 @@ private:
 class DEBLOAT_PRETTYPRINTER_EXPORT_API PrettyPrinterBase {
 public:
   PrettyPrinterBase(gtirb::Context& context, gtirb::Module& module,
-                    const Syntax& syntax, const Assembler& assembler,
-                    const PrintingPolicy& policy);
+                    const Syntax& syntax, const PrintingPolicy& policy);
   virtual ~PrettyPrinterBase();
 
   virtual std::ostream& print(std::ostream& out);
 
 protected:
   const Syntax& syntax;
-  const Assembler& assembler;
   PrintingPolicy policy;
 
   /// Return the SymAddrConst expression if it refers to a printed symbol.

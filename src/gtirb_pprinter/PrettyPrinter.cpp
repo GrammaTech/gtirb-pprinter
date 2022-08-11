@@ -337,11 +337,9 @@ void PrettyPrinterFactory::deregisterNamedPolicy(const std::string& Name) {
 PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
                                      gtirb::Module& module_,
                                      const Syntax& syntax_,
-                                     const Assembler& assembler_,
                                      const PrintingPolicy& policy_)
-    : syntax(syntax_), assembler(assembler_), policy(policy_),
-      LstMode(policy.LstMode), context(context_), module(module_),
-      functionEntry(), functionLastBlock(),
+    : syntax(syntax_), policy(policy_), LstMode(policy.LstMode),
+      context(context_), module(module_), functionEntry(), functionLastBlock(),
       PreferredEOLCommentPos(64), type_printer{module_, context_} {
 
   for (auto const& Function : aux_data::getFunctionEntries(module_)) {

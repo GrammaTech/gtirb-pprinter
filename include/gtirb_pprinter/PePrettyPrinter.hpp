@@ -36,8 +36,7 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API PePrettyPrinter
     : public PrettyPrinterBase {
 public:
   PePrettyPrinter(gtirb::Context& context, gtirb::Module& module,
-                  const Syntax& syntax, const Assembler& assembler,
-                  const PrintingPolicy& policy);
+                  const Syntax& syntax, const PrintingPolicy& policy);
 };
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API PePrettyPrinterFactory

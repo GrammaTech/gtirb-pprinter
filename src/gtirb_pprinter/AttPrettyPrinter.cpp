@@ -22,9 +22,9 @@ namespace gtirb_pprint {
 AttPrettyPrinter::AttPrettyPrinter(gtirb::Context& context_,
                                    gtirb::Module& module_,
                                    const ElfSyntax& syntax_,
-                                   const Assembler& assembler_,
+
                                    const PrintingPolicy& policy_)
-    : ElfPrettyPrinter(context_, module_, syntax_, assembler_, policy_) {
+    : ElfPrettyPrinter(context_, module_, syntax_, policy_) {
   // Setup Capstone.
   cs_mode Mode = CS_MODE_64;
   if (module.getISA() == gtirb::ISA::IA32) {
@@ -194,8 +194,7 @@ AttPrettyPrinterFactory::create(gtirb::Context& gtirb_context,
                                 gtirb::Module& module,
                                 const PrintingPolicy& policy) {
   static const ElfSyntax syntax{};
-  static const Assembler assembler{};
   return std::make_unique<AttPrettyPrinter>(gtirb_context, module, syntax,
-                                            assembler, policy);
+                                            policy);
 }
 } // namespace gtirb_pprint

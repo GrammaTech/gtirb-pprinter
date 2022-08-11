@@ -20,25 +20,8 @@ namespace gtirb_pprint {
 IntelPrettyPrinter::IntelPrettyPrinter(gtirb::Context& context_,
                                        gtirb::Module& module_,
                                        const IntelSyntax& syntax_,
-                                       const GasAssembler& assembler_,
                                        const PrintingPolicy& policy_)
-    : ElfPrettyPrinter(context_, module_, syntax_, assembler_, policy_),
-      intelSyntax(syntax_) {
-  // Setup Capstone.
-  cs_mode Mode = CS_MODE_64;
-  if (module.getISA() == gtirb::ISA::IA32) {
-    Mode = CS_MODE_32;
-  }
-  [[maybe_unused]] cs_err err = cs_open(CS_ARCH_X86, Mode, &this->csHandle);
-  assert(err == CS_ERR_OK && "Capstone failure");
-}
-
-IntelPrettyPrinter::IntelPrettyPrinter(gtirb::Context& context_,
-                                       gtirb::Module& module_,
-                                       const IntelSyntax& syntax_,
-                                       const ClangAssembler& assembler_,
-                                       const PrintingPolicy& policy_)
-    : ElfPrettyPrinter(context_, module_, syntax_, assembler_, policy_),
+    : ElfPrettyPrinter(context_, module_, syntax_, policy_),
       intelSyntax(syntax_) {
   // Setup Capstone.
   cs_mode Mode = CS_MODE_64;
@@ -182,8 +165,7 @@ IntelPrettyPrinterFactory::create(gtirb::Context& gtirb_context,
                                   gtirb::Module& module,
                                   const PrintingPolicy& policy) {
   static const IntelSyntax syntax{};
-  static const GasAssembler assembler{};
   return std::make_unique<IntelPrettyPrinter>(gtirb_context, module, syntax,
-                                              assembler, policy);
+                                              policy);
 }
 } // namespace gtirb_pprint

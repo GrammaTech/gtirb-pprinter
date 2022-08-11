@@ -86,9 +86,8 @@ namespace gtirb_pprint {
 ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
                                    gtirb::Module& module_,
                                    const ElfSyntax& syntax_,
-                                   const Assembler& assembler_,
                                    const PrintingPolicy& policy_)
-    : PrettyPrinterBase(context_, module_, syntax_, assembler_, policy_),
+    : PrettyPrinterBase(context_, module_, syntax_, policy_),
       elfSyntax(syntax_) {}
 
 std::string ElfPrettyPrinter::getSymbolName(const gtirb::Symbol& Symbol) const {
@@ -498,7 +497,7 @@ void ElfPrettyPrinter::printString(std::ostream& Stream,
   auto It = boost::make_iterator_range(Bytes.begin() + Offset, Bytes.end());
   for (auto Byte : It) {
     if (Byte != 0) {
-      Stream << assembler.escapeByte(Byte);
+      Stream << syntax.escapeByte(Byte);
     }
   }
 

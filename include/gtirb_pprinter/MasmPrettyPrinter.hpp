@@ -93,8 +93,7 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API MasmPrettyPrinter
     : public PePrettyPrinter {
 public:
   MasmPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
-                    const MasmSyntax& syntax, const Assembler& assembler,
-                    const PrintingPolicy& policy);
+                    const MasmSyntax& syntax, const PrintingPolicy& policy);
 
 protected:
   const MasmSyntax& masmSyntax;
@@ -177,9 +176,8 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API UasmPrettyPrinter
 
 public:
   UasmPrettyPrinter(gtirb::Context& context_, gtirb::Module& module_,
-                    const MasmSyntax& syntax_, const Assembler& assembler_,
-                    const PrintingPolicy& policy_)
-      : MasmPrettyPrinter(context_, module_, syntax_, assembler_, policy_) {}
+                    const MasmSyntax& syntax_, const PrintingPolicy& policy_)
+      : MasmPrettyPrinter(context_, module_, syntax_, policy_) {}
   void printHeader(std::ostream& os) override;
 };
 

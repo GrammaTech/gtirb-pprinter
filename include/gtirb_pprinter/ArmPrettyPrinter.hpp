@@ -46,8 +46,7 @@ private:
 class ArmPrettyPrinter : public ElfPrettyPrinter {
 public:
   ArmPrettyPrinter(gtirb::Context& context, gtirb::Module& module,
-                   const ArmSyntax& syntax, const Assembler& assembler,
-                   const PrintingPolicy& policy);
+                   const ArmSyntax& syntax, const PrintingPolicy& policy);
 
 protected:
   const ArmSyntax& armSyntax;
