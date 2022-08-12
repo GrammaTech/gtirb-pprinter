@@ -20,6 +20,7 @@ ir, m = create_test_module(gtirb.Module.FileFormat.ELF, gtirb.Module.ISA.X64)
 s, bi = add_data_section(m, 0x4000A8)
 block = add_data_block(bi, b"hello world\n")
 hello = add_symbol(m, "hello", block)
+m.aux_data["encodings"].data[block.uuid] = "string"
 
 # Add .text section.
 s, bi = add_text_section(m, 0x400080)
