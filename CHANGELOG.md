@@ -3,6 +3,11 @@
 
 1.8.4
 
+  * Fix bugs in printing shift instructions in AT&T syntax.
+  * Add `--use-gcc` option overriding `gcc` executable when binary printing ELF files.
+  * Fix printing symbols with a displacement of zero in ARM64 indirect operands.
+  * Expand `--help` message by listing options for `--isa`, `--syntax`, `--assembler`, and `--policy`.
+  * Fix bug resulting in skipped `.data` sections.
   * Ubuntu 18 and gcc 7 are no longer supported.
   * Default syntax in `assembler` mode changed to AT&T (i.e., `att`).
 
