@@ -1,5 +1,6 @@
 1.8.5 (Unreleased)
-  * TODO
+  * Remove `--assembler` option; printer now always behaves correctly when
+    escaping characters.
 
 1.8.4
 
