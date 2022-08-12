@@ -121,8 +121,6 @@ int main(int argc, char** argv) {
   desc.add_options()("syntax,s", po::value<std::string>(),
                      "The syntax of the assembly file to generate: "
                      "arm, arm64, att, intel, masm, mips32");
-  desc.add_options()("assembler", po::value<std::string>(),
-                     "The assembler to use for rewriting: gas or icx");
   desc.add_options()("layout,l", "Layout code and data in memory to "
                                  "avoid overlap");
   desc.add_options()(
@@ -270,27 +268,21 @@ int main(int argc, char** argv) {
       vm.count("syntax")
           ? vm["syntax"].as<std::string>()
           : gtirb_pprint::getDefaultSyntax(format, isa, LstMode).value_or("");
-  const std::string& assembler =
-      vm.count("assembler")
-          ? vm["assembler"].as<std::string>()
-          : gtirb_pprint::getDefaultAssembler(format, isa, syntax).value_or("");
-  auto target = std::make_tuple(format, isa, syntax, assembler);
+  auto target = std::make_tuple(format, isa, syntax);
   if (gtirb_pprint::getRegisteredTargets().count(target) == 0) {
     LOG_ERROR << "Unsupported combination: format \"" << format << "\" ISA \""
-              << isa << "\" syntax \"" << syntax << "\" and assembler \""
-              << assembler << "\".\n";
+              << isa << "\" and syntax \"" << syntax << "\".\n";
     std::string::size_type width = std::strlen("syntax");
-    for (const auto& [f, i, s, a] : gtirb_pprint::getRegisteredTargets())
-      width = std::max({width, f.size(), i.size(), s.size(), a.size()});
+    for (const auto& [f, i, s] : gtirb_pprint::getRegisteredTargets())
+      width = std::max({width, f.size(), i.size(), s.size()});
     width += 2; // add "gutter" between columns
     LOG_ERROR << "Available combinations:\n";
     LOG_ERROR << std::left << std::setw(width) << "format" << std::setw(width)
               << "ISA" << std::setw(width) << "syntax" << std::setw(width)
-              << "assembler"
               << "\n";
-    for (const auto& [f, i, s, a] : gtirb_pprint::getRegisteredTargets())
+    for (const auto& [f, i, s] : gtirb_pprint::getRegisteredTargets())
       LOG_ERROR << std::left << std::setw(width) << f << std::setw(width) << i
-                << std::setw(width) << s << std::setw(width) << a << '\n';
+                << std::setw(width) << s << '\n';
     return EXIT_FAILURE;
   }
   pp.setTarget(std::move(target));

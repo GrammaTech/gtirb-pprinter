@@ -33,12 +33,11 @@ template <class T> T* nodeFromUUID(gtirb::Context& C, gtirb::UUID id) {
   return dyn_cast_or_null<T>(gtirb::Node::getByUUID(C, id));
 }
 
-static std::map<std::tuple<std::string, std::string, std::string, std::string>,
+static std::map<gtirb_pprint::TargetTy,
                 std::shared_ptr<::gtirb_pprint::PrettyPrinterFactory>>&
 getFactories() {
-  static std::map<
-      std::tuple<std::string, std::string, std::string, std::string>,
-      std::shared_ptr<::gtirb_pprint::PrettyPrinterFactory>>
+  static std::map<gtirb_pprint::TargetTy,
+                  std::shared_ptr<::gtirb_pprint::PrettyPrinterFactory>>
       factories;
   return factories;
 }
@@ -49,14 +48,6 @@ getSyntaxes() {
   static std::map<
       std::tuple<std::string, std::string, gtirb_pprint::ListingMode>,
       std::string>
-      defaults;
-  return defaults;
-}
-
-static std::map<std::tuple<std::string, std::string, std::string>, std::string>&
-getAssemblers() {
-  static std::map<std::tuple<std::string, std::string, std::string>,
-                  std::string>
       defaults;
   return defaults;
 }
@@ -78,28 +69,22 @@ static std::optional<ListingMode> string_to_listing_mode(std::string ModeName) {
 bool registerPrinter(std::initializer_list<std::string> formats,
                      std::initializer_list<std::string> isas,
                      std::initializer_list<std::string> syntaxes,
-                     std::initializer_list<std::string> assemblers,
                      std::shared_ptr<PrettyPrinterFactory> f) {
   assert(formats.size() > 0 && "No formats to register!");
   assert(isas.size() > 0 && "No ISAs to register!");
   assert(syntaxes.size() > 0 && "No syntaxes to register!");
-  assert(assemblers.size() > 0 && "No assemblers to register!");
   for (const std::string& format : formats) {
     for (const std::string& isa : isas) {
       for (const std::string& syntax : syntaxes) {
-        for (const std::string& assembler : assemblers) {
-          getFactories()[std::make_tuple(format, isa, syntax, assembler)] = f;
-        }
+        getFactories()[std::make_tuple(format, isa, syntax)] = f;
       }
     }
   }
   return true;
 }
 
-std::set<std::tuple<std::string, std::string, std::string, std::string>>
-getRegisteredTargets() {
-  std::set<std::tuple<std::string, std::string, std::string, std::string>>
-      targets;
+std::set<TargetTy> getRegisteredTargets() {
+  std::set<TargetTy> targets;
   for (const auto& entry : getFactories())
     targets.insert(entry.first);
   return targets;
@@ -145,28 +130,6 @@ std::string getModuleISA(const gtirb::Module& module) {
   }
 }
 
-std::optional<std::string> getDefaultAssembler(const std::string& format,
-                                               const std::string& isa,
-                                               const std::string& syntax) {
-  std::map<std::tuple<std::string, std::string, std::string>, std::string>
-      defaults = getAssemblers();
-  auto it = defaults.find(std::tuple(format, isa, syntax));
-  return it != defaults.end() ? std::make_optional(it->second) : std::nullopt;
-}
-
-void setDefaultAssembler(std::initializer_list<std::string> formats,
-                         std::initializer_list<std::string> isas,
-                         std::initializer_list<std::string> syntaxes,
-                         const std::string& assembler) {
-  for (auto format : formats) {
-    for (auto isa : isas) {
-      for (auto syntax : syntaxes) {
-        getAssemblers()[std::tuple(format, isa, syntax)] = assembler;
-      }
-    }
-  }
-}
-
 bool setDefaultSyntax(std::initializer_list<std::string> formats,
                       std::initializer_list<std::string> isas,
                       std::initializer_list<std::string> modes,
@@ -205,24 +168,19 @@ getDefaultSyntax(const std::string& format, const std::string& isa,
   return it != defaults.end() ? std::make_optional(it->second) : std::nullopt;
 }
 
-void PrettyPrinter::setTarget(
-    const std::tuple<std::string, std::string, std::string, std::string>&
-        target) {
+void PrettyPrinter::setTarget(const TargetTy& target) {
   assert(getFactories().find(target) != getFactories().end());
-  const auto& [format, isa, syntax, assembler] = target;
+  const auto& [format, isa, syntax] = target;
   m_format = format;
   m_isa = isa;
   m_syntax = syntax;
-  m_assembler = assembler;
 }
 
 void PrettyPrinter::setFormat(const std::string& format,
                               const std::string& isa) {
   const std::string& syntax =
       getDefaultSyntax(format, isa, LstMode).value_or("");
-  const std::string& assembler =
-      getDefaultAssembler(format, isa, syntax).value_or("");
-  setTarget(std::make_tuple(format, isa, syntax, assembler));
+  setTarget(std::make_tuple(format, isa, syntax));
 }
 
 bool PrettyPrinter::setListingMode(const std::string& ModeName) {
@@ -235,8 +193,7 @@ bool PrettyPrinter::setListingMode(const std::string& ModeName) {
 }
 
 std::set<std::string> PrettyPrinter::policyNames() const {
-  auto It = getFactories().find(
-      std::make_tuple(m_format, m_isa, m_syntax, m_assembler));
+  auto It = getFactories().find(std::make_tuple(m_format, m_isa, m_syntax));
   if (It == getFactories().end()) {
     return std::set<std::string>();
   }
@@ -249,8 +206,7 @@ std::set<std::string> PrettyPrinter::policyNames() const {
 }
 
 bool PrettyPrinter::namedPolicyExists(const std::string& Name) const {
-  auto It = getFactories().find(
-      std::make_tuple(m_format, m_isa, m_syntax, m_assembler));
+  auto It = getFactories().find(std::make_tuple(m_format, m_isa, m_syntax));
   if (It == getFactories().end()) {
     return false;
   }
@@ -258,15 +214,13 @@ bool PrettyPrinter::namedPolicyExists(const std::string& Name) const {
 }
 
 PrettyPrinterFactory& PrettyPrinter::getFactory(gtirb::Module& Module) const {
-  auto target = std::make_tuple(m_format, m_isa, m_syntax, m_assembler);
+  auto target = std::make_tuple(m_format, m_isa, m_syntax);
   if (m_format.empty()) {
     const std::string& format = gtirb_pprint::getModuleFileFormat(Module);
     const std::string& isa = gtirb_pprint::getModuleISA(Module);
     const std::string& syntax =
         getDefaultSyntax(format, isa, LstMode).value_or("");
-    const std::string& assembler =
-        getDefaultAssembler(format, isa, syntax).value_or("");
-    target = std::make_tuple(format, isa, syntax, assembler);
+    target = std::make_tuple(format, isa, syntax);
   }
   return *getFactories().at(target);
 }

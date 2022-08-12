@@ -51,38 +51,33 @@ void registerAuxDataTypes() {
 }
 
 void registerPrettyPrinters() {
-  registerPrinter({"elf", "raw"}, {"x86", "x64"}, {"intel"}, {"gas"},
+  registerPrinter({"elf", "raw"}, {"x86", "x64"}, {"intel"},
                   std::make_shared<IntelPrettyPrinterFactory>());
-  registerPrinter({"elf", "raw"}, {"x86", "x64"}, {"att"}, {"gas"},
+  registerPrinter({"elf", "raw"}, {"x86", "x64"}, {"att"},
                   std::make_shared<AttPrettyPrinterFactory>());
   setDefaultSyntax({"elf", "raw"}, {"x86", "x64"}, {"assembler"}, "att");
   setDefaultSyntax({"elf", "raw"}, {"x86", "x64"}, {"ui", "debug"}, "intel");
-  setDefaultAssembler({"elf", "raw"}, {"x86", "x64"}, {"att", "intel"}, "gas");
 
-  registerPrinter({"elf", "raw"}, {"arm"}, {"arm"}, {"gas"},
+  registerPrinter({"elf", "raw"}, {"arm"}, {"arm"},
                   std::make_shared<ArmPrettyPrinterFactory>());
   setDefaultSyntax({"elf", "raw"}, {"arm"}, {"assembler", "ui", "debug"},
                    "arm");
-  setDefaultAssembler({"elf", "raw"}, {"arm"}, {"arm"}, "gas");
 
-  registerPrinter({"elf", "raw"}, {"arm64"}, {"arm64"}, {"gas"},
+  registerPrinter({"elf", "raw"}, {"arm64"}, {"arm64"},
                   std::make_shared<Arm64PrettyPrinterFactory>());
   setDefaultSyntax({"elf", "raw"}, {"arm64"}, {"assembler", "ui", "debug"},
                    "arm64");
-  setDefaultAssembler({"elf", "raw"}, {"arm64"}, {"arm64"}, "gas");
 
-  registerPrinter({"elf", "raw"}, {"mips32"}, {"mips32"}, {"gas"},
+  registerPrinter({"elf", "raw"}, {"mips32"}, {"mips32"},
                   std::make_shared<Mips32PrettyPrinterFactory>());
   setDefaultSyntax({"elf", "raw"}, {"mips32"}, {"assembler", "ui", "debug"},
                    "mips32");
-  setDefaultAssembler({"elf", "raw"}, {"mips32"}, {"mips32"}, "gas");
 
-  registerPrinter({"pe", "raw"}, {"x86", "x64"}, {"masm"}, {"gas"},
+  registerPrinter({"pe", "raw"}, {"x86", "x64"}, {"masm"},
                   std::make_shared<MasmPrettyPrinterFactory>());
-  registerPrinter({"pe", "raw"}, {"x86", "x64"}, {"masm"}, {"uasm"},
+  registerPrinter({"pe", "raw"}, {"x86", "x64"}, {"uasm"},
                   std::make_shared<UasmPrettyPrinterFactory>());
   setDefaultSyntax({"pe", "raw"}, {"x86", "x64"}, {"assembler", "ui", "debug"},
                    "masm");
-  setDefaultAssembler({"pe", "raw"}, {"x86", "x64"}, {"masm"}, "gas");
 }
 } // namespace gtirb_pprint

@@ -54,6 +54,8 @@ enum ListingMode {
 using string_range = boost::any_range<std::string, boost::forward_traversal_tag,
                                       std::string&, std::ptrdiff_t>;
 
+using TargetTy = std::tuple<std::string, std::string, std::string>;
+
 /// Register a factory for creating pretty printer objects. The factory will be
 /// used to load a default \link PrintingPolicy and create a pretty printer for
 /// the formats and syntaxes named in the initialization lists.
@@ -72,13 +74,11 @@ DEBLOAT_PRETTYPRINTER_EXPORT_API bool
 registerPrinter(std::initializer_list<std::string> formats,
                 std::initializer_list<std::string> isas,
                 std::initializer_list<std::string> syntaxes,
-                std::initializer_list<std::string> assemblers,
                 std::shared_ptr<PrettyPrinterFactory> f);
 
 /// Return the current set of syntaxes with registered factories.
 DEBLOAT_PRETTYPRINTER_EXPORT_API
-std::set<std::tuple<std::string, std::string, std::string, std::string>>
-getRegisteredTargets();
+std::set<TargetTy> getRegisteredTargets();
 
 /// Return the file format of a GTIRB module.
 DEBLOAT_PRETTYPRINTER_EXPORT_API std::string
@@ -87,18 +87,6 @@ getModuleFileFormat(const gtirb::Module& module);
 /// Return the ISA of a GTIRB module.
 DEBLOAT_PRETTYPRINTER_EXPORT_API std::string
 getModuleISA(const gtirb::Module& module);
-
-/// Set the default assembler for the given file formats, isas, and syntaxes.
-DEBLOAT_PRETTYPRINTER_EXPORT_API void
-setDefaultAssembler(std::initializer_list<std::string> formats,
-                    std::initializer_list<std::string> isas,
-                    std::initializer_list<std::string> syntaxes,
-                    const std::string& assembler);
-
-/// Return the default assembler for a file format and syntax.
-DEBLOAT_PRETTYPRINTER_EXPORT_API std::optional<std::string>
-getDefaultAssembler(const std::string& format, const std::string& isa,
-                    const std::string& syntax);
 
 /// Set the default syntax for the given file formats, isas, and listing modes.
 DEBLOAT_PRETTYPRINTER_EXPORT_API bool
@@ -183,8 +171,7 @@ public:
   ///
   /// \param target compound indentifier of target format, isa, syntax, and
   /// assembler
-  void setTarget(const std::tuple<std::string, std::string, std::string,
-                                  std::string>& target);
+  void setTarget(const TargetTy& target);
 
   /// Set the file format for which to pretty print.
   ///
@@ -236,7 +223,6 @@ private:
   std::string m_format;
   std::string m_isa;
   std::string m_syntax;
-  std::string m_assembler;
   ListingMode LstMode = ListingAssembler;
   PolicyOptions FunctionPolicy, SymbolPolicy, SectionPolicy, ArraySectionPolicy;
   std::string PolicyName = "default";
