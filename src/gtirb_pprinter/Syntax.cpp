@@ -67,18 +67,19 @@ std::string Syntax::avoidRegNameConflicts(const std::string& Name) const {
 }
 
 std::string Syntax::escapeByte(uint8_t b) const {
-  std::string cleaned;
-  cleaned += b;
-  cleaned = boost::replace_all_copy(cleaned, "\\", "\\\\");
-  cleaned = boost::replace_all_copy(cleaned, "\"", "\\\"");
-  cleaned = boost::replace_all_copy(cleaned, "\n", "\\n");
-  cleaned = boost::replace_all_copy(cleaned, "\t", "\\t");
-  cleaned = boost::replace_all_copy(cleaned, "\v", "\\v");
-  cleaned = boost::replace_all_copy(cleaned, "\b", "\\b");
-  cleaned = boost::replace_all_copy(cleaned, "\r", "\\r");
-  cleaned = boost::replace_all_copy(cleaned, "\a", "\\a");
-
-  return cleaned;
+  switch (b) {
+  case '\\':
+  case '\"':
+  case '\n':
+  case '\t':
+  case '\b':
+  case '\f':
+  case '\r':
+  case '\a':
+    return "\\" + b;
+  default:
+    return "" + b;
+  }
 }
 
 } // namespace gtirb_pprint
