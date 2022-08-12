@@ -157,9 +157,9 @@ bool hasVersionedSymDefs(const gtirb::IR& IR) {
   return false;
 }
 
-const gtirb::schema::ElfSymbolVersions::Type*
+const gtirb::provisional_schema::ElfSymbolVersions::Type*
 getSymbolVersions(const gtirb::Module& M) {
-  return M.getAuxData<gtirb::schema::ElfSymbolVersions>();
+  return M.getAuxData<gtirb::provisional_schema::ElfSymbolVersions>();
 }
 
 std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym) {

@@ -221,7 +221,7 @@ void setElfSymbolInfo(gtirb::Symbol& Sym, aux_data::ElfSymbolInfo& Info);
 // Determine if any versions symbols are defined in the IR.
 bool hasVersionedSymDefs(const gtirb::IR& IR);
 
-const gtirb::schema::ElfSymbolVersions::Type*
+const gtirb::provisional_schema::ElfSymbolVersions::Type*
 getSymbolVersions(const gtirb::Module& M);
 
 std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym);
