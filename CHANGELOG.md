@@ -1,6 +1,8 @@
 1.8.5 (Unreleased)
   * Remove `--assembler` option; printer now always behaves correctly when
     escaping characters.
+  * Support generating ELF symbol version information in assembly output.
+  * Add `--verison-script` argument for generating ELF version scripts.
 
 1.8.4
 
