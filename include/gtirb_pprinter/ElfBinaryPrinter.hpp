@@ -39,7 +39,8 @@ private:
   findLibrary(const std::string& library,
               const std::vector<std::string>& paths) const;
   bool
-  generateDummySO(const std::string& libDir, const std::string& lib,
+  generateDummySO(const gtirb::IR& ir, const std::string& libDir,
+                  const std::string& lib,
                   std::vector<const gtirb::Symbol*>::const_iterator begin,
                   std::vector<const gtirb::Symbol*>::const_iterator end) const;
   bool prepareDummySOLibs(const gtirb::IR& ir, const std::string& libDir,

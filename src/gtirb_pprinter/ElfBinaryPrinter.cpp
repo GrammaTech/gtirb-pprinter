@@ -74,7 +74,7 @@ bool isBlackListed(std::string sym) {
 }
 
 bool ElfBinaryPrinter::generateDummySO(
-    const std::string& libDir, const std::string& lib,
+    const gtirb::IR& ir, const std::string& libDir, const std::string& lib,
     std::vector<const gtirb::Symbol*>::const_iterator begin,
     std::vector<const gtirb::Symbol*>::const_iterator end) const {
 
@@ -83,6 +83,7 @@ bool ElfBinaryPrinter::generateDummySO(
   std::string asmFileName = lib + ".s";
   auto asmFilePath = boost::filesystem::path(libDir) / asmFileName;
   auto libPath = boost::filesystem::path(libDir) / lib;
+  bool emittedSymvers = false;
 
   {
     std::ofstream asmFile(asmFilePath.string());
@@ -152,6 +153,12 @@ bool ElfBinaryPrinter::generateDummySO(
         asmFile << ".type " << name << ", @" << TypeName << "\n";
       }
 
+      auto Version = aux_data::getSymbolVersionString(*sym);
+      if (Version && !Printer.getIgnoreSymbolVersions()) {
+        asmFile << ".symver " << name << "," << name << *Version << '\n';
+        emittedSymvers = true;
+      }
+
       asmFile << name << ":\n";
       uint64_t space = SymSize;
       if (space == 0) {
@@ -169,6 +176,17 @@ bool ElfBinaryPrinter::generateDummySO(
   args.push_back("-nostartfiles");
   args.push_back("-nodefaultlibs");
   args.push_back(asmFilePath.string());
+
+  TempFile VersionScript(".map");
+  if (emittedSymvers) {
+    if (!Printer.getIgnoreSymbolVersions()) {
+      // A version script is only needed if we define versioned symbols.
+      if (gtirb_pprint::printVersionScript(ir, VersionScript)) {
+        args.push_back("-Wl,--version-script=" + VersionScript.fileName());
+      }
+    }
+    VersionScript.close();
+  }
 
   if (std::optional<int> ret = execute(compiler, args)) {
     if (*ret) {
@@ -274,7 +292,7 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
   auto next = curr + numFirstFile;
   for (const auto& lib : libs) {
     assert(curr != undefinedSymbols.end());
-    if (!generateDummySO(libDir, lib, curr, next)) {
+    if (!generateDummySO(ir, libDir, lib, curr, next)) {
       std::cerr << "ERROR: Failed generating dummy .so for " << lib << "\n";
       return false;
     }
@@ -286,6 +304,10 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
   assert(curr == undefinedSymbols.end());
 
   // Determine the args that need to be passed to the linker.
+  // Note that we build with -nodefaultlibs, since with --dummy-so it is
+  // assumed that the libs we would need are not present. This may futher
+  // require the --keep-function-symbol argument paired with -c -nostartfiles
+  // to preserve startup code.
   libArgs.push_back("-L" + libDir);
   libArgs.push_back("-nodefaultlibs");
   for (const auto& lib : libs) {
