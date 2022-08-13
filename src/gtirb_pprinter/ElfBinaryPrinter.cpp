@@ -185,8 +185,8 @@ bool ElfBinaryPrinter::generateDummySO(
         args.push_back("-Wl,--version-script=" + VersionScript.fileName());
       }
     }
-    VersionScript.close();
   }
+  VersionScript.close();
 
   if (std::optional<int> ret = execute(compiler, args)) {
     if (*ret) {

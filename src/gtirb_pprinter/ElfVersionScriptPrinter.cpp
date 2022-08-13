@@ -46,7 +46,7 @@ bool printVersionScript(const gtirb::IR& IR, std::ofstream& VersionScript) {
       auto& VerNames = std::get<0>(VerDef);
       uint16_t VerDefFlags = std::get<1>(VerDef);
 
-      // ignore the base version, it just contains the name
+      // Ignore the base version, it just contains the name
       // of the module, not an actual symbol version.
       const uint16_t VER_FLG_BASE = 0x1;
       if ((VerDefFlags & VER_FLG_BASE) == VER_FLG_BASE) {
@@ -75,7 +75,7 @@ bool printVersionScript(const gtirb::IR& IR, std::ofstream& VersionScript) {
     }
   }
 
-  return VersionScript.tellp();
+  return VersionScript.tellp() > 0;
 }
 
 } // namespace gtirb_pprint

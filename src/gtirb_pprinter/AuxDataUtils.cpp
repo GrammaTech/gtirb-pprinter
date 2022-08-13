@@ -187,6 +187,8 @@ std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym) {
     }
   }
   // This should not happen
+  assert(!"Symbol verion entry with no def or need found in "
+          "getSymbolVersionString()");
   return std::nullopt;
 }
 

@@ -102,7 +102,7 @@ If the binary requires verisoned symbols (which is likely if it uses a recent
 version of glibc), some further arguments may be necessary. Your system's
 startfiles may differ from the startfiles that the binary was originally built
 with, causing symbol version incompatibilities when gtirb-pprinter removes
-startup code and your compiler replaces it with its own.  To best work around
+startup code and your compiler replaces it with its own. To best work around
 this, add the following arguments:
 
 ```sh
