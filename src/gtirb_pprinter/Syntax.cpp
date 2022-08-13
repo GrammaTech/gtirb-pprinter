@@ -67,20 +67,26 @@ std::string Syntax::avoidRegNameConflicts(const std::string& Name) const {
 }
 
 std::string Syntax::escapeByte(uint8_t b) const {
-  std::string cleaned;
   switch (b) {
   case '\\':
+    return std::string("\\\\");
   case '\"':
+    return std::string("\\\"");
   case '\n':
+    return std::string("\\n");
   case '\t':
+    return std::string("\\t");
   case '\b':
+    return std::string("\\b");
   case '\f':
+    return std::string("\\f");
   case '\r':
+    return std::string("\\r");
   case '\a':
-    cleaned += "\\";
+    return std::string("\\a");
+  default:
+    return std::string(1, b);
   }
-  cleaned += b;
-  return cleaned;
 }
 
 } // namespace gtirb_pprint
