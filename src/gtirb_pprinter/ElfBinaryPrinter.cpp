@@ -75,8 +75,7 @@ bool isBlackListed(std::string sym) {
 
 bool ElfBinaryPrinter::generateDummySO(
     const gtirb::IR& ir, const std::string& libDir, const std::string& lib,
-    std::vector<const gtirb::Symbol*>::const_iterator begin,
-    std::vector<const gtirb::Symbol*>::const_iterator end) const {
+    std::vector<const gtirb::Symbol*>& syms) const {
 
   // Assume that lib is a filename w/ no path prefix
   assert(!boost::filesystem::path(lib).has_parent_path());
@@ -89,7 +88,7 @@ bool ElfBinaryPrinter::generateDummySO(
     std::ofstream asmFile(asmFilePath.string());
     asmFile << "# Generated dummy file for .so undefined symbols\n";
 
-    for (auto curr = begin; curr != end; ++curr) {
+    for (auto curr = syms.begin(); curr != syms.end(); ++curr) {
       const gtirb::Symbol* sym = *curr;
 
       std::string name = sym->getName();
@@ -241,67 +240,73 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
   }
 
   // Now we need to assign imported symbols to all the libs.
-  // We don't have a map for which libs they belong to. But this
-  // shouldn't matter, as the ELF format doesn't retain such a
-  // mapping either (from what we can tell).
-  // So assign k symbols to each of the k libs we need, and
-  // dump the rest into the first lib.
-  // TODO: The pretty printer has some rules about skipping
-  // certain undefined symbols. Do we need similar rules here?
-  std::vector<const gtirb::Symbol*> undefinedSymbols;
+  // For versioned symbols, we have a mapping of which library they belong to.
+  // Otherwise, we do not, but the ELF format doesn't keep that information
+  // either for unversioned symbols, so we can put them in any library.
+  std::map<std::string, std::vector<const gtirb::Symbol*>> undefinedSymbols;
+
   for (const gtirb::Module& module : ir.modules()) {
+    const auto SymbolVersions = aux_data::getSymbolVersions(module);
+    auto& [SymVerDefs, SymVersNeeded, SymVersionEntries] = *SymbolVersions;
+
     for (const auto& sym : module.symbols()) {
       if (!sym.getAddress() &&
           (!sym.hasReferent() ||
            sym.getReferent<gtirb::ProxyBlock>() != nullptr) &&
           !isBlackListed(sym.getName())) {
 
-        auto SymInfo = aux_data::getElfSymbolInfo(sym);
-        if (!SymInfo) {
-          // See if we have a symbol for "foo_copy", if so use its info
-          std::string copyName = sym.getName() + "_copy";
-          if (auto CopySymRange = module.findSymbols(copyName)) {
-            if (CopySymRange.empty()) {
-              return false;
+        auto SymVerEntry = SymVersionEntries.find(sym.getUUID());
+        if (SymVerEntry != SymVersionEntries.end()) {
+          // This symbol is versioned. There should be an entry for it in
+          // SymVersNeeded.
+          std::string LibName;
+          for (auto& [CurLibName, SymVerMap] : SymVersNeeded) {
+            auto VersionReq = SymVerMap.find(std::get<0>(SymVerEntry->second));
+            if (VersionReq != SymVerMap.end()) {
+              LibName = CurLibName;
             }
-            SymInfo = aux_data::getElfSymbolInfo(*CopySymRange.begin());
-          } else {
-            LOG_WARNING << "Symbol not in symbol table [" << sym.getName()
-                        << "] while preparing dummy SO\n";
-            continue;
           }
-        }
+          if (LibName.empty()) {
+            LOG_ERROR << "ERROR: Undefined symbol \"" << sym.getName()
+                      << "\" is versioned, but not in needed versions.";
+            return false;
+          }
+          undefinedSymbols[LibName].push_back(&sym);
+        } else {
+          auto SymInfo = aux_data::getElfSymbolInfo(sym);
+          if (!SymInfo) {
+            // See if we have a symbol for "foo_copy", if so use its info
+            std::string copyName = sym.getName() + "_copy";
+            if (auto CopySymRange = module.findSymbols(copyName)) {
+              if (CopySymRange.empty()) {
+                return false;
+              }
+              SymInfo = aux_data::getElfSymbolInfo(*CopySymRange.begin());
+            } else {
+              LOG_WARNING << "Symbol not in symbol table [" << sym.getName()
+                          << "] while preparing dummy SO\n";
+              continue;
+            }
+          }
 
-        // Ignore some types of symbols
-        if (SymInfo->Type != "FILE") {
-          undefinedSymbols.push_back(&sym);
+          // Ignore some types of symbols
+          if (SymInfo->Type != "FILE") {
+            // Just put unversioned symbols in the first library.
+            // It doesn't matter where they go.
+            undefinedSymbols[libs[0]].push_back(&sym);
+          }
         }
       }
     }
   }
 
-  if (undefinedSymbols.size() < libs.size()) {
-    std::cerr << "ERROR: More dynamic libs than undefined symbols!\n";
-    return false;
-  }
-
-  size_t numFirstFile = 1 + undefinedSymbols.size() - libs.size();
-
   // Generate the .so files
-  auto curr = undefinedSymbols.begin();
-  auto next = curr + numFirstFile;
   for (const auto& lib : libs) {
-    assert(curr != undefinedSymbols.end());
-    if (!generateDummySO(ir, libDir, lib, curr, next)) {
+    if (!generateDummySO(ir, libDir, lib, undefinedSymbols[lib])) {
       std::cerr << "ERROR: Failed generating dummy .so for " << lib << "\n";
       return false;
     }
-    curr = next;
-    if (next != undefinedSymbols.end()) {
-      ++next;
-    }
   }
-  assert(curr == undefinedSymbols.end());
 
   // Determine the args that need to be passed to the linker.
   // Note that we build with -nodefaultlibs, since with --dummy-so it is
