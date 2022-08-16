@@ -33,8 +33,6 @@ IntelPrettyPrinter::IntelPrettyPrinter(gtirb::Context& context_,
   assert(err == CS_ERR_OK && "Capstone failure");
 }
 
-
-
 void IntelPrettyPrinter::fixupInstruction(cs_insn& inst) {
   ElfPrettyPrinter::fixupInstruction(inst);
   x86FixupInstruction(inst);
