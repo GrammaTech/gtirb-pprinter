@@ -418,12 +418,13 @@ ElfPrettyPrinter::getAlignment(const gtirb::CodeBlock& Block) {
   return std::nullopt;
 }
 
-bool ElfPrettyPrinterFactory::isStaticBinary(gtirb::Module& Module) const {
+bool ElfPrettyPrinterFactory::isStaticBinary(
+    const gtirb::Module& Module) const {
   return Module.findSections(".dynamic").empty();
 }
 
-const PrintingPolicy&
-ElfPrettyPrinterFactory::defaultPrintingPolicy(gtirb::Module& Module) const {
+const PrintingPolicy& ElfPrettyPrinterFactory::defaultPrintingPolicy(
+    const gtirb::Module& Module) const {
   return isStaticBinary(Module) ? *findNamedPolicy("static")
                                 : *findNamedPolicy("dynamic");
 }

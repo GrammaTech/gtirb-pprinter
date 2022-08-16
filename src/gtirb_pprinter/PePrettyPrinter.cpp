@@ -19,12 +19,13 @@
 
 namespace gtirb_pprint {
 PePrettyPrinter::PePrettyPrinter(gtirb::Context& context_,
-                                 const gtirb::Module& module_, const Syntax& syntax_,
+                                 const gtirb::Module& module_,
+                                 const Syntax& syntax_,
                                  const PrintingPolicy& policy_)
     : PrettyPrinterBase(context_, module_, syntax_, policy_) {}
 
-const PrintingPolicy&
-PePrettyPrinterFactory::defaultPrintingPolicy(gtirb::Module& /*Module*/) const {
+const PrintingPolicy& PePrettyPrinterFactory::defaultPrintingPolicy(
+    const gtirb::Module& /*Module*/) const {
   static PrintingPolicy DefaultPolicy{
       /// Functions to avoid printing.
       {},

@@ -22,7 +22,7 @@
 namespace gtirb_pprint {
 
 const PrintingPolicy& Mips32PrettyPrinterFactory::defaultPrintingPolicy(
-    gtirb::Module& /*Module*/) const {
+    const gtirb::Module& /*Module*/) const {
   // Static binaries are not supported.
   return *findNamedPolicy("dynamic");
 }

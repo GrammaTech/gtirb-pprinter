@@ -71,7 +71,7 @@ public:
   Mips32PrettyPrinterFactory();
 
   const PrintingPolicy&
-  defaultPrintingPolicy(gtirb::Module& Module) const override;
+  defaultPrintingPolicy(const gtirb::Module& Module) const override;
 
   std::unique_ptr<PrettyPrinterBase>
   create(gtirb::Context& context, const gtirb::Module& module,

@@ -217,7 +217,8 @@ bool PrettyPrinter::namedPolicyExists(const std::string& Name) const {
   return It->second->findNamedPolicy(Name) != nullptr;
 }
 
-PrettyPrinterFactory& PrettyPrinter::getFactory(gtirb::Module& Module) const {
+PrettyPrinterFactory&
+PrettyPrinter::getFactory(const gtirb::Module& Module) const {
   auto target = std::make_tuple(m_format, m_isa, m_syntax);
   if (m_format.empty()) {
     const std::string& format = gtirb_pprint::getModuleFileFormat(Module);
@@ -229,7 +230,8 @@ PrettyPrinterFactory& PrettyPrinter::getFactory(gtirb::Module& Module) const {
   return *getFactories().at(target);
 }
 
-const PrintingPolicy& PrettyPrinter::getPolicy(gtirb::Module& Module) const {
+const PrintingPolicy&
+PrettyPrinter::getPolicy(const gtirb::Module& Module) const {
   const PrettyPrinterFactory& Factory = getFactory(Module);
   return PolicyName == "default" ? Factory.defaultPrintingPolicy(Module)
                                  : *Factory.findNamedPolicy(PolicyName);
@@ -260,7 +262,7 @@ void PrintingPolicy::findAdditionalSkips(const gtirb::Module& Mod) {
 }
 
 int PrettyPrinter::print(std::ostream& Stream, gtirb::Context& Context,
-                         gtirb::Module& Module) const {
+                         const gtirb::Module& Module) const {
   // Find pretty printer factory.
   PrettyPrinterFactory& Factory = getFactory(Module);
 
@@ -322,8 +324,8 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
                                      const gtirb::Module& module_,
                                      const Syntax& syntax_,
                                      const PrintingPolicy& policy_)
-    : syntax(syntax_), policy(policy_),
-      LstMode(policy.LstMode), context(context_), module(module_),
+    : syntax(syntax_), policy(policy_), LstMode(policy.LstMode),
+      context(context_), module(module_),
       PreferredEOLCommentPos(64), type_printer{module_, context_} {
   for (auto const& Function : aux_data::getFunctionEntries(module)) {
     for (auto& EntryBlockUuid : Function.second) {

@@ -233,7 +233,7 @@ public:
   /// \param module      the module to pretty-print
   ///
   int print(std::ostream& Stream, gtirb::Context& Context,
-            gtirb::Module& Module) const;
+            const gtirb::Module& Module) const;
 
   PolicyOptions& functionPolicy() { return FunctionPolicy; }
   const PolicyOptions& functionPolicy() const { return FunctionPolicy; }
@@ -252,7 +252,7 @@ public:
 
   std::set<std::string> policyNames() const;
   bool namedPolicyExists(const std::string& Name) const;
-  const PrintingPolicy& getPolicy(gtirb::Module& Module) const;
+  const PrintingPolicy& getPolicy(const gtirb::Module& Module) const;
 
 private:
   std::string m_format;
@@ -264,7 +264,7 @@ private:
   bool Shared = false;
   bool IgnoreSymbolVersions = false;
 
-  PrettyPrinterFactory& getFactory(gtirb::Module& Module) const;
+  PrettyPrinterFactory& getFactory(const gtirb::Module& Module) const;
 };
 
 /// Abstract factory - encloses default printing configuration and a method for
@@ -275,7 +275,7 @@ public:
 
   /// Load the default printing policy, used when no policy name was given.
   virtual const PrintingPolicy&
-  defaultPrintingPolicy(gtirb::Module& Module) const = 0;
+  defaultPrintingPolicy(const gtirb::Module& Module) const = 0;
 
   /// Create the pretty printer instance.
   virtual std::unique_ptr<PrettyPrinterBase>

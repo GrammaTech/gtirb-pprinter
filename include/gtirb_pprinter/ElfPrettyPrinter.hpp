@@ -160,11 +160,11 @@ public:
   ElfPrettyPrinterFactory();
   virtual ~ElfPrettyPrinterFactory() = default;
 
-  bool isStaticBinary(gtirb::Module& Module) const;
+  bool isStaticBinary(const gtirb::Module& Module) const;
 
   /// Load the default printing policy.
   virtual const PrintingPolicy&
-  defaultPrintingPolicy(gtirb::Module& Module) const;
+  defaultPrintingPolicy(const gtirb::Module& Module) const;
 };
 
 } // namespace gtirb_pprint

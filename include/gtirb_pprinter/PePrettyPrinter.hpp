@@ -43,7 +43,7 @@ class DEBLOAT_PRETTYPRINTER_EXPORT_API PePrettyPrinterFactory
     : public PrettyPrinterFactory {
 public:
   const PrintingPolicy&
-  defaultPrintingPolicy(gtirb::Module& Module) const override;
+  defaultPrintingPolicy(const gtirb::Module& Module) const override;
 };
 
 } // namespace gtirb_pprint
