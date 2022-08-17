@@ -1052,7 +1052,7 @@ void PrettyPrinterBase::printCommentableLine(std::stringstream& LineContents,
   std::string Spaces(NumSpaces, ' ');
 
   OutStream << Spaces << syntax.comment();
-  OutStream << " EA: " << std::hex << EA;
+  OutStream << " EA: " << std::hex << EA << std::dec;
 }
 
 void PrettyPrinterBase::printCFIDirectives(std::ostream& os,
