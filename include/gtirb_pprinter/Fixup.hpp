@@ -24,15 +24,26 @@ class Module;
 namespace gtirb_pprint {
 class PrettyPrinter;
 
+/// Transforms a GTIRB module to make it acceptable to
+/// the assembler.
+/// For ELF shared object modules, this consists of removing
+/// any direct references to global symbols and replacing them
+/// with indirect ones
+/// For PE modules, this means ensuring that the entry symbols
+/// are correctly named.
+/// \param Ctx
+/// \param Mod
+/// \param Printer
 void DEBLOAT_PRETTYPRINTER_EXPORT_API applyFixups(gtirb::Context& Ctx,
                                                   gtirb::Module& Mod,
                                                   const PrettyPrinter& Printer);
 
-/// fixes up any direct references to global symbols, which
-/// are illegal relocations in shared objects.
+/// Turn any direct references to global symbols, which
+/// are illegal relocations in shared objects, into
+/// indirect references
 void fixupSharedObject(gtirb::Context& Ctx, gtirb::Module& Mod);
 
-/// fixup to ensure that PE entry symbols are correctly named
+/// Ensure that PE entry symbols are correctly named
 void fixupPESymbols(gtirb::Context& Ctx, gtirb::Module& Mod);
 
 } // namespace gtirb_pprint

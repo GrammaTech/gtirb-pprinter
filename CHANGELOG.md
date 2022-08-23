@@ -3,6 +3,10 @@
     escaping characters.
   * Support generating ELF symbol version information in assembly output.
   * Add `--version-script` argument for generating ELF version scripts.
+  * Removed explicit transformations to GTIRB from PrettyPrinter. Clients
+    will now need to explicitly opt in to these transforms. `gtirb-pprinter`
+    behavior is unchanged.
+>>>>>>> updated documentation
 
 1.8.4
 
