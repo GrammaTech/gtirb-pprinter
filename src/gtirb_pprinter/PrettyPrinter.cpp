@@ -1251,6 +1251,21 @@ PrettyPrinterBase::getContainerFunctionName(gtirb::Addr x) const {
   if (it == functionEntry.begin())
     return std::nullopt;
   it--;
+  const std::optional<const gtirb::Section*> FunctionSection =
+      getContainerSection(*it);
+  if (FunctionSection) {
+    std::optional<gtirb::Addr> SectionBegin = (*FunctionSection)->getAddress();
+    std::optional<uint64_t> SectionSize = (*FunctionSection)->getSize();
+    if (SectionBegin && SectionSize) {
+      gtirb::Addr SectionEnd = (*SectionBegin) + (*SectionSize);
+      if (x >= SectionEnd) {
+        // The addr x is in a different section than the function - this block
+        // shouldn't belong to the function.
+        return std::nullopt;
+      }
+    }
+  }
+
   return this->getFunctionName(*it);
 }
 
