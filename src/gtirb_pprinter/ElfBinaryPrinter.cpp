@@ -247,7 +247,6 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
 
   for (const gtirb::Module& module : ir.modules()) {
     const auto SymbolVersions = aux_data::getSymbolVersions(module);
-    auto& [SymVerDefs, SymVersNeeded, SymVersionEntries] = *SymbolVersions;
 
     for (const auto& sym : module.symbols()) {
       if (!sym.getAddress() &&
@@ -255,46 +254,53 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
            sym.getReferent<gtirb::ProxyBlock>() != nullptr) &&
           !isBlackListed(sym.getName())) {
 
-        auto SymVerEntry = SymVersionEntries.find(sym.getUUID());
-        if (SymVerEntry != SymVersionEntries.end()) {
-          // This symbol is versioned. There should be an entry for it in
-          // SymVersNeeded.
-          std::string LibName;
-          for (auto& [CurLibName, SymVerMap] : SymVersNeeded) {
-            auto VersionReq = SymVerMap.find(std::get<0>(SymVerEntry->second));
-            if (VersionReq != SymVerMap.end()) {
-              LibName = CurLibName;
-            }
-          }
-          if (LibName.empty()) {
-            LOG_ERROR << "ERROR: Undefined symbol \"" << sym.getName()
-                      << "\" is versioned, but not in needed versions.";
-            return false;
-          }
-          undefinedSymbols[LibName].push_back(&sym);
-        } else {
-          auto SymInfo = aux_data::getElfSymbolInfo(sym);
-          if (!SymInfo) {
-            // See if we have a symbol for "foo_copy", if so use its info
-            std::string copyName = sym.getName() + "_copy";
-            if (auto CopySymRange = module.findSymbols(copyName)) {
-              if (CopySymRange.empty()) {
-                return false;
+        if (SymbolVersions) {
+          auto& [SymVerDefs, SymVersNeeded, SymVersionEntries] =
+              *SymbolVersions;
+          auto SymVerEntry = SymVersionEntries.find(sym.getUUID());
+          if (SymVerEntry != SymVersionEntries.end()) {
+            // This symbol is versioned. There should be an entry for it in
+            // SymVersNeeded.
+            std::string LibName;
+            for (auto& [CurLibName, SymVerMap] : SymVersNeeded) {
+              auto VersionReq =
+                  SymVerMap.find(std::get<0>(SymVerEntry->second));
+              if (VersionReq != SymVerMap.end()) {
+                LibName = CurLibName;
               }
-              SymInfo = aux_data::getElfSymbolInfo(*CopySymRange.begin());
-            } else {
-              LOG_WARNING << "Symbol not in symbol table [" << sym.getName()
-                          << "] while preparing dummy SO\n";
-              continue;
             }
+            if (LibName.empty()) {
+              LOG_ERROR << "ERROR: Undefined symbol \"" << sym.getName()
+                        << "\" is versioned, but not in needed versions.";
+              return false;
+            }
+            undefinedSymbols[LibName].push_back(&sym);
+            continue;
           }
+        }
 
-          // Ignore some types of symbols
-          if (SymInfo->Type != "FILE") {
-            // Just put unversioned symbols in the first library.
-            // It doesn't matter where they go.
-            undefinedSymbols[libs[0]].push_back(&sym);
+        // fallthrough: we don't have symbol version info for this symbol.
+        auto SymInfo = aux_data::getElfSymbolInfo(sym);
+        if (!SymInfo) {
+          // See if we have a symbol for "foo_copy", if so use its info
+          std::string copyName = sym.getName() + "_copy";
+          if (auto CopySymRange = module.findSymbols(copyName)) {
+            if (CopySymRange.empty()) {
+              return false;
+            }
+            SymInfo = aux_data::getElfSymbolInfo(*CopySymRange.begin());
+          } else {
+            LOG_WARNING << "Symbol not in symbol table [" << sym.getName()
+                        << "] while preparing dummy SO\n";
+            continue;
           }
+        }
+
+        // Ignore some types of symbols
+        if (SymInfo->Type != "FILE") {
+          // Just put unversioned symbols in the first library.
+          // It doesn't matter where they go.
+          undefinedSymbols[libs[0]].push_back(&sym);
         }
       }
     }
