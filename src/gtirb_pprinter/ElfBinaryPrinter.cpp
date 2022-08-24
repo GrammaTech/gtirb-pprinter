@@ -242,8 +242,9 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
   // Now we need to assign imported symbols to all the libs.
   // For versioned symbols, we have a mapping of which library they belong to.
   // Otherwise, we do not, but the ELF format doesn't keep that information
-  // either for unversioned symbols, so we can put them in any library.
+  // either for unversioned symbols, so we put them in unallocatedSymbols.
   std::map<std::string, std::vector<const gtirb::Symbol*>> undefinedSymbols;
+  std::vector<const gtirb::Symbol*> unallocatedSymbols;
 
   for (const gtirb::Module& module : ir.modules()) {
     const auto SymbolVersions = aux_data::getSymbolVersions(module);
@@ -298,18 +299,42 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
 
         // Ignore some types of symbols
         if (SymInfo->Type != "FILE") {
-          // Just put unversioned symbols in the first library.
-          // It doesn't matter where they go.
-          undefinedSymbols[libs[0]].push_back(&sym);
+          // Just put unversioned symbols in special list. We need to
+          // distribute them later to any libraries that have no symbols.
+          unallocatedSymbols.push_back(&sym);
         }
       }
     }
   }
 
   // Generate the .so files
-  for (const auto& lib : libs) {
-    if (!generateDummySO(ir, libDir, lib, undefinedSymbols[lib])) {
-      std::cerr << "ERROR: Failed generating dummy .so for " << lib << "\n";
+  auto UndefinedSymIt = unallocatedSymbols.begin();
+  auto UndefinedSymItEnd = unallocatedSymbols.end();
+  auto LastLibIt = libs.end()--;
+  for (auto LibIt = libs.begin(); LibIt != libs.end(); LibIt++) {
+    std::string& Lib = *LibIt;
+    auto& LibSyms = undefinedSymbols[Lib];
+
+    if (LibIt == LastLibIt) {
+      // If this is the last library, dump the rest of the symbols in.
+      for (; UndefinedSymIt != UndefinedSymItEnd; UndefinedSymIt++) {
+        LibSyms.push_back(*UndefinedSymIt);
+      }
+    } else if (LibSyms.size() == 0) {
+      // If this library has no symbols, take one from the undefined symbols.
+      // We need to ensure each dummy .so has at least one, or the final binary
+      // will not actually be linked with this library.
+      if (UndefinedSymIt == UndefinedSymItEnd) {
+        // We ran out of symbols.
+        LOG_ERROR << "No symbols remain to assign to " << Lib << "\n";
+        return false;
+      }
+
+      LibSyms.push_back(*UndefinedSymIt++);
+    }
+
+    if (!generateDummySO(ir, libDir, Lib, LibSyms)) {
+      LOG_ERROR << "Failed generating dummy .so for " << Lib << "\n";
       return false;
     }
   }
