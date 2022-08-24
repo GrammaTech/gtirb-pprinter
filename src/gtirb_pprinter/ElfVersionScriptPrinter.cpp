@@ -13,6 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "ElfVersionScriptPrinter.hpp"
 #include "AuxDataSchema.hpp"
 #include "AuxDataUtils.hpp"
 #include "FileUtils.hpp"

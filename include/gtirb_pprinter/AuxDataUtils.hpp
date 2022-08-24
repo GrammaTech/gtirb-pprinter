@@ -6,6 +6,7 @@
 #include <type_traits>
 
 #include "AuxDataSchema.hpp"
+#include "Export.hpp"
 
 /*
  * What goes here?
@@ -219,7 +220,7 @@ getElfSymbolInfo(const gtirb::Symbol& Sym);
 void setElfSymbolInfo(gtirb::Symbol& Sym, aux_data::ElfSymbolInfo& Info);
 
 // Determine if any versions symbols are defined in the IR.
-bool hasVersionedSymDefs(const gtirb::IR& IR);
+DEBLOAT_PRETTYPRINTER_EXPORT_API bool hasVersionedSymDefs(const gtirb::IR& IR);
 
 const gtirb::provisional_schema::ElfSymbolVersions::Type*
 getSymbolVersions(const gtirb::Module& M);

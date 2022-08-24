@@ -18,10 +18,13 @@
 #include <fstream>
 #include <gtirb/gtirb.hpp>
 
-/// \brief print ELF version scripts from GTIRB representations.
+#include "Export.hpp"
+
 namespace gtirb_pprint {
 
-bool printVersionScript(const gtirb::IR& IR, std::ofstream& VersionScript);
+/// \brief print ELF version scripts from GTIRB representations.
+DEBLOAT_PRETTYPRINTER_EXPORT_API bool
+printVersionScript(const gtirb::IR& IR, std::ofstream& VersionScript);
 
 } // namespace gtirb_pprint
 

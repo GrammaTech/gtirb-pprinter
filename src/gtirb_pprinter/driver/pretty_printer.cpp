@@ -396,8 +396,7 @@ int main(int argc, char** argv) {
       LOG_INFO << "Generating version script, but it is not needed.\n";
     }
 
-    const auto versionScriptPath =
-        fs::path(vm["version-script"].as<std::string>());
+    const auto versionScriptPath = vm["version-script"].as<std::string>();
     std::ofstream VersionStream(versionScriptPath);
     gtirb_pprint::printVersionScript(*ir, VersionStream);
   }
