@@ -90,8 +90,7 @@ void ArmPrettyPrinter::printHeader(std::ostream& os) {
 
 void ArmPrettyPrinter::setDecodeMode(std::ostream& Os,
                                      const gtirb::CodeBlock& x) {
-  // 1 for THUMB 0 for regular ARM
-  if (x.getDecodeMode()) {
+  if (x.getDecodeMode() == gtirb::DecodeMode::Thumb) {
     Os << ".thumb" << std::endl;
 
     if (Mclass) {
@@ -118,7 +117,7 @@ void ArmPrettyPrinter::printBlockContents(std::ostream& Os,
 
   size_t CsModes[2];
   size_t CsModeCount = 1;
-  if (!X.getDecodeMode()) {
+  if (X.getDecodeMode() != gtirb::DecodeMode::Thumb) {
     CsModes[0] = (CS_MODE_ARM | CS_MODE_V8);
   } else {
     if (ArchInfoExists) {
