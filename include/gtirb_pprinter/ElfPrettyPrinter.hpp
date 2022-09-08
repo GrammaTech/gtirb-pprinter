@@ -145,7 +145,6 @@ protected:
   void printString(std::ostream& Stream, const gtirb::DataBlock& Block,
                    uint64_t Offset, bool NullTerminated = true) override;
 
-
   void skipVersionSymbols();
 
   std::optional<uint64_t> getAlignment(const gtirb::CodeBlock& Block) override;
