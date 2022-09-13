@@ -791,7 +791,7 @@ std::string ArmPrettyPrinter::getFunctionName(gtirb::Addr x) const {
     }
   }
 
-  return getFunctionName(x);
+  return PrettyPrinterBase::getFunctionName(x);
 }
 
 bool ArmPrettyPrinter::printSymbolReference(std::ostream& OS,
