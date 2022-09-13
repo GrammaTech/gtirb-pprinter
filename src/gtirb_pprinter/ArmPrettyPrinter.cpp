@@ -362,12 +362,12 @@ void ArmPrettyPrinter::printOperandList(std::ostream& os,
       ARM_INS_STM,     ARM_INS_STMDA,   ARM_INS_STMDB,  ARM_INS_STMIB,
       ARM_INS_FSTMDBX, ARM_INS_FSTMIAX, ARM_INS_VSTMDB, ARM_INS_VSTMIA};
 
-  static std::set<arm_insn> PushPop = {
-      ARM_INS_POP,     ARM_INS_PUSH,    ARM_INS_VPOP,   ARM_INS_VPUSH};
+  static std::set<arm_insn> PushPop = {ARM_INS_POP, ARM_INS_PUSH, ARM_INS_VPOP,
+                                       ARM_INS_VPUSH};
 
-  static std::set<arm_insn> VldVst = {
-      ARM_INS_VLD1,    ARM_INS_VLD2,    ARM_INS_VLD3,   ARM_INS_VLD4,
-      ARM_INS_VST1,    ARM_INS_VST2,    ARM_INS_VST3,   ARM_INS_VST4};
+  static std::set<arm_insn> VldVst = {ARM_INS_VLD1, ARM_INS_VLD2, ARM_INS_VLD3,
+                                      ARM_INS_VLD4, ARM_INS_VST1, ARM_INS_VST2,
+                                      ARM_INS_VST3, ARM_INS_VST4};
 
   // VLDn/VSTn
   if (VldVst.find(static_cast<arm_insn>(inst.id)) != VldVst.end()) {
@@ -386,8 +386,7 @@ void ArmPrettyPrinter::printOperandList(std::ostream& os,
         }
         os << "]";
         break;
-      }
-      else {
+      } else {
         if (i != 0) {
           os << ", ";
         }
