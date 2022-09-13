@@ -388,7 +388,6 @@ void ArmPrettyPrinter::printOperandList(std::ostream& os,
         if (detail.writeback) {
           os << "!";
         }
-        break;
       } else {
         if (i != 0) {
           os << ", ";
