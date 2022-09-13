@@ -353,18 +353,56 @@ void ArmPrettyPrinter::printOperandList(std::ostream& os,
                                         const gtirb::CodeBlock& block,
                                         const cs_insn& inst) {
   cs_arm& detail = inst.detail->arm;
+
   int opCount = detail.op_count;
-  std::set<arm_insn> LdmSdm = {
+
+  static std::set<arm_insn> LdmStm = {
       ARM_INS_LDM,     ARM_INS_LDMDA,   ARM_INS_LDMDB,  ARM_INS_LDMIB,
       ARM_INS_FLDMDBX, ARM_INS_FLDMIAX, ARM_INS_VLDMDB, ARM_INS_VLDMIA,
       ARM_INS_STM,     ARM_INS_STMDA,   ARM_INS_STMDB,  ARM_INS_STMIB,
-      ARM_INS_FSTMDBX, ARM_INS_FSTMIAX, ARM_INS_VSTMDB, ARM_INS_VSTMIA,
-      ARM_INS_VPOP,    ARM_INS_VPUSH};
-  std::set<arm_insn> PushPop = {ARM_INS_POP, ARM_INS_PUSH, ARM_INS_VPOP,
-                                ARM_INS_VPUSH};
+      ARM_INS_FSTMDBX, ARM_INS_FSTMIAX, ARM_INS_VSTMDB, ARM_INS_VSTMIA};
+
+  static std::set<arm_insn> PushPop = {
+      ARM_INS_POP,     ARM_INS_PUSH,    ARM_INS_VPOP,   ARM_INS_VPUSH};
+
+  static std::set<arm_insn> VldVst = {
+      ARM_INS_VLD1,    ARM_INS_VLD2,    ARM_INS_VLD3,   ARM_INS_VLD4,
+      ARM_INS_VST1,    ARM_INS_VST2,    ARM_INS_VST3,   ARM_INS_VST4};
+
+  // VLDn/VSTn
+  if (VldVst.find(static_cast<arm_insn>(inst.id)) != VldVst.end()) {
+    os << "{ ";
+    for (int i = 0; i < opCount; i++) {
+      const cs_arm_op& op = detail.operands[i];
+      // Print out closing paranthesis once a memory operand is encountered.
+      if (op.type == ARM_OP_MEM) {
+        os << " }, [";
+        if (op.mem.base != ARM_REG_INVALID) {
+          os << getRegisterName(op.mem.base);
+        }
+        // The disp is for alignment for VLDn and VSTn instructions.
+        if (op.mem.disp != 0) {
+          os << " :" << op.mem.disp;
+        }
+        os << "]";
+        break;
+      }
+      else {
+        if (i != 0) {
+          os << ", ";
+        }
+        printOperand(os, block, inst, i);
+      }
+    }
+    if (detail.writeback) {
+      os << "!";
+    }
+    return;
+  }
+
   int RegBitVectorIndex = -1;
 
-  if (LdmSdm.find(static_cast<arm_insn>(inst.id)) != LdmSdm.end())
+  if (LdmStm.find(static_cast<arm_insn>(inst.id)) != LdmStm.end())
     RegBitVectorIndex = 1;
   if (PushPop.find(static_cast<arm_insn>(inst.id)) != PushPop.end())
     RegBitVectorIndex = 0;
@@ -376,7 +414,7 @@ void ArmPrettyPrinter::printOperandList(std::ostream& os,
     if (i == RegBitVectorIndex)
       os << "{ ";
     printOperand(os, block, inst, i);
-    if (LdmSdm.find(static_cast<arm_insn>(inst.id)) != LdmSdm.end() && i == 0 &&
+    if (LdmStm.find(static_cast<arm_insn>(inst.id)) != LdmStm.end() && i == 0 &&
         detail.writeback) {
       os << "!";
     }
