@@ -374,7 +374,7 @@ void ArmPrettyPrinter::printOperandList(std::ostream& os,
     os << "{ ";
     for (int i = 0; i < opCount; i++) {
       const cs_arm_op& op = detail.operands[i];
-      // Print out closing paranthesis once a memory operand is encountered.
+      // Print out closing parenthesis once a memory operand is encountered.
       if (op.type == ARM_OP_MEM) {
         os << " }, [";
         if (op.mem.base != ARM_REG_INVALID) {
