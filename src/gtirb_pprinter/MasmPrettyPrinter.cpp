@@ -106,8 +106,9 @@ MasmPrettyPrinter::MasmPrettyPrinter(gtirb::Context& context_,
   // TODO: Evaluate this syntax option.
   // cs_option(this->csHandle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_MASM);
   BaseAddress = module.getPreferredAddr();
-
-  if (auto It = module.findSymbols("__ImageBase"); !It.empty()) {
+  auto ImageBaseName =
+      module.getISA() == gtirb::ISA::IA32 ? "___ImageBase" : "__ImageBase";
+  if (auto It = module.findSymbols(ImageBaseName); !It.empty()) {
     ImageBase = &*It.begin();
   }
 

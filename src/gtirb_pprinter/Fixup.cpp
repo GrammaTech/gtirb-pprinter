@@ -166,10 +166,10 @@ void fixupSharedObject(gtirb::Context& Context, gtirb::Module& Module) {
 
 void fixupPESymbols(gtirb::Context& Context, gtirb::Module& Module) {
   if (auto It = Module.findSymbols("__ImageBase"); !It.empty()) {
-    auto& ImageBase = *It.begin();
-    ImageBase.setReferent(Module.addProxyBlock(Context));
+    auto ImageBase = &*It.begin();
+    ImageBase->setReferent(Module.addProxyBlock(Context));
     if (Module.getISA() == gtirb::ISA::IA32) {
-      ImageBase.setName("___ImageBase");
+      ImageBase->setName("___ImageBase");
     }
   }
 
