@@ -385,6 +385,9 @@ void ArmPrettyPrinter::printOperandList(std::ostream& os,
           os << " :" << op.mem.disp;
         }
         os << "]";
+        if (detail.writeback) {
+          os << "!";
+        }
         break;
       } else {
         if (i != 0) {
@@ -392,9 +395,6 @@ void ArmPrettyPrinter::printOperandList(std::ostream& os,
         }
         printOperand(os, block, inst, i);
       }
-    }
-    if (detail.writeback) {
-      os << "!";
     }
     return;
   }
