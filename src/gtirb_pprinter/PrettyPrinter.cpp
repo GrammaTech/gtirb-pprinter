@@ -759,14 +759,16 @@ void PrettyPrinterBase::printOperandList(std::ostream& os,
 #endif
   };
 
-  static const std::unordered_set<x86_insn> BracketedSecondKAVX512Instrs {
-        X86_INS_VPCMPB, X86_INS_VPCMPD, X86_INS_VPCMPQ, X86_INS_VPCMPW,
-        X86_INS_VPCMPUB, X86_INS_VPCMPUD, X86_INS_VPCMPUQ, X86_INS_VPCMPUW,
-        X86_INS_VPCMPEQB, X86_INS_VPCMPEQD, X86_INS_VPCMPEQQ, X86_INS_VPCMPEQW,
-        X86_INS_VPCMPGTB, X86_INS_VPCMPGTD, X86_INS_VPCMPGTQ, X86_INS_VPCMPGTW,
-        X86_INS_VPTEST, X86_INS_VPTESTMB, X86_INS_VPTESTMD, X86_INS_VPTESTMQ,
-        X86_INS_VPTESTMW, X86_INS_VPTESTNMB, X86_INS_VPTESTNMD,
-        X86_INS_VPTESTNMQ, X86_INS_VPTESTNMW,
+  static const std::unordered_set<x86_insn> BracketedSecondKAVX512Instrs{
+      X86_INS_VPCMPB,    X86_INS_VPCMPD,    X86_INS_VPCMPQ,
+      X86_INS_VPCMPW,    X86_INS_VPCMPUB,   X86_INS_VPCMPUD,
+      X86_INS_VPCMPUQ,   X86_INS_VPCMPUW,   X86_INS_VPCMPEQB,
+      X86_INS_VPCMPEQD,  X86_INS_VPCMPEQQ,  X86_INS_VPCMPEQW,
+      X86_INS_VPCMPGTB,  X86_INS_VPCMPGTD,  X86_INS_VPCMPGTQ,
+      X86_INS_VPCMPGTW,  X86_INS_VPTEST,    X86_INS_VPTESTMB,
+      X86_INS_VPTESTMD,  X86_INS_VPTESTMQ,  X86_INS_VPTESTMW,
+      X86_INS_VPTESTNMB, X86_INS_VPTESTNMD, X86_INS_VPTESTNMQ,
+      X86_INS_VPTESTNMW,
   };
 
   bool IsBracketedAVX512Instruction =
@@ -783,7 +785,7 @@ void PrettyPrinterBase::printOperandList(std::ostream& os,
   // so that the first K is not bracketed.
   bool BracketedK = true;
   if (IsBracketedSecondKAVX512Instr)
-      BracketedK = false;
+    BracketedK = false;
 
   for (int i = 0; i < detail.op_count; i++) {
     const cs_x86_op& Op = detail.operands[i];
@@ -805,7 +807,7 @@ void PrettyPrinterBase::printOperandList(std::ostream& os,
       printOperand(os, block, inst, i);
 
       if (IsBracketedSecondKAVX512Instr && Op.type == X86_OP_REG &&
-              (Op.reg >= X86_REG_K0 && Op.reg <= X86_REG_K7)) {
+          (Op.reg >= X86_REG_K0 && Op.reg <= X86_REG_K7)) {
         BracketedK = true;
       }
     }

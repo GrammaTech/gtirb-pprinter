@@ -17,7 +17,10 @@ class ATTInstructionsTest(PPrinterTest):
             (b"\x62\xF1\xE5\xC9\xD4\xCA", "vpaddq %zmm2,%zmm3,%zmm1{%k1}{z}"),
             (b"\x62\xF3\x7D\x20\x1F\x07\x00", "vpcmpeqd (%rdi),%ymm16,%k0"),
             (b"\x62\xB2\x75\x20\x26\xC9", "vptestmb %ymm17,%ymm17,%k1"),
-            (b"\x62\xB3\x2D\x21\x3F\xC0\x00", "vpcmpeqb %ymm16,%ymm26,%k0{%k1}"),
+            (
+                b"\x62\xB3\x2D\x21\x3F\xC0\x00",
+                "vpcmpeqb %ymm16,%ymm26,%k0{%k1}",
+            ),
         ]
 
         for insn_bytes, insn_str in instructions:
