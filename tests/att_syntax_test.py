@@ -13,13 +13,27 @@ class ATTInstructionsTest(PPrinterTest):
         )
         s, bi = add_text_section(m)
 
-        # vpaddq %zmm2, %zmm3, %zmm1 {%k1}{z}
-        add_code_block(bi, b"\x62\xF1\xE5\xC9\xD4\xCA")
+        instructions = [
+            (b"\x62\xF1\xE5\xC9\xD4\xCA", "vpaddq %zmm2,%zmm3,%zmm1{%k1}{z}"),
+            (b"\x62\xF3\x7D\x20\x1F\x07\x00", "vpcmpeqd (%rdi),%ymm16,%k0"),
+            (b"\x62\xB2\x75\x20\x26\xC9", "vptestmb %ymm17,%ymm17,%k1"),
+            (b"\x62\xB3\x2D\x21\x3F\xC0\x00", "vpcmpeqb %ymm16,%ymm26,%k0{%k1}"),
+        ]
 
-        # We're specifically trying to see if there is a space between {%kN}
-        # operands and the {z} mask.
-        asm = run_asm_pprinter(ir, ["--syntax=att"])
-        self.assertIn("{%k1}{z}", asm)
+        for insn_bytes, insn_str in instructions:
+            with self.subTest(instruction=insn_str):
+
+                ir, m = create_test_module(
+                    file_format=gtirb.Module.FileFormat.ELF,
+                    isa=gtirb.Module.ISA.X64,
+                )
+                s, bi = add_text_section(m)
+
+                add_code_block(bi, insn_bytes)
+
+                # specifically, ensure the `%cl` operand is printed
+                asm = run_asm_pprinter(ir, ["--syntax=att"])
+                self.assertIn(insn_str, asm)
 
     def test_shift_att(self):
         """

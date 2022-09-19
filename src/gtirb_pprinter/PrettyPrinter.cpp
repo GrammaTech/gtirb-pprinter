@@ -736,7 +736,7 @@ void PrettyPrinterBase::printOperandList(std::ostream& os,
                                          const cs_insn& inst) {
   const cs_x86& detail = inst.detail->x86;
 
-  // some instructions don't put commas between thier operands, but instead
+  // some instructions don't put commas between their operands, but instead
   // put it in between {}s. These instructions are always AVX512 instructions
   // when you use the k registers. Not all AVX512 instructions use the k
   // registers in this manner, however.
@@ -758,13 +758,37 @@ void PrettyPrinterBase::printOperandList(std::ostream& os,
         X86_INS_KTESTD, X86_INS_KTESTQ,
 #endif
   };
+
+  static const std::unordered_set<x86_insn> BracketedSecondKAVX512Instrs {
+        X86_INS_VPCMPB, X86_INS_VPCMPD, X86_INS_VPCMPQ, X86_INS_VPCMPW,
+        X86_INS_VPCMPUB, X86_INS_VPCMPUD, X86_INS_VPCMPUQ, X86_INS_VPCMPUW,
+        X86_INS_VPCMPEQB, X86_INS_VPCMPEQD, X86_INS_VPCMPEQQ, X86_INS_VPCMPEQW,
+        X86_INS_VPCMPGTB, X86_INS_VPCMPGTD, X86_INS_VPCMPGTQ, X86_INS_VPCMPGTW,
+        X86_INS_VPTEST, X86_INS_VPTESTMB, X86_INS_VPTESTMD, X86_INS_VPTESTMQ,
+        X86_INS_VPTESTMW, X86_INS_VPTESTNMB, X86_INS_VPTESTNMD,
+        X86_INS_VPTESTNMQ, X86_INS_VPTESTNMW,
+  };
+
   bool IsBracketedAVX512Instruction =
       UnbracketedAVX512Instructions.count(static_cast<x86_insn>(inst.id)) == 0;
+
+  bool IsBracketedSecondKAVX512Instr =
+      BracketedSecondKAVX512Instrs.count(static_cast<x86_insn>(inst.id)) != 0;
+
+  // For some of the AVX512 instrutions
+  // (listed in BracketedSecondKAVX512Instrs),
+  // the first K register is not bracketed.
+  // E.g., vpcmpnequb (%rdi),%ymm18,%k1{%k2}
+  // For such instructions, set BracketedK initially false
+  // so that the first K is not bracketed.
+  bool BracketedK = true;
+  if (IsBracketedSecondKAVX512Instr)
+      BracketedK = false;
 
   for (int i = 0; i < detail.op_count; i++) {
     const cs_x86_op& Op = detail.operands[i];
 
-    if (IsBracketedAVX512Instruction && Op.type == X86_OP_REG &&
+    if (IsBracketedAVX512Instruction && BracketedK && Op.type == X86_OP_REG &&
         (Op.reg >= X86_REG_K0 && Op.reg <= X86_REG_K7)) {
       // print AVX512 mask operand
       os << '{';
@@ -779,6 +803,11 @@ void PrettyPrinterBase::printOperandList(std::ostream& os,
         os << ',';
       }
       printOperand(os, block, inst, i);
+
+      if (IsBracketedSecondKAVX512Instr && Op.type == X86_OP_REG &&
+              (Op.reg >= X86_REG_K0 && Op.reg <= X86_REG_K7)) {
+        BracketedK = true;
+      }
     }
   }
 }
