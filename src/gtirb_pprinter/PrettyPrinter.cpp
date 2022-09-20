@@ -781,16 +781,15 @@ void PrettyPrinterBase::printOperandList(std::ostream& os,
   // (listed in BracketedSecondKAVX512Instrs),
   // the first K register is not bracketed.
   // E.g., vpcmpnequb (%rdi),%ymm18,%k1{%k2}
-  // For such instructions, set BracketedK initially false
+  // For such instructions, have BracketedK initially set to false
   // so that the first K is not bracketed.
-  bool BracketedK = true;
-  if (IsBracketedSecondKAVX512Instr)
-    BracketedK = false;
+  bool BracketedK =
+      IsBracketedAVX512Instruction && !IsBracketedSecondKAVX512Instr;
 
   for (int i = 0; i < detail.op_count; i++) {
     const cs_x86_op& Op = detail.operands[i];
 
-    if (IsBracketedAVX512Instruction && BracketedK && Op.type == X86_OP_REG &&
+    if (BracketedK && Op.type == X86_OP_REG &&
         (Op.reg >= X86_REG_K0 && Op.reg <= X86_REG_K7)) {
       // print AVX512 mask operand
       os << '{';
