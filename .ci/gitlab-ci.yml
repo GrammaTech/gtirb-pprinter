@@ -89,7 +89,7 @@ build-conan-linux-gcc9:
     - export PYTHONPATH=`cygpath -w $(pwd)`
     # Setup Remote and Authenticate
     - conan remote add gitlab ${CI_API_V4_URL}/packages/conan
-    - CONAN_PASSWORD=$CI_JOB_TOKEN conan user ci_user -r gitlab -p
+    - conan user ci_user -r gitlab -p
     # Build
     - python .ci/build.py -s build_type=$BUILD_TYPE
     # Install
@@ -148,11 +148,13 @@ build-conan-linux-gcc9:
 conan-windows-debug:
   variables:
     BUILD_TYPE: 'Debug'
+    CONAN_PASSWORD: $CI_JOB_TOKEN
   <<: *conan-windows
 
 conan-windows-release:
   variables:
     BUILD_TYPE: 'Release'
+    CONAN_PASSWORD: $CI_JOB_TOKEN
   <<: *conan-windows
 
 .ubuntu-deps:
