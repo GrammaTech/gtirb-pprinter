@@ -45,7 +45,6 @@ include(CheckIncludeFile)
 option(ENABLE_CONAN "Use Conan to inject dependencies" OFF)
 if(ENABLE_CONAN)
   set(CONAN_SYSTEM_INCLUDES ON)
-  set(CMAKE_PACKAGE_POLICY "conan")
   include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
   conan_basic_setup()
 endif()
@@ -512,22 +511,32 @@ endif()
 # Package policy enforcement
 # ---------------------------------------------------------------------------
 
-if(CMAKE_PACKAGE_POLICY STREQUAL "debian")
-
-  # Provides copyright file required by Debian Package Policy
-  install(
-    FILES ${CMAKE_SOURCE_DIR}/LICENSE.txt
-    COMPONENT copyright
-    DESTINATION share/doc/gtirb-pprinter
-    RENAME copyright)
-
-elseif(CMAKE_PACKAGE_POLICY STREQUAL "conan")
-
-  # Provides LICENSE.txt for conan packages
-  install(FILES ${CMAKE_SOURCE_DIR}/LICENSE.txt DESTINATION licenses)
-
+if(GTIRB_PPRINTER_PACKAGE_POLICY)
+  set(PACKAGE_POLICY ${GTIRB_PPRINTER_PACKAGE_POLICY})
+elseif(ENABLE_CONAN OR WIN32)
+  set(PACKAGE_POLICY conan)
+else()
+  set(PACKAGE_POLICY unix)
 endif()
 
+if(PACKAGE_POLICY STREQUAL "unix")
+
+  # Provides copyright file for Unix packages.
+  install(
+    FILES ${CMAKE_SOURCE_DIR}/LICENSE.txt
+    COMPONENT license
+    DESTINATION share/doc/gtirb
+    RENAME copyright)
+
+elseif(PACKAGE_POLICY STREQUAL "conan")
+
+  # Provides LICENSE.txt for Conan packages
+  install(
+    FILES ${CMAKE_SOURCE_DIR}/LICENSE.txt
+    COMPONENT license
+    DESTINATION licenses)
+
+endif()
 # ---------------------------------------------------------------------------
 # Package generation with cpack
 # ---------------------------------------------------------------------------

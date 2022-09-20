@@ -95,7 +95,7 @@ build-conan-linux-gcc9:
     # Install
       # Python print() on Windows returns CRLF and will cause issues in CI - use "print('string', end='')" when outputting from python.
     - export CONAN_RECIPE=`python -c "import conanfile; print(conanfile.Properties().conan_recipe, end='')"`
-    - conan install $CONAN_RECIPE -g deploy --install-folder="./conan-packages"
+    - conan install $CONAN_RECIPE -g deploy --install-folder="./conan-packages" -s build_type=$BUILD_TYPE
     # Merge Package Files
     - export CONAN_PACKAGES="${CI_PROJECT_DIR}/conan-packages/*"
     - export WINDOWS_PACKAGE_NAME=`conan inspect . --raw name`
