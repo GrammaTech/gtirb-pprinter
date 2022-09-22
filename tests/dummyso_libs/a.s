@@ -10,6 +10,8 @@
         .section        .rodata
 .message:
         .string "a() invoked!\n"
+.message2:
+        .string "a2() invoked!\n"
         .text
         .globl  a
         .type   a, @function
@@ -17,6 +19,20 @@ a:
         pushq   %rbp
         movq    %rsp, %rbp
         leaq    .message(%rip), %rsi
+        mov     $1, %rax
+        mov     $1, %rdi
+        mov     $13, %rdx
+        syscall
+        nop
+        popq    %rbp
+        ret
+
+        .globl  a2
+        .type   a2, @function
+a2:
+        pushq   %rbp
+        movq    %rsp, %rbp
+        leaq    .message2(%rip), %rsi
         mov     $1, %rax
         mov     $1, %rdi
         mov     $13, %rdx
