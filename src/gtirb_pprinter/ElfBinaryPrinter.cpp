@@ -310,7 +310,7 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
   // Generate the .so files
   auto UndefinedSymIt = unallocatedSymbols.begin();
   auto UndefinedSymItEnd = unallocatedSymbols.end();
-  auto LastLibIt = libs.end()--;
+  auto LastLibIt = --libs.end();
   for (auto LibIt = libs.begin(); LibIt != libs.end(); LibIt++) {
     std::string& Lib = *LibIt;
     auto& LibSyms = undefinedSymbols[Lib];
