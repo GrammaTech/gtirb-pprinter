@@ -525,7 +525,7 @@ if(PACKAGE_POLICY STREQUAL "unix")
   install(
     FILES ${CMAKE_SOURCE_DIR}/LICENSE.txt
     COMPONENT license
-    DESTINATION share/doc/gtirb
+    DESTINATION share/doc/gtirb-pprinter
     RENAME copyright)
 
 elseif(PACKAGE_POLICY STREQUAL "conan")
