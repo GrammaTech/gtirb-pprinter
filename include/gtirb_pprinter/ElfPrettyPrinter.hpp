@@ -125,6 +125,7 @@ protected:
   void printSymbolDefinitionRelativeToPC(std::ostream& os,
                                          const gtirb::Symbol& symbol,
                                          gtirb::Addr pc) override;
+  void printIntegralSymbols(std::ostream& os) override;
   void printIntegralSymbol(std::ostream& os,
                            const gtirb::Symbol& symbol) override;
   void printUndefinedSymbol(std::ostream& os,

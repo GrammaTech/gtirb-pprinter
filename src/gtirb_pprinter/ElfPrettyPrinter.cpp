@@ -342,6 +342,36 @@ void ElfPrettyPrinter::printSymbolDefinitionRelativeToPC(
   os << "\n";
 }
 
+void ElfPrettyPrinter::printIntegralSymbols(std::ostream& os) {
+  PrettyPrinterBase::printIntegralSymbols(os);
+
+  // Print integral symbols attached to the PLT.
+  for (const auto& sym : module.symbols_by_name()) {
+    if (sym.getAddress()) {
+      if (auto Info = aux_data::getElfSymbolInfo(sym)) {
+        if (Info->Binding == "GLOBAL") {
+          if (auto Block = sym.getReferent<gtirb::CodeBlock>()) {
+            if (auto ByteInterval = Block->getByteInterval()) {
+              if (auto Section = ByteInterval->getSection()) {
+                if (Section->getName() == ".plt" &&
+                    shouldSkip(policy, *Section)) {
+                  // Symbol is attached to the .plt, but it is skipped.
+                  // This can happen to .plt symbols if the symbol has an
+                  // address in the ELF metadata, which seems to occur
+                  // sometimes. We need to emit the symbol definition, ensuring
+                  // that we link with the correct symbol version (if versions
+                  // exist).
+                  printUndefinedSymbol(os, sym);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
 void ElfPrettyPrinter::printIntegralSymbol(std::ostream& Stream,
                                            const gtirb::Symbol& Symbol) {
 

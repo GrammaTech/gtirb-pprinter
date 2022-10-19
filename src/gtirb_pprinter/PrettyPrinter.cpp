@@ -407,14 +407,7 @@ const gtirb::SymAddrConst* PrettyPrinterBase::getSymbolicImmediate(
   return nullptr;
 }
 
-std::ostream& PrettyPrinterBase::print(std::ostream& os) {
-  printHeader(os);
-
-  // print every section
-  for (const auto& section : module.sections()) {
-    printSection(os, section);
-  }
-
+void PrettyPrinterBase::printIntegralSymbols(std::ostream& os) {
   // print integral symbols
   for (const auto& sym : module.symbols_by_name()) {
     if (auto addr = sym.getAddress();
@@ -430,6 +423,17 @@ std::ostream& PrettyPrinterBase::print(std::ostream& os) {
       printUndefinedSymbol(os, sym);
     }
   }
+}
+
+std::ostream& PrettyPrinterBase::print(std::ostream& os) {
+  printHeader(os);
+
+  // print every section
+  for (const auto& section : module.sections()) {
+    printSection(os, section);
+  }
+
+  printIntegralSymbols(os);
 
   // print footer
   printFooter(os);

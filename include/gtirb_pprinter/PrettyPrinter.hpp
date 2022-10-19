@@ -439,6 +439,7 @@ protected:
   virtual void printSymbolDefinitionRelativeToPC(std::ostream& os,
                                                  const gtirb::Symbol& symbol,
                                                  gtirb::Addr pc) = 0;
+  virtual void printIntegralSymbols(std::ostream& os);
   virtual void printIntegralSymbol(std::ostream& os,
                                    const gtirb::Symbol& symbol) = 0;
   virtual void printUndefinedSymbol(std::ostream& os,
