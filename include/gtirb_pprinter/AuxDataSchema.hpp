@@ -109,7 +109,7 @@ struct BinaryType {
 /// \brief Auxiliary data describing architecture information
 struct ArchInfo {
   static constexpr const char* Name = "archInfo";
-  typedef std::vector<std::string> Type;
+  typedef std::map<std::string, std::string> Type;
 };
 
 /// \brief Auxiliary data representing the export table of a PE file.
