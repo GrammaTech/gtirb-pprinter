@@ -74,13 +74,6 @@ ArmPrettyPrinter::ArmPrettyPrinter(gtirb::Context& context_,
 void ArmPrettyPrinter::printHeader(std::ostream& os) {
   os << "# ARM " << std::endl;
   os << ".syntax unified" << std::endl;
-
-  const auto& ArchInfo = aux_data::getArchInfo(module);
-  auto It = ArchInfo.find("Profile");
-  if (It != ArchInfo.end() && It->second == "Microcontroller") {
-    os << ".arch_extension idiv" << std::endl;
-  }
-
   os << ".arch_extension sec" << std::endl;
 }
 
