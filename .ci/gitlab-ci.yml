@@ -157,16 +157,34 @@ conan-windows-release:
     CONAN_PASSWORD: $CI_JOB_TOKEN
   <<: *conan-windows
 
-.ubuntu-deps:
-  &ubuntu-deps
+.download-deps: &download-deps
+  - DIST_NAME="$(lsb_release -sc)"
   - case $OS in
-     ubuntu20) JOB_NAME='debian-installer-ubuntu20' ;;
-     esac
-  # download capstone & gtirb
-  - curl -L https://git.grammatech.com/api/v4/projects/rewriting%2Fextra-packages/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
-  - curl -L https://git.grammatech.com/api/v4/projects/rewriting%2Fgtirb/jobs/artifacts/${GTIRB_BRANCH}/download?job=${JOB_NAME} --output "gtirb.zip"
-  - for pkg in gtirb capstone; do unzip $pkg.zip; done
-  - dpkg -i libcapstone-dev.deb libgtirb.deb libgtirb-dev.deb
+      ubuntu20) JOB_NAME='debian-installer-ubuntu20' ;;
+    esac
+  # Configure GTIRB APT repository.
+  - wget -O - https://download.grammatech.com/gtirb/files/apt-repo/conf/apt.gpg.key | apt-key add -
+  - echo "deb https://download.grammatech.com/gtirb/files/apt-repo $DIST_NAME unstable" | tee -a /etc/apt/sources.list
+  - apt-get update -y
+  # Download capstone and gtirb.
+  - >-
+    if [ $CAPSTONE_BRANCH != "master" ]; then
+      curl -L https://git.grammatech.com/api/v4/projects/rewriting%2Fextra-packages/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
+      unzip "capstone.zip"
+    else
+      apt-get download libcapstone-dev=1:5.0.0-gtdev
+    fi
+  - >-
+    if [ $GTIRB_BRANCH != "master" ]; then
+      curl -L https://git.grammatech.com/api/v4/projects/rewriting%2Fgtirb/jobs/artifacts/${GTIRB_BRANCH}/download?job=${JOB_NAME} --output "gtirb.zip"
+      unzip "gtirb.zip"
+    else
+      apt-get download libgtirb libgtirb-dev
+    fi
+
+.install-deps:
+  - !reference [.download-deps]
+  - dpkg -i libcapstone*.deb libgtirb*.deb
 
 .build-template: &build
   stage: build
@@ -175,7 +193,7 @@ conan-windows-release:
     paths:
       - 'build'
   script:
-    - *ubuntu-deps
+    - !reference [.install-deps]
     - mkdir build && cd build
     - cmake ../ -DCMAKE_CXX_COMPILER=$COMPILER -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCPACK_DEBIAN_PACKAGE_RELEASE="$(lsb_release -sc)" -DGTIRB_PPRINTER_STRIP_DEBUG_SYMBOLS=On
     - make -j
@@ -183,7 +201,7 @@ conan-windows-release:
 .test-and-tag-ubuntu-template: &test-and-tag-ubuntu
   stage: test-and-tag
   script:
-    - *ubuntu-deps
+    - !reference [.install-deps]
     - pip3 install --upgrade pip
     - pip3 install -r tests/requirements.txt $EXTRA_INDEX_URL
     - cd build && PATH=$(pwd)/bin:$PATH ctest -V
@@ -202,7 +220,7 @@ build-ubuntu20-gcc-gcov:
   variables:
     OS: 'ubuntu20'
   script:
-    - *ubuntu-deps
+    - !reference [.install-deps]
     - pip3 install --upgrade pip
     - pip3 install -r tests/requirements.txt $EXTRA_INDEX_URL
     - mkdir build && cd build
@@ -232,9 +250,8 @@ build-static:
   stage: build
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/static
   script:
-    - curl -L https://git.grammatech.com/api/v4/projects/rewriting%2Fextra-packages/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
-    - unzip capstone.zip
-    - dpkg -i libcapstone-dev.deb
+    - !reference [.download-deps]
+    - dpkg -i libcapstone*.deb
     - git clone https://git.grammatech.com/rewriting/gtirb.git
     - cd gtirb
     - mkdir build && cd build
@@ -261,9 +278,8 @@ static-drivers:
     paths:
       - build
   script:
-    - curl -L https://git.grammatech.com/api/v4/projects/rewriting%2Fextra-packages/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
-    - unzip capstone.zip
-    - dpkg -i libcapstone-dev.deb
+    - !reference [.download-deps]
+    - dpkg -i libcapstone*.deb
     - git clone https://git.grammatech.com/rewriting/gtirb.git
     - cd gtirb
     - mkdir build && cd build
@@ -316,7 +332,8 @@ xform-ubuntu20:
   variables:
     OS: ubuntu20
   before_script:
-    - *ubuntu-deps
+    - *download-deps
+    - dpkg -i libcapstone*.deb libgtirb*.deb
   <<: *xform
 
 xform-ubuntu20-clang:
@@ -327,7 +344,8 @@ xform-ubuntu20-clang:
   variables:
     OS: ubuntu20
   before_script:
-    - *ubuntu-deps
+    - *download-deps
+    - dpkg -i libcapstone*.deb libgtirb*.deb
   <<: *xform
 
 test-and-tag-xform-ubuntu20:
@@ -363,7 +381,7 @@ test-make-install:
     OS: 'ubuntu20'
   script:
     - export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-    - *ubuntu-deps
+    - !reference [.install-deps]
     - cd build && make install && cd ..
     - rm -rf build
     - pip3 install --upgrade pip
@@ -382,8 +400,8 @@ test-make-install:
     paths:
       - build
   script:
-    - *ubuntu-deps
-    - 'CAPSTONE_PKG_VERSION=$(dpkg --info libcapstone-dev.deb | sed -n "s/Version: //p" | tr -d "[[:space:]]")'
+    - !reference [.install-deps]
+    - "CAPSTONE_PKG_VERSION=$(dpkg -s libcapstone-dev | awk '/Version:/ { print $2 }')"
     - echo $CAPSTONE_PKG_VERSION
     - cd build
     - CPACK_GTIRB_PPRINTER_STABLE_PKG_NAME=OFF
@@ -408,11 +426,10 @@ build-ubuntu20-packages:
     paths:
       - apt-repo
   script:
+    - !reference [.download-deps]
     - mkdir apt-repo
     - cp build/*.deb apt-repo
-    - curl -L https://git.grammatech.com/api/v4/projects/rewriting%2Fextra-packages/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
-    - curl -L https://git.grammatech.com/api/v4/projects/rewriting%2Fgtirb/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-$OS --output "gtirb.zip"
-    - for pkg in gtirb capstone; do unzip $pkg.zip -d apt-repo; done
+    - cp *.deb apt-repo
     - cd apt-repo && dpkg-scanpackages . /dev/null > Packages
 
 .test-ubuntu-libgtirb-pprinter-dev: &test-ubuntu-libgtirb-pprinter-dev
