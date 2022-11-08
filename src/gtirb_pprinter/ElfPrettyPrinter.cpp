@@ -313,7 +313,11 @@ void ElfPrettyPrinter::printSymExprSuffix(std::ostream& OS,
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::TlsGd)) {
     OS << "@TLSGD";
   } else if (Attrs.isFlagSet(gtirb::SymAttribute::TlsLd)) {
-    OS << "@TLSLD";
+    if (module.getISA() == gtirb::ISA::IA32) {
+      OS << "@TLSLDM";
+    } else {
+      OS << "@TLSLD";
+    }
   }
 }
 
