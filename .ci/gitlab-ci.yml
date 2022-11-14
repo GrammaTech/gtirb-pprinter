@@ -1,7 +1,8 @@
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
-  GTIRB_BRANCH: "master"
-  CAPSTONE_BRANCH: "master"
+  # These variables are used to pin versions on release branches.
+  GTIRB_VERSION: ""
+  CAPSTONE_VERSION: ""
   # The following two variables are used by the package uploader.
   PROJECT_ID: $CI_PROJECT_ID
   PIPELINE_ID: $CI_PIPELINE_ID
@@ -157,16 +158,25 @@ conan-windows-release:
     CONAN_PASSWORD: $CI_JOB_TOKEN
   <<: *conan-windows
 
-.ubuntu-deps:
-  &ubuntu-deps
-  - case $OS in
-     ubuntu20) JOB_NAME='debian-installer-ubuntu20' ;;
-     esac
-  # download capstone & gtirb
-  - curl -L https://git.grammatech.com/api/v4/projects/rewriting%2Fextra-packages/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
-  - curl -L https://git.grammatech.com/api/v4/projects/rewriting%2Fgtirb/jobs/artifacts/${GTIRB_BRANCH}/download?job=${JOB_NAME} --output "gtirb.zip"
-  - for pkg in gtirb capstone; do unzip $pkg.zip; done
-  - dpkg -i libcapstone-dev.deb libgtirb.deb libgtirb-dev.deb
+.setup-apt: &setup-apt
+  - DIST_NAME="$(lsb_release -sc)"
+  # Configure GTIRB APT repository.
+  - wget -O - https://download.grammatech.com/gtirb/files/apt-repo/conf/apt.gpg.key | apt-key add -
+  - COMPONENT=$([[ $CI_COMMIT_REF_NAME =~ release-.* ]] && echo "stable" || echo "unstable")
+  - echo "deb https://download.grammatech.com/gtirb/files/apt-repo $DIST_NAME $COMPONENT" | tee -a /etc/apt/sources.list
+  - apt-get update -y
+
+.install-deps: &install-deps
+  # Install capstone and gtirb.
+  - apt-get install -y libgtirb-dev${GTIRB_VERSION:+-$GTIRB_VERSION} libcapstone-dev${CAPSTONE_VERSION:+-$CAPSTONE_VERSION}
+
+.install-capstone:
+  - DIST_NAME="$(lsb_release -sc)"
+  - wget -O - https://download.grammatech.com/gtirb/files/apt-repo/conf/apt.gpg.key | apt-key add -
+  - COMPONENT=$([[ $CI_COMMIT_REF_NAME =~ release-.* ]] && echo "stable" || echo "unstable")
+  - echo "deb https://download.grammatech.com/gtirb/files/apt-repo $DIST_NAME $COMPONENT" | tee -a /etc/apt/sources.list
+  - apt-get update -y
+  - apt-get install -y libcapstone-dev${CAPSTONE_VERSION:+-$CAPSTONE_VERSION}
 
 .build-template: &build
   stage: build
@@ -175,7 +185,8 @@ conan-windows-release:
     paths:
       - 'build'
   script:
-    - *ubuntu-deps
+    - !reference [.setup-apt]
+    - !reference [.install-deps]
     - mkdir build && cd build
     - cmake ../ -DCMAKE_CXX_COMPILER=$COMPILER -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCPACK_DEBIAN_PACKAGE_RELEASE="$(lsb_release -sc)" -DGTIRB_PPRINTER_STRIP_DEBUG_SYMBOLS=On
     - make -j
@@ -183,7 +194,8 @@ conan-windows-release:
 .test-and-tag-ubuntu-template: &test-and-tag-ubuntu
   stage: test-and-tag
   script:
-    - *ubuntu-deps
+    - !reference [.setup-apt]
+    - !reference [.install-deps]
     - pip3 install --upgrade pip
     - pip3 install -r tests/requirements.txt $EXTRA_INDEX_URL
     - cd build && PATH=$(pwd)/bin:$PATH ctest -V
@@ -202,7 +214,8 @@ build-ubuntu20-gcc-gcov:
   variables:
     OS: 'ubuntu20'
   script:
-    - *ubuntu-deps
+    - !reference [.setup-apt]
+    - !reference [.install-deps]
     - pip3 install --upgrade pip
     - pip3 install -r tests/requirements.txt $EXTRA_INDEX_URL
     - mkdir build && cd build
@@ -232,9 +245,7 @@ build-static:
   stage: build
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/static
   script:
-    - curl -L https://git.grammatech.com/api/v4/projects/rewriting%2Fextra-packages/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
-    - unzip capstone.zip
-    - dpkg -i libcapstone-dev.deb
+    - !reference [.install-capstone]
     - git clone https://git.grammatech.com/rewriting/gtirb.git
     - cd gtirb
     - mkdir build && cd build
@@ -261,9 +272,7 @@ static-drivers:
     paths:
       - build
   script:
-    - curl -L https://git.grammatech.com/api/v4/projects/rewriting%2Fextra-packages/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
-    - unzip capstone.zip
-    - dpkg -i libcapstone-dev.deb
+    - !reference [.install-capstone]
     - git clone https://git.grammatech.com/rewriting/gtirb.git
     - cd gtirb
     - mkdir build && cd build
@@ -316,7 +325,8 @@ xform-ubuntu20:
   variables:
     OS: ubuntu20
   before_script:
-    - *ubuntu-deps
+    - *setup-apt
+    - *install-deps
   <<: *xform
 
 xform-ubuntu20-clang:
@@ -327,7 +337,8 @@ xform-ubuntu20-clang:
   variables:
     OS: ubuntu20
   before_script:
-    - *ubuntu-deps
+    - *setup-apt
+    - *install-deps
   <<: *xform
 
 test-and-tag-xform-ubuntu20:
@@ -363,7 +374,8 @@ test-make-install:
     OS: 'ubuntu20'
   script:
     - export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-    - *ubuntu-deps
+    - !reference [.setup-apt]
+    - !reference [.install-deps]
     - cd build && make install && cd ..
     - rm -rf build
     - pip3 install --upgrade pip
@@ -382,8 +394,9 @@ test-make-install:
     paths:
       - build
   script:
-    - *ubuntu-deps
-    - 'CAPSTONE_PKG_VERSION=$(dpkg --info libcapstone-dev.deb | sed -n "s/Version: //p" | tr -d "[[:space:]]")'
+    - !reference [.setup-apt]
+    - !reference [.install-deps]
+    - "CAPSTONE_PKG_VERSION=$(dpkg -s libcapstone-dev | awk '/Version:/ { print $2 }')"
     - echo $CAPSTONE_PKG_VERSION
     - cd build
     - CPACK_GTIRB_PPRINTER_STABLE_PKG_NAME=OFF
@@ -410,9 +423,6 @@ build-ubuntu20-packages:
   script:
     - mkdir apt-repo
     - cp build/*.deb apt-repo
-    - curl -L https://git.grammatech.com/api/v4/projects/rewriting%2Fextra-packages/jobs/artifacts/${CAPSTONE_BRANCH}/download?job=capstone-linux-deb --output "capstone.zip"
-    - curl -L https://git.grammatech.com/api/v4/projects/rewriting%2Fgtirb/jobs/artifacts/${GTIRB_BRANCH}/download?job=debian-installer-$OS --output "gtirb.zip"
-    - for pkg in gtirb capstone; do unzip $pkg.zip -d apt-repo; done
     - cd apt-repo && dpkg-scanpackages . /dev/null > Packages
 
 .test-ubuntu-libgtirb-pprinter-dev: &test-ubuntu-libgtirb-pprinter-dev
@@ -422,6 +432,8 @@ build-ubuntu20-packages:
     paths:
       - test-install
       - hello.gtirb
+  before_script:
+    - *setup-apt
   script:
     - echo -e "\ndeb [trusted=yes] file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - 'TEST_PKG_NAME=$(dpkg --info apt-repo/libgtirb-pprinter-dev.deb | sed -n "s/Package: //p")'
@@ -434,6 +446,9 @@ build-ubuntu20-packages:
 
 .test-ubuntu-gtirb-pprinter: &test-ubuntu-gtirb-pprinter
   stage: test-packages1
+  before_script:
+    - apt-get -y update && apt-get -y install lsb-release wget gnupg2
+    - *setup-apt
   script:
     - echo -e "\ndeb [trusted=yes] file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - 'TEST_PKG_NAME=$(dpkg --info apt-repo/gtirb-pprinter.deb | sed -n "s/Package: //p")'
@@ -444,6 +459,8 @@ build-ubuntu20-packages:
 
 .test-ubuntu-libgtirb-pprinter-dbg: &test-ubuntu-libgtirb-pprinter-dbg
   stage: test-packages1
+  before_script:
+    - *setup-apt
   script:
     - echo -e "\ndeb [trusted=yes] file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - 'TEST_PKG_NAME=$(dpkg --info apt-repo/libgtirb-pprinter-dbg.deb | sed -n "s/Package: //p")'
@@ -452,6 +469,8 @@ build-ubuntu20-packages:
 
 .test-ubuntu-gtirb-pprinter-dbg: &test-ubuntu-gtirb-pprinter-dbg
   stage: test-packages1
+  before_script:
+    - *setup-apt
   script:
     - echo -e "\ndeb [trusted=yes] file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - 'TEST_PKG_NAME=$(dpkg --info apt-repo/gtirb-pprinter-dbg.deb | sed -n "s/Package: //p")'
@@ -460,6 +479,9 @@ build-ubuntu20-packages:
 
 .test-ubuntu-libgtirb-pprinter: &test-ubuntu-libgtirb-pprinter
   stage: test-packages2
+  before_script:
+    - apt-get -y update && apt-get -y install lsb-release wget gnupg2
+    - *setup-apt
   script:
     - echo -e "\ndeb [trusted=yes] file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - 'TEST_PKG_NAME=$(dpkg --info apt-repo/libgtirb-pprinter.deb | sed -n "s/Package: //p")'
@@ -481,8 +503,6 @@ test-ubuntu20-libgtirb-pprinter-dev:
 test-ubuntu20-gtirb-pprinter:
   image: ubuntu:20.04
   needs: ['setup-ubuntu20-repo']
-  before_script:
-    - apt-get -y update && apt-get -y install lsb-release
   <<: *test-ubuntu-gtirb-pprinter
 
 test-ubuntu20-libgtirb-pprinter-dbg:
@@ -498,8 +518,6 @@ test-ubuntu20-gtirb-pprinter-dbg:
 test-ubuntu20-libgtirb-pprinter:
   image: ubuntu:20.04
   needs: ['setup-ubuntu20-repo', 'test-ubuntu20-libgtirb-pprinter-dev']
-  before_script:
-    - apt-get -y update && apt-get -y install lsb-release
   <<: *test-ubuntu-libgtirb-pprinter
 
 .deploy-debian-installer: &deploy-debian-installer
