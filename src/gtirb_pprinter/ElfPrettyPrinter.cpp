@@ -245,6 +245,9 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
       assert(!"unknown visibility in elfSymbolInfo!");
     }
     printSymbolType(os, Name, *SymbolInfo);
+    if (SymbolInfo->Type == "OBJECT") {
+      printSymbolSize(os, Name, *SymbolInfo);
+    }
     printBar(os, false);
   }
 }
@@ -268,6 +271,15 @@ void ElfPrettyPrinter::printSymbolType(
             : TypeNameIt->second;
     os << elfSyntax.type() << ' ' << Name << ", " << elfSyntax.attributePrefix()
        << TypeName << "\n";
+  }
+}
+
+void ElfPrettyPrinter::printSymbolSize(
+    std::ostream& os, std::string& Name,
+    const aux_data::ElfSymbolInfo& SymbolInfo) {
+  auto Size = SymbolInfo.Size;
+  if (Size != 0) {
+    os << ".size" << ' ' << Name << ", " << Size << "\n";
   }
 }
 
