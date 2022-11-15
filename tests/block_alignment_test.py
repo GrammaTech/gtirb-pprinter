@@ -144,6 +144,7 @@ class BlockAlignmentTest(PPrinterTest):
                 ".byte 0x2",
                 ".globl hello",
                 ".type hello, @object",
+                ".size hello, 2",
                 "hello:",
                 ".byte 0x3",
             ],
