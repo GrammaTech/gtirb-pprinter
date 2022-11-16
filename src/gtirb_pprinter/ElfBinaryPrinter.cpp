@@ -405,9 +405,42 @@ void ElfBinaryPrinter::addOrigLibraryArgs(
   }
 }
 
+static bool allGlobalSymsExported(gtirb::Context& Ctx, gtirb::IR& Ir) {
+  for (gtirb::Module& M : Ir.modules()) {
+    auto SymbolTabIdxInfo = aux_data::getElfSymbolTabIdxInfo(M);
+    for (auto& [SymUUID, Tables] : SymbolTabIdxInfo) {
+      auto Symbol = gtirb_pprint::nodeFromUUID<gtirb::Symbol>(Ctx, SymUUID);
+      if (!Symbol) {
+        continue;
+      }
+
+      auto SymbolInfo = aux_data::getElfSymbolInfo(*Symbol);
+      if (SymbolInfo->Binding != "GLOBAL") {
+        continue;
+      }
+
+      if (Symbol->getReferent<gtirb::CodeBlock>() != nullptr) {
+        bool SymIsExported = false;
+        for (auto& [TableName, Idx] : Tables) {
+          if (TableName == ".dynsym") {
+            SymIsExported = true;
+            break;
+          }
+        }
+
+        if (!SymIsExported) {
+          return false;
+        }
+      }
+    }
+  }
+  return true;
+}
+
 std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
     std::string outputFilename, const std::vector<TempFile>& asmPaths,
-    gtirb::IR& ir, const std::vector<std::string>& libArgs) const {
+    gtirb::Context& context, gtirb::IR& ir,
+    const std::vector<std::string>& libArgs) const {
   std::vector<std::string> args;
   // Start constructing the compile arguments, of the form
   // -o <output_filename> fileAXADA.s
@@ -452,7 +485,15 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
         break;
       }
     }
+
+    // append -Wl,--export-dynamic if needed; can occur for both DYN and EXEC.
+    // TODO: if some symbols are exported, but not all, build a dynamic list
+    // file and pass with `--dynamic-list`.
+    if (allGlobalSymsExported(context, ir)) {
+      args.push_back("-Wl,--export-dynamic");
+    }
   }
+
   // add -m32 for x86 binaries
   for (gtirb::Module& module : ir.modules()) {
     if (module.getISA() == gtirb::ISA::IA32) {
@@ -553,8 +594,8 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
   VersionScript.close();
 
   if (std::optional<int> ret =
-          execute(compiler,
-                  buildCompilerArgs(outputFilename, tempFiles, ir, libArgs))) {
+          execute(compiler, buildCompilerArgs(outputFilename, tempFiles, ctx,
+                                              ir, libArgs))) {
     if (*ret)
       std::cerr << "ERROR: assembler returned: " << *ret << "\n";
     return *ret;

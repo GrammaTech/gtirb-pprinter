@@ -49,6 +49,7 @@ void registerAuxDataTypes() {
   gtirb::AuxDataContainer::registerAuxDataType<PEResources>();
   gtirb::AuxDataContainer::registerAuxDataType<TypeTable>();
   gtirb::AuxDataContainer::registerAuxDataType<PrototypeTable>();
+  gtirb::AuxDataContainer::registerAuxDataType<ElfSymbolTabIdxInfo>();
 }
 
 void registerPrettyPrinters() {

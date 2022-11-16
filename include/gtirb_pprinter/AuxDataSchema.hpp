@@ -134,6 +134,15 @@ struct PEResources {
       Type;
 };
 
+/// ElfSymbolTabIdxInfo is a vector of tuples of the form {Name, Index}.
+using ElfSymbolTabIdxInfoEntry = std::vector<std::tuple<std::string, uint64_t>>;
+
+/// \brief Auxiliary data for extra symbol info.
+struct ElfSymbolTabIdxInfo {
+  static constexpr const char* Name = "elfSymbolTabIdxInfo";
+  typedef std::map<gtirb::UUID, ElfSymbolTabIdxInfoEntry> Type;
+};
+
 } // namespace schema
 
 namespace provisional_schema {

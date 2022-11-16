@@ -47,7 +47,8 @@ private:
                           std::vector<std::string>& args) const;
   std::vector<std::string>
   buildCompilerArgs(std::string outputFilename,
-                    const std::vector<TempFile>& asmPath, gtirb::IR& ir,
+                    const std::vector<TempFile>& asmPath,
+                    gtirb::Context& context, gtirb::IR& ir,
                     const std::vector<std::string>& libArgs) const;
 
 public:

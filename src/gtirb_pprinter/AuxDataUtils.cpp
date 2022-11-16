@@ -226,6 +226,12 @@ gtirb::schema::PeSafeExceptionHandlers::Type
 getPeSafeExceptionHandlers(const gtirb::Module& M) {
   return util::getOrDefault<gtirb::schema::PeSafeExceptionHandlers>(M);
 }
+
+gtirb::schema::ElfSymbolTabIdxInfo::Type
+getElfSymbolTabIdxInfo(const gtirb::Module& M) {
+  return util::getOrDefault<gtirb::schema::ElfSymbolTabIdxInfo>(M);
+}
+
 gtirb::provisional_schema::TypeTable::Type
 getTypeTable(const gtirb::Module& M) {
   return util::getOrDefault<gtirb::provisional_schema::TypeTable>(M);

@@ -257,6 +257,10 @@ getPeExportedSymbols(const gtirb::Module& M);
 // `peSafeExceptionHandlers' AuxData table.
 gtirb::schema::PeSafeExceptionHandlers::Type
 getPeSafeExceptionHandlers(const gtirb::Module& M);
+
+gtirb::schema::ElfSymbolTabIdxInfo::Type
+getElfSymbolTabIdxInfo(const gtirb::Module& M);
+
 // Load map from UUIDs to type descriptors
 gtirb::provisional_schema::TypeTable::Type getTypeTable(const gtirb::Module& M);
 
