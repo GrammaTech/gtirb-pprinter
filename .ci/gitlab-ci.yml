@@ -425,6 +425,14 @@ build-ubuntu20-packages:
     - cp build/*.deb apt-repo
     - cd apt-repo && dpkg-scanpackages . /dev/null > Packages
 
+.prefer-local-repo: &prefer-local-repo
+  - |-
+      tee /etc/apt/preferences  << EOF
+      Package: *
+      Pin: origin ""
+      Pin-Priority: 1001
+      EOF
+
 .test-ubuntu-libgtirb-pprinter-dev: &test-ubuntu-libgtirb-pprinter-dev
   stage: test-packages1
   artifacts:
@@ -434,6 +442,7 @@ build-ubuntu20-packages:
       - hello.gtirb
   before_script:
     - *setup-apt
+    - *prefer-local-repo
   script:
     - echo -e "\ndeb [trusted=yes] file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - 'TEST_PKG_NAME=$(dpkg --info apt-repo/libgtirb-pprinter-dev.deb | sed -n "s/Package: //p")'
@@ -449,6 +458,7 @@ build-ubuntu20-packages:
   before_script:
     - apt-get -y update && apt-get -y install lsb-release wget gnupg2
     - *setup-apt
+    - *prefer-local-repo
   script:
     - echo -e "\ndeb [trusted=yes] file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - 'TEST_PKG_NAME=$(dpkg --info apt-repo/gtirb-pprinter.deb | sed -n "s/Package: //p")'
@@ -461,6 +471,7 @@ build-ubuntu20-packages:
   stage: test-packages1
   before_script:
     - *setup-apt
+    - *prefer-local-repo
   script:
     - echo -e "\ndeb [trusted=yes] file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - 'TEST_PKG_NAME=$(dpkg --info apt-repo/libgtirb-pprinter-dbg.deb | sed -n "s/Package: //p")'
@@ -471,6 +482,7 @@ build-ubuntu20-packages:
   stage: test-packages1
   before_script:
     - *setup-apt
+    - *prefer-local-repo
   script:
     - echo -e "\ndeb [trusted=yes] file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - 'TEST_PKG_NAME=$(dpkg --info apt-repo/gtirb-pprinter-dbg.deb | sed -n "s/Package: //p")'
@@ -482,6 +494,7 @@ build-ubuntu20-packages:
   before_script:
     - apt-get -y update && apt-get -y install lsb-release wget gnupg2
     - *setup-apt
+    - *prefer-local-repo
   script:
     - echo -e "\ndeb [trusted=yes] file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - 'TEST_PKG_NAME=$(dpkg --info apt-repo/libgtirb-pprinter.deb | sed -n "s/Package: //p")'
