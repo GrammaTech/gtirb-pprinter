@@ -1,8 +1,8 @@
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
   # These variables are used to pin versions on release branches.
-  GTIRB_VERSION: ""
-  CAPSTONE_VERSION: ""
+  GTIRB_VERSION: "release-1.10.9"
+  CAPSTONE_VERSION: "capstone-5.0.0-gt2"
   # The following two variables are used by the package uploader.
   PROJECT_ID: $CI_PROJECT_ID
   PIPELINE_ID: $CI_PIPELINE_ID
