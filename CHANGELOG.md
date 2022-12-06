@@ -1,4 +1,7 @@
-1.8.5 (Unreleased)
+1.8.6 (Unreleased)
+  * TODO
+
+1.8.5
   * Remove `--assembler` option; printer now always behaves correctly when
     escaping characters.
   * Support generating ELF symbol version information in assembly output.
