@@ -246,7 +246,8 @@ build-static:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/static
   script:
     - !reference [.install-capstone]
-    - git clone https://git.grammatech.com/rewriting/gtirb.git
+    - GTIRB_BRANCH=$([[ $CI_COMMIT_REF_NAME =~ release-.* ]] && echo "release-$GTIRB_VERSION" || echo "master")
+    - git clone https://git.grammatech.com/rewriting/gtirb.git -b $GTIRB_BRANCH
     - cd gtirb
     - mkdir build && cd build
     - cmake ../ -DCMAKE_BUILD_TYPE=RelWithDebInfo -DGTIRB_BUILD_SHARED_LIBS=OFF -DGTIRB_PY_API=OFF
