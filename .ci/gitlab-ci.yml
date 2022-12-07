@@ -163,7 +163,7 @@ conan-windows-release:
   # Configure GTIRB APT repository.
   - wget -O - https://download.grammatech.com/gtirb/files/apt-repo/conf/apt.gpg.key | apt-key add -
   - COMPONENT=$([[ $CI_COMMIT_REF_NAME =~ release-.* ]] && echo "stable" || echo "unstable")
-  - echo "deb https://download.grammatech.com/gtirb/files/apt-repo $DIST_NAME $COMPONENT" | tee -a /etc/apt/sources.list
+  - echo "deb https://download.grammatech.com/gtirb/files/apt-repo $DIST_NAME $COMPONENT" | tee -a /etc/apt/sources.list.d/gtirb.list
   - apt-get update -y
 
 .install-deps: &install-deps
@@ -423,15 +423,10 @@ build-ubuntu20-packages:
   script:
     - mkdir apt-repo
     - cp build/*.deb apt-repo
-    - cd apt-repo && dpkg-scanpackages . /dev/null > Packages
-
-.prefer-local-repo: &prefer-local-repo
-  - |-
-      tee /etc/apt/preferences  << EOF
-      Package: *
-      Pin: origin ""
-      Pin-Priority: 1001
-      EOF
+    - pushd apt-repo
+    - !reference [.setup-apt]
+    - apt-get download $(apt-rdepends libgtirb-dev${GTIRB_VERSION:+-$GTIRB_VERSION} | grep -v "^ " | grep -E "gtirb")
+    - dpkg-scanpackages . /dev/null > Packages
 
 .test-ubuntu-libgtirb-pprinter-dev: &test-ubuntu-libgtirb-pprinter-dev
   stage: test-packages1
@@ -442,7 +437,6 @@ build-ubuntu20-packages:
       - hello.gtirb
   before_script:
     - *setup-apt
-    - *prefer-local-repo
   script:
     - echo -e "\ndeb [trusted=yes] file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - 'TEST_PKG_NAME=$(dpkg --info apt-repo/libgtirb-pprinter-dev.deb | sed -n "s/Package: //p")'
@@ -458,7 +452,6 @@ build-ubuntu20-packages:
   before_script:
     - apt-get -y update && apt-get -y install lsb-release wget gnupg2
     - *setup-apt
-    - *prefer-local-repo
   script:
     - echo -e "\ndeb [trusted=yes] file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - 'TEST_PKG_NAME=$(dpkg --info apt-repo/gtirb-pprinter.deb | sed -n "s/Package: //p")'
@@ -471,7 +464,6 @@ build-ubuntu20-packages:
   stage: test-packages1
   before_script:
     - *setup-apt
-    - *prefer-local-repo
   script:
     - echo -e "\ndeb [trusted=yes] file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - 'TEST_PKG_NAME=$(dpkg --info apt-repo/libgtirb-pprinter-dbg.deb | sed -n "s/Package: //p")'
@@ -482,7 +474,6 @@ build-ubuntu20-packages:
   stage: test-packages1
   before_script:
     - *setup-apt
-    - *prefer-local-repo
   script:
     - echo -e "\ndeb [trusted=yes] file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - 'TEST_PKG_NAME=$(dpkg --info apt-repo/gtirb-pprinter-dbg.deb | sed -n "s/Package: //p")'
@@ -494,7 +485,6 @@ build-ubuntu20-packages:
   before_script:
     - apt-get -y update && apt-get -y install lsb-release wget gnupg2
     - *setup-apt
-    - *prefer-local-repo
   script:
     - echo -e "\ndeb [trusted=yes] file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - 'TEST_PKG_NAME=$(dpkg --info apt-repo/libgtirb-pprinter.deb | sed -n "s/Package: //p")'
