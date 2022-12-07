@@ -44,7 +44,8 @@ class ElfBinaryPrinterTests(unittest.TestCase):
             libdir = os.path.join(os.path.dirname(__file__), "dummyso_libs")
             self.assertTrue(os.path.exists(libdir))
             subprocess.run(
-                "make", cwd=libdir,
+                "make",
+                cwd=libdir,
             )
             self.assertTrue(os.path.exists(os.path.join(libdir, "libmya.so")))
             self.assertTrue(os.path.exists(os.path.join(libdir, "libmyb.so")))

@@ -198,7 +198,8 @@ def run_binary_pprinter_mock_out(
 
 
 def run_binary_pprinter_mock(
-    ir: gtirb.IR, args: Iterable[str] = (),
+    ir: gtirb.IR,
+    args: Iterable[str] = (),
 ) -> Iterator[ToolInvocation]:
     """
     Runs the binary pretty-printer and yields each subcommand's arguments,

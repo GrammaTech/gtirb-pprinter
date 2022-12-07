@@ -19,7 +19,8 @@ import gtirb_test_helpers as gth
 
 def build_gtirb():
     (ir, module) = gth.create_test_module(
-        gtirb.Module.FileFormat.ELF, gtirb.Module.ISA.X64,
+        gtirb.Module.FileFormat.ELF,
+        gtirb.Module.ISA.X64,
     )
     (text_section, text_bi) = gth.add_text_section(module)
     proxy_a = gth.add_proxy_block(module)

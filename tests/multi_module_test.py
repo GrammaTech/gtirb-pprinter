@@ -81,7 +81,8 @@ class MultiModuleTests(PPrinterTest):
             self.create_multi_module_ir().save_protobuf(gtirb_path)
 
             output = subprocess.check_output(
-                (pprinter_binary(), "--ir", gtirb_path, "-m", "0"), cwd=tmpdir,
+                (pprinter_binary(), "--ir", gtirb_path, "-m", "0"),
+                cwd=tmpdir,
             ).decode(sys.stdout.encoding)
             self.assertIn(".globl main", output)
             self.assertNotIn(".globl fun", output)
@@ -92,7 +93,8 @@ class MultiModuleTests(PPrinterTest):
             self.create_multi_module_ir().save_protobuf(gtirb_path)
 
             output = subprocess.check_output(
-                (pprinter_binary(), "--ir", gtirb_path, "-m", "1"), cwd=tmpdir,
+                (pprinter_binary(), "--ir", gtirb_path, "-m", "1"),
+                cwd=tmpdir,
             ).decode(sys.stdout.encoding)
             self.assertNotIn(".globl main", output)
             self.assertIn(".globl fun", output)
