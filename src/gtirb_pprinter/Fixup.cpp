@@ -26,8 +26,11 @@ void applyFixups(gtirb::Context& Context, gtirb::Module& Module,
   if (format == "pe") {
     fixupPESymbols(Context, Module);
   }
-  if (format == "elf" && Printer.getShared()) {
-    fixupSharedObject(Context, Module);
+  if (format == "elf") {
+    fixupELFSymbols(Module);
+    if (Printer.getShared()) {
+      fixupSharedObject(Context, Module);
+    }
   }
 }
 
@@ -161,6 +164,22 @@ void fixupSharedObject(gtirb::Context& Context, gtirb::Module& Module) {
         },
         SEE.getSymbolicExpression());
     SEE.getByteInterval()->addSymbolicExpression(SEE.getOffset(), SEToAdd);
+  }
+};
+
+/**
+Make sure that the binding of symbol `main` is GLOBAL.
+*/
+void fixupELFSymbols(gtirb::Module& Module) {
+  if (auto It = Module.findSymbols("main"); !It.empty()) {
+    auto Symbol = &*It.begin();
+    if (auto SymInfo = aux_data::getElfSymbolInfo(*Symbol)) {
+      if (SymInfo->Binding != "GLOBAL") {
+        aux_data::ElfSymbolInfo NewSymInfo{*SymInfo};
+        NewSymInfo.Binding = "GLOBAL";
+        aux_data::setElfSymbolInfo(*Symbol, NewSymInfo);
+      }
+    }
   }
 };
 

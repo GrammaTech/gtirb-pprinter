@@ -46,6 +46,9 @@ void fixupSharedObject(gtirb::Context& Ctx, gtirb::Module& Mod);
 /// Ensure that PE entry symbols are correctly named
 void fixupPESymbols(gtirb::Context& Ctx, gtirb::Module& Mod);
 
+/// Ensure that `main` symbol is GLOBAL.
+void fixupELFSymbols(gtirb::Module& Mod);
+
 } // namespace gtirb_pprint
 
 #endif
