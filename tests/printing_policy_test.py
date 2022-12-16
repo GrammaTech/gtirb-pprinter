@@ -20,7 +20,9 @@ class PrintingPolicyTests(PPrinterTest):
         _, bi = add_text_section(m)
         add_function(m, "_start", add_code_block(bi, b"\xC3"))
 
-        asm = run_asm_pprinter(ir, ["--syntax", "intel"])
+        asm = run_asm_pprinter(
+            ir, ["--syntax", "intel", "--policy", "dynamic"]
+        )
         self.assertNotContains(asm_lines(asm), ["_start:", "ret"])
 
         asm = run_asm_pprinter(
