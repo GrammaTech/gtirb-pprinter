@@ -257,6 +257,17 @@ static std::string armCc2String(arm_cc CC, bool Upper = false) {
   return Ans;
 }
 
+static void rewriteMnemonic(cs_insn& inst, const char* str) {
+  cs_arm& Detail = inst.detail->arm;
+  std::stringstream SS;
+  SS << str;
+  if (Detail.cc != ARM_CC_AL) {
+    std::string CC = armCc2String(Detail.cc, true);
+    SS << CC;
+  }
+  strncpy(inst.mnemonic, SS.str().c_str(), SS.str().length() + 1);
+}
+
 void ArmPrettyPrinter::fixupInstruction(cs_insn& inst) {
   ElfPrettyPrinter::fixupInstruction(inst);
 
@@ -275,15 +286,8 @@ void ArmPrettyPrinter::fixupInstruction(cs_insn& inst) {
       cs_arm_op& Op2 = Detail.operands[2];
       if (Op1.type == ARM_OP_REG && Op1.reg == ARM_REG_PC &&
           Op2.type == ARM_OP_IMM) {
-        std::stringstream SS;
-        SS << "ADR";
-
-        if (Detail.cc != ARM_CC_AL) {
-          std::string CC = armCc2String(Detail.cc, true);
-          SS << CC;
-        }
         inst.id = ARM_INS_ADR;
-        strncpy(inst.mnemonic, SS.str().c_str(), SS.str().length() + 1);
+        rewriteMnemonic(inst, "ADR");
         Op1.type = ARM_OP_IMM;
         // The second operand will be rendered as symbolic.
         // In case when no symbolic operand is provided,
@@ -292,6 +296,17 @@ void ArmPrettyPrinter::fixupInstruction(cs_insn& inst) {
         Detail.op_count = 2;
       }
     }
+    break;
+  case ARM_INS_TRAP:
+    // gcc doesn't recognize "trap" as a valid instruction
+    // "udf 0xfe" is equivalent.
+    inst.id = ARM_INS_UDF;
+    rewriteMnemonic(inst, "UDF");
+    Detail.op_count = 1;
+    cs_arm_op& Op1 = Detail.operands[0];
+    Op1.imm = 0xfe;
+    Op1.type = ARM_OP_IMM;
+    break;
   }
 }
 

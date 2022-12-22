@@ -17,6 +17,7 @@ class Arm32InstructionsTest(PPrinterTest):
             (b"\x41\xf9\xcf\x0a", "vst1.64 { d16, d17 }, [r1]"),
             (b"\x41\xf9\x00\x2a", "vst1.8 { d18, d19 }, [r1], r0"),
             (b"\x00\xf9\x0d\x8a", "vst1.8 { d8, d9 }, [r0]!"),
+            (b"\xfe\xde", "udf #254"),
         ]
 
         for insn_bytes, insn_str in instructions:
