@@ -17,6 +17,7 @@
 #include "AuxDataSchema.hpp"
 #include "AuxDataUtils.hpp"
 #include "StringUtils.hpp"
+#include "driver/Logger.h"
 #include <iostream>
 
 namespace gtirb_pprint {
@@ -265,7 +266,14 @@ static void rewriteMnemonic(cs_insn& inst, const char* str) {
     std::string CC = armCc2String(Detail.cc, true);
     SS << CC;
   }
-  strncpy(inst.mnemonic, SS.str().c_str(), SS.str().length() + 1);
+  std::string newMnemonic = SS.str();
+  size_t newMnemonicLen = newMnemonic.size() + 1;
+  if (newMnemonicLen > CS_MNEMONIC_SIZE) {
+    LOG_ERROR << "Fixed up mnemonic \"" << newMnemonic << "\" does not fit in "
+              << CS_MNEMONIC_SIZE << "\n";
+    std::exit(EXIT_FAILURE);
+  }
+  memcpy(inst.mnemonic, newMnemonic.c_str(), newMnemonicLen);
 }
 
 void ArmPrettyPrinter::fixupInstruction(cs_insn& inst) {
