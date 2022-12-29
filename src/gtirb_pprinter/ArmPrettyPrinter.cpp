@@ -744,32 +744,15 @@ void ArmPrettyPrinter::printOpIndirect(
   assert(op.type == ARM_OP_MEM &&
          "printOpIndirect called without a memory operand");
 
-  // PC-relative operand
-  std::string opcode = ascii_str_tolower(inst.mnemonic);
-
-  auto isJumpTableBranch = [&]() {
-    // tbb [pc, rm] or tbh [pc, rm, lsl #N]
-    if ((opcode == "tbb" || opcode == "tbh") && op.mem.base == ARM_REG_PC)
-      return true;
-    // ldr pc, [pc, rn, lsl #N]
-    if (opcode.substr(0, 3) == "ldr" && op.mem.base == ARM_REG_PC) {
-      const cs_arm_op& dst = detail.operands[0];
-      if (dst.reg == ARM_REG_PC)
-        return true;
-    }
-    return false;
-  };
-
-  // NOTE: For jump-table instructions,
+  // pc-relative indirect operands like [pc, #100] with a symbolic expression
+  // must replace the operand with the expression.
+  // NOTE: For pc with register offset (including jump-table instructions)
   //       print the PC-relative operand as it is.
-  if (op.mem.base == ARM_REG_PC && !isJumpTableBranch()) {
+  if (op.mem.base == ARM_REG_PC && op.mem.index == ARM_REG_INVALID) {
     if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
       printSymbolicExpression(os, s, false);
-    } else {
-      if (op.mem.disp != 0)
-        os << "#" << op.mem.disp;
+      return;
     }
-    return;
   }
 
   bool first = true;
