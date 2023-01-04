@@ -9,7 +9,7 @@ variables:
   XFORM_BINARIES: "bin/gtirb-pprinter bin/gtirb-layout lib/libgtirb_pprinter.so lib/libgtirb_layout.so"
 
 default:
-  tags: [cluster]
+  tags: [shared]
 
 stages:
   - check-format
