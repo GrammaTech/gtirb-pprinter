@@ -105,12 +105,12 @@ std::optional<std::string> resolveRegularFilePath(const std::string& path,
   return resolveRegularFilePath(filePath.string());
 }
 
-std::optional<int> execute(const std::string& tool,
-                           const std::vector<std::string>& args) {
-  fs::path toolPath = bp::search_path(tool);
-  if (toolPath.empty())
+std::optional<int> execute(const std::string& Tool,
+                           const std::vector<std::string>& Args) {
+  fs::path Path = fs::is_regular_file(Tool) ? Tool : bp::search_path(Tool);
+  if (Path.empty()) {
     return std::nullopt;
-
-  return bp::system(toolPath, args);
+  }
+  return bp::system(Path, Args);
 }
 } // namespace gtirb_bprint

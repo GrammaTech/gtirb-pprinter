@@ -2,8 +2,10 @@ import unittest
 import os
 import subprocess
 import sys
-import dummyso
 import tempfile
+
+import dummyso
+import hello_world
 
 from pprinter_helpers import pprinter_binary
 
@@ -14,8 +16,6 @@ class ElfBinaryPrinterTests(unittest.TestCase):
         ir = dummyso.build_gtirb()
 
         with tempfile.TemporaryDirectory() as testdir:
-            testdir = tempfile.mkdtemp()
-
             gtirb_path = os.path.join(testdir, "dummyso.gtirb")
             ir.save_protobuf(gtirb_path)
 
@@ -57,3 +57,38 @@ class ElfBinaryPrinterTests(unittest.TestCase):
             ).decode(sys.stdout.encoding)
             self.assertTrue("a() invoked!" in output_bin)
             self.assertTrue("b() invoked!" in output_bin)
+
+    def test_use_gcc(self):
+        """
+        Test --use-gcc, both with a gcc in PATH and with a full path to gcc
+        """
+        ir = hello_world.build_gtirb()
+
+        gcc_full_path = (
+            subprocess.check_output(["which", "gcc"])
+            .decode(sys.stdout.encoding)
+            .strip()
+        )
+        gccs = ("gcc", gcc_full_path)
+
+        for gcc in gccs:
+            with self.subTest(gcc=gcc):
+                with tempfile.TemporaryDirectory() as testdir:
+                    gtirb_path = os.path.join(testdir, "hello_world.gtirb")
+                    ir.save_protobuf(gtirb_path)
+
+                    exe_path = os.path.join(testdir, "hello_world_rewritten")
+                    subprocess.check_call(
+                        [
+                            pprinter_binary(),
+                            "--ir",
+                            gtirb_path,
+                            "--binary",
+                            exe_path,
+                            "--policy",
+                            "complete",
+                            "--use-gcc",
+                            gcc,
+                        ]
+                    )
+                    self.assertTrue(os.path.exists(exe_path))
