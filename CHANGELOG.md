@@ -1,5 +1,14 @@
-1.8.6 (Unreleased)
+1.8.7 (Unreleased)
   * TODO
+
+1.8.6
+  * Add fixup for rewriting `main` symbol as global.
+  * Support full paths in `--use-gcc` option.
+  * Add support for ARM pc-relative `ldr` instruction with register offset.
+  * Add support for ARM `trap` instructions.
+  * Emit symbol declarations for symbols attached to `.plt` section.
+  * Add support for TLSLDM relocationss
+  * Add detection for `--export-dynamic` in binary printer.
 
 1.8.5
   * Remove `--assembler` option; printer now always behaves correctly when
