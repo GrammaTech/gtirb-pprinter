@@ -1,5 +1,5 @@
 1.8.7 (Unreleased)
-  * TODO
+  * Update the default `--policy` behavior for dynamically linked ELF binaries from `dynamic` to `complete`.
 
 1.8.6
   * Add fixup for rewriting `main` symbol as global.
