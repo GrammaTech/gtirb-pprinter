@@ -117,6 +117,23 @@ class WindowsBinaryPrinterTests_NoMock(PPrinterTest):
         self.assertNotContains(asm_lines(asm), ["INCLUDELIB WINSPOOL.DRV"])
         self.assertNotContains(asm_lines(asm), ["INCLUDELIB USER32.DLL"])
 
+    def test_windows_dll_exports(self):
+        ir, m = create_test_module(
+            file_format=gtirb.Module.FileFormat.PE,
+            isa=gtirb.Module.ISA.IA32,
+            binary_type=["EXEC", "DLL", "WINDOWS_CUI"],
+        )
+        _, bi = add_text_section(m)
+        add_code_block(bi, b"\xC3")
+
+        m.aux_data["peExportEntries"].data.append(
+            (0, -1, "__glutInitWithExit")
+        )
+
+        asm = run_asm_pprinter(ir)
+
+        self.assertContains(asm_lines(asm), ["___glutInitWithExit ENDP"])
+
     def make_pe_resource_data(self) -> gtirb.IR:
 
         ir, m = create_test_module(
