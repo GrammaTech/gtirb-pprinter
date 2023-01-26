@@ -488,6 +488,11 @@ void MasmPrettyPrinter::printSymbolDefinition(std::ostream& Stream,
     bool SafeSeh = aux_data::getPeSafeExceptionHandlers(module).count(
                        Block->getUUID()) > 0;
     if (Exported) {
+      // This is not completely understood why, but ml.exe (msvc) mangles
+      // differently.  We'll apply this heuristic until it's fully understood.
+      if (module.getISA() == gtirb::ISA::IA32 && Name[0] == '_') {
+        Name = "_" + Name;
+      }
       Stream << Name << ' ' << masmSyntax.proc() << " EXPORT\n"
              << Name << ' ' << masmSyntax.endp() << '\n';
     } else if (SafeSeh) {
