@@ -136,12 +136,24 @@ void MasmPrettyPrinter::printIncludes(std::ostream& os) {
   os << '\n';
 }
 
-// In case of IA32, this is not completely understood why, but
-// link.exe (msvc) mangles differently.
-// We'll apply this heuristic until it's fully understood.
-std::string MasmPrettyPrinter::adjustName(const std::string& Name) const {
-  return (module.getISA() == gtirb::ISA::IA32 && Name[0] != '?' ? "_" + Name
-                                                                : Name);
+std::string
+MasmPrettyPrinter::getSymbolName(const gtirb::Symbol& Symbol) const {
+
+  std::string Name = PrettyPrinterBase::getSymbolName(Symbol);
+  // In case of IA32, this is not completely understood why, but
+  // link.exe (msvc) mangles differently.
+  // We'll apply this heuristic until it's fully understood.
+  if (module.getISA() == gtirb::ISA::IA32 && Name[0] != '?') {
+    bool Imported = Imports.count(Symbol.getUUID()) > 0;
+    bool Exported = Exports.count(Symbol.getUUID()) > 0;
+    if (Imported || Exported) {
+      return "_" + Name;
+    } else {
+      return Name;
+    }
+  } else {
+    return Name;
+  }
 }
 
 void MasmPrettyPrinter::printExterns(std::ostream& os) {
@@ -156,7 +168,7 @@ void MasmPrettyPrinter::printExterns(std::ostream& os) {
     if (const auto* Symbol = dyn_cast_or_null<gtirb::Symbol>(
             gtirb::Node::getByUUID(context, Forward.second))) {
       std::string Name = getSymbolName(*Symbol);
-      Externs.insert(adjustName(Name));
+      Externs.insert(Name);
     }
   }
 
@@ -463,7 +475,7 @@ std::optional<std::string>
 MasmPrettyPrinter::getForwardedSymbolName(const gtirb::Symbol* symbol) const {
   if (std::optional<std::string> Name =
           PrettyPrinterBase::getForwardedSymbolName(symbol)) {
-    return adjustName(*Name);
+    return *Name;
   }
   return std::nullopt;
 }
@@ -479,11 +491,7 @@ std::string MasmPrettyPrinter::getRegisterName(unsigned int Reg) const {
 void MasmPrettyPrinter::printSymbolDefinition(std::ostream& Stream,
                                               const gtirb::Symbol& Symbol) {
   std::string Name = getSymbolName(Symbol);
-  bool Imported = Imports.count(Symbol.getUUID()) > 0;
   bool Exported = Exports.count(Symbol.getUUID()) > 0;
-  if (Imported || Exported) {
-    Name = adjustName(Name);
-  }
   if (Symbol.getReferent<gtirb::DataBlock>()) {
     if (Exported) {
       Stream << syntax.global() << ' ' << Name << '\n';
