@@ -136,6 +136,15 @@ void MasmPrettyPrinter::printIncludes(std::ostream& os) {
   os << '\n';
 }
 
+// In case of IA32, this is not completely understood why, but
+// link.exe (msvc) mangles differently.
+// We'll apply this heuristic until it's fully understood.
+std::string MasmPrettyPrinter::adjustName(const std::string& Name) const {
+  return (module.getISA() == gtirb::ISA::IA32 && Name[0] != '?'
+            ? "_" + Name
+            : Name);
+}
+
 void MasmPrettyPrinter::printExterns(std::ostream& os) {
   // Declare EXTERN symbols
   std::set<std::string> Externs;
@@ -148,11 +157,7 @@ void MasmPrettyPrinter::printExterns(std::ostream& os) {
     if (const auto* Symbol = dyn_cast_or_null<gtirb::Symbol>(
             gtirb::Node::getByUUID(context, Forward.second))) {
       std::string Name = getSymbolName(*Symbol);
-      // This is not completely understood why, but link.exe (msvc) mangles
-      // differently.  We'll apply this heuristic until it's fully understood.
-      Externs.insert(module.getISA() == gtirb::ISA::IA32 && Name[0] != '?'
-                         ? "_" + Name
-                         : Name);
+      Externs.insert(adjustName(Name));
     }
   }
 
@@ -459,9 +464,7 @@ std::optional<std::string>
 MasmPrettyPrinter::getForwardedSymbolName(const gtirb::Symbol* symbol) const {
   if (std::optional<std::string> Name =
           PrettyPrinterBase::getForwardedSymbolName(symbol)) {
-    return module.getISA() == gtirb::ISA::IA32 && (*Name)[0] != '?'
-               ? "_" + *Name
-               : Name;
+    return adjustName(*Name);
   }
   return std::nullopt;
 }
@@ -477,7 +480,11 @@ std::string MasmPrettyPrinter::getRegisterName(unsigned int Reg) const {
 void MasmPrettyPrinter::printSymbolDefinition(std::ostream& Stream,
                                               const gtirb::Symbol& Symbol) {
   std::string Name = getSymbolName(Symbol);
+  bool Imported = Imports.count(Symbol.getUUID()) > 0;
   bool Exported = Exports.count(Symbol.getUUID()) > 0;
+  if (Imported || Exported) {
+    Name = adjustName(Name);
+  }
   if (Symbol.getReferent<gtirb::DataBlock>()) {
     if (Exported) {
       Stream << syntax.global() << ' ' << Name << '\n';
@@ -488,11 +495,6 @@ void MasmPrettyPrinter::printSymbolDefinition(std::ostream& Stream,
     bool SafeSeh = aux_data::getPeSafeExceptionHandlers(module).count(
                        Block->getUUID()) > 0;
     if (Exported) {
-      // This is not completely understood why, but ml.exe (msvc) mangles
-      // differently.  We'll apply this heuristic until it's fully understood.
-      if (module.getISA() == gtirb::ISA::IA32 && Name[0] == '_') {
-        Name = "_" + Name;
-      }
       Stream << Name << ' ' << masmSyntax.proc() << " EXPORT\n"
              << Name << ' ' << masmSyntax.endp() << '\n';
     } else if (SafeSeh) {
