@@ -128,15 +128,15 @@ class WindowsBinaryPrinterTests_NoMock(PPrinterTest):
         block = add_code_block(bi, b"\xC3")
         sym = add_symbol(m, "__glutInitWithExit", block)
 
-        m.aux_data["peExportedSymbols"].data.append(
-            sym.uuid
-        )
+        m.aux_data["peExportedSymbols"].data.append(sym.uuid)
 
         asm = run_asm_pprinter(ir)
 
         print(asm_lines(asm))
 
-        self.assertContains(asm_lines(asm), ["___glutInitWithExit PROC EXPORT"])
+        self.assertContains(
+            asm_lines(asm), ["___glutInitWithExit PROC EXPORT"]
+        )
 
     def make_pe_resource_data(self) -> gtirb.IR:
 
