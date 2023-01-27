@@ -6,6 +6,7 @@ from gtirb_helpers import (
     add_byte_block,
     add_code_block,
     add_section,
+    add_symbol,
     add_text_section,
     create_test_module,
 )
@@ -123,16 +124,19 @@ class WindowsBinaryPrinterTests_NoMock(PPrinterTest):
             isa=gtirb.Module.ISA.IA32,
             binary_type=["EXEC", "DLL", "WINDOWS_CUI"],
         )
-        _, bi = add_text_section(m)
-        add_code_block(bi, b"\xC3")
+        _, bi = add_text_section(m, 0x4000A8)
+        block = add_code_block(bi, b"\xC3")
+        sym = add_symbol(m, "__glutInitWithExit", block)
 
-        m.aux_data["peExportEntries"].data.append(
-            (0, -1, "__glutInitWithExit")
+        m.aux_data["peExportedSymbols"].data.append(
+            sym.uuid
         )
 
         asm = run_asm_pprinter(ir)
 
-        self.assertContains(asm_lines(asm), ["___glutInitWithExit ENDP"])
+        print(asm_lines(asm))
+
+        self.assertContains(asm_lines(asm), ["___glutInitWithExit PROC EXPORT"])
 
     def make_pe_resource_data(self) -> gtirb.IR:
 
