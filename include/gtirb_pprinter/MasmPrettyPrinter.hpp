@@ -100,8 +100,8 @@ protected:
 
   void printIncludes(std::ostream& os);
   void printExterns(std::ostream& os);
-  std::string adjustName(const std::string& Name) const;
 
+  std::string getSymbolName(const gtirb::Symbol& Symbol) const override;
   void fixupInstruction(cs_insn& inst) override;
   void printHeader(std::ostream& os) override;
   void printFooter(std::ostream& os) override;
