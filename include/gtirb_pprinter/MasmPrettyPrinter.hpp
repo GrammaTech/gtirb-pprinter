@@ -100,6 +100,7 @@ protected:
 
   void printIncludes(std::ostream& os);
   void printExterns(std::ostream& os);
+  std::string adjustName(const std::string& Name) const;
 
   void fixupInstruction(cs_insn& inst) override;
   void printHeader(std::ostream& os) override;
