@@ -140,9 +140,8 @@ void MasmPrettyPrinter::printIncludes(std::ostream& os) {
 // link.exe (msvc) mangles differently.
 // We'll apply this heuristic until it's fully understood.
 std::string MasmPrettyPrinter::adjustName(const std::string& Name) const {
-  return (module.getISA() == gtirb::ISA::IA32 && Name[0] != '?'
-            ? "_" + Name
-            : Name);
+  return (module.getISA() == gtirb::ISA::IA32 && Name[0] != '?' ? "_" + Name
+                                                                : Name);
 }
 
 void MasmPrettyPrinter::printExterns(std::ostream& os) {
