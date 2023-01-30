@@ -1,6 +1,6 @@
 1.8.7 (Unreleased)
   * Update the default `--policy` behavior for dynamically linked ELF binaries from `dynamic` to `complete`.
-  * ARM: Update `ArchInfo` auxdata as `map` with `Profile` and `Arch` keys.
+  * ARM: Do not rely on `ArchInfo` auxdata.
   * ARM: Fail if a CodeBlock cannot be completely disassembled.
 
 1.8.6
