@@ -79,11 +79,6 @@ protected:
                           bool IsNotBranch = false) override;
 
   std::string getFunctionName(gtirb::Addr x) const override;
-
-private:
-  /// Cortex-M
-  bool Mclass;
-  bool ArchInfoExists;
 };
 
 class ArmPrettyPrinterFactory : public ElfPrettyPrinterFactory {

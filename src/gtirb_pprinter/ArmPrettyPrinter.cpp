@@ -65,25 +65,15 @@ ArmPrettyPrinter::ArmPrettyPrinter(gtirb::Context& context_,
     : ElfPrettyPrinter(context_, module_, syntax_, policy_),
       armSyntax(syntax_) {
   // Setup Capstone.
-  [[maybe_unused]] cs_err err = cs_open(
-      CS_ARCH_ARM, (cs_mode)(CS_MODE_ARM | CS_MODE_V8), &this->csHandle);
+  [[maybe_unused]] cs_err err =
+      cs_open(CS_ARCH_ARM, (cs_mode)(CS_MODE_ARM), &this->csHandle);
   assert(err == CS_ERR_OK && "Capstone failure");
-
-  const auto& ArchInfo = aux_data::getArchInfo(module_);
-  ArchInfoExists = !ArchInfo.empty();
-  Mclass = false;
-  if (std::find(ArchInfo.begin(), ArchInfo.end(), "Microcontroller") !=
-      ArchInfo.end()) {
-    Mclass = true;
-  }
+  cs_option(this->csHandle, CS_OPT_DETAIL, CS_OPT_ON);
 }
 
 void ArmPrettyPrinter::printHeader(std::ostream& os) {
   os << "# ARM " << std::endl;
   os << ".syntax unified" << std::endl;
-  if (!Mclass) {
-    os << ".arch_extension idiv" << std::endl;
-  }
   os << ".arch_extension sec" << std::endl;
 }
 
@@ -91,18 +81,21 @@ void ArmPrettyPrinter::setDecodeMode(std::ostream& Os,
                                      const gtirb::CodeBlock& x) {
   if (x.getDecodeMode() == gtirb::DecodeMode::Thumb) {
     Os << ".thumb" << std::endl;
-
-    if (Mclass) {
-      cs_option(this->csHandle, CS_OPT_MODE,
-                CS_MODE_THUMB | CS_MODE_V8 | CS_MODE_MCLASS);
-    } else {
-      cs_option(this->csHandle, CS_OPT_MODE, CS_MODE_THUMB | CS_MODE_V8);
-    }
   } else {
     Os << ".arm" << std::endl;
-    cs_option(this->csHandle, CS_OPT_MODE, CS_MODE_ARM | CS_MODE_V8);
   }
 }
+
+const std::vector<size_t> ArmCsModes = {
+    CS_MODE_ARM | CS_MODE_V8,
+    CS_MODE_ARM,
+};
+const std::vector<size_t> ThumbCsModes = {
+    CS_MODE_THUMB | CS_MODE_V8,
+    CS_MODE_THUMB | CS_MODE_V8 | CS_MODE_MCLASS,
+    CS_MODE_THUMB,
+    CS_MODE_THUMB | CS_MODE_MCLASS,
+};
 
 void ArmPrettyPrinter::printBlockContents(std::ostream& Os,
                                           const gtirb::CodeBlock& X,
@@ -114,28 +107,8 @@ void ArmPrettyPrinter::printBlockContents(std::ostream& Os,
   gtirb::Addr Addr = *X.getAddress();
   Os << '\n';
 
-  size_t CsModes[2];
-  size_t CsModeCount = 1;
-  if (X.getDecodeMode() != gtirb::DecodeMode::Thumb) {
-    CsModes[0] = (CS_MODE_ARM | CS_MODE_V8);
-  } else {
-    if (ArchInfoExists) {
-      if (Mclass) {
-        CsModes[0] = (CS_MODE_THUMB | CS_MODE_V8 | CS_MODE_MCLASS);
-      } else {
-        CsModes[0] = (CS_MODE_THUMB | CS_MODE_V8);
-      }
-    } else {
-      if (Mclass) {
-        CsModes[1] = (CS_MODE_THUMB | CS_MODE_V8 | CS_MODE_MCLASS);
-        CsModes[0] = (CS_MODE_THUMB | CS_MODE_V8);
-      } else {
-        CsModes[0] = (CS_MODE_THUMB | CS_MODE_V8);
-        CsModes[1] = (CS_MODE_THUMB | CS_MODE_V8 | CS_MODE_MCLASS);
-      }
-      CsModeCount = 2;
-    }
-  }
+  const std::vector<size_t>& CsModes =
+      X.getDecodeMode() != gtirb::DecodeMode::Thumb ? ArmCsModes : ThumbCsModes;
 
   std::unique_ptr<cs_insn, std::function<void(cs_insn*)>> InsnPtr;
   size_t InsnCount = 0;
@@ -149,10 +122,11 @@ void ArmPrettyPrinter::printBlockContents(std::ostream& Os,
   //
   // This loop is to try out multiple CS modes to see if decoding succeeds.
   // Currently, this is done only when the arch type info is not available.
-  for (size_t I = 0; I < CsModeCount; I++) {
+  bool Success = false;
+  for (size_t CsMode : CsModes) {
     cs_insn* Insn = nullptr;
-    cs_option(this->csHandle, CS_OPT_DETAIL, CS_OPT_ON);
-    cs_option(this->csHandle, CS_OPT_MODE, CsModes[I]);
+
+    cs_option(this->csHandle, CS_OPT_MODE, CsMode);
     InsnCount = cs_disasm(this->csHandle, X.rawBytes<uint8_t>() + Offset,
                           X.getSize() - Offset,
                           static_cast<uint64_t>(Addr) + Offset, 0, &Insn);
@@ -161,30 +135,27 @@ void ArmPrettyPrinter::printBlockContents(std::ostream& Os,
     std::unique_ptr<cs_insn, std::function<void(cs_insn*)>> TmpInsnPtr(
         Insn, [InsnCount](cs_insn* Instr) { cs_free(Instr, InsnCount); });
 
-    bool DoBreak = false;
-
-    if (I + 1 == CsModeCount) {
-      DoBreak = true;
-    } else {
-      size_t TotalSize = 0;
-      for (size_t J = 0; J < InsnCount; J++) {
-        TotalSize += Insn[J].size;
-      }
-      // If the sum of the instruction sizes equals to the block size, that
-      // indicates the decoding succeeded.
-      DoBreak = (TotalSize == X.getSize() - Offset);
+    size_t TotalSize = 0;
+    for (size_t J = 0; J < InsnCount; J++) {
+      TotalSize += Insn[J].size;
     }
+    // If the sum of the instruction sizes equals to the block size, that
+    // indicates the decoding succeeded.
+    Success = (TotalSize == X.getSize() - Offset);
     // Keep the decoding attempt.
-    if (DoBreak) {
+    if (Success) {
       // Assign the ownership of TmpInsnPtr to InsnPtr. This passes along the
       // deleter as well.
       // https://en.cppreference.com/w/cpp/memory/unique_ptr/operator%3D
       InsnPtr = std::move(TmpInsnPtr);
-      if ((CsModes[I] & CS_MODE_MCLASS) != 0) {
-        Mclass = true;
-      }
       break;
     }
+  }
+
+  if (!Success) {
+    LOG_ERROR << "Failed to decode block at " << std::hex
+              << static_cast<uint64_t>(Addr) + Offset << std::dec;
+    std::exit(EXIT_FAILURE);
   }
 
   gtirb::Offset BlockOffset(X.getUUID(), Offset);

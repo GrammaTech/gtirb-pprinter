@@ -1,5 +1,7 @@
 1.8.7 (Unreleased)
   * Update the default `--policy` behavior for dynamically linked ELF binaries from `dynamic` to `complete`.
+  * ARM: Do not rely on `ArchInfo` auxdata.
+  * ARM: Fail if a CodeBlock cannot be completely disassembled.
 
 1.8.6
   * Add fixup for rewriting `main` symbol as global.
