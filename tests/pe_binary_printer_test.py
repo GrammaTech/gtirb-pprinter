@@ -132,8 +132,6 @@ class WindowsBinaryPrinterTests_NoMock(PPrinterTest):
 
         asm = run_asm_pprinter(ir)
 
-        print(asm_lines(asm))
-
         self.assertContains(
             asm_lines(asm), ["___glutInitWithExit PROC EXPORT"]
         )
