@@ -666,7 +666,7 @@ void PrettyPrinterBase::x86FixupInstruction(cs_insn& inst) {
     }
   } else if (inst.id == X86_INS_INT1 || inst.id == X86_INS_INT3) {
     int N = (inst.id == X86_INS_INT1 ? 1 : 3);
-    memcpy(inst.mnemonic, "INT", 4);
+    strcpy(inst.mnemonic, "int");
     detail.operands[0].type = X86_OP_IMM;
     detail.operands[0].imm = N;
     detail.op_count = 1;
