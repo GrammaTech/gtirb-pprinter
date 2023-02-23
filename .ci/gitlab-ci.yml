@@ -3,6 +3,7 @@ variables:
   # These variables are used to pin versions on release branches.
   GTIRB_VERSION: ""
   CAPSTONE_VERSION: ""
+  CONAN_VERSION: "1.59"
   # The following two variables are used by the package uploader.
   PROJECT_ID: $CI_PROJECT_ID
   PIPELINE_ID: $CI_PIPELINE_ID
@@ -59,7 +60,7 @@ check-format:
   variables:
     CONAN_PASSWORD: $CI_JOB_TOKEN
   script:
-    - pip3 install --upgrade conan
+    - pip3 install --upgrade conan==$CONAN_VERSION
     - conan profile new default --detect
     - conan profile update settings.compiler.libcxx=libstdc++11 default
     - conan remote add gitlab ${CI_API_V4_URL}/packages/conan
@@ -85,7 +86,7 @@ build-conan-linux-gcc9:
     - export CI_PROJECT_DIR=$(pwd)
     # Initialize
     - systeminfo
-    - python -m pip install --upgrade conan pip
+    - python -m pip install --upgrade conan==$CONAN_VERSION pip
     - python -m pip install -r tests/requirements.txt $EXTRA_INDEX_URL
     - export PYTHONPATH=`cygpath -w $(pwd)`
     # Setup Remote and Authenticate
