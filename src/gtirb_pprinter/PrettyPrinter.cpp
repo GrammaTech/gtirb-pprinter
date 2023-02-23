@@ -710,12 +710,6 @@ void PrettyPrinterBase::printInstruction(std::ostream& os,
     return;
   }
 
-  // TODO: Add 'padding' aux data to skipEA logic to decide if we should skip
-  //       int3 padding blocks.
-  if (inst.id == X86_INS_INT3) {
-    return;
-  }
-
   // end special cases
   ////////////////////////////////////////////////////////////////////
 
