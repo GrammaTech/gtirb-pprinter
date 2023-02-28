@@ -166,9 +166,10 @@ class GtirbPprinterConan(Properties, ConanFile):
     def package(self):
         self.copy("*.h", dst="include", src=self.name)
         self.copy("*%s.lib" % (self.name), dst="lib", keep_path=False)
-        self.copy("*.dll", dst="bin", keep_path=False)
-        self.copy("*.so", dst="lib", keep_path=False)
-        self.copy("*.so.*", dst="lib", keep_path=False)
+        for name in ("gtirb_pprinter", "gtirb_layout"):
+            self.copy(f"{name}.dll", dst="bin", keep_path=False)
+            self.copy(f"lib{name}*.so", dst="lib", keep_path=False)
+            self.copy(f"lib{name}*.so.*", dst="lib", keep_path=False)
         self.copy("*.dylib", dst="lib", keep_path=False)
         self.copy("*.a", dst="lib", keep_path=False)
 
