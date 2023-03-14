@@ -306,6 +306,8 @@ void ElfPrettyPrinter::printSymExprSuffix(std::ostream& OS,
     OS << "@TPOFF";
   } else if (Attrs.count(gtirb::SymAttribute::NTPOFF)) {
     OS << "@NTPOFF";
+  } else if (Attrs.count(gtirb::SymAttribute::INDNTPOFF)) {
+    OS << "@INDNTPOFF";
   } else if (Attrs.count(gtirb::SymAttribute::DTPOFF)) {
     OS << "@DTPOFF";
   } else if (Attrs.count(gtirb::SymAttribute::TLSGD)) {
