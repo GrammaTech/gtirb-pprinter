@@ -640,6 +640,25 @@ void MasmPrettyPrinter::printOpIndirect(
   if (op.mem.segment != X86_REG_INVALID)
     os << getRegisterName(op.mem.segment) << ':';
 
+  // MASM (x86) requires explicit DS: segment prefix for absolute, integral
+  // addresses, otherwise the operand will be assembled as an immediate value
+  // regardless of indirect brackets.
+  //
+  // Note that this includes named symbols with assigned integral values,
+  // e.g.  mov EAX,DWORD PTR DS:[KUSER_SHARED_DATA+620]
+  //       ...
+  //       KUSER_SHARED_DATA = 7ffe0000H
+  if (module.getISA() == gtirb::ISA::IA32 &&
+      op.mem.segment == X86_REG_INVALID && op.mem.base == X86_REG_INVALID &&
+      op.mem.index == X86_REG_INVALID) {
+    if (const auto* Expr = std::get_if<gtirb::SymAddrConst>(symbolic)) {
+      gtirb::Symbol* Sym = Expr->Sym;
+      if (Sym && Sym->getAddress() && !Sym->hasReferent()) {
+        os << "DS:";
+      }
+    }
+  }
+
   os << '[';
 
   if (op.mem.base != X86_REG_INVALID && op.mem.base != X86_REG_RIP) {
