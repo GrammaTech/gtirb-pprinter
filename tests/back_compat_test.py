@@ -169,5 +169,5 @@ class TestMoffsetCompat(PPrinterTest):
         self.assertNotIn(self.COMPAT_WARNING_MESSAGE, output)
         self.assertContains(
             asm_lines(asm),
-            ("mov EDI,DWORD PTR [0]", "mov EDI,DWORD PTR [hello]"),
+            ("mov EDI,DWORD PTR DS:[0]", "mov EDI,DWORD PTR [hello]"),
         )

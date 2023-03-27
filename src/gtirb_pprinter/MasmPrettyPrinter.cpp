@@ -651,7 +651,9 @@ void MasmPrettyPrinter::printOpIndirect(
   if (module.getISA() == gtirb::ISA::IA32 &&
       op.mem.segment == X86_REG_INVALID && op.mem.base == X86_REG_INVALID &&
       op.mem.index == X86_REG_INVALID) {
-    if (const auto* Expr = std::get_if<gtirb::SymAddrConst>(symbolic)) {
+    if (!symbolic) {
+      os << "DS:";
+    } else if (const auto* Expr = std::get_if<gtirb::SymAddrConst>(symbolic)) {
       gtirb::Symbol* Sym = Expr->Sym;
       if (Sym && Sym->getAddress() && !Sym->hasReferent()) {
         os << "DS:";
