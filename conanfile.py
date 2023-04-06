@@ -97,6 +97,7 @@ class GtirbPprinterConan(Properties, ConanFile):
     author = "GrammaTech Inc."
     generators = "cmake"
     settings = ("os", "compiler", "build_type", "arch")
+    options = {"run_tests": [True, False, None]}
 
     def imports(self):
         self.copy("*.dll", "bin", "bin")
@@ -146,10 +147,17 @@ class GtirbPprinterConan(Properties, ConanFile):
         self.add_dep_lib_path("capstone")
         cmake.configure(source_folder=".", defs=defs)
         cmake.build()
-        # The tests need the built gtirb-pprinter on the path
-        bin_dir = os.path.join(os.getcwd(), "bin")
-        os.environ["PATH"] = os.pathsep.join([os.environ["PATH"], bin_dir])
-        cmake.test(output_on_failure=True)
+
+        run_tests = (
+            self.options.run_tests or self.options.run_tests == None
+        )  # noqa: E711
+
+        if run_tests:
+            # The tests need the built gtirb-pprinter on the path
+            bin_dir = os.path.join(os.getcwd(), "bin")
+            os.environ["PATH"] = os.pathsep.join([os.environ["PATH"], bin_dir])
+            cmake.test(output_on_failure=True)
+
         cmake.install()
         # The patch_config_paths() function will change absolute paths in the
         # exported cmake config files to use the appropriate conan variables
