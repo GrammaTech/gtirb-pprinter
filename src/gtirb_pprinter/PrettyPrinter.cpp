@@ -614,11 +614,6 @@ void PrettyPrinterBase::x86FixupInstruction(cs_insn& inst) {
     op.imm = static_cast<int32_t>(op.imm);
   }
 
-  // GCC assembler does not like endbr64 instructions
-  if (inst.id == X86_INS_ENDBR64) {
-    inst.id = X86_INS_NOP;
-  }
-
   // The first operand of fxch  st(0) is implicit
   if (inst.id == X86_INS_FXCH && detail.op_count == 2) {
     detail.operands[0] = detail.operands[1];
