@@ -112,6 +112,7 @@ std::optional<std::string> llvmBinDir() {
     for (const auto& Version : Versions) {
       LlvmConfig = bp::search_path("llvm-config-" + Version);
       if (!LlvmConfig.empty()) {
+        LOG_INFO << "Using llvm-config-" + Version + " to find llvm-dlltool\n";
         break;
       }
     }
@@ -452,20 +453,24 @@ CommandList uasmAssembleLink(const PeLinkOptions& Options) {
 
 // Locate `lib.exe' or alternative PE library tool.
 PeLib peLib() {
+  auto Env = boost::this_process::environment();
   // Prefer MSVC `lib.exe'.
   fs::path Path = bp::search_path("lib.exe");
   if (!Path.empty()) {
     return msvcLib;
   } else {
     LOG_INFO << "lib.exe: command not found\n";
+    LOG_INFO << "Please make sure your PATH is correct: " +
+                    Env["PATH"].to_string() + "\n";
   }
 
   // Add LLVM bin directory to PATH.
   if (std::optional<std::string> Dir = llvmBinDir()) {
-    auto Env = boost::this_process::environment();
-    Env["PATH"] += ":" + *Dir;
+    Env["PATH"] += *Dir;
   } else {
     LOG_INFO << "llvm-config: command not found\n";
+    LOG_INFO << "Please make sure your PATH is correct: " +
+                    Env["PATH"].to_string() + "\n";
   }
 
   // Fallback to `llvm-dlltool'.
