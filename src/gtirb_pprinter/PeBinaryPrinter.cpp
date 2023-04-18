@@ -126,7 +126,8 @@ std::optional<std::string> llvmBinDir() {
   Child.wait();
 
   std::string Line;
-  if (Child.exit_code() == 0 && std::getline(InputStream, Line) && !Line.empty()) {
+  if (Child.exit_code() == 0 && std::getline(InputStream, Line) &&
+      !Line.empty()) {
     return Line;
   }
 
@@ -465,9 +466,11 @@ PeLib peLib() {
                     Env["PATH"].to_string() + "\n";
   }
 
-  // Add LLVM bin directory to PATH.
+  // Add LLVM bin directory to the front of PATH.
   if (std::optional<std::string> Dir = llvmBinDir()) {
-    Env["PATH"] += *Dir;
+    auto EnvPath = Env["PATH"].to_vector();
+    EnvPath.insert(EnvPath.begin(), *Dir);
+    Env["PATH"].assign(EnvPath);
   } else {
     LOG_INFO << "llvm-config: command not found\n";
     LOG_INFO << "Please make sure your PATH is correct: " +
