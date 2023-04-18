@@ -123,9 +123,10 @@ std::optional<std::string> llvmBinDir() {
   }
 
   bp::child Child(LlvmConfig, "--bindir", bp::std_out > InputStream);
+  Child.wait();
 
   std::string Line;
-  if (Child.running() && std::getline(InputStream, Line) && !Line.empty()) {
+  if (std::getline(InputStream, Line) && !Line.empty()) {
     return Line;
   }
 
