@@ -126,7 +126,7 @@ std::optional<std::string> llvmBinDir() {
   Child.wait();
 
   std::string Line;
-  if (std::getline(InputStream, Line) && !Line.empty()) {
+  if (Child.exit_code() == 0 && std::getline(InputStream, Line) && !Line.empty()) {
     return Line;
   }
 
