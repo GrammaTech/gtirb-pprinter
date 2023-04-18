@@ -156,8 +156,11 @@ def run_binary_pprinter_mock_out(
     ir: gtirb.IR,
     args: Iterable[str],
     port: Optional[int] = None,
+    fakebin_dir: Optional[str] = None,
     check_output: bool = False,
 ) -> subprocess.CompletedProcess:
+    if fakebin_dir is None:
+        fakebin_dir = _FAKEBIN_DIR
     with temp_directory() as tmpdir:
         gtirb_path = os.path.join(tmpdir, "test.gtirb")
         ir.save_protobuf(gtirb_path)
@@ -167,7 +170,7 @@ def run_binary_pprinter_mock_out(
         # stub for everything it invokes).
         env = dict(os.environ)
         env["PATH"] = "%s%s%s" % (
-            _FAKEBIN_DIR,
+            fakebin_dir,
             os.pathsep,
             env.get("PATH", ""),
         )
@@ -200,6 +203,7 @@ def run_binary_pprinter_mock_out(
 def run_binary_pprinter_mock(
     ir: gtirb.IR,
     args: Iterable[str] = (),
+    fakebin_dir: Optional[str] = None,
 ) -> Iterator[ToolInvocation]:
     """
     Runs the binary pretty-printer and yields each subcommand's arguments,
@@ -207,6 +211,7 @@ def run_binary_pprinter_mock(
     that might be arguments).
     :param ir: The IR object to print.
     :param args: Any additional arguments for the pretty printer.
+    :param fakebin_dir: The path where pprinter will look for binaries.
     """
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
@@ -219,6 +224,7 @@ def run_binary_pprinter_mock(
             ir=ir,
             args=args,
             port=listener.getsockname()[1],
+            fakebin_dir=fakebin_dir,
         )
 
         # We set a relatively small timeout on the socket so that we are

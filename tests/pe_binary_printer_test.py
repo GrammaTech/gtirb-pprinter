@@ -1,6 +1,7 @@
 import unittest
 import sys
 import gtirb
+import os
 
 from gtirb_helpers import (
     add_byte_block,
@@ -19,6 +20,9 @@ from pprinter_helpers import (
     asm_lines,
     run_binary_pprinter_mock_out,
 )
+
+TEST_DIR = os.path.abspath(os.path.dirname(__file__))
+FAKEBIN_LLVM = os.path.join(TEST_DIR, "fakebin_llvm")
 
 
 @unittest.skipUnless(can_mock_binaries(), "cannot mock binaries")
@@ -96,6 +100,35 @@ class WindowsBinaryPrinterTests(PPrinterTest):
                 break
         else:
             self.fail("did not see a lib.exe execution")
+
+    def test_windows_defs_with_llvm(self):
+        """
+        Check that:
+        - we find the llvm installation directory
+          using our fake llvm-config
+        - the directory gets added to our path
+        - we find llvm-dlltool
+        """
+        ir, m = create_test_module(
+            file_format=gtirb.Module.FileFormat.PE,
+            isa=gtirb.Module.ISA.X64,
+            binary_type=["EXEC", "EXE", "WINDOWS_CUI"],
+        )
+        m.aux_data["peImportEntries"].data.append(
+            (0, -1, "GetMessageW", "USER32.DLL")
+        )
+
+        expected_calls = ["llvm-config", "llvm-dlltool", "ml64.exe"]
+        for tool in run_binary_pprinter_mock(ir, fakebin_dir=FAKEBIN_LLVM):
+            if tool.name in expected_calls:
+                expected_calls.remove(tool.name)
+            if len(expected_calls) == 0:
+                break
+        else:
+            self.fail(
+                "did not see the following executions: "
+                + ",".join(expected_calls)
+            )
 
 
 class WindowsBinaryPrinterTests_NoMock(PPrinterTest):
