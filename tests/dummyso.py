@@ -93,3 +93,83 @@ def build_gtirb():
     )
 
     return ir
+
+
+def build_copy_relocated_gtirb() -> gtirb.IR:
+    """
+    Build a GTIRB where its only external symbols are members of a single
+    COPY-relocated group.
+    """
+    (ir, module) = gth.create_test_module(
+        gtirb.Module.FileFormat.ELF,
+        gtirb.Module.ISA.X64,
+    )
+    (text_section, text_bi) = gth.add_text_section(module)
+
+    _, data = gth.add_data_section(module)
+    data_block = gth.add_data_block(data, b"\x01\x00\x00\x00")
+
+    # Add a COPY-relocated symbol.
+    symbol_proxy = gth.add_symbol(
+        module, "__lib_value", gth.add_proxy_block(module)
+    )
+    symbol_copy = gth.add_symbol(module, "__lib_value_copy", data_block)
+
+    symbol_proxy_weak = gth.add_symbol(
+        module, "__lib_value_weak", gth.add_proxy_block(module)
+    )
+    symbol_copy_weak = gth.add_symbol(
+        module, "__lib_value_weak_copy", data_block
+    )
+
+    se_symbol_copy = gtirb.SymAddrConst(0, symbol_copy, {})
+
+    # For the following code:
+    #    48 89 1d 00 00 00 00    movq   %rax, __lib_value(%rip)
+    #    48 31 c0                xor    %rax,%rax
+    #    48 c7 c0 3c 00 00 00    mov    $0x3c,%rax
+    #    48 31 ff                xor    %rdi,%rdi
+    #    0f 05                   syscall
+    cb = gth.add_code_block(
+        text_bi,
+        b"\x48\x89\x1d\x00\x00\x00\x00"
+        b"\x48\x31\xc0"
+        b"\x48\xc7\xc0\x3c\x00\x00\x00"
+        b"\x48\x31\xff"
+        b"\x0f\x05",
+        {3: se_symbol_copy},
+    )
+    symbol_start = gth.add_symbol(module, "_start", cb)
+
+    module.aux_data["libraries"].data.append("libvalue.so")
+
+    module.aux_data["elfSymbolInfo"].data[symbol_start.uuid] = (
+        0,
+        "FUNC",
+        "GLOBAL",
+        "DEFAULT",
+        0,
+    )
+
+    module.aux_data["elfSymbolInfo"].data[symbol_copy.uuid] = (
+        4,
+        "OBJECT",
+        "GLOBAL",
+        "DEFAULT",
+        1,
+    )
+
+    module.aux_data["elfSymbolInfo"].data[symbol_copy_weak.uuid] = (
+        4,
+        "OBJECT",
+        "WEAK",
+        "DEFAULT",
+        1,
+    )
+
+    module.aux_data["symbolForwarding"].data[symbol_copy.uuid] = symbol_proxy
+    module.aux_data["symbolForwarding"].data[
+        symbol_copy_weak.uuid
+    ] = symbol_proxy_weak
+
+    return ir
