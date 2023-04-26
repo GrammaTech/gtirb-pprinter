@@ -1,0 +1,59 @@
+from pathlib import Path
+
+from setuptools import find_packages, setup
+
+
+README = Path(__file__).parent / "README.md"
+long_description = README.read_text(encoding="utf-8")
+
+GTIRB_VERSION = (
+    "@gtirb_VERSION_MAJOR@."
+    "@gtirb_VERSION_MINOR@."
+    "@gtirb_VERSION_PATCH@"
+    "@GTIRB_PYTHON_DEV_SUFFIX@"
+)
+
+PPRINTER_VERSION = (
+    "@GTIRB_PPRINTER_MAJOR_VERSION@."
+    "@GTIRB_PPRINTER_MINOR_VERSION@."
+    "@GTIRB_PPRINTER_PATCH_VERSION@"
+    "@GTIRB_PPRINTER_PYTHON_DEV_SUFFIX@"
+)
+
+setup(
+    name="gtirb-pprinter",
+    version=PPRINTER_VERSION,
+    description="Pretty printer from GTIRB to assembly code",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    author="GrammaTech, Inc.",
+    author_email="gtirb@grammatech.com",
+    url="https://github.com/grammatech/gtirb-pprinter",
+    license="MIT",
+    classifiers=[
+        "License :: OSI Approved :: MIT License",
+        "Topic :: Software Development",
+        "Development Status :: 5 - Production/Stable",
+        "Intended Audience :: Developers",
+        'Intended Audience :: System Administrators',
+        'Operating System :: POSIX',
+    ],
+    keywords=[
+        "reverse-engineering",
+        "disassembler",
+        "binary-analysis",
+        "intermediate-representation",
+        "binary-rewriting",
+        "gtirb",
+    ],
+    python_requires=">=3.6",
+    install_requires=[
+        f"gtirb=={GTIRB_VERSION}",
+        "importlib_resources ; python_version<'3.9'",
+    ],
+    packages=find_packages("src"),
+    package_dir={"": "src"},
+    include_package_data=True,
+    package_data={"": ["gtirb-pprinter", ".libs/*", "py.typed"]},
+    entry_points={"console_scripts": ["gtirb-pprinter = gtirb_pprinter.__main__:_main"]},
+)

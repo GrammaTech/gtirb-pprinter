@@ -35,6 +35,9 @@ endif()
 if(GTIRB_PPRINTER_BUILD_REVISION STREQUAL "")
   set(GTIRB_PPRINTER_BUILD_REVISION "UNKNOWN")
 endif()
+option(GTIRB_PPRINTER_RELEASE_VERSION
+       "Whether or not to build Python package versions without dev suffixes."
+       OFF)
 
 string(TIMESTAMP GTIRB_PPRINTER_BUILD_DATE "%Y-%m-%d")
 
@@ -335,7 +338,13 @@ if(CAPSTONE)
   get_filename_component(CAPSTONE_DIR ${CAPSTONE} DIRECTORY)
   find_program(CSTOOL "cstool" HINTS ${CAPSTONE_DIR} ${CAPSTONE_DIR}/bin
                                      ${CAPSTONE_DIR}/../bin)
-  execute_process(COMMAND "${CSTOOL}" "-v" OUTPUT_VARIABLE CSTOOL_VERSION)
+  # When using conan to install the dependencies but CMake to do the build, the
+  # capstone libraries may not be findable by the loader. Set LD_LIBRARY path to
+  # fix this.
+  execute_process(
+    COMMAND ${CMAKE_COMMAND} -E env
+            "LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:${CAPSTONE_DIR}" #
+            "${CSTOOL}" "-v" OUTPUT_VARIABLE CSTOOL_VERSION)
   string(REGEX MATCH "v([0-9]+\.[0-9]+\.[0-9]+)" CSTOOL_VERSION
                "${CSTOOL_VERSION}")
   set(CSTOOL_VERSION "${CMAKE_MATCH_1}")
@@ -447,6 +456,15 @@ function(install_linux_debug_info TARGET COMPONENT_NAME)
 endfunction()
 
 add_subdirectory(src)
+
+# ---------------------------------------------------------------------------
+# Python wheel
+# ---------------------------------------------------------------------------
+option(GTIRB_PPRINTER_RELEASE_VERSION "Build Python gtirb-pprinter package."
+       OFF)
+if(GTIRB_PPRINTER_BUILD_PYTHON_PACKAGE)
+  add_subdirectory(python)
+endif()
 
 # ---------------------------------------------------------------------------
 # Export config for use by other CMake projects

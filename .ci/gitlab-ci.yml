@@ -54,17 +54,20 @@ check-format:
       EOF
       ) && exit 1)
 
+.setup-conan-linux:
+  - pip3 install --upgrade conan~=$CONAN_VERSION
+  - conan profile new default --detect
+  - conan profile update settings.compiler.libcxx=libstdc++11 default
+  - conan remote add gitlab ${CI_API_V4_URL}/packages/conan
+  - conan user ci_user -r gitlab -p
+
 .linux-conan-template: &linux-conan
   stage: build
   needs: [check-format]
   variables:
     CONAN_PASSWORD: $CI_JOB_TOKEN
   script:
-    - pip3 install --upgrade conan==$CONAN_VERSION
-    - conan profile new default --detect
-    - conan profile update settings.compiler.libcxx=libstdc++11 default
-    - conan remote add gitlab ${CI_API_V4_URL}/packages/conan
-    - conan user ci_user -r gitlab -p
+    - !reference [.setup-conan-linux]
     - pip3 install --upgrade pip
     - pip3 install -r tests/requirements.txt $EXTRA_INDEX_URL
     - PYTHONPATH="$(pwd):$PYTHONPATH" python3 .ci/build.py
@@ -611,3 +614,85 @@ windows-upload-internal:
     JOB_NAME: conan-windows-release
     FILESERVER: internal
     FILESERVER_SUBDIR_NAME: windows-release
+
+python-manylinux-2010-release:
+  stage: build
+  needs: [check-format]
+  image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/manylinux2010_x86_64
+  variables:
+    CONAN_PASSWORD: $CI_JOB_TOKEN
+  artifacts:
+    paths:
+      - _build/wheelhouse/*.whl
+    # Set a short expiry time - only needed until it is published by a later job.
+    expire_in: 8 hours
+  rules:
+    - if: '$CI_COMMIT_REF_NAME =~ /^release-.*/'
+    - if: '$CI_COMMIT_REF_NAME == "master"'
+  script:
+    - !reference [.setup-conan-linux]
+    - RELEASE_VERSION=$([[ $CI_COMMIT_REF_NAME =~ release-.* ]] && echo "ON" || echo "OFF")
+    - mkdir _build
+    - cd _build
+    - conan install ..  '--build=*'
+    - cmake .. -DENABLE_CONAN=ON -DGTIRB_PPRINTER_BUILD_PYTHON_PACKAGE=ON -DCMAKE_BUILD_TYPE=Release -DGTIRB_PPRINTER_RELEASE_VERSION=$RELEASE_VERSION
+    - cmake --build . --target=python-wheel --parallel=$(nproc)
+    - auditwheel repair python/dist/*.whl
+
+python-manylinux-2010-test:
+  image: python:3.9
+  stage: test-packages1
+  needs:
+    - python-manylinux-2010-release
+  rules:
+    - if: '$CI_COMMIT_REF_NAME =~ /^release-.*/'
+    - if: '$CI_COMMIT_REF_NAME == "master"'
+  script:
+    - pip3 install _build/wheelhouse/gtirb*.whl --extra-index-url=$EXTRA_INDEX_URL
+    - gtirb-pprinter --version
+
+python-manylinux-2010-publish-internal:
+  image: python:3.9
+  stage: deploy
+  needs:
+    - python-manylinux-2010-release
+  rules:
+    - if: '$CI_COMMIT_REF_NAME =~ /^release-.*/'
+    - if: '$CI_COMMIT_REF_NAME == "master"'
+  script:
+    - cd _build/wheelhouse/
+    - pip3 install twine wheel setuptools --upgrade
+    - wget https://git.grammatech.com/research/templates/python-module/raw/master/.pypirc
+    - sed "s/password = <access token>/password = $GL_PKG_API_TOKEN/" .pypirc > ~/.pypirc
+    - pip3 install gtirb_pprinter-*.whl --extra-index-url=$EXTRA_INDEX_URL
+    - NEW_VERSION=$(python3 -c "import gtirb_pprinter; print(gtirb_pprinter.__version__)")
+    - if [[ "$NEW_VERSION" =~ \.dev[[:digit:]]*(\+.*)?$ && "$CI_COMMIT_REF_NAME" =~ ^release-.* ]]; then exit 1; fi
+    - if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then
+        if [[ ! "$NEW_VERSION" =~ \.dev[[:digit:]]*$ ]]; then
+          echo "[ERROR] Only .dev versions can be uploaded from the master branch.";
+          exit 1;
+        fi;
+        if pip3 install --extra-index-url=$EXTRA_INDEX_URL "gtirb-pprinter>$NEW_VERSION" 2>/dev/null; then
+          echo "[ERROR] The package version being published on master should always be >= the version in the repository.";
+          exit 1;
+        fi;
+        wget https://git.grammatech.com/research/templates/python-module/raw/master/delete_remote_packages.py;
+        python3 delete_remote_packages.py $GL_PKG_API_TOKEN gtirb_pprinter-*.whl;
+      fi
+    - twine check gtirb_pprinter-*.whl
+    - twine upload --verbose --repository repypi gtirb_pprinter-*.whl
+
+python-manylinux-2010-publish-external:
+  stage: deploy
+  image: python:3.9-slim
+  needs:
+    - python-manylinux-2010-release
+  script:
+    - cd _build/wheelhouse/
+    - pip3 install twine gtirb_pprinter-*.whl
+    - VERSION=$(python3 -c "import gtirb_pprinter; print(gtirb_pprinter.__version__)")
+    # Do not publish .dev versions on the public pypi
+    - if [[ "$VERSION" =~ \.dev[[:digit:]]*.*$ ]]; then exit 1; fi
+    - python3 -m twine upload --verbose gtirb_pprinter-*.whl -u __token__ -p $PYPI_API_KEY
+  rules:
+    - if: '$CI_COMMIT_REF_NAME =~ /^release-.*/'
