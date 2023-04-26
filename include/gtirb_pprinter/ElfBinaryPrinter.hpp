@@ -27,6 +27,8 @@
 namespace gtirb_bprint {
 class TempFile;
 
+using SymbolGroup = std::vector<const gtirb::Symbol*>;
+
 class DEBLOAT_PRETTYPRINTER_EXPORT_API ElfBinaryPrinter : public BinaryPrinter {
 private:
   const std::string defaultCompiler = "gcc";
@@ -39,8 +41,9 @@ private:
               const std::vector<std::string>& paths) const;
   bool generateDummySO(const gtirb::IR& ir, const std::string& libDir,
                        const std::string& lib,
-                       std::vector<const gtirb::Symbol*>& syms) const;
-  bool prepareDummySOLibs(const gtirb::IR& ir, const std::string& libDir,
+                       const std::vector<SymbolGroup>& syms) const;
+  bool prepareDummySOLibs(const gtirb::Context& Context, const gtirb::IR& ir,
+                          const std::string& libDir,
                           std::vector<std::string>& libArgs) const;
   void addOrigLibraryArgs(const gtirb::IR& ir,
                           std::vector<std::string>& args) const;

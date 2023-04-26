@@ -70,131 +70,241 @@ bool isBlackListed(std::string sym) {
 }
 
 bool ElfBinaryPrinter::generateDummySO(
-    const gtirb::IR& ir, const std::string& libDir, const std::string& lib,
-    std::vector<const gtirb::Symbol*>& syms) const {
+    const gtirb::IR& IR, const std::string& LibDir, const std::string& Lib,
+    const std::vector<SymbolGroup>& SymGroups) const {
 
   // Assume that lib is a filename w/ no path prefix
-  assert(!boost::filesystem::path(lib).has_parent_path());
-  std::string asmFileName = lib + ".s";
-  auto asmFilePath = boost::filesystem::path(libDir) / asmFileName;
-  auto libPath = boost::filesystem::path(libDir) / lib;
-  bool emittedSymvers = false;
+  assert(!boost::filesystem::path(Lib).has_parent_path());
+  std::string AsmFileName = Lib + ".s";
+  auto AsmFilePath = boost::filesystem::path(LibDir) / AsmFileName;
+  auto LibPath = boost::filesystem::path(LibDir) / Lib;
+  bool EmittedSymvers = false;
 
   {
-    std::ofstream asmFile(asmFilePath.string());
-    asmFile << "# Generated dummy file for .so undefined symbols\n";
+    std::ofstream AsmFile(AsmFilePath.string());
+    AsmFile << "# Generated dummy file for .so undefined symbols\n";
 
-    for (auto curr = syms.begin(); curr != syms.end(); ++curr) {
-      const gtirb::Symbol* sym = *curr;
+    for (auto& SymGroup : SymGroups) {
+      std::optional<uint64_t> SymSize;
 
-      std::string name = sym->getName();
+      for (auto Sym : SymGroup) {
+        std::string Name = Sym->getName();
 
-      auto SymInfo = aux_data::getElfSymbolInfo(*sym);
-      bool has_copy = false;
-      if (!SymInfo) {
-        // See if we have a symbol for "foo_copy", if so use its info
-        std::string copyName = sym->getName() + "_copy";
-        if (auto CopySymRange = sym->getModule()->findSymbols(copyName)) {
-          if (CopySymRange.empty()) {
-            LOG_WARNING << "Symbol not in symbol table [" << sym->getName()
-                        << "] while generating dummy SO\n";
-            assert(false); // Should've been filtered out in prepareDummySOLibs.
+        auto SymInfo = aux_data::getElfSymbolInfo(*Sym);
+        if (!SymInfo) {
+          // See if we have a symbol for "foo_copy", if so use its info
+          std::string CopyName = Sym->getName() + "_copy";
+          if (auto CopySymRange = Sym->getModule()->findSymbols(CopyName)) {
+            SymInfo = aux_data::getElfSymbolInfo(*(CopySymRange.begin()));
+          } else {
+            LOG_ERROR << "Symbol not in symbol table [" << Sym->getName()
+                      << "] while generating dummy SO\n";
             return false;
           }
-          has_copy = true;
-          SymInfo = aux_data::getElfSymbolInfo(*(CopySymRange.begin()));
-        } else {
+        }
+
+        if (!SymSize) {
+          SymSize = SymInfo->Size;
+        } else if (*SymSize != SymInfo->Size) {
+          LOG_ERROR << "Symbol group has mismatched sizes; " << Name << " is "
+                    << SymInfo->Size << " bytes, but had " << *SymSize
+                    << " bytes\n";
           return false;
         }
-      }
-      uint64_t SymSize = SymInfo->Size;
-      std::string SymType = SymInfo->Type;
-      // TODO: Make use of syntax content in ElfPrettyPrinter?
 
-      // Generate an appropriate symbol
-      // Note: The following handles situations we've encountered
-      // so far. If you're having an issue with a particular symbol,
-      // this code is likely where a fix might be needed.
-      if (SymType == "FUNC" || SymType == "GNU_IFUNC") {
-        asmFile << ".text\n";
-        asmFile << ".globl " << name << "\n";
-      } else if (has_copy) {
-        // Treat copy-relocation variables as common symbols
-        asmFile << ".data\n";
-        asmFile << ".comm " << name << ", " << SymSize << ", " << SymSize
-                << "\n";
+        std::string SymType = SymInfo->Type;
+        // TODO: Make use of syntax content in ElfPrettyPrinter?
+        std::string Binding;
+        if (SymInfo->Binding == "WEAK") {
+          Binding = ".weak";
+        } else {
+          Binding = ".globl";
+        }
 
-        // Don't need to do anything else below here for
-        // common symbols.
-        continue;
-      } else {
-        asmFile << ".data\n";
-        asmFile << ".globl " << name << "\n";
-      }
+        if (SymType == "FUNC" || SymType == "GNU_IFUNC") {
+          AsmFile << ".text\n";
+        } else {
+          AsmFile << ".data\n";
+        }
+        AsmFile << Binding << " " << Name << "\n";
 
-      static const std::unordered_map<std::string, std::string>
-          TypeNameConversion = {
-              {"FUNC", "function"},  {"OBJECT", "object"},
-              {"NOTYPE", "notype"},  {"NONE", "notype"},
-              {"TLS", "tls_object"}, {"GNU_IFUNC", "gnu_indirect_function"},
-          };
-      auto TypeNameIt = TypeNameConversion.find(SymType);
-      if (TypeNameIt == TypeNameConversion.end()) {
-        std::cerr << "Unknown type: " << SymType << " for symbol: " << name
-                  << "\n";
-        assert(!"unknown type in elfSymbolInfo!");
-      } else {
-        const auto& TypeName = TypeNameIt->second;
-        asmFile << ".type " << name << ", @" << TypeName << "\n";
-      }
+        if (SymType == "OBJECT" && SymInfo->Size != 0) {
+          AsmFile << ".size " << Name << ", " << SymInfo->Size << "\n";
+        }
 
-      auto Version = aux_data::getSymbolVersionString(*sym);
-      if (Version && !Printer.getIgnoreSymbolVersions()) {
-        asmFile << ".symver " << name << "," << name << *Version << '\n';
-        emittedSymvers = true;
+        static const std::unordered_map<std::string, std::string>
+            TypeNameConversion = {
+                {"FUNC", "function"},  {"OBJECT", "object"},
+                {"NOTYPE", "notype"},  {"NONE", "notype"},
+                {"TLS", "tls_object"}, {"GNU_IFUNC", "gnu_indirect_function"},
+            };
+        auto TypeNameIt = TypeNameConversion.find(SymType);
+        if (TypeNameIt == TypeNameConversion.end()) {
+          LOG_ERROR << "Unknown type: " << SymType << " for symbol: " << Name
+                    << "\n";
+          return false;
+        } else {
+          const auto& TypeName = TypeNameIt->second;
+          AsmFile << ".type " << Name << ", @" << TypeName << "\n";
+        }
+
+        auto Version = aux_data::getSymbolVersionString(*Sym);
+        if (Version && !Printer.getIgnoreSymbolVersions()) {
+          AsmFile << ".symver " << Name << "," << Name << *Version << '\n';
+          EmittedSymvers = true;
+        }
+
+        AsmFile << Name << ":\n";
       }
 
-      asmFile << name << ":\n";
-      uint64_t space = SymSize;
-      if (space == 0) {
-        space = 4;
+      // only emit one .skip directive for each symbol group, as symbol groups
+      // represent symbols that refer to the same data.
+      uint64_t Space = *SymSize;
+      if (Space == 0) {
+        Space = 4;
       }
-      asmFile << ".skip " << space << "\n";
+      AsmFile << ".skip " << Space << "\n";
     }
   }
 
-  std::vector<std::string> args;
-  args.push_back("-o");
-  args.push_back(libPath.string());
-  args.push_back("-shared");
-  args.push_back("-fPIC");
-  args.push_back("-nostartfiles");
-  args.push_back("-nodefaultlibs");
-  args.push_back(asmFilePath.string());
+  std::vector<std::string> Args;
+  Args.push_back("-o");
+  Args.push_back(LibPath.string());
+  Args.push_back("-shared");
+  Args.push_back("-fPIC");
+  Args.push_back("-nostartfiles");
+  Args.push_back("-nodefaultlibs");
+  Args.push_back(AsmFilePath.string());
 
   TempFile VersionScript(".map");
-  if (emittedSymvers) {
+  if (EmittedSymvers) {
     if (!Printer.getIgnoreSymbolVersions()) {
       // A version script is only needed if we define versioned symbols.
-      if (gtirb_pprint::printVersionScript(ir, VersionScript)) {
-        args.push_back("-Wl,--version-script=" + VersionScript.fileName());
+      if (gtirb_pprint::printVersionScript(IR, VersionScript)) {
+        Args.push_back("-Wl,--version-script=" + VersionScript.fileName());
       }
     }
   }
   VersionScript.close();
 
-  if (std::optional<int> ret = execute(compiler, args)) {
-    if (*ret) {
-      std::cerr << "ERROR: Compiler returned " << *ret
-                << " for dummy .so: " << lib << "\n";
+  if (std::optional<int> Ret = execute(compiler, Args)) {
+    if (*Ret) {
+      std::cerr << "ERROR: Compiler returned " << *Ret
+                << " for dummy .so: " << Lib << "\n";
       return false;
     }
 
     return true;
   }
 
-  std::cerr << "ERROR: Failed to run compiler for dummy .so: " << lib << "\n";
+  std::cerr << "ERROR: Failed to run compiler for dummy .so: " << Lib << "\n";
   return false;
+}
+
+/**
+Get the library name for a symbol using the symbol version information.
+
+Returns std::nullopt if no symbol version exists for the symbol. Emits a
+warning if symbol version is found, but is not considered "needed" (which may
+indicate it is not an external symbol).
+*/
+static std::optional<std::string>
+getLibNameFromSymbolVersion(const gtirb::Symbol& Sym) {
+  const auto SymbolVersions = aux_data::getSymbolVersions(*Sym.getModule());
+  std::optional<std::string> LibName = std::nullopt;
+
+  if (SymbolVersions) {
+    auto& [SymVerDefs, SymVersNeeded, SymVersionEntries] = *SymbolVersions;
+    auto SymVerEntry = SymVersionEntries.find(Sym.getUUID());
+    if (SymVerEntry != SymVersionEntries.end()) {
+      // This symbol is versioned. There should be an entry for it in
+      // SymVersNeeded.
+
+      for (auto& [CurLibName, SymVerMap] : SymVersNeeded) {
+        auto& [SymVerID, _] = SymVerEntry->second;
+        auto VersionReq = SymVerMap.find(SymVerID);
+        if (VersionReq != SymVerMap.end()) {
+          LibName = CurLibName;
+          break;
+        }
+      }
+
+      if (!LibName) {
+        LOG_WARNING << "The symbol " << Sym.getName() << " is versioned, "
+                    << "but was not found in needed symbol versions\n";
+      }
+    }
+  }
+
+  return LibName;
+}
+
+static bool isCopyRelocation(const gtirb::Symbol* From,
+                             const gtirb::Symbol* To) {
+  if (!From->getAddress() || !To->hasReferent() ||
+      !To->getReferent<gtirb::ProxyBlock>()) {
+    return false;
+  }
+
+  auto SymInfo = aux_data::getElfSymbolInfo(*From);
+  return SymInfo && SymInfo->Type == "OBJECT";
+}
+
+/**
+ * Group symbols together if they must be printed in the dummy library as
+ * referring to the same address. Currently, this is only known to be
+ * necessary for COPY-relocated symbols.
+ */
+static std::vector<SymbolGroup>
+buildDummySOSymbolGroups(const gtirb::Context& Context, const gtirb::IR& IR) {
+  std::vector<SymbolGroup> SymbolGroups;
+
+  // This set allows efficient lookup of which symbols were added to groups.
+  std::set<const gtirb::Symbol*> GroupedSymbols;
+
+  // Build symbol groups for COPY-relocated symbols.
+  for (const gtirb::Module& Module : IR.modules()) {
+    std::map<gtirb::Addr, SymbolGroup> CopySymbolsByAddr;
+    std::map<gtirb::UUID, gtirb::UUID> Forwarding =
+        aux_data::getSymbolForwarding(Module);
+    for (auto& Forward : Forwarding) {
+      const gtirb::Symbol* From =
+          gtirb_pprint::getByUUID<gtirb::Symbol>(Context, Forward.first);
+      const gtirb::Symbol* To =
+          gtirb_pprint::getByUUID<gtirb::Symbol>(Context, Forward.second);
+      if (From == nullptr || To == nullptr) {
+        LOG_WARNING << "Invalid UUID in SymbolFowarding\n";
+        continue;
+      }
+      if (!isCopyRelocation(From, To) || isBlackListed(To->getName())) {
+        continue;
+      }
+
+      gtirb::Addr Addr = *From->getAddress();
+      CopySymbolsByAddr[Addr].push_back(To);
+    }
+
+    for (auto It : CopySymbolsByAddr) {
+      SymbolGroups.push_back(It.second);
+      GroupedSymbols.insert(It.second.begin(), It.second.end());
+    }
+  }
+
+  // All other imported symbols belong in a group each by themselves.
+  for (const gtirb::Module& Module : IR.modules()) {
+    for (const auto& Sym : Module.symbols()) {
+      if (!Sym.getAddress() &&
+          (!Sym.hasReferent() || Sym.getReferent<gtirb::ProxyBlock>()) &&
+          !isBlackListed(Sym.getName())) {
+
+        if (GroupedSymbols.find(&Sym) == GroupedSymbols.end()) {
+          SymbolGroups.push_back({&Sym});
+        }
+      }
+    }
+  }
+
+  return SymbolGroups;
 }
 
 // Generate dummy stand-in libraries for .so files that may not be present
@@ -209,12 +319,12 @@ bool ElfBinaryPrinter::generateDummySO(
 // process of creating fake .so files that export all the correct symbols, and
 // we can link against those.
 bool ElfBinaryPrinter::prepareDummySOLibs(
-    const gtirb::IR& ir, const std::string& libDir,
-    std::vector<std::string>& libArgs) const {
+    const gtirb::Context& Context, const gtirb::IR& IR,
+    const std::string& LibDir, std::vector<std::string>& LibArgs) const {
   // Collect all libs we need to handle
-  std::vector<std::string> libs;
-  for (const gtirb::Module& module : ir.modules()) {
-    for (const auto& Library : aux_data::getLibraries(module)) {
+  std::vector<std::string> Libs;
+  for (const gtirb::Module& Module : IR.modules()) {
+    for (const auto& Library : aux_data::getLibraries(Module)) {
       // Skip blacklisted libs
       if (isBlackListedLib(Library)) {
         continue;
@@ -227,101 +337,88 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
                   << Library << "\n";
         continue;
       }
-      libs.push_back(Library);
+      Libs.push_back(Library);
     }
   }
-  if (libs.empty()) {
+  if (Libs.empty()) {
     std::cerr << "Note: no dynamic libraries present.\n";
     return false;
   }
 
-  // Now we need to assign imported symbols to all the libs.
-  // For versioned symbols, we have a mapping of which library they belong to.
+  // Get groups of symbols which must be printed together.
+  std::vector<SymbolGroup> SymbolGroups = buildDummySOSymbolGroups(Context, IR);
+
+  // Now we need to assign imported symbol groups to all the libs.
+  // For any group that contains a versioned symbol, we have a mapping of which
+  // library they belong to.
   // Otherwise, we do not, but the ELF format doesn't keep that information
   // either for unversioned symbols, so we put them in unallocatedSymbols.
-  std::map<std::string, std::vector<const gtirb::Symbol*>> undefinedSymbols;
-  std::vector<const gtirb::Symbol*> unallocatedSymbols;
+  std::map<std::string, std::vector<SymbolGroup>> AllocatedSymbols;
+  std::vector<SymbolGroup> UnallocatedSymbols;
 
-  for (const gtirb::Module& module : ir.modules()) {
-    const auto SymbolVersions = aux_data::getSymbolVersions(module);
-
-    for (const auto& sym : module.symbols()) {
-      if (!sym.getAddress() &&
-          (!sym.hasReferent() ||
-           sym.getReferent<gtirb::ProxyBlock>() != nullptr) &&
-          !isBlackListed(sym.getName())) {
-
-        if (SymbolVersions) {
-          auto& [SymVerDefs, SymVersNeeded, SymVersionEntries] =
-              *SymbolVersions;
-          auto SymVerEntry = SymVersionEntries.find(sym.getUUID());
-          if (SymVerEntry != SymVersionEntries.end()) {
-            // This symbol is versioned. There should be an entry for it in
-            // SymVersNeeded.
-            std::string LibName;
-            for (auto& [CurLibName, SymVerMap] : SymVersNeeded) {
-              auto VersionReq =
-                  SymVerMap.find(std::get<0>(SymVerEntry->second));
-              if (VersionReq != SymVerMap.end()) {
-                LibName = CurLibName;
-              }
-            }
-            if (LibName.empty()) {
-              LOG_ERROR << "ERROR: Undefined symbol \"" << sym.getName()
-                        << "\" is versioned, but not in needed versions.";
-              return false;
-            }
-            undefinedSymbols[LibName].push_back(&sym);
-            continue;
+  for (SymbolGroup& SymGroup : SymbolGroups) {
+    std::optional<std::string> LibNameOpt = std::nullopt;
+    for (const gtirb::Symbol* Sym : SymGroup) {
+      std::optional<std::string> SymLibNameOpt =
+          getLibNameFromSymbolVersion(*Sym);
+      if (SymLibNameOpt) {
+        if (LibNameOpt) {
+          if (*SymLibNameOpt != *LibNameOpt) {
+            // Symbol group disagrees on source library
+            LOG_ERROR << "Symbol group containing " << Sym->getName()
+                      << " cannot resolve source library conflict: "
+                      << *SymLibNameOpt << " != " << *LibNameOpt << "\n";
+            return false;
           }
-        }
-
-        // fallthrough: we don't have symbol version info for this symbol.
-        auto SymInfo = aux_data::getElfSymbolInfo(sym);
-        if (!SymInfo) {
-          // See if we have a symbol for "foo_copy", if so use its info
-          std::string copyName = sym.getName() + "_copy";
-          if (auto CopySymRange = module.findSymbols(copyName)) {
-            if (CopySymRange.empty()) {
-              return false;
-            }
-            SymInfo = aux_data::getElfSymbolInfo(*CopySymRange.begin());
-          } else {
-            LOG_WARNING << "Symbol not in symbol table [" << sym.getName()
-                        << "] while preparing dummy SO\n";
-            continue;
-          }
-        }
-
-        // Ignore some types of symbols
-        if (SymInfo->Type != "FILE") {
-          // Just put unversioned symbols in special list. We need to
-          // distribute them later to any libraries that have no symbols.
-          unallocatedSymbols.push_back(&sym);
+        } else {
+          LibNameOpt = SymLibNameOpt;
         }
       }
     }
+    if (LibNameOpt) {
+      // We determined the source library from the symbol version information.
+      std::string LibName = *LibNameOpt;
+      AllocatedSymbols[LibName].push_back(SymGroup);
+      continue;
+    }
+
+    // fallthrough: we don't have any symbol version info for this symbol group.
+
+    if (SymGroup.size() == 1) {
+      auto SymInfo = aux_data::getElfSymbolInfo(**SymGroup.begin());
+      if (SymInfo && SymInfo->Type == "FILE") {
+        // Ignore some types of symbols
+        // We only check this for ungrouped symbols, as COPY-relocated symbols
+        // are already known to be non-FILE type (they are differentiated by
+        // having OBJECT-type SymInfo and in the SymbolForwarding table)
+        continue;
+      }
+    }
+
+    // Just put unversioned symbol groups in special list. We need to
+    // distribute them later to any libraries that have no symbols.
+    UnallocatedSymbols.push_back(SymGroup);
   }
 
   // Generate the .so files
-  auto UndefinedSymIt = unallocatedSymbols.begin();
-  auto UndefinedSymItEnd = unallocatedSymbols.end();
-  auto LastLibIt = --libs.end();
-  for (auto LibIt = libs.begin(); LibIt != libs.end(); LibIt++) {
+  auto UndefinedSymIt = UnallocatedSymbols.begin();
+  auto UndefinedSymItEnd = UnallocatedSymbols.end();
+  auto LastLibIt = --Libs.end();
+  for (auto LibIt = Libs.begin(); LibIt != Libs.end(); LibIt++) {
     std::string& Lib = *LibIt;
-    auto& LibSyms = undefinedSymbols[Lib];
+    auto& LibSyms = AllocatedSymbols[Lib];
 
     if (LibIt == LastLibIt) {
-      // If this is the last library, dump the rest of the symbols in.
+      // If this is the last library, dump the rest of the symbol groups in.
       for (; UndefinedSymIt != UndefinedSymItEnd; UndefinedSymIt++) {
         LibSyms.push_back(*UndefinedSymIt);
       }
     } else if (LibSyms.size() == 0) {
-      // If this library has no symbols, take one from the undefined symbols.
+      // If this library has no symbol groups, take an unallocated one.
       // We need to ensure each dummy .so has at least one, or the final binary
       // will not actually be linked with this library.
       if (UndefinedSymIt == UndefinedSymItEnd) {
-        // We ran out of symbols.
+        // We ran out of symbol groups.
         LOG_ERROR << "No symbols remain to assign to " << Lib << "\n";
         return false;
       }
@@ -329,7 +426,7 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
       LibSyms.push_back(*UndefinedSymIt++);
     }
 
-    if (!generateDummySO(ir, libDir, Lib, LibSyms)) {
+    if (!generateDummySO(IR, LibDir, Lib, LibSyms)) {
       LOG_ERROR << "Failed generating dummy .so for " << Lib << "\n";
       return false;
     }
@@ -340,13 +437,13 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
   // assumed that the libs we would need are not present. This may futher
   // require the --keep-function-symbol argument paired with -c -nostartfiles
   // to preserve startup code.
-  libArgs.push_back("-L" + libDir);
-  libArgs.push_back("-nodefaultlibs");
-  for (const auto& lib : libs) {
-    libArgs.push_back("-l:" + lib);
+  LibArgs.push_back("-L" + LibDir);
+  LibArgs.push_back("-nodefaultlibs");
+  for (const auto& Lib : Libs) {
+    LibArgs.push_back("-l:" + Lib);
   }
-  for (const auto& rpath : LibraryPaths) {
-    libArgs.push_back("-Wl,-rpath," + rpath);
+  for (const auto& RPath : LibraryPaths) {
+    LibArgs.push_back("-Wl,-rpath," + RPath);
   }
 
   return true;
@@ -558,7 +655,7 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
       return -1;
     }
 
-    if (!prepareDummySOLibs(ir, dummySoDir->dirName(), libArgs)) {
+    if (!prepareDummySOLibs(ctx, ir, dummySoDir->dirName(), libArgs)) {
       std::cerr << "ERROR: Could not create dummy so files for linking.\n";
       return -1;
     }
