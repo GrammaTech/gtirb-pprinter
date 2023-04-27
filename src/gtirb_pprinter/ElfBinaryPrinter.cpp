@@ -126,12 +126,14 @@ bool ElfBinaryPrinter::generateDummySO(
 
         if (SymType == "FUNC" || SymType == "GNU_IFUNC") {
           AsmFile << ".text\n";
+        } else if (SymType == "TLS") {
+          AsmFile << ".section .tdata, \"waT\"\n";
         } else {
           AsmFile << ".data\n";
         }
         AsmFile << Binding << " " << Name << "\n";
 
-        if (SymType == "OBJECT" && SymInfo->Size != 0) {
+        if ((SymType == "OBJECT" || SymType == "TLS") && SymInfo->Size != 0) {
           AsmFile << ".size " << Name << ", " << SymInfo->Size << "\n";
         }
 
