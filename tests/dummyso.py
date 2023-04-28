@@ -173,3 +173,95 @@ def build_copy_relocated_gtirb() -> gtirb.IR:
     ] = symbol_proxy_weak
 
     return ir
+
+
+def build_tls_gtirb() -> gtirb.IR:
+    """
+    Build a GTIRB that links a TLS symbol
+    """
+    (ir, module) = gth.create_test_module(
+        gtirb.Module.FileFormat.ELF,
+        gtirb.Module.ISA.X64,
+    )
+    (text_section, text_bi) = gth.add_text_section(module)
+
+    _, got = gth.add_section(module, ".got")
+    got_data_block = gth.add_data_block(got, b"\x00\x00\x00\x00")
+
+    symbol_proxy = gth.add_symbol(
+        module, "__lib_value", gth.add_proxy_block(module)
+    )
+
+    symbol_got = gth.add_symbol(module, ".L_1abc0", got_data_block)
+
+    se_symbol_got = gtirb.SymAddrConst(
+        0,
+        symbol_got,
+        {
+            gtirb.SymbolicExpression.Attribute.GOT,
+            gtirb.SymbolicExpression.Attribute.TPOFF,
+        },
+    )
+
+    # For the following code:
+    #    48 8b 05 00 00 00 00    mov    __lib_value@GOTTPOFF(%rip), %rax
+    #    48 31 c0                xor    %rax,%rax
+    #    48 c7 c0 3c 00 00 00    mov    $0x3c,%rax
+    #    48 31 ff                xor    %rdi,%rdi
+    #    0f 05                   syscall
+    cb = gth.add_code_block(
+        text_bi,
+        b"\x48\x8b\x05\x00\x00\x00\x00"
+        b"\x48\x31\xc0"
+        b"\x48\xc7\xc0\x3c\x00\x00\x00"
+        b"\x48\x31\xff"
+        b"\x0f\x05",
+        {3: se_symbol_got},
+    )
+    symbol_start = gth.add_symbol(module, "_start", cb)
+
+    module.aux_data["libraries"].data.append("libvalue.so")
+
+    module.aux_data["elfSymbolInfo"].data[symbol_start.uuid] = (
+        0,
+        "FUNC",
+        "GLOBAL",
+        "DEFAULT",
+        0,
+    )
+
+    module.aux_data["elfSymbolInfo"].data[symbol_proxy.uuid] = (
+        0,
+        "TLS",
+        "GLOBAL",
+        "DEFAULT",
+        0,
+    )
+
+    module.aux_data["elfSymbolInfo"].data[symbol_got.uuid] = (
+        0,
+        "NONE",
+        "LOCAL",
+        "DEFAULT",
+        0,
+    )
+
+    module.aux_data["elfSymbolVersions"] = gtirb.AuxData(
+        type_name=(
+            "tuple<mapping<uint16_t,tuple<sequence<string>,uint16_t>>,"
+            "mapping<string,mapping<uint16_t,string>>,"
+            "mapping<UUID,tuple<uint16_t,bool>>>"
+        ),
+        data=(
+            # ElfSymVerDefs
+            {},
+            # ElfSymVerNeeded
+            {"libvalue.so": {1: "LIBVALUE_1.0"}},
+            # ElfSymbolVersionsEntries
+            {symbol_proxy.uuid: (1, False)},
+        ),
+    )
+
+    module.aux_data["symbolForwarding"].data[symbol_got.uuid] = symbol_proxy
+
+    return ir

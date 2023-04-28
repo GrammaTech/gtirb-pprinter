@@ -122,6 +122,49 @@ class ElfBinaryPrinterTests(unittest.TestCase):
                 int(sym_match.group(1), 16), int(sym_match_weak.group(1), 16)
             )
 
+    def test_dummyso_tls(self):
+        ir = dummyso.build_tls_gtirb()
+
+        with tempfile.TemporaryDirectory() as testdir:
+            gtirb_path = os.path.join(testdir, "dummyso.gtirb")
+            ir.save_protobuf(gtirb_path)
+
+            exe_path = os.path.join(testdir, "dummyso_rewritten")
+
+            # Check that we can automatically build a binary that has
+            # dependences on .so files without having those .so files
+            # be present.
+            output = subprocess.check_output(
+                [
+                    pprinter_binary(),
+                    "--ir",
+                    str(gtirb_path),
+                    "--binary",
+                    str(exe_path),
+                    "--dummy-so",
+                    "yes",
+                    "--policy",
+                    "complete",
+                ]
+            ).decode(sys.stdout.encoding)
+            self.assertIn("Compiler arguments:", output)
+            self.assertTrue(os.path.exists(exe_path))
+
+            # Ensure the library is linked
+            ldd_output = subprocess.check_output(["ldd", exe_path]).decode(
+                sys.stdout.encoding
+            )
+            self.assertIn("libvalue.so", ldd_output)
+
+            # Ensure the TLS symbol is linked
+            readelf_output = subprocess.check_output(
+                ["readelf", "--dyn-syms", exe_path]
+            ).decode(sys.stdout.encoding)
+            self.assertRegex(
+                readelf_output,
+                r"([0-9a-f]+)\s+0\s+TLS\s+GLOBAL\s+DEFAULT\s+UND\s__lib_value",
+            )
+
     def test_use_gcc(self):
         """
         Test --use-gcc, both with a gcc in PATH and with a full path to gcc
