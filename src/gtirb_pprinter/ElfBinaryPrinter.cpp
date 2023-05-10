@@ -93,6 +93,9 @@ bool ElfBinaryPrinter::generateDummySO(
         auto SymInfo = aux_data::getElfSymbolInfo(*Sym);
         if (!SymInfo) {
           // See if we have a symbol for "foo_copy", if so use its info
+          // TODO: We should not rely on symbol names semanitcally here.
+          // When ddisasm makes the ElfSymbolInfo available on both the copy
+          // and original symbol, this check should not be necessary.
           std::string CopyName = Sym->getName() + "_copy";
           if (auto CopySymRange = Sym->getModule()->findSymbols(CopyName)) {
             SymInfo = aux_data::getElfSymbolInfo(*(CopySymRange.begin()));
