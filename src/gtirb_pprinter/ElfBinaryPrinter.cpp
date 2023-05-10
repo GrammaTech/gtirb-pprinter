@@ -205,44 +205,6 @@ bool ElfBinaryPrinter::generateDummySO(
 }
 
 /**
-Get the library name for a symbol using the symbol version information.
-
-Returns std::nullopt if no symbol version exists for the symbol. Emits a
-warning if symbol version is found, but is not considered "needed" (which may
-indicate it is not an external symbol).
-*/
-static std::optional<std::string>
-getLibNameFromSymbolVersion(const gtirb::Symbol& Sym) {
-  const auto SymbolVersions = aux_data::getSymbolVersions(*Sym.getModule());
-  std::optional<std::string> LibName = std::nullopt;
-
-  if (SymbolVersions) {
-    auto& [SymVerDefs, SymVersNeeded, SymVersionEntries] = *SymbolVersions;
-    auto SymVerEntry = SymVersionEntries.find(Sym.getUUID());
-    if (SymVerEntry != SymVersionEntries.end()) {
-      // This symbol is versioned. There should be an entry for it in
-      // SymVersNeeded.
-
-      for (auto& [CurLibName, SymVerMap] : SymVersNeeded) {
-        auto& [SymVerID, _] = SymVerEntry->second;
-        auto VersionReq = SymVerMap.find(SymVerID);
-        if (VersionReq != SymVerMap.end()) {
-          LibName = CurLibName;
-          break;
-        }
-      }
-
-      if (!LibName) {
-        LOG_WARNING << "The symbol " << Sym.getName() << " is versioned, "
-                    << "but was not found in needed symbol versions\n";
-      }
-    }
-  }
-
-  return LibName;
-}
-
-/**
 Determines whether symbols from a symbol-forwarding entry represent a copy
 relocation.
 */
@@ -380,20 +342,29 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
   for (SymbolGroup& SymGroup : SymbolGroups) {
     std::optional<std::string> LibNameOpt = std::nullopt;
     for (const gtirb::Symbol* Sym : SymGroup) {
-      std::optional<std::string> SymLibNameOpt =
-          getLibNameFromSymbolVersion(*Sym);
-      if (SymLibNameOpt) {
+      auto SymLibName = aux_data::getLibNameFromSymbolVersion(*Sym);
+      if (SymLibName && *SymLibName == Sym->getModule()->getName()) {
+        // The symbol aux data doesn't seem correct here; we'll treat this
+        // symbol as unversioned as a best effort, but emit a warning.
+        LOG_WARNING << "The symbol " << Sym->getName() << " appears to be "
+                    << "external, but elfSymbolVersionInfo indicates it is "
+                    << "internal\n";
+      } else if (SymLibName) {
         if (LibNameOpt) {
-          if (*SymLibNameOpt != *LibNameOpt) {
+          if (*SymLibName != *LibNameOpt) {
             // Symbol group disagrees on source library
             LOG_ERROR << "Symbol group containing " << Sym->getName()
                       << " cannot resolve source library conflict: "
-                      << *SymLibNameOpt << " != " << *LibNameOpt << "\n";
+                      << *SymLibName << " != " << *LibNameOpt << "\n";
             return false;
           }
         } else {
-          LibNameOpt = SymLibNameOpt;
+          LibNameOpt = *SymLibName;
         }
+      } else if (SymLibName.getError().ErrorCode ==
+                 aux_data::LibNameLookupError::UndefinedVersion) {
+        LOG_WARNING << "The symbol " << Sym->getName() << " is versioned, "
+                    << "but was not found in needed symbol versions\n";
       }
     }
     if (LibNameOpt) {

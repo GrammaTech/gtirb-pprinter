@@ -222,6 +222,35 @@ getSymbolVersions(const gtirb::Module& M);
 
 std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym);
 
+// Possible error codes used by getLibNameFromSymbolVersion
+enum class LibNameLookupError {
+  // The GTIRB has no elfSymbolVersion auxdata
+  NoVersionInfo = 1,
+  // The Symbol is not versioned
+  SymbolNotVersioned,
+  // The Symbol is versioned, but not found in either SymVerDefs or
+  // SymVerNeeded (i.e., the auxdata is invalid)
+  UndefinedVersion,
+};
+
+// Makes an std::error_code object from a LibNameLookupError object.
+inline std::error_code make_error_code(LibNameLookupError e) {
+  return std::error_code(static_cast<int>(e), std::generic_category());
+}
+
+/**
+Get the library name for a symbol using the symbol version information.
+
+Returns a gtirb::ErrorOr containing either the name of the module that defines
+the symbol, or a LibNameLookupError error code. See the Enum definition for
+possible errors.
+
+Returns the name of the module containing Sym if the symbol version information
+indicates that it is defined in that module.
+*/
+gtirb::ErrorOr<std::string>
+getLibNameFromSymbolVersion(const gtirb::Symbol& Sym);
+
 // Load the section properties of a binary section from the
 // `sectionProperties' AuxData tables.
 std::optional<std::tuple<uint64_t, uint64_t>>
@@ -342,5 +371,10 @@ protected:
   gtirb::Context& Context;
 };
 } // namespace gtirb_types
+
+namespace std {
+template <>
+struct is_error_code_enum<aux_data::LibNameLookupError> : std::true_type {};
+} // namespace std
 
 #endif

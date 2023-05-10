@@ -188,6 +188,35 @@ std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym) {
   return std::nullopt;
 }
 
+gtirb::ErrorOr<std::string>
+getLibNameFromSymbolVersion(const gtirb::Symbol& Sym) {
+  const auto SymbolVersions = aux_data::getSymbolVersions(*Sym.getModule());
+  if (!SymbolVersions) {
+    return LibNameLookupError::NoVersionInfo;
+  }
+
+  auto& [SymVerDefs, SymVersNeeded, SymVersionEntries] = *SymbolVersions;
+  auto SymVerEntry = SymVersionEntries.find(Sym.getUUID());
+  if (SymVerEntry != SymVersionEntries.end()) {
+    auto& [SymVerID, _] = SymVerEntry->second;
+    // Check for external symbols
+    for (auto& [LibName, SymVerMap] : SymVersNeeded) {
+      auto VersionReq = SymVerMap.find(SymVerID);
+      if (VersionReq != SymVerMap.end()) {
+        return LibName;
+      }
+    }
+    if (SymVerDefs.find(SymVerID) != SymVerDefs.end()) {
+      // The symbol is defined by its module
+      return Sym.getModule()->getName();
+    } else {
+      return LibNameLookupError::UndefinedVersion;
+    }
+  } else {
+    return LibNameLookupError::SymbolNotVersioned;
+  }
+}
+
 std::optional<std::tuple<uint64_t, uint64_t>>
 getSectionProperties(const gtirb::Section& Section) {
   if (Section.getModule())
