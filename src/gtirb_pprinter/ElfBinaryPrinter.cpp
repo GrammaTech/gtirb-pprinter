@@ -242,6 +242,10 @@ getLibNameFromSymbolVersion(const gtirb::Symbol& Sym) {
   return LibName;
 }
 
+/**
+Determines whether symbols from a symbol-forwarding entry represent a copy
+relocation.
+*/
 static bool isCopyRelocation(const gtirb::Symbol* From,
                              const gtirb::Symbol* To) {
   if (!From->getAddress() || !To->hasReferent() ||
@@ -251,6 +255,26 @@ static bool isCopyRelocation(const gtirb::Symbol* From,
 
   auto SymInfo = aux_data::getElfSymbolInfo(*From);
   return SymInfo && SymInfo->Type == "OBJECT";
+}
+
+/**
+Get a copy relocation's address and external symbol given a symbol forwarding
+entry.
+
+Returns std::nullopt if the given symbol forwarding entry is invalid or is not
+a copy relocation.
+*/
+static std::optional<std::pair<gtirb::Addr, const gtirb::Symbol*>>
+getCopyRelocation(const gtirb::Context& Context,
+                  const std::pair<gtirb::UUID, gtirb::UUID>& Forward) {
+  const gtirb::Symbol* From =
+      gtirb_pprint::getByUUID<gtirb::Symbol>(Context, Forward.first);
+  const gtirb::Symbol* To =
+      gtirb_pprint::getByUUID<gtirb::Symbol>(Context, Forward.second);
+  if (!From || !To || !isCopyRelocation(From, To)) {
+    return std::nullopt;
+  }
+  return std::make_pair(*From->getAddress(), To);
 }
 
 /**
@@ -267,26 +291,20 @@ buildDummySOSymbolGroups(const gtirb::Context& Context, const gtirb::IR& IR) {
 
   // Build symbol groups for COPY-relocated symbols.
   for (const gtirb::Module& Module : IR.modules()) {
+    // Collect copy-relocated symbols into groups by address
     std::map<gtirb::Addr, SymbolGroup> CopySymbolsByAddr;
-    std::map<gtirb::UUID, gtirb::UUID> Forwarding =
-        aux_data::getSymbolForwarding(Module);
-    for (auto& Forward : Forwarding) {
-      const gtirb::Symbol* From =
-          gtirb_pprint::getByUUID<gtirb::Symbol>(Context, Forward.first);
-      const gtirb::Symbol* To =
-          gtirb_pprint::getByUUID<gtirb::Symbol>(Context, Forward.second);
-      if (From == nullptr || To == nullptr) {
-        LOG_WARNING << "Invalid UUID in SymbolFowarding\n";
-        continue;
+    const auto& Forwarding = aux_data::getSymbolForwarding(Module);
+    for (const auto& Forward : Forwarding) {
+      if (auto OptPair = getCopyRelocation(Context, Forward)) {
+        auto& [Addr, To] = *OptPair;
+        if (!isBlackListed(To->getName())) {
+          CopySymbolsByAddr[Addr].push_back(To);
+        }
       }
-      if (!isCopyRelocation(From, To) || isBlackListed(To->getName())) {
-        continue;
-      }
-
-      gtirb::Addr Addr = *From->getAddress();
-      CopySymbolsByAddr[Addr].push_back(To);
     }
 
+    // Keep finalized symbol groups in SymbolGroups, and record which symbols
+    // have been grouped in GroupedSymbols (for faster lookup)
     for (auto It : CopySymbolsByAddr) {
       SymbolGroups.push_back(It.second);
       GroupedSymbols.insert(It.second.begin(), It.second.end());
