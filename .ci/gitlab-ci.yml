@@ -166,7 +166,7 @@ conan-windows-release:
   - DIST_NAME="$(lsb_release -sc)"
   # Configure GTIRB APT repository.
   - wget -O - https://download.grammatech.com/gtirb/files/apt-repo/conf/apt.gpg.key | apt-key add -
-  - COMPONENT=$([[ $CI_COMMIT_REF_NAME =~ release-.* ]] && echo "stable" || echo "unstable")
+  - COMPONENT=$([[ $CI_COMMIT_REF_NAME =~ ^release-.* ]] && echo "stable" || echo "unstable")
   - echo "deb https://download.grammatech.com/gtirb/files/apt-repo $DIST_NAME $COMPONENT" | tee -a /etc/apt/sources.list.d/gtirb.list
   - apt-get update -y
 
@@ -177,7 +177,7 @@ conan-windows-release:
 .install-capstone:
   - DIST_NAME="$(lsb_release -sc)"
   - wget -O - https://download.grammatech.com/gtirb/files/apt-repo/conf/apt.gpg.key | apt-key add -
-  - COMPONENT=$([[ $CI_COMMIT_REF_NAME =~ release-.* ]] && echo "stable" || echo "unstable")
+  - COMPONENT=$([[ $CI_COMMIT_REF_NAME =~ ^release-.* ]] && echo "stable" || echo "unstable")
   - echo "deb https://download.grammatech.com/gtirb/files/apt-repo $DIST_NAME $COMPONENT" | tee -a /etc/apt/sources.list
   - apt-get update -y
   - apt-get install -y libcapstone-dev${CAPSTONE_VERSION:+-$CAPSTONE_VERSION}
@@ -250,7 +250,7 @@ build-static:
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/static
   script:
     - !reference [.install-capstone]
-    - GTIRB_BRANCH=$([[ $CI_COMMIT_REF_NAME =~ release-.* ]] && echo "release-$GTIRB_VERSION" || echo "master")
+    - GTIRB_BRANCH=$([[ $CI_COMMIT_REF_NAME =~ ^release-.* ]] && echo "release-$GTIRB_VERSION" || echo "master")
     - git clone https://git.grammatech.com/rewriting/gtirb.git -b $GTIRB_BRANCH
     - cd gtirb
     - mkdir build && cd build
@@ -631,7 +631,7 @@ python-manylinux-2010-release:
     - if: '$CI_COMMIT_REF_NAME == "master"'
   script:
     - !reference [.setup-conan-linux]
-    - RELEASE_VERSION=$([[ $CI_COMMIT_REF_NAME =~ release-.* ]] && echo "ON" || echo "OFF")
+    - RELEASE_VERSION=$([[ $CI_COMMIT_REF_NAME =~ ^release-.* ]] && echo "ON" || echo "OFF")
     - mkdir _build
     - cd _build
     - conan install ..  '--build=*'

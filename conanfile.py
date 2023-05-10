@@ -30,7 +30,7 @@ def get_version():
 
 
 def branch_to_channel(branch):
-    if re.match(r"release-.*", branch):
+    if re.match(r"^release-.*", branch):
         return "stable"
     else:
         return branch.replace("/", "+")
