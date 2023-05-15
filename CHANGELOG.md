@@ -1,4 +1,10 @@
 1.9.0 (Unreleased)
+  * Added a Python wheel to make gtirb-pprinter pip-installable.
+  * Binary printer always prints against exact library versions.
+  * Do not remove endbr64 instructions.
+  * Fix timing issue when running llvm-config in the PE binary printer.
+  * Add explicit DS register for MASM pprinter.
+  * Fixup INT1 and INT3 x64 instructions.
   * Update the default `--policy` behavior for dynamically linked ELF binaries from `dynamic` to `complete`.
   * ARM: Do not rely on `ArchInfo` auxdata.
   * ARM: Fail if a CodeBlock cannot be completely disassembled.
