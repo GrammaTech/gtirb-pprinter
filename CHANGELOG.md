@@ -1,4 +1,4 @@
-1.9.0 (Unreleased)
+1.9.0
   * Added a Python wheel to make gtirb-pprinter pip-installable.
   * Binary printer always prints against exact library versions.
   * Do not remove endbr64 instructions.
