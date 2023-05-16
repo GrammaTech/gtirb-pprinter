@@ -220,15 +220,14 @@ static bool isCopyRelocation(const gtirb::Symbol* From,
 }
 
 /**
-Get a copy relocation's address and external symbol given a symbol forwarding
-entry.
+Get a copy relocation's symbols given a symbol forwarding entry.
 
 Returns std::nullopt if the given symbol forwarding entry is invalid or is not
 a copy relocation.
 */
-static std::optional<std::pair<gtirb::Addr, const gtirb::Symbol*>>
-getCopyRelocation(const gtirb::Context& Context,
-                  const std::pair<gtirb::UUID, gtirb::UUID>& Forward) {
+static std::optional<std::pair<const gtirb::Symbol*, const gtirb::Symbol*>>
+getCopyRelocationSyms(const gtirb::Context& Context,
+                      const std::pair<gtirb::UUID, gtirb::UUID>& Forward) {
   const gtirb::Symbol* From =
       gtirb_pprint::getByUUID<gtirb::Symbol>(Context, Forward.first);
   const gtirb::Symbol* To =
@@ -236,7 +235,7 @@ getCopyRelocation(const gtirb::Context& Context,
   if (!From || !To || !isCopyRelocation(From, To)) {
     return std::nullopt;
   }
-  return std::make_pair(*From->getAddress(), To);
+  return std::make_pair(From, To);
 }
 
 /**
@@ -257,10 +256,10 @@ buildDummySOSymbolGroups(const gtirb::Context& Context, const gtirb::IR& IR) {
     std::map<gtirb::Addr, SymbolGroup> CopySymbolsByAddr;
     const auto& Forwarding = aux_data::getSymbolForwarding(Module);
     for (const auto& Forward : Forwarding) {
-      if (auto OptPair = getCopyRelocation(Context, Forward)) {
-        auto& [Addr, To] = *OptPair;
+      if (auto OptPair = getCopyRelocationSyms(Context, Forward)) {
+        auto& [From, To] = *OptPair;
         if (!isBlackListed(To->getName())) {
-          CopySymbolsByAddr[Addr].push_back(To);
+          CopySymbolsByAddr[*From->getAddress()].push_back(To);
         }
       }
     }
