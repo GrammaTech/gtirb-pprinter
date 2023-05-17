@@ -158,62 +158,51 @@ getSymbolVersions(const gtirb::Module& M) {
   return M.getAuxData<gtirb::provisional_schema::ElfSymbolVersions>();
 }
 
-std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym) {
+gtirb::ErrorOr<SymbolVersionInfo>
+getSymbolVersionInfo(const gtirb::Symbol& Sym) {
   const auto SymbolVersions = getSymbolVersions(*Sym.getModule());
   if (!SymbolVersions) {
-    return std::nullopt;
+    return SymbolVersionInfoLookupError::NoVersionInfo;
   }
   auto& [SymVerDefs, SymVersNeeded, SymVersionEntries] = *SymbolVersions;
   auto VersionIt = SymVersionEntries.find(Sym.getUUID());
   if (VersionIt == SymVersionEntries.end()) {
-    return std::nullopt;
+    return SymbolVersionInfoLookupError::SymbolNotVersioned;
   }
-  uint16_t VersionId = std::get<0>(VersionIt->second);
-  std::string Connector = std::get<1>(VersionIt->second) ? "@" : "@@";
+  auto& [VersionId, Hidden] = VersionIt->second;
   // Search for the version string
   auto VersionDef = SymVerDefs.find(VersionId);
   if (VersionDef != SymVerDefs.end()) {
-    return Connector + *std::get<0>(VersionDef->second).begin();
+    std::string Connector = Hidden ? "@" : "@@";
+    auto& [VersionStrs, Flags] = VersionDef->second;
+    InternalSymbolVersion Info = {Connector + *VersionStrs.begin(), Flags};
+    return Info;
   }
-  Connector = "@";
-  for (auto& [Key, Val] : SymVersNeeded) {
-    auto VersionReq = Val.find(VersionId);
-    if (VersionReq != Val.end()) {
-      return Connector + VersionReq->second;
+
+  for (auto& [Library, SymVerMap] : SymVersNeeded) {
+    auto VersionReq = SymVerMap.find(VersionId);
+    if (VersionReq != SymVerMap.end()) {
+      std::string Connector = "@";
+      ExternalSymbolVersion Info = {Connector + VersionReq->second, Library};
+      return Info;
     }
   }
-  // This should not happen
-  assert(!"Symbol verion entry with no def or need found in "
-          "getSymbolVersionString()");
-  return std::nullopt;
+  return SymbolVersionInfoLookupError::UndefinedVersion;
 }
 
-gtirb::ErrorOr<std::string>
-getLibNameFromSymbolVersion(const gtirb::Symbol& Sym) {
-  const auto SymbolVersions = aux_data::getSymbolVersions(*Sym.getModule());
-  if (!SymbolVersions) {
-    return LibNameLookupError::NoVersionInfo;
+std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym) {
+  auto ErrorOrInfo = getSymbolVersionInfo(Sym);
+  if (!ErrorOrInfo) {
+    return std::nullopt;
   }
-
-  auto& [SymVerDefs, SymVersNeeded, SymVersionEntries] = *SymbolVersions;
-  auto SymVerEntry = SymVersionEntries.find(Sym.getUUID());
-  if (SymVerEntry != SymVersionEntries.end()) {
-    auto& [SymVerID, _] = SymVerEntry->second;
-    // Check for external symbols
-    for (auto& [LibName, SymVerMap] : SymVersNeeded) {
-      auto VersionReq = SymVerMap.find(SymVerID);
-      if (VersionReq != SymVerMap.end()) {
-        return LibName;
-      }
-    }
-    if (SymVerDefs.find(SymVerID) != SymVerDefs.end()) {
-      // The symbol is defined by its module
-      return Sym.getModule()->getName();
-    } else {
-      return LibNameLookupError::UndefinedVersion;
-    }
+  SymbolVersionInfo& Info = *ErrorOrInfo;
+  if (auto External = std::get_if<ExternalSymbolVersion>(&Info)) {
+    return External->VersionSuffix;
+  } else if (auto Internal = std::get_if<InternalSymbolVersion>(&Info)) {
+    return Internal->VersionSuffix;
   } else {
-    return LibNameLookupError::SymbolNotVersioned;
+    assert(!"Unhandled return variant from getSymbolVersionInfo");
+    return std::nullopt;
   }
 }
 
