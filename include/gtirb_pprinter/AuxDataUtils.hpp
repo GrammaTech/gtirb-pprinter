@@ -222,44 +222,52 @@ getSymbolVersions(const gtirb::Module& M);
 
 std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym);
 
-// Possible error codes used by getSymbolVersionInfo
-enum class SymbolVersionInfoLookupError {
-  // The GTIRB has no elfSymbolVersion auxdata
-  NoVersionInfo = 1,
-  // The Symbol is not versioned
-  SymbolNotVersioned,
-  // The Symbol is versioned, but not found in either SymVerDefs or
-  // SymVerNeeded (i.e., the auxdata is invalid)
-  UndefinedVersion,
-};
+/**
+Returned by getSymbolVersionInfo if the GTIRB has no elfSymbolVersion auxdata
+*/
+struct NoSymbolVersionAuxData {};
 
-// Makes an std::error_code object from a SymbolVersionInfoLookupError object.
-inline std::error_code make_error_code(SymbolVersionInfoLookupError e) {
-  return std::error_code(static_cast<int>(e), std::generic_category());
-}
+/**
+Returned by getSymbolVersionInfo if the Symbol is not versioned
+*/
+struct NoSymbolVersion {};
 
+/**
+Returned by getSymbolVersionInfo if the Symbol is versioned, but not found in
+either SymVerDefs or SymVerNeeded (i.e., the auxdata is invalid)
+*/
+struct UndefinedSymbolVersion {};
+
+/**
+Returned by getSymbolVersionInfo for external symbols
+*/
 struct ExternalSymbolVersion {
   std::string VersionSuffix;
   std::string Library;
 };
 
+/**
+Returned by getSymbolVersionInfo for internal symbols
+*/
 struct InternalSymbolVersion {
   std::string VersionSuffix;
   uint16_t Flags;
 };
 
 using SymbolVersionInfo =
-    std::variant<ExternalSymbolVersion, InternalSymbolVersion>;
+    std::variant<NoSymbolVersionAuxData, NoSymbolVersion,
+                 UndefinedSymbolVersion, ExternalSymbolVersion,
+                 InternalSymbolVersion>;
 
 /**
 Get symbol version information for a given symbol.
 
 Returns a gtirb::ErrorOr containing either a struct with symbol version
-information, or a SymbolVersionInfoLookupError error code. See the Enum
-definition for possible errors.
+information or an empty structure representing a status.
+
+See the SymbolVersionInfo variant members for possible returned structures.
 */
-gtirb::ErrorOr<SymbolVersionInfo>
-getSymbolVersionInfo(const gtirb::Symbol& Sym);
+SymbolVersionInfo getSymbolVersionInfo(const gtirb::Symbol& Sym);
 
 // Load the section properties of a binary section from the
 // `sectionProperties' AuxData tables.
@@ -381,11 +389,5 @@ protected:
   gtirb::Context& Context;
 };
 } // namespace gtirb_types
-
-namespace std {
-template <>
-struct is_error_code_enum<aux_data::SymbolVersionInfoLookupError>
-    : std::true_type {};
-} // namespace std
 
 #endif

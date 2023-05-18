@@ -158,16 +158,15 @@ getSymbolVersions(const gtirb::Module& M) {
   return M.getAuxData<gtirb::provisional_schema::ElfSymbolVersions>();
 }
 
-gtirb::ErrorOr<SymbolVersionInfo>
-getSymbolVersionInfo(const gtirb::Symbol& Sym) {
+SymbolVersionInfo getSymbolVersionInfo(const gtirb::Symbol& Sym) {
   const auto SymbolVersions = getSymbolVersions(*Sym.getModule());
   if (!SymbolVersions) {
-    return SymbolVersionInfoLookupError::NoVersionInfo;
+    return NoSymbolVersionAuxData();
   }
   auto& [SymVerDefs, SymVersNeeded, SymVersionEntries] = *SymbolVersions;
   auto VersionIt = SymVersionEntries.find(Sym.getUUID());
   if (VersionIt == SymVersionEntries.end()) {
-    return SymbolVersionInfoLookupError::SymbolNotVersioned;
+    return NoSymbolVersion();
   }
   auto& [VersionId, Hidden] = VersionIt->second;
   // Search for the version string
@@ -187,23 +186,22 @@ getSymbolVersionInfo(const gtirb::Symbol& Sym) {
       return Info;
     }
   }
-  return SymbolVersionInfoLookupError::UndefinedVersion;
+  return UndefinedSymbolVersion();
 }
 
 std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym) {
-  auto ErrorOrInfo = getSymbolVersionInfo(Sym);
-  if (!ErrorOrInfo) {
-    return std::nullopt;
-  }
-  SymbolVersionInfo& Info = *ErrorOrInfo;
-  if (auto External = std::get_if<ExternalSymbolVersion>(&Info)) {
-    return External->VersionSuffix;
-  } else if (auto Internal = std::get_if<InternalSymbolVersion>(&Info)) {
-    return Internal->VersionSuffix;
-  } else {
-    assert(!"Unhandled return variant from getSymbolVersionInfo");
-    return std::nullopt;
-  }
+  auto VersionInfo = getSymbolVersionInfo(Sym);
+  return std::visit(
+      [](auto& Arg) -> std::optional<std::string> {
+        using T = std::decay_t<decltype(Arg)>;
+        if constexpr (std::is_same_v<T, InternalSymbolVersion> ||
+                      std::is_same_v<T, ExternalSymbolVersion>) {
+          return Arg.VersionSuffix;
+        } else {
+          return std::nullopt;
+        }
+      },
+      VersionInfo);
 }
 
 std::optional<std::tuple<uint64_t, uint64_t>>

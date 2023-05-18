@@ -341,35 +341,45 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
   for (SymbolGroup& SymGroup : SymbolGroups) {
     std::optional<std::string> LibNameOpt = std::nullopt;
     for (const gtirb::Symbol* Sym : SymGroup) {
-      auto SymVerInfo = aux_data::getSymbolVersionInfo(*Sym);
-      if (SymVerInfo) {
-        if (std::holds_alternative<aux_data::InternalSymbolVersion>(
-                *SymVerInfo)) {
-          // The symbol aux data doesn't seem correct here; we'll treat this
-          // symbol as unversioned as a best effort, but emit a warning.
-          LOG_WARNING << "The symbol " << Sym->getName() << " appears to be "
-                      << "external, but elfSymbolVersionInfo indicates it is "
-                      << "internal\n";
-        } else if (auto External = std::get_if<aux_data::ExternalSymbolVersion>(
-                       &(*SymVerInfo))) {
-          if (LibNameOpt) {
-            if (External->Library != *LibNameOpt) {
-              // Symbol group disagrees on source library
-              LOG_ERROR << "Symbol group containing " << Sym->getName()
-                        << " cannot resolve source library conflict: "
-                        << External->Library << " != " << *LibNameOpt << "\n";
-              return false;
+      auto VersionInfo = aux_data::getSymbolVersionInfo(*Sym);
+      std::optional<std::string> CurLibName = std::visit(
+          [Sym](auto& Arg) -> std::optional<std::string> {
+            using T = std::decay_t<decltype(Arg)>;
+            if constexpr (std::is_same_v<T, aux_data::ExternalSymbolVersion>) {
+              return Arg.Library;
+            } else if constexpr (std::is_same_v<
+                                     T, aux_data::InternalSymbolVersion>) {
+              // The symbol aux data doesn't seem correct here; we'll treat this
+              // symbol as unversioned as a best effort, but emit a warning.
+              LOG_WARNING
+                  << "The symbol " << Sym->getName() << " appears to be "
+                  << "external, but elfSymbolVersionInfo indicates it is "
+                  << "internal\n";
+              return std::nullopt;
+            } else if constexpr (std::is_same_v<
+                                     T, aux_data::UndefinedSymbolVersion>) {
+              LOG_WARNING << "The symbol " << Sym->getName()
+                          << " is versioned, "
+                          << "but was not found in needed symbol versions\n";
+              return std::nullopt;
+            } else {
+              // Symbol is unversioned.
+              static_assert(
+                  std::is_same_v<T, aux_data::NoSymbolVersionAuxData> ||
+                      std::is_same_v<T, aux_data::NoSymbolVersion>,
+                  "Unhandled return variant from getSymbolVersionInfo");
+              return std::nullopt;
             }
-          } else {
-            LibNameOpt = External->Library;
-          }
-        } else {
-          assert(!"Unhandled return variant from getSymbolVersionInfo");
-        }
-      } else if (SymVerInfo.getError().ErrorCode ==
-                 aux_data::SymbolVersionInfoLookupError::UndefinedVersion) {
-        LOG_WARNING << "The symbol " << Sym->getName() << " is versioned, "
-                    << "but was not found in needed symbol versions\n";
+          },
+          VersionInfo);
+      if (CurLibName && LibNameOpt && *CurLibName != *LibNameOpt) {
+        // Symbol group disagrees on source library
+        LOG_ERROR << "Symbol group containing " << Sym->getName()
+                  << " cannot resolve source library conflict: " << *CurLibName
+                  << " != " << *LibNameOpt << "\n";
+        return false;
+      } else if (CurLibName && !LibNameOpt) {
+        LibNameOpt = CurLibName;
       }
     }
     if (LibNameOpt) {
