@@ -56,7 +56,7 @@ private:
   - Symbols in the same SymbolGroup have inconsistent sizes
   - The compiler returned an error when building the dummy .so
   */
-  bool generateDummySO(const gtirb::IR& ir, const std::string& libDir,
+  bool generateDummySO(const gtirb::Module& module, const std::string& libDir,
                        const std::string& lib,
                        const std::vector<SymbolGroup>& syms) const;
 
@@ -74,10 +74,10 @@ private:
   - There are not enough external symbols to generate all of the dynamically
     linked libraries
   */
-  bool prepareDummySOLibs(const gtirb::Context& Context, const gtirb::IR& ir,
+  bool prepareDummySOLibs(const gtirb::Context& Context, const gtirb::Module& module,
                           const std::string& libDir,
                           std::vector<std::string>& libArgs) const;
-  void addOrigLibraryArgs(const gtirb::IR& ir,
+  void addOrigLibraryArgs(const gtirb::Module& module,
                           std::vector<std::string>& args) const;
   std::vector<std::string>
   buildCompilerArgs(std::string outputFilename,
@@ -100,7 +100,7 @@ public:
   int assemble(const std::string& outputFilename, gtirb::Context& context,
                gtirb::Module& mod) const override;
   int link(const std::string& outputFilename, gtirb::Context& context,
-           gtirb::IR& ir) const override;
+           gtirb::Module& module) const override;
 };
 
 } // namespace gtirb_bprint

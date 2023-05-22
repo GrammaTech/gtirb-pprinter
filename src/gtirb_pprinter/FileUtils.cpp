@@ -39,7 +39,7 @@ namespace fs = boost::filesystem;
 namespace bp = boost::process;
 
 namespace gtirb_bprint {
-TempFile::TempFile(const std::string extension) {
+TempFile::TempFileImpl::TempFileImpl(const std::string extension) {
   // FIXME: this has TOCTOU issues.
 #ifdef _WIN32
   std::string TmpFileName;
@@ -59,7 +59,10 @@ TempFile::TempFile(const std::string extension) {
   FileStream.open(Name);
 }
 
-TempFile::~TempFile() { fs::remove(Name); }
+TempFile::TempFileImpl::~TempFileImpl() { fs::remove(Name); }
+
+TempFile::TempFile(const std::string extension)
+    : impl(std::make_unique<TempFileImpl>(extension)) {}
 
 TempDir::TempDir() : Name(), Errno(0) {
 #ifdef _WIN32

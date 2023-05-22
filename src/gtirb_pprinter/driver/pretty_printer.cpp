@@ -4,6 +4,7 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <fcntl.h>
 #include <fstream>
+#include <gtirb/Module.hpp>
 #include <gtirb_layout/gtirb_layout.hpp>
 #include <gtirb_pprinter/ElfBinaryPrinter.hpp>
 #include <gtirb_pprinter/ElfVersionScriptPrinter.hpp>
@@ -16,6 +17,8 @@
 #endif
 #include <iomanip>
 #include <iostream>
+#include <optional>
+#include <regex>
 #if defined(__unix__)
 #include <unistd.h>
 #endif
@@ -93,17 +96,27 @@ int main(int argc, char** argv) {
   desc.add_options()("ir,i", po::value<std::string>(), "GTIRB file to print.");
   desc.add_options()(
       "asm,a", po::value<std::string>(),
-      "The name of the assembly output file. If none is given, gtirb-pprinter "
-      "prints to the standard output. If the IR has more "
-      "than one module, files of the form FILE, FILE_2 ... "
-      "FILE_n with the content of each of the modules");
-  desc.add_options()("binary,b", po::value<std::string>(),
-                     "The name of the binary output file.");
+      "Print IR as assembly code to FILE."
+      "The placeholders '%m' and '%e' can be used to stand in"
+      "for the module name and the primary module name respectively."
+      "If the IR has more than one module, each will be printed"
+      "to its own file. Any file names that cannot be distinguished using"
+      "'%m' and '%e' will have a numerical suffix added."
+      "If a file is not given, the code will be printed to stdout.");
+  desc.add_options()(
+      "binary,b", po::value<std::string>(),
+      "Print IR as a single object file to FILE."
+      "The placeholders '%m' and '%e' can be used to stand in"
+      "for the module name and the primary module name respectively."
+      "If the IR has more than one module, they will all be linked together.");
   desc.add_options()(
       "binaries", po::value<std::string>(),
-      "The name of the assembled output. If the IR has more than one module, "
-      "files of the form FILE, FILE_2, ..., FILE_n are produced with the "
-      "assembled content of each of the modules.");
+      "Print IR as one or more object files."
+      "The placeholders '%m' and '%e' can be used to stand in"
+      "for the module name and the primary module name respectively."
+      "If the IR has more than one module, each will be printed"
+      "to its own file. Any file names that cannot be distinguished using"
+      "'%m' and '%e' will have a numerical suffix added.");
   desc.add_options()("compiler-args,c",
                      po::value<std::vector<std::string>>()->multitoken(),
                      "Additional arguments to pass to the compiler. Only used "
@@ -112,7 +125,7 @@ int main(int argc, char** argv) {
                      po::value<std::vector<std::string>>()->multitoken(),
                      "Library paths to be passed to the linker. Only used "
                      "for binary printing.");
-  desc.add_options()("module,m", po::value<int>()->default_value(0),
+  desc.add_options()("module,m", po::value<size_t>(),
                      "The index of the module to be printed if printing to the "
                      "standard output.");
   desc.add_options()("format,f", po::value<std::string>(),
@@ -222,8 +235,8 @@ int main(int argc, char** argv) {
 
   public:
     ~ContextForgetter() { ctx.ForgetAllocations(); }
-    operator gtirb::Context &() { return ctx; }
-    operator const gtirb::Context &() const { return ctx; }
+    operator gtirb::Context&() { return ctx; }
+    operator const gtirb::Context&() const { return ctx; }
   };
 
   ContextForgetter ctx;
@@ -402,17 +415,31 @@ int main(int argc, char** argv) {
     gtirb_pprint::printVersionScript(*ir, VersionStream);
   }
 
-  // Layout IR in memory without overlap.
+  std::vector<gtirb::Module*> Modules;
+  for (auto& module : ir->modules()) {
+    Modules.push_back(&module);
+  }
+  if (vm.count("module")) {
+    auto Index = vm["module"].as<size_t>();
+    if (Index > Modules.size()) {
+      LOG_ERROR << "The IR has " << Modules.size()
+                << " modules, module with index " << Index
+                << " cannot be printed.\n";
+      return EXIT_FAILURE;
+    }
+    Modules = {Modules[Index]};
+  }
+
   bool new_layout = false;
-  if (vm.count("layout")) {
-    for (auto& M : ir->modules()) {
+  for (size_t i = 0; i < Modules.size(); ++i) {
+    auto& M = *Modules[i];
+    // Layout IR in memory without overlap.
+    if (vm.count("layout")) {
       LOG_INFO << "Applying new layout to module " << M.getUUID() << "..."
                << std::endl;
       gtirb_layout::layoutModule(ctx, M);
       new_layout = true;
-    }
-  } else {
-    for (auto& M : ir->modules()) {
+    } else {
       auto SkipSections = pp.getPolicy(M).skipSections;
       pp.sectionPolicy().apply(SkipSections);
       if (gtirb_layout::layoutRequired(M, SkipSections)) {
@@ -420,9 +447,7 @@ int main(int argc, char** argv) {
         new_layout = true;
       }
     }
-  }
-  if (!new_layout) {
-    for (auto& M : ir->modules()) {
+    if (!new_layout) {
       if (std::any_of(M.symbols_begin(), M.symbols_end(),
                       [](const gtirb::Symbol& Sym) {
                         return !Sym.hasReferent() && Sym.getAddress();
@@ -433,25 +458,20 @@ int main(int argc, char** argv) {
         gtirb_layout::fixIntegralSymbols(ctx, M);
       }
     }
-  }
-  // Apply any needed fixups
-  for (auto& M : ir->modules()) {
+    // Apply any needed fixups
     applyFixups(ctx, M, pp);
-  }
-
-  // Write ASM to a file.
-  if (vm.count("asm") != 0) {
-    const auto asmPath = fs::path(vm["asm"].as<std::string>());
-    if (!asmPath.has_filename()) {
-      LOG_ERROR << "The given path \"" << asmPath << "\" has no filename.\n";
-      return EXIT_FAILURE;
-    }
-    int i = 0;
-    for (gtirb::Module& m : ir->modules()) {
+    // Write ASM to a file.
+    if (vm.count("asm") != 0) {
+      const auto asmPath = fs::path(vm["asm"].as<std::string>());
       fs::path name = getAsmFileName(asmPath, i);
+      if (!asmPath.has_filename()) {
+        LOG_ERROR << "The given path \"" << asmPath << "\" has no filename.\n";
+        return EXIT_FAILURE;
+      }
+
       std::ofstream ofs(name.generic_string());
       if (ofs) {
-        if (pp.print(ofs, ctx, m)) {
+        if (pp.print(ofs, ctx, M)) {
           LOG_INFO << "Module " << i << "'s assembly written to: " << name
                    << "\n";
         }
@@ -459,100 +479,47 @@ int main(int argc, char** argv) {
         LOG_ERROR << "Could not output assembly output file: \"" << asmPath
                   << "\".\n";
       }
-      ++i;
-    }
-  }
-
-  // Write out assembled object files for the given IR, but do not link into a
-  // final executable.
-  if (vm.count("binaries") != 0) {
-    const auto asmPath = fs::path(vm["binaries"].as<std::string>());
-    if (!asmPath.has_filename()) {
-      LOG_ERROR << "The given path \"" << asmPath << "\" has no filename.\n";
-      return EXIT_FAILURE;
     }
 
-    std::vector<std::string> extraCompilerArgs;
-    if (vm.count("compiler-args") != 0)
-      extraCompilerArgs = vm["compiler-args"].as<std::vector<std::string>>();
-    std::vector<std::string> libraryPaths;
-    if (vm.count("library-paths") != 0)
-      libraryPaths = vm["library-paths"].as<std::vector<std::string>>();
-    std::string gccExecutable;
-    if (vm.count("use-gcc") != 0)
-      gccExecutable = vm["use-gcc"].as<std::string>();
+    if (vm.count("binary") != 0) {
+      const auto asmPath = fs::path(vm["binary"].as<std::string>());
+      if (!asmPath.has_filename()) {
+        LOG_ERROR << "The given path \"" << asmPath << "\" has no filename.\n";
+        return EXIT_FAILURE;
+      }
 
-    std::unique_ptr<gtirb_bprint::BinaryPrinter> binaryPrinter =
-        getBinaryPrinter(format, pp, extraCompilerArgs, libraryPaths,
-                         gccExecutable, vm["dummy-so"].as<bool>());
-    if (!binaryPrinter) {
-      LOG_ERROR << "'" << format
-                << "' is an unsupported binary printing format.\n";
-      return EXIT_FAILURE;
-    }
+      std::vector<std::string> extraCompilerArgs;
+      if (vm.count("compiler-args") != 0)
+        extraCompilerArgs = vm["compiler-args"].as<std::vector<std::string>>();
+      std::vector<std::string> libraryPaths;
+      if (vm.count("library-paths") != 0)
+        libraryPaths = vm["library-paths"].as<std::vector<std::string>>();
+      std::string gccExecutable;
+      if (vm.count("use-gcc") != 0)
+        gccExecutable = vm["use-gcc"].as<std::string>();
 
-    int i = 0;
-    for (gtirb::Module& m : ir->modules()) {
+      std::unique_ptr<gtirb_bprint::BinaryPrinter> binaryPrinter =
+          getBinaryPrinter(format, pp, extraCompilerArgs, libraryPaths,
+                           gccExecutable, vm["dummy-so"].as<bool>());
+      if (!binaryPrinter) {
+        LOG_ERROR << "'" << format
+                  << "' is an unsupported binary printing format.\n";
+        return EXIT_FAILURE;
+      }
+
       fs::path name = getAsmFileName(asmPath, i);
-      if (auto Errc = binaryPrinter->assemble(name.string(), ctx, m)) {
+
+      if (auto Errc = binaryPrinter->link(name.string(), ctx, M)) {
         (void)Errc; // currently unused;
         LOG_ERROR << "Unable to assemble '" << name.string() << "'.\n";
         return EXIT_FAILURE;
       }
-      ++i;
+    }
+
+    // Write ASM to the standard output if no other action was taken.
+    if ((vm.count("asm") == 0) && (vm.count("binary") == 0)) {
+      pp.print(std::cout, ctx, M);
     }
   }
-
-  // Link directly to a binary.
-  if (vm.count("binary") != 0) {
-    const auto binaryPath = fs::path(vm["binary"].as<std::string>());
-
-    std::vector<std::string> extraCompilerArgs;
-    if (vm.count("compiler-args") != 0)
-      extraCompilerArgs = vm["compiler-args"].as<std::vector<std::string>>();
-
-    std::vector<std::string> libraryPaths;
-    if (vm.count("library-paths") != 0)
-      libraryPaths = vm["library-paths"].as<std::vector<std::string>>();
-
-    std::string gccExecutable;
-    if (vm.count("use-gcc") != 0)
-      gccExecutable = vm["use-gcc"].as<std::string>();
-
-    std::unique_ptr<gtirb_bprint::BinaryPrinter> binaryPrinter =
-        getBinaryPrinter(format, pp, extraCompilerArgs, libraryPaths,
-                         gccExecutable, vm["dummy-so"].as<bool>());
-
-    if (!binaryPrinter) {
-      LOG_ERROR << "'" << format
-                << "' is an unsupported binary printing format.\n";
-      return EXIT_FAILURE;
-    }
-    if (auto Errc = binaryPrinter->link(binaryPath.string(), ctx, *ir)) {
-      (void)Errc; // currently unused;
-      return EXIT_FAILURE;
-    }
-  }
-
-  // Write ASM to the standard output if no other action was taken.
-  if ((vm.count("asm") == 0) && (vm.count("binary") == 0) &&
-      (vm.count("binaries") == 0)) {
-    gtirb::Module* module = nullptr;
-    int i = 0;
-    for (gtirb::Module& m : ir->modules()) {
-      if (i == vm["module"].as<int>()) {
-        module = &m;
-        break;
-      }
-      ++i;
-    }
-    if (!module) {
-      LOG_ERROR << "The IR has " << i << " modules, module with index "
-                << vm["module"].as<int>() << " cannot be printed.\n";
-      return EXIT_FAILURE;
-    }
-    pp.print(std::cout, ctx, *module);
-  }
-
   return EXIT_SUCCESS;
 }

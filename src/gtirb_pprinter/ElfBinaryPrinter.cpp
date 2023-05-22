@@ -70,9 +70,9 @@ bool isBlackListed(std::string sym) {
 }
 
 bool ElfBinaryPrinter::generateDummySO(
-    const gtirb::IR& IR, const std::string& LibDir, const std::string& Lib,
+    const gtirb::Module& module, const std::string& LibDir, const std::string& Lib,
     const std::vector<SymbolGroup>& SymGroups) const {
-
+    
   // Assume that lib is a filename w/ no path prefix
   assert(!boost::filesystem::path(Lib).has_parent_path());
   std::string AsmFileName = Lib + ".s";
@@ -185,7 +185,7 @@ bool ElfBinaryPrinter::generateDummySO(
   if (EmittedSymvers) {
     if (!Printer.getIgnoreSymbolVersions()) {
       // A version script is only needed if we define versioned symbols.
-      if (gtirb_pprint::printVersionScript(IR, VersionScript)) {
+      if (gtirb_pprint::printVersionScript(*module.getIR(), VersionScript)) {
         Args.push_back("-Wl,--version-script=" + VersionScript.fileName());
       }
     }
@@ -246,44 +246,40 @@ getCopyRelocationSyms(const gtirb::Context& Context,
  * necessary for COPY-relocated symbols.
  */
 static std::vector<SymbolGroup>
-buildDummySOSymbolGroups(const gtirb::Context& Context, const gtirb::IR& IR) {
+buildDummySOSymbolGroups(const gtirb::Context& Context, const gtirb::Module& Module) {
   std::vector<SymbolGroup> SymbolGroups;
 
   // This set allows efficient lookup of which symbols were added to groups.
   std::set<const gtirb::Symbol*> GroupedSymbols;
 
   // Build symbol groups for COPY-relocated symbols.
-  for (const gtirb::Module& Module : IR.modules()) {
-    // Collect copy-relocated symbols into groups by address
-    std::map<gtirb::Addr, SymbolGroup> CopySymbolsByAddr;
-    const auto& Forwarding = aux_data::getSymbolForwarding(Module);
-    for (const auto& Forward : Forwarding) {
-      if (auto OptPair = getCopyRelocationSyms(Context, Forward)) {
-        auto& [From, To] = *OptPair;
-        if (!isBlackListed(To->getName())) {
-          CopySymbolsByAddr[*From->getAddress()].push_back(To);
-        }
+  // Collect copy-relocated symbols into groups by address
+  std::map<gtirb::Addr, SymbolGroup> CopySymbolsByAddr;
+  const auto& Forwarding = aux_data::getSymbolForwarding(Module);
+  for (const auto& Forward : Forwarding) {
+    if (auto OptPair = getCopyRelocationSyms(Context, Forward)) {
+      auto& [From, To] = *OptPair;
+      if (!isBlackListed(To->getName())) {
+        CopySymbolsByAddr[*From->getAddress()].push_back(To);
       }
-    }
-
-    // Keep finalized symbol groups in SymbolGroups, and record which symbols
-    // have been grouped in GroupedSymbols (for faster lookup)
-    for (auto It : CopySymbolsByAddr) {
-      SymbolGroups.push_back(It.second);
-      GroupedSymbols.insert(It.second.begin(), It.second.end());
     }
   }
 
-  // All other imported symbols belong in a group each by themselves.
-  for (const gtirb::Module& Module : IR.modules()) {
-    for (const auto& Sym : Module.symbols()) {
-      if (!Sym.getAddress() &&
-          (!Sym.hasReferent() || Sym.getReferent<gtirb::ProxyBlock>()) &&
-          !isBlackListed(Sym.getName())) {
+  // Keep finalized symbol groups in SymbolGroups, and record which symbols
+  // have been grouped in GroupedSymbols (for faster lookup)
+  for (auto It : CopySymbolsByAddr) {
+    SymbolGroups.push_back(It.second);
+    GroupedSymbols.insert(It.second.begin(), It.second.end());
+  }
 
-        if (GroupedSymbols.find(&Sym) == GroupedSymbols.end()) {
-          SymbolGroups.push_back({&Sym});
-        }
+  // All other imported symbols belong in a group each by themselves.
+  for (const auto& Sym : Module.symbols()) {
+    if (!Sym.getAddress() &&
+        (!Sym.hasReferent() || Sym.getReferent<gtirb::ProxyBlock>()) &&
+        !isBlackListed(Sym.getName())) {
+
+      if (GroupedSymbols.find(&Sym) == GroupedSymbols.end()) {
+        SymbolGroups.push_back({&Sym});
       }
     }
   }
@@ -303,26 +299,24 @@ buildDummySOSymbolGroups(const gtirb::Context& Context, const gtirb::IR& IR) {
 // process of creating fake .so files that export all the correct symbols, and
 // we can link against those.
 bool ElfBinaryPrinter::prepareDummySOLibs(
-    const gtirb::Context& Context, const gtirb::IR& IR,
+    const gtirb::Context& Context, const gtirb::Module& Module,
     const std::string& LibDir, std::vector<std::string>& LibArgs) const {
   // Collect all libs we need to handle
   std::vector<std::string> Libs;
-  for (const gtirb::Module& Module : IR.modules()) {
-    for (const auto& Library : aux_data::getLibraries(Module)) {
-      // Skip blacklisted libs
-      if (isBlackListedLib(Library)) {
-        continue;
-      }
-
-      // TODO: skip any explicit library that isn't just
-      // a filename. Do these actually occur?
-      if (boost::filesystem::path(Library).has_parent_path()) {
-        std::cerr << "ERROR: Skipping explicit lib w/ parent directory: "
-                  << Library << "\n";
-        continue;
-      }
-      Libs.push_back(Library);
+  for (const auto& Library : aux_data::getLibraries(Module)) {
+    // Skip blacklisted libs
+    if (isBlackListedLib(Library)) {
+      continue;
     }
+
+    // TODO: skip any explicit library that isn't just
+    // a filename. Do these actually occur?
+    if (boost::filesystem::path(Library).has_parent_path()) {
+      std::cerr << "ERROR: Skipping explicit lib w/ parent directory: "
+                << Library << "\n";
+      continue;
+    }
+    Libs.push_back(Library);
   }
   if (Libs.empty()) {
     std::cerr << "Note: no dynamic libraries present.\n";
@@ -330,7 +324,7 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
   }
 
   // Get groups of symbols which must be printed together.
-  std::vector<SymbolGroup> SymbolGroups = buildDummySOSymbolGroups(Context, IR);
+  std::vector<SymbolGroup> SymbolGroups = buildDummySOSymbolGroups(Context, Module);
 
   // Now we need to assign imported symbol groups to all the libs.
   // For any group that contains a versioned symbol, we have a mapping of which
@@ -435,7 +429,7 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
       LibSyms.push_back(*UndefinedSymIt++);
     }
 
-    if (!generateDummySO(IR, LibDir, Lib, LibSyms)) {
+    if (!generateDummySO(Module, LibDir, Lib, LibSyms)) {
       LOG_ERROR << "Failed generating dummy .so for " << Lib << "\n";
       return false;
     }
@@ -459,35 +453,30 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
 }
 
 void ElfBinaryPrinter::addOrigLibraryArgs(
-    const gtirb::IR& ir, std::vector<std::string>& args) const {
+    const gtirb::Module& module, std::vector<std::string>& args) const {
   // collect all the library paths
   std::vector<std::string> allBinaryPaths = LibraryPaths;
 
-  for (const gtirb::Module& module : ir.modules()) {
-
-    auto BinaryLibraryPaths = aux_data::getLibraryPaths(module);
-    allBinaryPaths.insert(allBinaryPaths.end(), BinaryLibraryPaths.begin(),
-                          BinaryLibraryPaths.end());
-  }
+  auto BinaryLibraryPaths = aux_data::getLibraryPaths(module);
+  allBinaryPaths.insert(allBinaryPaths.end(), BinaryLibraryPaths.begin(),
+                        BinaryLibraryPaths.end());
 
   // add needed libraries
-  for (const gtirb::Module& module : ir.modules()) {
-    for (const auto& Library : aux_data::getLibraries(module)) {
-      // if they're a blacklisted name, skip them
-      if (isBlackListedLib(Library)) {
-        continue;
-      }
-      // if they match the lib*.so.* pattern we let the compiler look for them
-      if (isInfixLibraryName(Library)) {
-        args.push_back("-l:" + Library);
+  for (const auto& Library : aux_data::getLibraries(module)) {
+    // if they're a blacklisted name, skip them
+    if (isBlackListedLib(Library)) {
+      continue;
+    }
+    // if they match the lib*.so.* pattern we let the compiler look for them
+    if (isInfixLibraryName(Library)) {
+      args.push_back("-l:" + Library);
+    } else {
+      // otherwise we try to find them here
+      if (std::optional<std::string> LibraryLocation =
+              findLibrary(Library, allBinaryPaths)) {
+        args.push_back(*LibraryLocation);
       } else {
-        // otherwise we try to find them here
-        if (std::optional<std::string> LibraryLocation =
-                findLibrary(Library, allBinaryPaths)) {
-          args.push_back(*LibraryLocation);
-        } else {
-          std::cerr << "ERROR: Could not find library " << Library << std::endl;
-        }
+        std::cerr << "ERROR: Could not find library " << Library << std::endl;
       }
     }
   }
@@ -497,11 +486,9 @@ void ElfBinaryPrinter::addOrigLibraryArgs(
     args.push_back("-L" + libraryPath);
   }
   // add binary library paths (add them to rpath as well)
-  for (const gtirb::Module& module : ir.modules()) {
-    for (const auto& LibraryPath : aux_data::getLibraryPaths(module)) {
-      args.push_back("-L" + LibraryPath);
-      args.push_back("-Wl,-rpath," + LibraryPath);
-    }
+  for (const auto& LibraryPath : aux_data::getLibraryPaths(module)) {
+    args.push_back("-L" + LibraryPath);
+    args.push_back("-Wl,-rpath," + LibraryPath);
   }
 }
 
@@ -640,11 +627,11 @@ int ElfBinaryPrinter::assemble(const std::string& outputFilename,
 }
 
 int ElfBinaryPrinter::link(const std::string& outputFilename,
-                           gtirb::Context& ctx, gtirb::IR& ir) const {
+                           gtirb::Context& ctx, gtirb::Module& module) const {
   if (debug)
     std::cout << "Generating binary file" << std::endl;
-  std::vector<TempFile> tempFiles;
-  if (!prepareSources(ctx, ir, tempFiles)) {
+  TempFile tempFile;
+  if (!prepareSource(ctx, module, tempFile)) {
     std::cerr << "ERROR: Could not write assembly into a temporary file.\n";
     return -1;
   }
@@ -664,38 +651,38 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
       return -1;
     }
 
-    if (!prepareDummySOLibs(ctx, ir, dummySoDir->dirName(), libArgs)) {
+    if (!prepareDummySOLibs(ctx, module, dummySoDir->dirName(), libArgs)) {
       std::cerr << "ERROR: Could not create dummy so files for linking.\n";
       return -1;
     }
     // add rpaths from original binary(ies)
-    for (const gtirb::Module& module : ir.modules()) {
-      if (const auto* binaryLibraryPaths =
-              module.getAuxData<gtirb::schema::LibraryPaths>()) {
-        for (const auto& libraryPath : *binaryLibraryPaths) {
-          libArgs.push_back("-Wl,-rpath," + libraryPath);
-        }
+    if (const auto* binaryLibraryPaths =
+            module.getAuxData<gtirb::schema::LibraryPaths>()) {
+      for (const auto& libraryPath : *binaryLibraryPaths) {
+        libArgs.push_back("-Wl,-rpath," + libraryPath);
       }
     }
   } else {
     // If we're not using synthetic libraries, we just need to pass
     // along the appropriate arguments.
 
-    addOrigLibraryArgs(ir, libArgs);
+    addOrigLibraryArgs(module, libArgs);
   }
 
   TempFile VersionScript(".map");
-  if (aux_data::hasVersionedSymDefs(ir) && !Printer.getIgnoreSymbolVersions()) {
+  if (aux_data::hasVersionedSymDefs(*module.getIR()) &&
+      !Printer.getIgnoreSymbolVersions()) {
     // A version script is only needed if we define versioned symbols.
-    if (gtirb_pprint::printVersionScript(ir, VersionScript)) {
+    if (gtirb_pprint::printVersionScript(*module.getIR(), VersionScript)) {
       libArgs.push_back("-Wl,--version-script=" + VersionScript.fileName());
     }
   }
   VersionScript.close();
-
+  std::vector<TempFile> files;
+  files.emplace_back(std::move(tempFile));
   if (std::optional<int> ret =
-          execute(compiler, buildCompilerArgs(outputFilename, tempFiles, ctx,
-                                              ir, libArgs))) {
+          execute(compiler, buildCompilerArgs(outputFilename, files, ctx,
+                                              *module.getIR(), libArgs))) {
     if (*ret)
       std::cerr << "ERROR: assembler returned: " << *ret << "\n";
     return *ret;

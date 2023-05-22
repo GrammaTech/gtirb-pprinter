@@ -39,25 +39,27 @@ public:
 
   // Assemble and link all modules.
   int link(const std::string& OutputFile, gtirb::Context& Context,
-           gtirb::IR& IR) const override;
+           gtirb::Module& Module) const override;
 
   // Generate LIB files for all imports.
-  int libs(const gtirb::IR& IR) const;
+  int libs(const gtirb::Module& Module) const;
 
   // Generate RES files for all resources.
-  int resources(const gtirb::IR& IR, const gtirb::Context& Context) const;
+  int resources(const gtirb::Module& Module,
+                const gtirb::Context& Context) const;
 
 protected:
   // Generate DEF files for imported libaries (temp files).
   bool prepareImportDefs(
-      const gtirb::IR& IR,
+      const gtirb::Module& Module,
       std::map<std::string, std::unique_ptr<TempFile>>& ImportDefs) const;
 
   // Generated a DEF file with all exports.
-  bool prepareExportDef(gtirb::IR& IR, TempFile& Def) const;
+  bool prepareExportDef(gtirb::Module& Module, TempFile& Def) const;
 
   // Generate RES files for all embedded PE resources.
-  bool prepareResources(const gtirb::IR& IR, const gtirb::Context& Context,
+  bool prepareResources(const gtirb::Module& Module,
+                        const gtirb::Context& Context,
                         std::vector<std::string>& Resources) const;
 };
 
