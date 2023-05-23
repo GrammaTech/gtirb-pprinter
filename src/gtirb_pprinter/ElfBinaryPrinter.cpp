@@ -680,9 +680,11 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
     }
   }
   VersionScript.close();
-  if (std::optional<int> ret = execute(
-          compiler, buildCompilerArgs(outputFilename, {std::move(tempFile)},
-                                      ctx, *module.getIR(), libArgs))) {
+  std::vector<TempFile> Files;
+  Files.emplace_back(std::move(tempFile));
+  if (std::optional<int> ret =
+          execute(compiler, buildCompilerArgs(outputFilename, Files, ctx,
+                                              *module.getIR(), libArgs))) {
     if (*ret)
       std::cerr << "ERROR: assembler returned: " << *ret << "\n";
     return *ret;

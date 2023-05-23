@@ -16,37 +16,29 @@
 #define GTIRB_FileUtils_H
 
 #include <fstream>
-#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
-namespace gtirb_bprint {
 
-/// Auxiliary classe to make sure we delete the temporary assembly file at the
+namespace gtirb_bprint {
+/// Auxiliary class to make sure we delete the temporary assembly file at the
 /// end
 class TempFile {
-private:
-  class TempFileImpl {
-  protected:
-    friend class TempFile;
-    std::string Name;
-    std::ofstream FileStream;
-
-  public:
-    TempFileImpl(const std::string extension = std::string(".s"));
-    ~TempFileImpl();
-  };
-
-  std::unique_ptr<TempFileImpl> impl;
+  std::string Name;
+  std::ofstream FileStream;
+  bool Empty = false;
 
 public:
   TempFile(const std::string extension = std::string(".s"));
-  bool isOpen() const { return static_cast<bool>(impl->FileStream); }
-  void close() { impl->FileStream.close(); }
+  TempFile(TempFile&& Other);
+  ~TempFile();
 
-  operator const std::ofstream&() const { return impl->FileStream; }
-  operator std::ofstream&() { return impl->FileStream; }
-  const std::string& fileName() const { return impl->Name; }
+  bool isOpen() const { return static_cast<bool>(FileStream); }
+  void close() { FileStream.close(); }
+
+  operator const std::ofstream&() const { return FileStream; }
+  operator std::ofstream&() { return FileStream; }
+  const std::string& fileName() const { return Name; }
 };
 
 /// Auxiliary class to manage creation and deletion of a temporary directory.

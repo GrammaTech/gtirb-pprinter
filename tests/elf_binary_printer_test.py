@@ -8,7 +8,7 @@ import tempfile
 import dummyso
 import hello_world
 
-from pprinter_helpers import pprinter_binary
+from pprinter_helpers import pprinter_binary, temp_directory
 
 
 @unittest.skipUnless(os.name == "posix", "only runs on Linux")
@@ -199,3 +199,25 @@ class ElfBinaryPrinterTests(unittest.TestCase):
                         ]
                     )
                     self.assertTrue(os.path.exists(exe_path))
+
+    def test_object(self):
+        ir = hello_world.build_gtirb()
+        with temp_directory() as test_dir:
+            gtirb_path = os.path.join(test_dir, "hello_world.gtirb")
+            ir.save_protobuf(gtirb_path)
+            object_path = os.path.join(test_dir, "hello_world_rw.o")
+
+            subprocess.check_call(
+                [
+                    pprinter_binary(),
+                    "--ir",
+                    gtirb_path,
+                    "--binary",
+                    object_path,
+                    "--object",
+                    "--policy",
+                    "complete",
+                ]
+            )
+
+            self.assertTrue(os.path.exists(object_path))

@@ -148,7 +148,7 @@ int main(int argc, char** argv) {
       "Valid policies are 'static', 'dynamic', and 'complete'");
   desc.add_options()("shared,S", "Output a shared library, or assembly "
                                  "that can be compiled to a shared library.");
-
+  desc.add_options()("object,O", "Output an object file, but do not link it");
   desc.add_options()("keep-function",
                      po::value<std::vector<std::string>>()->multitoken(),
                      "Print the given function even if they are skipped"
@@ -428,8 +428,16 @@ int main(int argc, char** argv) {
       return EXIT_FAILURE;
     }
     Modules = {Modules[Index]};
+  } else {
+    // Modules should always be printed after
+    // any other module that they link against
+    std::stable_sort(Modules.begin(), Modules.end(),
+                     [](const gtirb::Module* M1, const gtirb::Module* M2) {
+                       const auto& Libraries = aux_data::getLibraries(*M2);
+                       return std::find(Libraries.begin(), Libraries.end(),
+                                        M1->getName()) != Libraries.end();
+                     });
   }
-
   bool new_layout = false;
   for (size_t i = 0; i < Modules.size(); ++i) {
     auto& M = *Modules[i];
@@ -508,9 +516,13 @@ int main(int argc, char** argv) {
       }
 
       fs::path name = getAsmFileName(asmPath, i);
-
-      if (auto Errc = binaryPrinter->link(name.string(), ctx, M)) {
-        (void)Errc; // currently unused;
+      int Errc;
+      if (vm.count("object") == 0) {
+        Errc = binaryPrinter->link(name.string(), ctx, M);
+      } else {
+        Errc = binaryPrinter->assemble(name.string(), ctx, M);
+      }
+      if (Errc) {
         LOG_ERROR << "Unable to assemble '" << name.string() << "'.\n";
         return EXIT_FAILURE;
       }
