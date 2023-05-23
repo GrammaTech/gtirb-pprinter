@@ -74,7 +74,8 @@ private:
   - There are not enough external symbols to generate all of the dynamically
     linked libraries
   */
-  bool prepareDummySOLibs(const gtirb::Context& Context, const gtirb::Module& module,
+  bool prepareDummySOLibs(const gtirb::Context& Context,
+                          const gtirb::Module& module,
                           const std::string& libDir,
                           std::vector<std::string>& libArgs) const;
   void addOrigLibraryArgs(const gtirb::Module& module,
