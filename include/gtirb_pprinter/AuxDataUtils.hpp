@@ -188,6 +188,7 @@ std::optional<uint64_t> getAlignment(const gtirb::UUID& Uuid,
 std::optional<gtirb::UUID> getForwardedSymbol(const gtirb::Symbol* Symbol);
 
 // Load all library names from the `libraries' AuxData table.
+DEBLOAT_PRETTYPRINTER_EXPORT_API
 std::vector<std::string> getLibraries(const gtirb::Module& Module);
 
 // Load all library path names from the `libraryPaths' AuxData table.
