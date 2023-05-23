@@ -70,9 +70,9 @@ bool isBlackListed(std::string sym) {
 }
 
 bool ElfBinaryPrinter::generateDummySO(
-    const gtirb::Module& module, const std::string& LibDir, const std::string& Lib,
-    const std::vector<SymbolGroup>& SymGroups) const {
-    
+    const gtirb::Module& module, const std::string& LibDir,
+    const std::string& Lib, const std::vector<SymbolGroup>& SymGroups) const {
+
   // Assume that lib is a filename w/ no path prefix
   assert(!boost::filesystem::path(Lib).has_parent_path());
   std::string AsmFileName = Lib + ".s";
@@ -246,7 +246,8 @@ getCopyRelocationSyms(const gtirb::Context& Context,
  * necessary for COPY-relocated symbols.
  */
 static std::vector<SymbolGroup>
-buildDummySOSymbolGroups(const gtirb::Context& Context, const gtirb::Module& Module) {
+buildDummySOSymbolGroups(const gtirb::Context& Context,
+                         const gtirb::Module& Module) {
   std::vector<SymbolGroup> SymbolGroups;
 
   // This set allows efficient lookup of which symbols were added to groups.
@@ -324,7 +325,8 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
   }
 
   // Get groups of symbols which must be printed together.
-  std::vector<SymbolGroup> SymbolGroups = buildDummySOSymbolGroups(Context, Module);
+  std::vector<SymbolGroup> SymbolGroups =
+      buildDummySOSymbolGroups(Context, Module);
 
   // Now we need to assign imported symbol groups to all the libs.
   // For any group that contains a versioned symbol, we have a mapping of which
@@ -678,11 +680,9 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
     }
   }
   VersionScript.close();
-  std::vector<TempFile> files;
-  files.emplace_back(std::move(tempFile));
-  if (std::optional<int> ret =
-          execute(compiler, buildCompilerArgs(outputFilename, files, ctx,
-                                              *module.getIR(), libArgs))) {
+  if (std::optional<int> ret = execute(
+          compiler, buildCompilerArgs(outputFilename, {std::move(tempFile)},
+                                      ctx, *module.getIR(), libArgs))) {
     if (*ret)
       std::cerr << "ERROR: assembler returned: " << *ret << "\n";
     return *ret;

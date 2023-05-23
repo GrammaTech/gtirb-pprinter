@@ -688,11 +688,16 @@ int PeBinaryPrinter::link(const std::string& OutputFile,
   }
 
   // Add assemble-link commands.
-  std::vector<TempFile> Compilands;
-  Compilands.emplace_back(std::move(Compiland));
-  CommandList LinkCommands =
-      linkCommands({OutputFile, Compilands, Resources, ExportDef, EntryPoint,
-                    Subsystem, Machine, Dll, ExtraCompileArgs, LibraryPaths});
+  CommandList LinkCommands = linkCommands({OutputFile,
+                                           {std::move(Compiland)},
+                                           Resources,
+                                           ExportDef,
+                                           EntryPoint,
+                                           Subsystem,
+                                           Machine,
+                                           Dll,
+                                           ExtraCompileArgs,
+                                           LibraryPaths});
   appendCommands(Commands, LinkCommands);
 
   // Execute the assemble-link command list.

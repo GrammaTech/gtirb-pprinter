@@ -115,7 +115,7 @@ class MultiModuleTests(PPrinterTest):
                     pprinter_binary(),
                     "--ir",
                     gtirb_path,
-                    "--binaries",
+                    "--binary",
                     test_path,
                 ),
                 cwd=tmpdir,
