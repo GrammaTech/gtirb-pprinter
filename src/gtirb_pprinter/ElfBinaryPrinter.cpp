@@ -577,6 +577,7 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
 
       if (Pie) {
         args.push_back("-pie");
+        args.push_back("-shared");
       }
       if (NoPie) {
         args.push_back("-no-pie");
