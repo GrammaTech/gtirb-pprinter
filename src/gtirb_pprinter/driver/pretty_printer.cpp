@@ -17,8 +17,6 @@
 #endif
 #include <iomanip>
 #include <iostream>
-#include <optional>
-#include <regex>
 #if defined(__unix__)
 #include <unistd.h>
 #endif
@@ -97,26 +95,12 @@ int main(int argc, char** argv) {
   desc.add_options()(
       "asm,a", po::value<std::string>(),
       "Print IR as assembly code to FILE."
-      "The placeholders '%m' and '%e' can be used to stand in"
-      "for the module name and the primary module name respectively."
-      "If the IR has more than one module, each will be printed"
-      "to its own file. Any file names that cannot be distinguished using"
-      "'%m' and '%e' will have a numerical suffix added."
+      "If there is more than one module, each one after the first"
+      "will have a numerical suffix added to the stem."
       "If a file is not given, the code will be printed to stdout.");
-  desc.add_options()(
-      "binary,b", po::value<std::string>(),
-      "Print IR as a single object file to FILE."
-      "The placeholders '%m' and '%e' can be used to stand in"
-      "for the module name and the primary module name respectively."
-      "If the IR has more than one module, they will all be linked together.");
-  desc.add_options()(
-      "binaries", po::value<std::string>(),
-      "Print IR as one or more object files."
-      "The placeholders '%m' and '%e' can be used to stand in"
-      "for the module name and the primary module name respectively."
-      "If the IR has more than one module, each will be printed"
-      "to its own file. Any file names that cannot be distinguished using"
-      "'%m' and '%e' will have a numerical suffix added.");
+  desc.add_options()("binary,b", po::value<std::string>(),
+                     "Print IR as one or more binary files,"
+                     "either exectuables or (with --shared) shared libraries");
   desc.add_options()("compiler-args,c",
                      po::value<std::vector<std::string>>()->multitoken(),
                      "Additional arguments to pass to the compiler. Only used "
@@ -146,9 +130,9 @@ int main(int argc, char** argv) {
       "The default set of objects to skip when printing assembly. To modify "
       "this set further, use the --keep and --skip options. "
       "Valid policies are 'static', 'dynamic', and 'complete'");
-  desc.add_options()("shared,S", "Output a shared library, or assembly "
-                                 "that can be compiled to a shared library.");
-  desc.add_options()("object,O", "Output an object file, but do not link it");
+  desc.add_options()("shared,S", "Output shared libraries, or assembly "
+                                 "that can be compiled to shared libraries.");
+  desc.add_options()("object,O", "Output  object files, but do not link them");
   desc.add_options()("keep-function",
                      po::value<std::vector<std::string>>()->multitoken(),
                      "Print the given function even if they are skipped"

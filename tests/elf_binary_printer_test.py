@@ -219,5 +219,7 @@ class ElfBinaryPrinterTests(unittest.TestCase):
                     "complete",
                 ]
             )
-
             self.assertTrue(os.path.exists(object_path))
+
+            output = subprocess.check_output(["file", object_path])
+            self.assertTrue(b"relocatable" in output)
