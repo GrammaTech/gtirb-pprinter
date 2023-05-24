@@ -74,8 +74,10 @@ void fixupSharedObject(gtirb::Context& Context, gtirb::Module& Module) {
             if (!Symbol->hasReferent() ||
                 Symbol->getReferent<gtirb::ProxyBlock>() ||
                 aux_data::getForwardedSymbol(Symbol)) {
-              // need to turn into a PLT reference
-              SEEsToPLT.push_back(SEE);
+              if (Info->Type == "FUNC") {
+                // need to turn into a PLT reference
+                SEEsToPLT.push_back(SEE);
+              }
             } else {
               // need to change to the hidden alias
               SymbolsToAlias.insert(Symbol);

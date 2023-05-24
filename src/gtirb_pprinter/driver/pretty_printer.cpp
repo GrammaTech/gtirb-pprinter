@@ -380,6 +380,18 @@ int main(int argc, char** argv) {
   if (vm.count("shared") != 0) {
     pp.setShared(true);
   }
+  else {
+    // Although -S is not specified,
+    // if there's at least one DYN module in the ir, set shared.
+    for (gtirb::Module& M : ir->modules()) {
+      for (const auto& BinTypeStr : aux_data::getBinaryType(M)) {
+        if (BinTypeStr == "DYN") {
+            pp.setShared(true);
+            break;
+        }
+      }
+    }
+  }
 
   bool EnableSymbolVersions = vm["symbol-versions"].as<bool>();
   if (!EnableSymbolVersions) {

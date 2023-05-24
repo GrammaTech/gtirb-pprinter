@@ -554,45 +554,43 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
   // add pie, no pie, or shared, depending on the binary type
   if (Printer.getShared()) {
     args.push_back("-shared");
-  } else {
-    for (gtirb::Module& M : ir.modules()) {
-      // if DYN, pie. if EXEC, no-pie. if both, pie overrides no-pie. If none,
-      // do not specify either argument.
-      bool Pie = false;
-      bool NoPie = false;
+  }
+  for (gtirb::Module& M : ir.modules()) {
+    // if DYN, pie. if EXEC, no-pie. if both, pie overrides no-pie. If none,
+    // do not specify either argument.
+    bool Pie = false;
+    bool NoPie = false;
 
-      for (const auto& BinTypeStr : aux_data::getBinaryType(M)) {
-        if (BinTypeStr == "DYN") {
-          Pie = true;
-          NoPie = false;
-        } else if (BinTypeStr == "EXEC") {
-          if (!Pie) {
-            NoPie = true;
-            Pie = false;
-          }
-        } else {
-          assert(!"Unknown binary type!");
+    for (const auto& BinTypeStr : aux_data::getBinaryType(M)) {
+      if (BinTypeStr == "DYN") {
+        Pie = true;
+        NoPie = false;
+      } else if (BinTypeStr == "EXEC") {
+        if (!Pie) {
+          NoPie = true;
+          Pie = false;
         }
-      }
-
-      if (Pie) {
-        args.push_back("-pie");
-        args.push_back("-shared");
-      }
-      if (NoPie) {
-        args.push_back("-no-pie");
-      }
-      if (Pie || NoPie) {
-        break;
+      } else {
+        assert(!"Unknown binary type!");
       }
     }
 
-    // append -Wl,--export-dynamic if needed; can occur for both DYN and EXEC.
-    // TODO: if some symbols are exported, but not all, build a dynamic list
-    // file and pass with `--dynamic-list`.
-    if (allGlobalSymsExported(context, ir)) {
-      args.push_back("-Wl,--export-dynamic");
+    if (Pie) {
+      args.push_back("-pie");
     }
+    if (NoPie) {
+      args.push_back("-no-pie");
+    }
+    if (Pie || NoPie) {
+      break;
+    }
+  }
+
+  // append -Wl,--export-dynamic if needed; can occur for both DYN and EXEC.
+  // TODO: if some symbols are exported, but not all, build a dynamic list
+  // file and pass with `--dynamic-list`.
+  if (allGlobalSymsExported(context, ir)) {
+    args.push_back("-Wl,--export-dynamic");
   }
 
   // add -m32 for x86 binaries
