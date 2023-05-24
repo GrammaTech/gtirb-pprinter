@@ -421,7 +421,7 @@ int main(int argc, char** argv) {
   }
   if (vm.count("module")) {
     auto Index = vm["module"].as<size_t>();
-    if (Index > Modules.size()) {
+    if (Index >= Modules.size()) {
       LOG_ERROR << "The IR has " << Modules.size()
                 << " modules, module with index " << Index
                 << " cannot be printed.\n";

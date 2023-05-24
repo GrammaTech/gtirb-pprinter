@@ -102,7 +102,7 @@ class MultiModuleTests(PPrinterTest):
     @unittest.skipUnless(can_mock_binaries(), "cannot mock binaries")
     def test_multiple_modules_binary(self):
         """
-        Current expected behavior is that with `--binaries`,
+        Current expected behavior is that with `--binary`,
         the pprinter should produce 2 binary files from a file with 2 modules.
         """
         with temp_directory() as tmpdir:
