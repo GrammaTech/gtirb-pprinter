@@ -194,7 +194,8 @@ std::vector<std::string> getLibraries(const gtirb::Module& Module);
 std::vector<std::string> getLibraryPaths(const gtirb::Module& Module);
 
 // Load all binary type specifiers from the `binaryType' AuxData table.
-std::vector<std::string> getBinaryType(const gtirb::Module& Module);
+DEBLOAT_PRETTYPRINTER_EXPORT_API std::vector<std::string>
+getBinaryType(const gtirb::Module& Module);
 
 // Load symbol forwarding mapping from the `symbolForwarding' AuxData table.
 std::map<gtirb::UUID, gtirb::UUID>
