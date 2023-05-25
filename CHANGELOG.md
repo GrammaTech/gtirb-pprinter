@@ -1,4 +1,4 @@
-# 1.9.1 (Unreleased)
+# 1.10.0 (Unreleased)
   * Fix bug where a binary with COPY-relocated symbols could be missing
     DT_NEEDED entries after rewriting with `--dummy-so`.
   * Removed `--binaries` option
