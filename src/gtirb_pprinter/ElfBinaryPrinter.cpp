@@ -555,42 +555,50 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
   if (Printer.getShared()) {
     args.push_back("-shared");
   }
-  for (gtirb::Module& M : ir.modules()) {
-    // if DYN, pie. if EXEC, no-pie. if both, pie overrides no-pie. If none,
-    // do not specify either argument.
-    bool Pie = false;
-    bool NoPie = false;
+  // Add -pie or -no-pie only when `main` exists: do not add -pie for shared
+  // libraries.
+  bool MainExists = std::count_if(ir.modules().begin(), ir.modules().end(),
+                                  [](gtirb::Module& M) -> bool {
+                                    return !M.findSymbols("main").empty();
+                                  }) != 0;
+  if (MainExists) {
+    for (gtirb::Module& M : ir.modules()) {
+      // if DYN, pie. if EXEC, no-pie. if both, pie overrides no-pie. If none,
+      // do not specify either argument.
+      bool Pie = false;
+      bool NoPie = false;
 
-    for (const auto& BinTypeStr : aux_data::getBinaryType(M)) {
-      if (BinTypeStr == "DYN") {
-        Pie = true;
-        NoPie = false;
-      } else if (BinTypeStr == "EXEC") {
-        if (!Pie) {
-          NoPie = true;
-          Pie = false;
+      for (const auto& BinTypeStr : aux_data::getBinaryType(M)) {
+        if (BinTypeStr == "DYN") {
+          Pie = true;
+          NoPie = false;
+        } else if (BinTypeStr == "EXEC") {
+          if (!Pie) {
+            NoPie = true;
+            Pie = false;
+          }
+        } else {
+          assert(!"Unknown binary type!");
         }
-      } else {
-        assert(!"Unknown binary type!");
+      }
+
+      if (Pie) {
+        args.push_back("-pie");
+      }
+      if (NoPie) {
+        args.push_back("-no-pie");
+      }
+      if (Pie || NoPie) {
+        break;
       }
     }
 
-    if (Pie) {
-      args.push_back("-pie");
+    // append -Wl,--export-dynamic if needed; can occur for both DYN and EXEC.
+    // TODO: if some symbols are exported, but not all, build a dynamic list
+    // file and pass with `--dynamic-list`.
+    if (allGlobalSymsExported(context, ir)) {
+      args.push_back("-Wl,--export-dynamic");
     }
-    if (NoPie) {
-      args.push_back("-no-pie");
-    }
-    if (Pie || NoPie) {
-      break;
-    }
-  }
-
-  // append -Wl,--export-dynamic if needed; can occur for both DYN and EXEC.
-  // TODO: if some symbols are exported, but not all, build a dynamic list
-  // file and pass with `--dynamic-list`.
-  if (allGlobalSymsExported(context, ir)) {
-    args.push_back("-Wl,--export-dynamic");
   }
 
   // add -m32 for x86 binaries
