@@ -311,6 +311,11 @@ gtirb::provisional_schema::TypeTable::Type getTypeTable(const gtirb::Module& M);
 gtirb::provisional_schema::PrototypeTable::Type
 getPrototypeTable(const gtirb::Module& M);
 
+// Get values for a dynamic entry of a given name.
+// Returns an empty list if the auxdata or name does not exist.
+std::set<uint64_t> getDynamicEntry(const gtirb::Module& Mod,
+                                   const std::string& Name);
+
 } // namespace aux_data
 
 // Utilities for dealing with TypeTable auxdata in particular
