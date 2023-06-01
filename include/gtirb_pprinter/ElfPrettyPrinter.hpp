@@ -170,6 +170,8 @@ public:
   defaultPrintingPolicy(const gtirb::Module& Module) const;
 };
 
+const gtirb::Section* SymbolInPLT(const gtirb::Symbol& Sym);
+
 } // namespace gtirb_pprint
 
 #endif /* GTIRB_PP_ELF_PRINTER_H */
