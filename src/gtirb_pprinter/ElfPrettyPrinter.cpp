@@ -83,6 +83,9 @@
 #define SHN_HIRESERVE 0xffff
 
 namespace gtirb_pprint {
+static const std::unordered_set<std::string> PLTSections = {".plt", ".plt.sec",
+                                                            ".plt.got"};
+
 ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
                                    const gtirb::Module& module_,
                                    const ElfSyntax& syntax_,
@@ -343,9 +346,6 @@ void ElfPrettyPrinter::printSymbolDefinitionRelativeToPC(
   }
   os << "\n";
 }
-
-static std::unordered_set<std::string> PLTSections = {".plt", ".plt.sec",
-                                                      ".plt.got"};
 
 const gtirb::Section* IsGlobalPLTSym(const gtirb::Symbol& Sym) {
   if (Sym.getAddress()) {
