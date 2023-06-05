@@ -344,25 +344,18 @@ void ElfPrettyPrinter::printSymbolDefinitionRelativeToPC(
   os << "\n";
 }
 
-static bool IsPLTSect(const gtirb::Section& Section) {
-  std::string SectName = Section.getName();
-  return (SectName == ".plt" || SectName == ".plt.sec" ||
-          SectName == ".plt.got");
-}
+static std::unordered_set<std::string> PLTSections = {".plt", ".plt.sec",
+                                                      ".plt.got"};
 
-// Symbol is attached to the .plt, which can happen if the symbol has an address
-// in the ELF metadata. This seems to occur sometimes.
-//
-// If the given symbol is such a symbol, return the section that it belongs to.
-// Otherwise, return null.
-const gtirb::Section* SymbolInPLT(const gtirb::Symbol& Sym) {
+const gtirb::Section* IsGlobalPLTSym(const gtirb::Symbol& Sym) {
   if (Sym.getAddress()) {
     if (auto Info = aux_data::getElfSymbolInfo(Sym)) {
       if (Info->Binding == "GLOBAL") {
         if (auto Block = Sym.getReferent<gtirb::CodeBlock>()) {
           if (auto ByteInterval = Block->getByteInterval()) {
             if (auto Section = ByteInterval->getSection()) {
-              if (IsPLTSect(*Section)) {
+              std::string SectName = Section->getName();
+              if (PLTSections.find(SectName) != PLTSections.end()) {
                 return Section;
               }
             }
@@ -379,7 +372,7 @@ void ElfPrettyPrinter::printIntegralSymbols(std::ostream& os) {
 
   // Print integral symbols attached to the PLT.
   for (const auto& sym : module.symbols_by_name()) {
-    auto Section = SymbolInPLT(sym);
+    auto Section = IsGlobalPLTSym(sym);
     if (Section && shouldSkip(policy, *Section)) {
       // Symbol is attached to the .plt, but it is skipped.
       // In such cases, we need to emit the symbol definition, ensuring
@@ -494,6 +487,11 @@ const PrintingPolicy& ElfPrettyPrinterFactory::defaultPrintingPolicy(
 }
 
 ElfPrettyPrinterFactory::ElfPrettyPrinterFactory() {
+  std::unordered_set<std::string> dynamicSkipSections = {
+      ".comment", ".eh_frame_hdr", ".eh_frame", ".fini",    ".got",
+      ".got.plt", ".init",         ".rela.dyn", ".rela.plt"};
+  dynamicSkipSections.insert(PLTSections.begin(), PLTSections.end());
+
   registerNamedPolicy(
       "dynamic",
       PrintingPolicy{
@@ -507,15 +505,14 @@ ElfPrettyPrinterFactory::ElfPrettyPrinterFactory() {
            "_IO_stdin_used", "__TMC_END__"},
 
           /// Sections to avoid printing.
-          {".comment", ".eh_frame_hdr", ".eh_frame", ".fini", ".got",
-           ".got.plt", ".init", ".plt", ".plt.got", ".plt.sec", ".rela.dyn",
-           ".rela.plt"},
+          dynamicSkipSections,
 
           /// Sections with possible data object exclusion.
           {".fini_array", ".init_array"},
           /// Extra compiler arguments.
           {},
       });
+
   registerNamedPolicy("static",
                       PrintingPolicy{
                           /// Functions to avoid printing.
@@ -529,20 +526,25 @@ ElfPrettyPrinterFactory::ElfPrettyPrinterFactory() {
                           /// Extra compiler arguments.
                           {"-static", "-nostartfiles"},
                       });
-  registerNamedPolicy(
-      "complete", PrintingPolicy{
-                      /// Functions to avoid printing.
-                      {},
-                      /// Symbols to avoid printing.
-                      {},
-                      /// Sections to avoid printing.
-                      {".eh_frame_hdr", ".eh_frame", ".got", ".got.plt", ".plt",
-                       ".plt.got", ".plt.sec", ".rela.dyn", ".rela.plt"},
-                      /// Sections with possible data object exclusion.
-                      {},
-                      /// Extra compiler arguments.
-                      {"-nostartfiles"},
-                  });
+
+  std::unordered_set<std::string> completeSkipSections = {
+      ".eh_frame_hdr", ".eh_frame", ".got",
+      ".got.plt",      ".rela.dyn", ".rela.plt"};
+  completeSkipSections.insert(PLTSections.begin(), PLTSections.end());
+
+  registerNamedPolicy("complete",
+                      PrintingPolicy{
+                          /// Functions to avoid printing.
+                          {},
+                          /// Symbols to avoid printing.
+                          {},
+                          /// Sections to avoid printing.
+                          completeSkipSections,
+                          /// Sections with possible data object exclusion.
+                          {},
+                          /// Extra compiler arguments.
+                          {"-nostartfiles"},
+                      });
 }
 
 } // namespace gtirb_pprint
