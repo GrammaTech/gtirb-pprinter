@@ -59,8 +59,12 @@ class ElfBinaryPrinterTests(unittest.TestCase):
             self.assertTrue("a() invoked!" in output_bin)
             self.assertTrue("b() invoked!" in output_bin)
 
-    def test_dummyso2(self):
-        ir = dummyso.build_gtirb2()
+    def test_dummyso_plt_sec(self):
+        """
+        Build a GTIRB where a symbol is attached to a PLT entry in .plt.sec.
+        Verify that the symbol is generated in dummyso.
+        """
+        ir = dummyso.build_plt_sec_gtirb()
 
         with tempfile.TemporaryDirectory() as testdir:
             gtirb_path = os.path.join(testdir, "dummyso.gtirb")

@@ -267,7 +267,7 @@ def build_tls_gtirb() -> gtirb.IR:
     return ir
 
 
-def build_gtirb2() -> gtirb.IR:
+def build_plt_sec_gtirb() -> gtirb.IR:
     """
     Build a GTIRB that has .plt.sec and a reference to it
     """
