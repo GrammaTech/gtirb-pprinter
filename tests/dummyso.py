@@ -275,16 +275,17 @@ def build_gtirb2() -> gtirb.IR:
         gtirb.Module.FileFormat.ELF,
         gtirb.Module.ISA.X64,
     )
-    (text_section, text_bi) = gth.add_text_section(module)
 
-    _, plt = gth.add_section(module, ".plt.sec")
-    plt_data_block = gth.add_code_block(plt, b"\x00\x00\x00\x00")
+    plt_section, plt = gth.add_section(module, ".plt.sec")
+    plt_code_block = gth.add_code_block(plt, b"\x00\x00\x00\x00")
 
-    symbol_a = gth.add_symbol(module, "a", plt_data_block)
+    symbol_a = gth.add_symbol(module, "a", plt_code_block)
 
     se_a = gtirb.SymAddrConst(
         0, symbol_a, {gtirb.SymbolicExpression.Attribute.PLT}
     )
+
+    _, text_bi = gth.add_text_section(module)
 
     # For the following code:
     #    e8 00 00 00 00          callq  a@plt
