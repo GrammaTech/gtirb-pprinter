@@ -285,6 +285,8 @@ def build_gtirb2() -> gtirb.IR:
         0, symbol_a, {gtirb.SymbolicExpression.Attribute.PLT}
     )
 
+    module.aux_data["symbolForwarding"].data[symbol_a] = symbol_a
+
     _, text_bi = gth.add_text_section(module)
 
     # For the following code:
