@@ -285,6 +285,10 @@ def build_plt_sec_gtirb() -> gtirb.IR:
         0, symbol_a, {gtirb.SymbolicExpression.Attribute.PLT}
     )
 
+    # This is an artificial self symbol-forwarding to demonstrate
+    # the case where a symbol is attached to a PLT block instead of a proxy
+    # block. This test is to make sure that the symbol definition is emitted
+    # in dummyso.
     module.aux_data["symbolForwarding"].data[symbol_a] = symbol_a
 
     _, text_bi = gth.add_text_section(module)
