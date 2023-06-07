@@ -555,13 +555,16 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
   if (Printer.getShared()) {
     args.push_back("-shared");
   }
-  // Add -pie or -no-pie only when `main` exists: do not add -pie for shared
-  // libraries.
-  bool MainExists = std::count_if(ir.modules().begin(), ir.modules().end(),
-                                  [](gtirb::Module& M) -> bool {
-                                    return !M.findSymbols("main").empty();
-                                  }) != 0;
-  if (MainExists) {
+  // Add -pie or -no-pie only when section `.interp` exists:
+  // do not add -pie for shared libraries.
+  //
+  // NOTE: Executables can be distinguished by the existence of `.interp`
+  // section, and `INTERP` entry in the program header.
+  bool InterpSectExists = std::count_if(ir.sections_begin(), ir.sections_end(),
+                                        [](gtirb::Section& S) -> bool {
+                                          return S.getName() == ".interp";
+                                        }) != 0;
+  if (InterpSectExists) {
     for (gtirb::Module& M : ir.modules()) {
       // if DYN, pie. if EXEC, no-pie. if both, pie overrides no-pie. If none,
       // do not specify either argument.
