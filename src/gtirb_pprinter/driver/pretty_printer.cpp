@@ -54,7 +54,7 @@ static bool setStdStreamToBinary(FILE* stream) {
   return true;
 }
 
-static fs::path getAsmFileName(const fs::path& InitialPath, int Index) {
+static fs::path getOutputFileName(const fs::path& InitialPath, int Index) {
   if (Index == 0)
     return InitialPath;
 
@@ -427,6 +427,7 @@ int main(int argc, char** argv) {
                      });
   }
   bool new_layout = false;
+  
   for (size_t i = 0; i < Modules.size(); ++i) {
     auto& M = *Modules[i];
     // Layout IR in memory without overlap.
@@ -461,7 +462,7 @@ int main(int argc, char** argv) {
     // Write ASM to a file.
     if (vm.count("asm") != 0) {
       const auto asmPath = fs::path(vm["asm"].as<std::string>());
-      fs::path name = getAsmFileName(asmPath, i);
+      fs::path name = getOutputFileName(asmPath, i);
       if (!asmPath.has_filename()) {
         LOG_ERROR << "The given path \"" << asmPath << "\" has no filename.\n";
         return EXIT_FAILURE;
@@ -505,7 +506,7 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
       }
 
-      fs::path name = getAsmFileName(asmPath, i);
+      fs::path name = getOutputFileName(asmPath, i);
       int Errc;
       if (vm.count("object") == 0) {
         Errc = binaryPrinter->link(name.string(), ctx, M);
