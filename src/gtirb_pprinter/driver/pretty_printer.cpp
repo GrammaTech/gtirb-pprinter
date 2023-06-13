@@ -20,6 +20,7 @@
 #if defined(__unix__)
 #include <unistd.h>
 #endif
+#include "parser.hpp"
 
 namespace fs = boost::filesystem;
 namespace po = boost::program_options;
