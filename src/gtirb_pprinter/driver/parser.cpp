@@ -3,22 +3,22 @@
 namespace gtirb_pprint {
 
     const std::regex Matcher::field_regex{
-            "(?:^\\{(?:stem|s)(:.+)?\\}.\\{(?:ext|e)(:.+)?\\})$" // two tags: stem and extension, separated by . (1-2)
-            "|(?:^\\{(?:(?:" // one tag:
+            R"((?:^\{(?:stem|s):(.+?)\}.\{(?:ext|e):(.+?)\})$)" // two tags: stem and extension, separated by . (1-2)
+            R"(|(?:^\{(?:(?:)" // one tag:
                       "(name|n)" // name (3)
                       "|(stem|s)" // stem (4)
                       "|(ext|e))" // extension (5)
-                    "(:.+)?" // optional wildcard expression (6)
-                    "|(#\\d+))\\}$)" // module number (7)
-                "|(\\{[^=,{}*]*\\*[^=,{}*]*\\}$)" // untagged wildcard expression (8)
+                    "(?::(.+))?" // optional wildcard expression (6)
+                    R"(|(?:#(\d+)))\}$))" // module number (7)
+                R"(|(?:\{([^=,{}]+)\}$))" // untagged wildcard expression (8)
     };
 
     const std::regex PathTemplate::components{
-        "{(?:" 
+        "\\{(?:" 
         "(name|n)"  // name (1)
         "|(stem|s)" // stem (2)
         "|(ext|e)"  // extension (3)
-        ")}"}; 
+        ")\\}"}; 
 
     std::vector<Substitution> parse_input(const std::string& input){    
         std::regex kv_regex{
@@ -47,14 +47,12 @@ namespace gtirb_pprint {
         return moduleName;
     }
 
-    std::regex WildcardStrToRegex(const std::string& WC){
-        return std::regex(
-            std::regex_replace(WC, std::regex("\\*"), "(.*?)")
-        );
+    std::string WildcardStrToRegex(const std::string& WC){
+        std::string escaped = std::regex_replace(WC, std::regex("[{}().]"),R"(\$&)");
+        return std::regex_replace(escaped, std::regex("\\*"), "(.*)");
     }
 
-
-    Matcher::Matcher(const std::string& Field): kind(MatchKind::Literal), pattern(Field){
+    Matcher::Matcher(const std::string& Field): kind(MatchKind::Literal), pattern("(.*)"){
         std::smatch m;
         if (std::regex_match(Field,m,field_regex)){
             // kind
@@ -73,41 +71,52 @@ namespace gtirb_pprint {
                 kind = MatchKind::Number;
             }
             // pattern
-            if (m[1].matched || m[2].matched){
-                std::string stemPattern = m[1].matched ? m[1].str() : "(.+?)";
-                std::string extPattern = m[2].matched ? m[2].str() : "(.+?)";
-                pattern = WildcardStrToRegex(stemPattern + "\\." + extPattern);
+            if (m[1].matched){
+                pattern = WildcardStrToRegex(m[1].str() + "." + m[2].str());
             } else if (m[3].matched || m[4].matched || m[5].matched){
                 if (m[6].matched){
                     pattern = WildcardStrToRegex(m[6].str());
-                } else {
-                    pattern = std::regex(".+"); // just needs to be present
                 }
             } else if (m[7].matched){
-                pattern = std::regex(m[7].str());
+                pattern = m[7].str();
             } else if (m[8].matched){
                 pattern = WildcardStrToRegex(m[8].str());
             }
+        } else {
+            pattern =std::regex_replace(
+               Field, std::regex("[{}().]"),"\\$&"
+            );
         }
     };
 
+    std::smatch parseName(const std::string& ModName){
+        std::smatch ModNameComponents;
+        std::regex name_regex{
+            "^(\\.?[^.]+)" // stem
+            "(?:\\.(.*))?" // extension
+        };
+        std::regex_match(ModName,ModNameComponents,name_regex);
+        return ModNameComponents;
+    }
+
     bool Matcher::matches(const std::string& Name, ulong Index) const{
+        auto Components = parseName(Name);
+        auto Stem = Components[1].str();
+        auto Extension = Components[2].str();
         switch (kind){
             case MatchKind::Number:
-                return std::regex_match(std::to_string(Index),pattern);
+                return std::regex_match(std::to_string(Index),std::regex(pattern));
+            case MatchKind::Stem:
+                return std::regex_match(Stem,std::regex(pattern));
+            case MatchKind::Extension:
+                return std::regex_match(Extension, std::regex(pattern));
             default: 
-                return std::regex_match(Name,pattern);
+                return std::regex_match(Name,std::regex(pattern));
         }
     }
 
     fs::path PathTemplate::makePath(const std::string& ModName) const{
-        std::smatch ModNameComponents;
-        std::regex name_regex{
-            "(^\\.?[^.]+)" // stem
-            "(?\\.(.*))?" // extension
-        };
-        std::regex_match(ModName,ModNameComponents,name_regex);
-
+        auto Components = parseName(ModName);
         std::string path;
         std::sregex_iterator ComponentsEnd;
         std::sregex_iterator ComponentsBegin(spec.begin(), spec.end(), components);
@@ -120,11 +129,11 @@ namespace gtirb_pprint {
                 path += Match.prefix();
             }
             if (Match[1].matched){
-                path += ModNameComponents[0].str();
+                path += Components[0].str();
             } else if (Match[2].matched){
-                path += ModNameComponents[1].str();
+                path += Components[1].str();
             } else if (Match[3].matched){
-                path += ModNameComponents[2].str();
+                path += Components[2].str();
             }
             path += Match.suffix().str();
         }
