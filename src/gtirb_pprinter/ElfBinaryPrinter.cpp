@@ -305,11 +305,6 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
   // Collect all libs we need to handle
   std::vector<std::string> Libs;
   for (const auto& Library : aux_data::getLibraries(Module)) {
-    // Skip blacklisted libs
-    if (isBlackListedLib(Library)) {
-      continue;
-    }
-
     // TODO: skip any explicit library that isn't just
     // a filename. Do these actually occur?
     if (boost::filesystem::path(Library).has_parent_path()) {
