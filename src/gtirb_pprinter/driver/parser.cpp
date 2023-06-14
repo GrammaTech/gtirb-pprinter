@@ -120,14 +120,14 @@ namespace gtirb_pprint {
         std::string path;
         std::sregex_iterator ComponentsEnd;
         std::sregex_iterator ComponentsBegin(spec.begin(), spec.end(), components);
-        if (spec==""){
+        if (std::regex_match(spec,std::regex(R"(\s*)"))){
             return fs::path(ModName);
         }
-        for (auto MatchIter=ComponentsBegin; MatchIter != ComponentsEnd; MatchIter++){
+        int i=0;
+        auto n = std::distance(ComponentsBegin, ComponentsEnd);
+        for (auto MatchIter=ComponentsBegin; MatchIter != ComponentsEnd; i++,MatchIter++){
             auto Match = *MatchIter;
-            if (MatchIter == ComponentsBegin){
-                path += Match.prefix();
-            }
+            path += Match.prefix();
             if (Match[1].matched){
                 path += Components[0].str();
             } else if (Match[2].matched){
@@ -135,7 +135,9 @@ namespace gtirb_pprint {
             } else if (Match[3].matched){
                 path += Components[2].str();
             }
-            path += Match.suffix().str();
+            if (i+1 == n){
+                path += Match.suffix().str();
+            }
         }
         return fs::path(path);
     }

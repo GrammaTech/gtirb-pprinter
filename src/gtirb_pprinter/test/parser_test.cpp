@@ -93,3 +93,19 @@ TEST(Unit_Parser, matchCases){
     }
 }
 
+
+TEST(Unit_Parser,pathTemplates){
+    std::vector<std::tuple<std::string,std::string,std::string>> cases {
+        {"{name}.rewritten","hello","hello.rewritten"},
+        {"{stem}.rewritten.{ext}","hello.world","hello.rewritten.world"},
+        {"libs/{name}", "hello", "libs/hello"},
+        {"    ", "hello", "hello"},
+    };
+
+    for (auto& [pattern, name, expected] : cases){
+        PathTemplate tmpl(pattern);
+        auto output = tmpl.makePath(name).generic_string();
+        EXPECT_EQ(output, expected);
+    }
+}
+
