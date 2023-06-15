@@ -100,6 +100,7 @@ TEST(Unit_Parser,pathTemplates){
         {"{stem}.rewritten.{ext}","hello.world","hello.rewritten.world"},
         {"libs/{name}", "hello", "libs/hello"},
         {"    ", "hello", "hello"},
+        {"libs/hello.rewritten", "hello", "libs/hello.rewritten"}
     };
 
     for (auto& [pattern, name, expected] : cases){

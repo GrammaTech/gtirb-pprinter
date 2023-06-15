@@ -37,14 +37,17 @@ namespace gtirb_pprint {
         return subs;
     }
     
-    fs::path substitueOutputFileName(const std::vector<Substitution>& subs, 
+    std::optional<fs::path> substitueOutputFileName(const std::vector<Substitution>& subs, 
         const std::string& moduleName, int index){
+            if (subs.size() == 0){
+                return moduleName;
+            }
         for (const auto & [Match, PT]: subs){
             if (Match.matches(moduleName, index)){
                 return PT.makePath(moduleName);
             }
         }
-        return moduleName;
+        return {};
     }
 
     std::string WildcardStrToRegex(const std::string& WC){
@@ -125,6 +128,9 @@ namespace gtirb_pprint {
         }
         int i=0;
         auto n = std::distance(ComponentsBegin, ComponentsEnd);
+        if (n==0){
+            return spec;
+        }
         for (auto MatchIter=ComponentsBegin; MatchIter != ComponentsEnd; i++,MatchIter++){
             auto Match = *MatchIter;
             path += Match.prefix();

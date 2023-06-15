@@ -38,7 +38,7 @@ namespace gtirb_pprint {
     std::vector<Substitution> parse_input(const std::string& input);
     
 
-    fs::path substitueOutputFileName(const std::vector<Substitution>& subs, 
+    std::optional<fs::path> substitueOutputFileName(const std::vector<Substitution>& subs, 
         const std::string& moduleName, int index);
 }
 

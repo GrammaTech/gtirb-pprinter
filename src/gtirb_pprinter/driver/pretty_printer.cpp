@@ -55,18 +55,18 @@ static bool setStdStreamToBinary(FILE* stream) {
   return true;
 }
 
-static fs::path getOutputFileName(const fs::path& InitialPath, int Index) {
-  if (Index == 0)
-    return InitialPath;
+// static fs::path getOutputFileName(const fs::path& InitialPath, int Index) {
+//   if (Index == 0)
+//     return InitialPath;
 
-  // Add the number to the end of the stem of the filename.
-  std::string Filename = InitialPath.stem().generic_string();
-  Filename.append(std::to_string(Index));
-  Filename.append(InitialPath.extension().generic_string());
-  fs::path FinalPath = InitialPath.parent_path();
-  FinalPath /= Filename;
-  return FinalPath;
-}
+//   // Add the number to the end of the stem of the filename.
+//   std::string Filename = InitialPath.stem().generic_string();
+//   Filename.append(std::to_string(Index));
+//   Filename.append(InitialPath.extension().generic_string());
+//   fs::path FinalPath = InitialPath.parent_path();
+//   FinalPath /= Filename;
+//   return FinalPath;
+// }
 
 static std::unique_ptr<gtirb_bprint::BinaryPrinter>
 getBinaryPrinter(const std::string& format,
@@ -404,9 +404,20 @@ int main(int argc, char** argv) {
     gtirb_pprint::printVersionScript(*ir, VersionStream);
   }
 
-  std::vector<gtirb::Module*> Modules;
+  std::vector<std::pair<gtirb_pprint::Matcher,gtirb_pprint::PathTemplate>> asmSubs, binarySubs;
+  if (vm.count("asm")){
+    asmSubs=gtirb_pprint::parse_input(vm["asm"].as<std::string>());
+  }
+  if (vm.count("binary")){
+    binarySubs=gtirb_pprint::parse_input(vm["binary"].as<std::string>());
+  }
+
+
+  std::vector<std::pair<gtirb::Module*,int>> Modules;
+  int i=0;
   for (auto& module : ir->modules()) {
-    Modules.push_back(&module);
+    Modules.emplace_back(&module,i);
+    i++;
   }
   if (vm.count("module")) {
     auto Index = vm["module"].as<size_t>();
@@ -421,16 +432,17 @@ int main(int argc, char** argv) {
     // Modules should always be printed after
     // any other module that they link against
     std::stable_sort(Modules.begin(), Modules.end(),
-                     [](const gtirb::Module* M1, const gtirb::Module* M2) {
-                       const auto& Libraries = aux_data::getLibraries(*M2);
+                     [](const std::pair<gtirb::Module*,int> MI1, 
+                        const std::pair<gtirb::Module*,int> MI2) {
+                       const auto& Libraries = aux_data::getLibraries(*MI2.first);
                        return std::find(Libraries.begin(), Libraries.end(),
-                                        M1->getName()) != Libraries.end();
+                                        MI1.first->getName()) != Libraries.end();
                      });
   }
   bool new_layout = false;
   
-  for (size_t i = 0; i < Modules.size(); ++i) {
-    auto& M = *Modules[i];
+  for (auto& [MP, idx]: Modules) {
+    auto& M = *MP;
     // Layout IR in memory without overlap.
     if (vm.count("layout")) {
       LOG_INFO << "Applying new layout to module " << M.getUUID() << "..."
@@ -461,30 +473,30 @@ int main(int argc, char** argv) {
     // Apply any needed fixups
     applyFixups(ctx, M, pp);
     // Write ASM to a file.
-    if (vm.count("asm") != 0) {
-      const auto asmPath = fs::path(vm["asm"].as<std::string>());
-      fs::path name = getOutputFileName(asmPath, i);
-      if (!asmPath.has_filename()) {
-        LOG_ERROR << "The given path \"" << asmPath << "\" has no filename.\n";
+    const auto asmPath = gtirb_pprint::substitueOutputFileName(asmSubs,M.getName(),idx);
+    if (asmPath){
+      if (!asmPath->has_filename()) {
+        LOG_ERROR << "The given path \"" << *asmPath << "\" has no filename.\n";
         return EXIT_FAILURE;
       }
+      auto name = asmPath->generic_string();
 
-      std::ofstream ofs(name.generic_string());
+      std::ofstream ofs(name);
       if (ofs) {
         if (pp.print(ofs, ctx, M)) {
-          LOG_INFO << "Module " << i << "'s assembly written to: " << name
+          LOG_INFO << "Module " << idx << "'s assembly written to: " << name
                    << "\n";
         }
       } else {
-        LOG_ERROR << "Could not output assembly output file: \"" << asmPath
+        LOG_ERROR << "Could not output assembly output file: \"" << name
                   << "\".\n";
       }
     }
 
-    if (vm.count("binary") != 0) {
-      const auto asmPath = fs::path(vm["binary"].as<std::string>());
-      if (!asmPath.has_filename()) {
-        LOG_ERROR << "The given path \"" << asmPath << "\" has no filename.\n";
+    const auto binaryPath = gtirb_pprint::substitueOutputFileName(binarySubs,M.getName(),idx);
+    if (binaryPath) {
+      if (!binaryPath->has_filename()) {
+        LOG_ERROR << "The given path \"" << *binaryPath << "\" has no filename.\n";
         return EXIT_FAILURE;
       }
 
@@ -507,15 +519,14 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
       }
 
-      fs::path name = getOutputFileName(asmPath, i);
       int Errc;
       if (vm.count("object") == 0) {
-        Errc = binaryPrinter->link(name.string(), ctx, M);
+        Errc = binaryPrinter->link(binaryPath->string(), ctx, M);
       } else {
-        Errc = binaryPrinter->assemble(name.string(), ctx, M);
+        Errc = binaryPrinter->assemble(binaryPath->string(), ctx, M);
       }
       if (Errc) {
-        LOG_ERROR << "Unable to assemble '" << name.string() << "'.\n";
+        LOG_ERROR << "Unable to assemble '" << binaryPath->string() << "'.\n";
         return EXIT_FAILURE;
       }
     }
