@@ -114,9 +114,6 @@ int main(int argc, char** argv) {
                      "standard output.");
   desc.add_options()("format,f", po::value<std::string>(),
                      "The format of the target binary object: elf, pe, or raw");
-  desc.add_options()("isa,I", po::value<std::string>(),
-                     "The ISA of the target binary object: "
-                     "arm, arm64, mips32, x86, or x64 ");
   desc.add_options()("syntax,s", po::value<std::string>(),
                      "The syntax of the assembly file to generate: "
                      "arm, arm64, att, intel, masm, mips32");
@@ -268,9 +265,7 @@ int main(int argc, char** argv) {
       vm.count("format")
           ? vm["format"].as<std::string>()
           : gtirb_pprint::getModuleFileFormat(*ir->modules().begin());
-  const std::string& isa =
-      vm.count("isa") ? vm["isa"].as<std::string>()
-                      : gtirb_pprint::getModuleISA(*ir->modules().begin());
+  const std::string& isa = gtirb_pprint::getModuleISA(*ir->modules().begin());
   const std::string& syntax =
       vm.count("syntax")
           ? vm["syntax"].as<std::string>()

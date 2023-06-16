@@ -1,4 +1,5 @@
 # 1.10.0 (Unreleased)
+  * Remove unnecessary --isa,-I option.
   * Fix bug where a binary with COPY-relocated symbols could be missing
     DT_NEEDED entries after rewriting with `--dummy-so`.
   * Removed `--binaries` option
