@@ -170,15 +170,43 @@ void fixupSharedObject(gtirb::Context& Context, gtirb::Module& Module) {
 };
 
 /**
-Make sure that the binding of symbol `main` is GLOBAL.
+Fixup ELF symbol bindings.
+
+ELF symbol bindings can be changed by the linker from GLOBAL to LOCAL if they
+have a HIDDEN visibility in the object file. We need to undo this process
+before printing, so that the linker can use needed symbols.
 */
 void fixupELFSymbols(gtirb::Module& Module) {
+  std::vector<gtirb::Symbol*> PromoteSymbols;
+
+  // Promote main
+  // Allows _start to reference main when using --policy=dynamic
+  // With --policy=complete, this is unnecessary, but should have no impact on
+  // the final binary.
   if (auto It = Module.findSymbols("main"); !It.empty()) {
-    auto Symbol = &*It.begin();
+    PromoteSymbols.push_back(&*It.begin());
+  }
+
+  // Promote symbols at DT_INIT and DT_FINI entries
+  auto PromoteAddresses = aux_data::getDynamicEntry(Module, "INIT");
+  PromoteAddresses.merge(aux_data::getDynamicEntry(Module, "FINI"));
+
+  for (uint64_t Addr : PromoteAddresses) {
+    if (auto It = Module.findSymbols(gtirb::Addr(Addr)); !It.empty()) {
+      for (auto& Symbol : It) {
+        PromoteSymbols.push_back(&Symbol);
+      }
+    }
+  }
+
+  for (auto& Symbol : PromoteSymbols) {
     if (auto SymInfo = aux_data::getElfSymbolInfo(*Symbol)) {
       if (SymInfo->Binding != "GLOBAL") {
         aux_data::ElfSymbolInfo NewSymInfo{*SymInfo};
         NewSymInfo.Binding = "GLOBAL";
+        // If the binding is not GLOBAL in the final linked binary, then
+        // it was HIDDEN in the object file.
+        NewSymInfo.Visibility = "HIDDEN";
         aux_data::setElfSymbolInfo(*Symbol, NewSymInfo);
       }
     }

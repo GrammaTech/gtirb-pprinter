@@ -59,7 +59,15 @@ TempFile::TempFile(const std::string extension) {
   FileStream.open(Name);
 }
 
-TempFile::~TempFile() { fs::remove(Name); }
+TempFile::TempFile(TempFile&& Other)
+    : Name(std::move(Other.Name)), FileStream(std::move(Other.FileStream)) {
+  Other.Empty = true;
+}
+
+TempFile::~TempFile() {
+  if (!Empty)
+    fs::remove(Name);
+}
 
 TempDir::TempDir() : Name(), Errno(0) {
 #ifdef _WIN32

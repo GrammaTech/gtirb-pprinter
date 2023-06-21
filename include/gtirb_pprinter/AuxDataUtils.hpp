@@ -188,6 +188,7 @@ std::optional<uint64_t> getAlignment(const gtirb::UUID& Uuid,
 std::optional<gtirb::UUID> getForwardedSymbol(const gtirb::Symbol* Symbol);
 
 // Load all library names from the `libraries' AuxData table.
+DEBLOAT_PRETTYPRINTER_EXPORT_API
 std::vector<std::string> getLibraries(const gtirb::Module& Module);
 
 // Load all library path names from the `libraryPaths' AuxData table.
@@ -310,6 +311,11 @@ gtirb::provisional_schema::TypeTable::Type getTypeTable(const gtirb::Module& M);
 // Load map from UUIDs for functions to UUIDs for their type signatures
 gtirb::provisional_schema::PrototypeTable::Type
 getPrototypeTable(const gtirb::Module& M);
+
+// Get values for a dynamic entry of a given name.
+// Returns an empty list if the auxdata or name does not exist.
+std::set<uint64_t> getDynamicEntry(const gtirb::Module& Mod,
+                                   const std::string& Name);
 
 } // namespace aux_data
 
