@@ -280,16 +280,13 @@ def build_plt_sec_gtirb() -> gtirb.IR:
     plt_code_block = gth.add_code_block(plt, b"\x00\x00\x00\x00")
 
     symbol_a = gth.add_symbol(module, "a", plt_code_block)
+    symbol_a_plt = gth.add_symbol(module, "a_plt", plt_code_block)
 
     se_a = gtirb.SymAddrConst(
-        0, symbol_a, {gtirb.SymbolicExpression.Attribute.PLT}
+        0, symbol_a_plt, {gtirb.SymbolicExpression.Attribute.PLT}
     )
 
-    # This is an artificial self symbol-forwarding to demonstrate
-    # the case where a symbol is attached to a PLT block instead of a proxy
-    # block. This test is to make sure that the symbol definition is emitted
-    # in dummyso.
-    module.aux_data["symbolForwarding"].data[symbol_a] = symbol_a
+    module.aux_data["symbolForwarding"].data[symbol_a_plt] = symbol_a
 
     _, text_bi = gth.add_text_section(module)
 
