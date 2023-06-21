@@ -406,10 +406,10 @@ int main(int argc, char** argv) {
 
   std::vector<std::pair<gtirb_pprint::Matcher,gtirb_pprint::PathTemplate>> asmSubs, binarySubs;
   if (vm.count("asm")){
-    asmSubs=gtirb_pprint::parse_input(vm["asm"].as<std::string>());
+    asmSubs=gtirb_pprint::parseInput(vm["asm"].as<std::string>());
   }
   if (vm.count("binary")){
-    binarySubs=gtirb_pprint::parse_input(vm["binary"].as<std::string>());
+    binarySubs=gtirb_pprint::parseInput(vm["binary"].as<std::string>());
   }
 
 

@@ -7,7 +7,7 @@ using MatchKind = Matcher::MatchKind;
 
 
 TEST(Unit_Parser, Filters){
-    auto r1 = Matcher::field_regex;
+    auto r1 = Matcher::FieldRegex;
     std::vector<std::pair<std::string,bool>> testCases {
         {"{name}", true},
         {"{stem}", true},
@@ -49,8 +49,8 @@ TEST(Unit_Parser,matchKinds){
     };
     for (auto& [input, kind] : cases){
         Matcher M(input);
-        EXPECT_EQ(M.kind,kind);
-        if (M.kind != kind){
+        EXPECT_EQ(M.Kind,kind);
+        if (M.Kind != kind){
             std::cerr << "Input " << input << " failed!\n";
         }
     }
@@ -67,8 +67,8 @@ TEST(Unit_Parser,matchPatterns){
     };
     for (auto& [input, pattern] : cases){
         Matcher M(input);
-        EXPECT_EQ(M.pattern,pattern);
-        if (M.pattern != pattern){
+        EXPECT_EQ(M.Pattern,pattern);
+        if (M.Pattern != pattern){
             std::cerr << "Input " << input << " failed!\n";
         }
     }
@@ -88,7 +88,7 @@ TEST(Unit_Parser, matchCases){
         Matcher M(input);
         EXPECT_TRUE(M.matches(name,index));
         if (!M.matches(name,index)){
-            std::cerr << "Pattern " <<M.pattern<<" doesn't match " << name <<"@"<<index<<"\n";
+            std::cerr << "Pattern " <<M.Pattern<<" doesn't match " << name <<"@"<<index<<"\n";
         }
     }
 }
