@@ -655,6 +655,7 @@ int PeBinaryPrinter::link(const std::string& OutputFile,
   if (prepareExportDef(Module, DefFile)) {
     ExportDef = DefFile.fileName();
   }
+  DefFile.close();
 
   // Prepare RES resource files for the linker.
   std::vector<std::string> Resources;
@@ -789,7 +790,7 @@ bool PeBinaryPrinter::prepareExportDef(gtirb::Module& Module,
   if (PeExports.empty()) {
     LOG_INFO << "Module: " << Module.getBinaryPath()
              << ": No export entries.\n";
-    return true;
+    return false;
   }
 
   for (const auto& [Addr, Ordinal, Name] : PeExports) {
@@ -818,7 +819,6 @@ bool PeBinaryPrinter::prepareExportDef(gtirb::Module& Module,
     }
   }
 
-  Def.close();
   return !Exports.empty();
 }
 

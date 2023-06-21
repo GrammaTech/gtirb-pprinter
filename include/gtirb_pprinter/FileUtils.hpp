@@ -29,11 +29,11 @@ class TempFile {
   bool Empty = false;
 
 public:
-  TempFile(const std::string extension = std::string(".s"));
+  explicit TempFile(const std::string extension = std::string(".s"));
   TempFile(TempFile&& Other);
   ~TempFile();
 
-  bool isOpen() const { return static_cast<bool>(FileStream); }
+  bool isOpen() const { return FileStream.is_open(); }
   void close() { FileStream.close(); }
 
   operator const std::ofstream &() const { return FileStream; }
