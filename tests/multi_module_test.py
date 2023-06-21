@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 import unittest
+from pathlib import Path
 
 import gtirb
 
@@ -51,8 +52,6 @@ class MultiModuleTests(PPrinterTest):
             gtirb_path = os.path.join(tmpdir, "test.gtirb")
             self.create_multi_module_ir().save_protobuf(gtirb_path)
 
-            asm_path_template = os.path.join(tmpdir, "two_modules{}.s")
-
             capture_output_args = {}
             if not should_print_subprocess_output():
                 capture_output_args["stdout"] = subprocess.PIPE
@@ -64,15 +63,15 @@ class MultiModuleTests(PPrinterTest):
                     "--ir",
                     gtirb_path,
                     "--asm",
-                    asm_path_template.format(""),
+                    "{n:*}={n}.s",
                 ),
                 check=True,
                 cwd=tmpdir,
                 **capture_output_args,
             )
-            with open(asm_path_template.format(""), "r") as f:
+            with (Path(tmpdir) / "ex.s").open("r") as f:
                 self.assertIn(".globl main", f.read())
-            with open(asm_path_template.format("1"), "r") as f:
+            with (Path(tmpdir) / "fun.so.s").open("r") as f:
                 self.assertIn(".globl fun", f.read())
 
     def test_multiple_modules_stdout_m0(self):
@@ -107,7 +106,6 @@ class MultiModuleTests(PPrinterTest):
         """
         with temp_directory() as tmpdir:
             gtirb_path = os.path.join(tmpdir, "test.gtirb")
-            test_path = os.path.join(tmpdir, "test")
             self.create_multi_module_ir().save_protobuf(gtirb_path)
 
             _ = subprocess.check_output(
@@ -116,7 +114,7 @@ class MultiModuleTests(PPrinterTest):
                     "--ir",
                     gtirb_path,
                     "--binary",
-                    test_path,
+                    "{name:fun.so}=test1,{name:ex}=test"
                 ),
                 cwd=tmpdir,
             ).decode(sys.stdout.encoding)

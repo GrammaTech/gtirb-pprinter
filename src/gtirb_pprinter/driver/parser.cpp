@@ -39,9 +39,6 @@ namespace gtirb_pprint {
     
     std::optional<fs::path> substitueOutputFileName(const std::vector<Substitution>& subs, 
         const std::string& moduleName, int index){
-            if (subs.size() == 0){
-                return moduleName;
-            }
         for (const auto & [Match, PT]: subs){
             if (Match.matches(moduleName, index)){
                 return PT.makePath(moduleName);
@@ -85,7 +82,7 @@ namespace gtirb_pprint {
             } else if (m[8].matched){
                 pattern = WildcardStrToRegex(m[8].str());
             }
-        } else {
+        } else if (Field.length() > 0) {
             pattern =std::regex_replace(
                Field, std::regex("[{}().]"),"\\$&"
             );
