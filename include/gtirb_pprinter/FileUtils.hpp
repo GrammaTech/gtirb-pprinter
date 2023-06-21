@@ -26,9 +26,11 @@ namespace gtirb_bprint {
 class TempFile {
   std::string Name;
   std::ofstream FileStream;
+  bool Empty = false;
 
 public:
   TempFile(const std::string extension = std::string(".s"));
+  TempFile(TempFile&& Other);
   ~TempFile();
 
   bool isOpen() const { return static_cast<bool>(FileStream); }

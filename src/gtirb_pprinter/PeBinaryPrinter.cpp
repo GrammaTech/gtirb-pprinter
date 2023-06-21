@@ -567,19 +567,17 @@ std::optional<std::string> getPeMachine(const gtirb::IR& IR) {
 
 // Find an entrypoint symbol defined in any Module.
 // NOTE: `ml64.exe' cannot automatically determine what the entrypoint is.
-std::optional<std::string> getEntrySymbol(const gtirb::IR& IR) {
+std::optional<std::string> getEntrySymbol(const gtirb::Module& Module) {
   // Find out whether there are modules with entry points.
-  auto Found = std::find_if(
-      IR.modules_begin(), IR.modules_end(),
-      [](const gtirb::Module& M) { return M.getEntryPoint() != nullptr; });
+  const auto& Found = Module.getEntryPoint();
 
-  if (Found != IR.modules_end()) {
+  if (Found) {
     // The MASM pprint always adds an __EntryPoint symbol
     // pointing to the entry point CodeBlock.
     std::string Name("__EntryPoint");
     // ML (PE32) will implicitly prefix the symbol with an additional '_', so
     // we remove one for the command-line option.
-    if (Found->getISA() == gtirb::ISA::IA32 && Name.size() && Name[0] == '_') {
+    if (Module.getISA() == gtirb::ISA::IA32 && Name.size() && Name[0] == '_') {
       Name = Name.substr(1);
     }
     return Name;
@@ -587,16 +585,14 @@ std::optional<std::string> getEntrySymbol(const gtirb::IR& IR) {
   return std::nullopt;
 }
 
-std::optional<std::string> getPeSubsystem(const gtirb::IR& IR) {
+std::optional<std::string> getPeSubsystem(const gtirb::Module& Module) {
 
   // Find the first Module with an entry point.
-  auto Found = std::find_if(
-      IR.modules_begin(), IR.modules_end(),
-      [](const gtirb::Module& M) { return M.getEntryPoint() != nullptr; });
+  auto Found = Module.getEntryPoint();
 
   // Reference the Module's `binaryType' AuxData table for the subsystem label.
-  if (Found != IR.modules_end()) {
-    auto T = aux_data::getBinaryType(*Found);
+  if (Found) {
+    auto T = aux_data::getBinaryType(Module);
     if (!T.empty()) {
       if (std::find(T.begin(), T.end(), "WINDOWS_GUI") != T.end()) {
         return "windows";
@@ -609,14 +605,9 @@ std::optional<std::string> getPeSubsystem(const gtirb::IR& IR) {
   return std::nullopt;
 }
 
-bool isPeDll(const gtirb::IR& IR) {
-  for (const gtirb::Module& Module : IR.modules()) {
-    auto Table = aux_data::getBinaryType(Module);
-    if (std::find(Table.begin(), Table.end(), "DLL") != Table.end()) {
-      return true;
-    }
-  }
-  return false;
+bool isPeDll(const gtirb::Module& Module) {
+  auto Table = aux_data::getBinaryType(Module);
+  return std::find(Table.begin(), Table.end(), "DLL") != Table.end();
 }
 
 PeBinaryPrinter::PeBinaryPrinter(
@@ -642,17 +633,18 @@ int PeBinaryPrinter::assemble(const std::string& Path, gtirb::Context& Context,
 }
 
 int PeBinaryPrinter::link(const std::string& OutputFile,
-                          gtirb::Context& Context, gtirb::IR& IR) const {
+                          gtirb::Context& Context,
+                          gtirb::Module& Module) const {
   // Prepare all ASM sources (temp files).
-  std::vector<TempFile> Compilands;
-  if (!prepareSources(Context, IR, Compilands)) {
+  TempFile Compiland;
+  if (!prepareSource(Context, Module, Compiland)) {
     LOG_ERROR << "Failed to write assembly to temporary file.\n";
     return -1;
   }
 
   // Prepare DEF import definition files (temp files).
   std::map<std::string, std::unique_ptr<TempFile>> ImportDefs;
-  if (!prepareImportDefs(IR, ImportDefs)) {
+  if (!prepareImportDefs(Module, ImportDefs)) {
     LOG_ERROR << "Failed to write import .DEF files.";
     return -1;
   }
@@ -660,28 +652,28 @@ int PeBinaryPrinter::link(const std::string& OutputFile,
   // Generate a DEF file for all exports.
   TempFile DefFile(".def");
   std::optional<std::string> ExportDef;
-  if (prepareExportDef(IR, DefFile)) {
+  if (prepareExportDef(Module, DefFile)) {
     ExportDef = DefFile.fileName();
   }
 
   // Prepare RES resource files for the linker.
   std::vector<std::string> Resources;
-  if (!prepareResources(IR, Context, Resources)) {
+  if (!prepareResources(Module, Context, Resources)) {
     LOG_ERROR << "Failed to write resource .RES files.";
     return -1;
   }
 
   // Find a named symbol for the entry point.
-  std::optional<std::string> EntryPoint = getEntrySymbol(IR);
+  std::optional<std::string> EntryPoint = getEntrySymbol(Module);
 
   // Find the PE subsystem.
-  std::optional<std::string> Subsystem = getPeSubsystem(IR);
+  std::optional<std::string> Subsystem = getPeSubsystem(Module);
 
   // Find the target platform.
-  std::optional<std::string> Machine = getPeMachine(IR);
+  std::optional<std::string> Machine = getPeMachine(Module);
 
   // Find the PE binary type.
-  bool Dll = isPeDll(IR);
+  bool Dll = isPeDll(Module);
 
   // Build the list of commands.
   CommandList Commands;
@@ -694,7 +686,8 @@ int PeBinaryPrinter::link(const std::string& OutputFile,
     CommandList LibCommands = libCommands({Def, Lib, Machine});
     appendCommands(Commands, LibCommands);
   }
-
+  std::vector<TempFile> Compilands;
+  Compilands.emplace_back(std::move(Compiland));
   // Add assemble-link commands.
   CommandList LinkCommands =
       linkCommands({OutputFile, Compilands, Resources, ExportDef, EntryPoint,
@@ -705,16 +698,16 @@ int PeBinaryPrinter::link(const std::string& OutputFile,
   return executeCommands(Commands);
 }
 
-int PeBinaryPrinter::libs(const gtirb::IR& IR) const {
+int PeBinaryPrinter::libs(const gtirb::Module& Module) const {
   // Prepare DEF import definition files (temp files).
   std::map<std::string, std::unique_ptr<TempFile>> ImportDefs;
-  if (!prepareImportDefs(IR, ImportDefs)) {
+  if (!prepareImportDefs(Module, ImportDefs)) {
     LOG_ERROR << "Failed to write import .DEF files.";
     return -1;
   }
 
   // Find the target platform.
-  std::optional<std::string> Machine = getPeMachine(IR);
+  std::optional<std::string> Machine = getPeMachine(Module);
 
   // Build the list of commands.
   CommandList Commands;
@@ -731,11 +724,11 @@ int PeBinaryPrinter::libs(const gtirb::IR& IR) const {
   return executeCommands(Commands);
 }
 
-int PeBinaryPrinter::resources(const gtirb::IR& IR,
+int PeBinaryPrinter::resources(const gtirb::Module& Module,
                                const gtirb::Context& Context) const {
   // Prepare RES resource files for the linker.
   std::vector<std::string> Resources;
-  if (!prepareResources(IR, Context, Resources)) {
+  if (!prepareResources(Module, Context, Resources)) {
     LOG_ERROR << "Failed to write resource .RES files.";
     return -1;
   }
@@ -744,40 +737,37 @@ int PeBinaryPrinter::resources(const gtirb::IR& IR,
 }
 
 bool PeBinaryPrinter::prepareImportDefs(
-    const gtirb::IR& IR,
+    const gtirb::Module& Module,
     std::map<std::string, std::unique_ptr<TempFile>>& ImportDefs) const {
 
   LOG_INFO << "Preparing import LIB files...\n";
-  for (const gtirb::Module& Module : IR.modules()) {
 
-    auto PeImports = aux_data::getImportEntries(Module);
-    if (PeImports.empty()) {
-      LOG_INFO << "Module: " << Module.getBinaryPath()
-               << ": No import entries.\n";
-      continue;
+  auto PeImports = aux_data::getImportEntries(Module);
+  if (PeImports.empty()) {
+    LOG_INFO << "Module: " << Module.getBinaryPath()
+             << ": No import entries.\n";
+    return true;
+  }
+  // For each import in the AuxData table.
+  for (const auto& [Addr, Ordinal, Name, Import] : PeImports) {
+    (void)Addr; // unused binding
+
+    auto It = ImportDefs.find(Import);
+
+    if (It == ImportDefs.end()) {
+      // Create a new (temporary) DEF file.
+      ImportDefs[Import] = std::make_unique<TempFile>(".def");
+      It = ImportDefs.find(Import);
+      std::ostream& Stream = static_cast<std::ostream&>(*(It->second));
+      Stream << "LIBRARY \"" << It->first << "\"\n\nEXPORTS\n";
     }
 
-    // For each import in the AuxData table.
-    for (const auto& [Addr, Ordinal, Name, Import] : PeImports) {
-      (void)Addr; // unused binding
-
-      auto It = ImportDefs.find(Import);
-
-      if (It == ImportDefs.end()) {
-        // Create a new (temporary) DEF file.
-        ImportDefs[Import] = std::make_unique<TempFile>(".def");
-        It = ImportDefs.find(Import);
-        std::ostream& Stream = static_cast<std::ostream&>(*(It->second));
-        Stream << "LIBRARY \"" << It->first << "\"\n\nEXPORTS\n";
-      }
-
-      // Write the entry to the DEF file.
-      std::ostream& Stream = static_cast<std::ostream&>(*(It->second));
-      if (Ordinal != -1) {
-        Stream << Name << " @ " << Ordinal << " NONAME\n";
-      } else {
-        Stream << Name << "\n";
-      }
+    // Write the entry to the DEF file.
+    std::ostream& Stream = static_cast<std::ostream&>(*(It->second));
+    if (Ordinal != -1) {
+      Stream << Name << " @ " << Ordinal << " NONAME\n";
+    } else {
+      Stream << Name << "\n";
     }
   }
 
@@ -789,36 +779,35 @@ bool PeBinaryPrinter::prepareImportDefs(
   return true;
 }
 
-bool PeBinaryPrinter::prepareExportDef(gtirb::IR& IR, TempFile& Def) const {
+bool PeBinaryPrinter::prepareExportDef(gtirb::Module& Module,
+                                       TempFile& Def) const {
   std::vector<std::string> Exports;
 
-  for (const gtirb::Module& Module : IR.modules()) {
-    LOG_INFO << "Preparing exports DEF file...\n";
+  LOG_INFO << "Preparing exports DEF file...\n";
 
-    auto PeExports = aux_data::getExportEntries(Module);
-    if (PeExports.empty()) {
-      LOG_INFO << "Module: " << Module.getBinaryPath()
-               << ": No export entries.\n";
-      continue;
+  auto PeExports = aux_data::getExportEntries(Module);
+  if (PeExports.empty()) {
+    LOG_INFO << "Module: " << Module.getBinaryPath()
+             << ": No export entries.\n";
+    return true;
+  }
+
+  for (const auto& [Addr, Ordinal, Name] : PeExports) {
+    (void)Addr; // unused binding
+
+    std::string Extra;
+    auto It = Module.findSymbols(Name);
+    if (It.begin()->getReferent<gtirb::DataBlock>()) {
+      Extra = " DATA";
     }
 
-    for (const auto& [Addr, Ordinal, Name] : PeExports) {
-      (void)Addr; // unused binding
-
-      std::string Extra;
-      auto It = Module.findSymbols(Name);
-      if (It.begin()->getReferent<gtirb::DataBlock>()) {
-        Extra = " DATA";
-      }
-
-      std::stringstream Stream;
-      if (Ordinal != -1) {
-        Stream << Name << " @ " << Ordinal << Extra << "\n";
-      } else {
-        Stream << Name << Extra << "\n";
-      }
-      Exports.push_back(Stream.str());
+    std::stringstream Stream;
+    if (Ordinal != -1) {
+      Stream << Name << " @ " << Ordinal << Extra << "\n";
+    } else {
+      Stream << Name << Extra << "\n";
     }
+    Exports.push_back(Stream.str());
   }
 
   if (!Exports.empty()) {
@@ -834,73 +823,71 @@ bool PeBinaryPrinter::prepareExportDef(gtirb::IR& IR, TempFile& Def) const {
 }
 
 bool PeBinaryPrinter::prepareResources(
-    const gtirb::IR& IR, const gtirb::Context& Context,
+    const gtirb::Module& Module, const gtirb::Context& Context,
     std::vector<std::string>& Resources) const {
 
   LOG_INFO << "Preparing resource RES files...\n";
-  for (const gtirb::Module& Module : IR.modules()) {
 
-    auto Table = aux_data::getPEResources(Module);
-    if (Table.empty()) {
-      LOG_INFO << "Module: " << Module.getBinaryPath() << ": No resources.\n";
-      continue;
-    }
-
-    std::ofstream Stream;
-    std::string Filename = replaceExtension(Module.getName(), ".res");
-    Stream.open(Filename, std::ios::binary | std::ios::trunc);
-    if (!Stream.is_open()) {
-      LOG_ERROR << "Unable to open resource file: " << Filename << "\n";
-      return false;
-    }
-
-    // RES file header ...
-    const uint8_t FileHeader[] = {
-        0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0xff, 0xff, 0x00,
-        0x00, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-
-    Stream.write(reinterpret_cast<const char*>(&FileHeader), 32);
-
-    // ... followed by a list of header/data blocks.
-    for (const auto& [Header, Offset, Size] : Table) {
-      // Write resource header.
-      Stream.write(reinterpret_cast<const char*>(Header.data()), Header.size());
-
-      const gtirb::ByteInterval* ByteInterval =
-          dyn_cast_or_null<gtirb::ByteInterval>(
-              gtirb::Node::getByUUID(Context, Offset.ElementId));
-
-      if (ByteInterval) {
-        // Write resource data.
-        auto Data =
-            ByteInterval->rawBytes<const uint8_t>() + Offset.Displacement;
-
-        if (Offset.Displacement + Size > ByteInterval->getSize()) {
-          LOG_DEBUG << "Insufficient data in byte interval for PE resource.\n";
-        }
-
-        // Data is longer than the ByteInterval provides.
-        if (Data) {
-          Stream.write(reinterpret_cast<const char*>(Data), Size);
-        } else {
-          LOG_DEBUG << "Unable to get PE resource data\n";
-        }
-
-        // Write padding to align subsequent headers.
-        if (Size % 4 != 0) {
-          uint32_t tmp = 0x0000;
-          Stream.write(reinterpret_cast<const char*>(&tmp), 4 - Size % 4);
-        }
-      } else {
-        LOG_DEBUG << "Could not find byte interval for PE resource data.\n";
-      }
-    }
-
-    Stream.close();
-    Resources.push_back(Filename);
+  auto Table = aux_data::getPEResources(Module);
+  if (Table.empty()) {
+    LOG_INFO << "Module: " << Module.getBinaryPath() << ": No resources.\n";
+    return true;
   }
+
+  std::ofstream Stream;
+  std::string Filename = replaceExtension(Module.getName(), ".res");
+  Stream.open(Filename, std::ios::binary | std::ios::trunc);
+  if (!Stream.is_open()) {
+    LOG_ERROR << "Unable to open resource file: " << Filename << "\n";
+    return false;
+  }
+
+  // RES file header ...
+  const uint8_t FileHeader[] = {0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00,
+                                0xff, 0xff, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00,
+                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+  Stream.write(reinterpret_cast<const char*>(&FileHeader), 32);
+
+  // ... followed by a list of header/data blocks.
+  for (const auto& [Header, Offset, Size] : Table) {
+    // Write resource header.
+    Stream.write(reinterpret_cast<const char*>(Header.data()), Header.size());
+
+    const gtirb::ByteInterval* ByteInterval =
+        dyn_cast_or_null<gtirb::ByteInterval>(
+            gtirb::Node::getByUUID(Context, Offset.ElementId));
+
+    if (ByteInterval) {
+      // Write resource data.
+      auto Data = ByteInterval->rawBytes<const uint8_t>() + Offset.Displacement;
+
+      if (Offset.Displacement + Size > ByteInterval->getSize()) {
+        LOG_DEBUG << "Insufficient data in byte interval for PE resource.\n";
+      }
+
+      // Data is longer than the ByteInterval provides.
+      if (Data) {
+        Stream.write(reinterpret_cast<const char*>(Data), Size);
+      } else {
+        LOG_DEBUG << "Unable to get PE resource data\n";
+      }
+
+      // Write padding to align subsequent headers.
+      if (Size % 4 != 0) {
+        uint32_t tmp = 0x0000;
+        Stream.write(reinterpret_cast<const char*>(&tmp), 4 - Size % 4);
+      }
+    } else {
+      LOG_DEBUG << "Could not find byte interval for PE resource data.\n";
+    }
+  }
+
+  Stream.close();
+  Resources.push_back(Filename);
 
   return true;
 }
+
 } // namespace gtirb_bprint

@@ -1,6 +1,13 @@
-# 1.9.1 (Unreleased)
+# 1.10.0 (Unreleased)
+  * Remove unnecessary --isa,-I option.
   * Fix bug where a binary with COPY-relocated symbols could be missing
     DT_NEEDED entries after rewriting with `--dummy-so`.
+  * Removed `--binaries` option
+  * `--binary` option now links each module of the IR into a separate binary
+  * `--module` option to work in tandem with the --asm and --binary options
+  * Added `--object` option to print relocatable object files
+  * Binary printer methods now operate on modules, rather than the entire IR
+  * Pass `-init` and `-fini` to `ld` based on `dynamicEntries` auxdata.
 
 # 1.9.0
   * Added a Python wheel to make gtirb-pprinter pip-installable.
