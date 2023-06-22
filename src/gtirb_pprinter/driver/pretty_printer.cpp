@@ -92,23 +92,23 @@ int main(int argc, char** argv) {
   po::options_description desc("Allowed options");
   desc.add_options()("help,h", "Produce help message.");
   desc.add_options()("version", "Print version info and exit.");
-  desc.add_options()("ir,i", po::value<std::string>(), "GTIRB file(s) to print.");
+  desc.add_options()("ir,i", po::value<std::string>(),
+                     "GTIRB file(s) to print.");
   desc.add_options()(
-    "asm,a", po::value<std::string>(),
-    "Print IR as assembly code to FILE."
-    "If there is more than one module, files for each can be specified "
-    "with 'MODULE1=FILE1[,MODULE2=FILE2...]'."
-    "See `--help-modules` for more details regarding selecting modules "
-    "and specifying file names."
-  );
+      "asm,a", po::value<std::string>(),
+      "Print IR as assembly code to FILE."
+      "If there is more than one module, files for each can be specified "
+      "with 'MODULE1=FILE1[,MODULE2=FILE2...]'."
+      "See `--help-modules` for more details regarding selecting modules "
+      "and specifying file names.");
   desc.add_options()(
-    "binary,b", po::value<std::string>(),
-    "Print IR as one or more binary files,"
-    "either exectuables or (with --shared) shared libraries."
-    "If there is more than one module, files for each can be specified "
-    "with 'MODULE1=FILE1[,MODULE2=FILE2...]'."
-    "See `--help-modules` for more details regarding selecting modules "
-    "and specifying file names.");
+      "binary,b", po::value<std::string>(),
+      "Print IR as one or more binary files,"
+      "either exectuables or (with --shared) shared libraries."
+      "If there is more than one module, files for each can be specified "
+      "with 'MODULE1=FILE1[,MODULE2=FILE2...]'."
+      "See `--help-modules` for more details regarding selecting modules "
+      "and specifying file names.");
   desc.add_options()("compiler-args,c",
                      po::value<std::vector<std::string>>()->multitoken(),
                      "Additional arguments to pass to the compiler. Only used "
@@ -198,7 +198,8 @@ int main(int argc, char** argv) {
                      "Generate a version script file on the given path. Only "
                      "relevant for ELF executables.");
   desc.add_options()("help-modules", po::value<bool>()->default_value(false),
-    "Display help about filtering modules and generating files for multi-module IRs");
+                     "Display help about filtering modules and generating "
+                     "files for multi-module IRs");
   po::positional_options_description pd;
   pd.add("ir", -1);
   po::variables_map vm;
@@ -235,7 +236,7 @@ int main(int argc, char** argv) {
   ContextForgetter ctx;
   gtirb::IR* ir = nullptr;
 
-  if (vm.count("help-modules") != 0){
+  if (vm["help-modules"].as<bool>()) {
     std::cout << gtirb_multimodule::module_help_message;
     return 0;
   }
@@ -417,19 +418,20 @@ int main(int argc, char** argv) {
     gtirb_pprint::printVersionScript(*ir, VersionStream);
   }
 
-  std::vector<std::pair<gtirb_multimodule::Matcher,gtirb_multimodule::PathTemplate>> asmSubs, binarySubs;
-  if (vm.count("asm")){
-    asmSubs=gtirb_multimodule::parseInput(vm["asm"].as<std::string>());
+  std::vector<
+      std::pair<gtirb_multimodule::Matcher, gtirb_multimodule::PathTemplate>>
+      asmSubs, binarySubs;
+  if (vm.count("asm")) {
+    asmSubs = gtirb_multimodule::parseInput(vm["asm"].as<std::string>());
   }
-  if (vm.count("binary")){
-    binarySubs=gtirb_multimodule::parseInput(vm["binary"].as<std::string>());
+  if (vm.count("binary")) {
+    binarySubs = gtirb_multimodule::parseInput(vm["binary"].as<std::string>());
   }
 
-
-  std::vector<std::pair<gtirb::Module*,int>> Modules;
-  int i=0;
+  std::vector<std::pair<gtirb::Module*, int>> Modules;
+  int i = 0;
   for (auto& module : ir->modules()) {
-    Modules.emplace_back(&module,i);
+    Modules.emplace_back(&module, i);
     i++;
   }
   if (vm.count("module")) {
@@ -444,17 +446,18 @@ int main(int argc, char** argv) {
   } else {
     // Modules should always be printed after
     // any other module that they link against
-    std::stable_sort(Modules.begin(), Modules.end(),
-                     [](const std::pair<gtirb::Module*,int> MI1, 
-                        const std::pair<gtirb::Module*,int> MI2) {
-                       const auto& Libraries = aux_data::getLibraries(*MI2.first);
-                       return std::find(Libraries.begin(), Libraries.end(),
-                                        MI1.first->getName()) != Libraries.end();
-                     });
+    std::stable_sort(
+        Modules.begin(), Modules.end(),
+        [](const std::pair<gtirb::Module*, int> MI1,
+           const std::pair<gtirb::Module*, int> MI2) {
+          const auto& Libraries = aux_data::getLibraries(*MI2.first);
+          return std::find(Libraries.begin(), Libraries.end(),
+                           MI1.first->getName()) != Libraries.end();
+        });
   }
   bool new_layout = false;
-  
-  for (auto& [MP, idx]: Modules) {
+
+  for (auto& [MP, idx] : Modules) {
     auto& M = *MP;
     // Layout IR in memory without overlap.
     if (vm.count("layout")) {
@@ -486,8 +489,9 @@ int main(int argc, char** argv) {
     // Apply any needed fixups
     applyFixups(ctx, M, pp);
     // Write ASM to a file.
-    const auto asmPath = gtirb_multimodule::getOutputFileName(asmSubs,M.getName());
-    if (asmPath){
+    const auto asmPath =
+        gtirb_multimodule::getOutputFileName(asmSubs, M.getName());
+    if (asmPath) {
       if (!asmPath->has_filename()) {
         LOG_ERROR << "The given path \"" << *asmPath << "\" has no filename.\n";
         return EXIT_FAILURE;
@@ -506,10 +510,12 @@ int main(int argc, char** argv) {
       }
     }
 
-    const auto binaryPath = gtirb_multimodule::getOutputFileName(binarySubs,M.getName());
+    const auto binaryPath =
+        gtirb_multimodule::getOutputFileName(binarySubs, M.getName());
     if (binaryPath) {
       if (!binaryPath->has_filename()) {
-        LOG_ERROR << "The given path \"" << *binaryPath << "\" has no filename.\n";
+        LOG_ERROR << "The given path \"" << *binaryPath
+                  << "\" has no filename.\n";
         return EXIT_FAILURE;
       }
 

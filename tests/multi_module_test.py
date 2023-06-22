@@ -114,7 +114,7 @@ class MultiModuleTests(PPrinterTest):
                     "--ir",
                     gtirb_path,
                     "--binary",
-                    "{name:fun.so}=test1,{name:ex}=test"
+                    "{name:fun.so}=test1,{name:ex}=test",
                 ),
                 cwd=tmpdir,
             ).decode(sys.stdout.encoding)

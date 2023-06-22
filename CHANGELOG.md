@@ -9,6 +9,7 @@
   * Binary printer methods now operate on modules, rather than the entire IR
   * `--shared` option now takes an argument: either `yes`, `no`, or `auto` (`auto` uses aux_data `binaryType`)
   * Pass `-init` and `-fini` to `ld` based on `elfDynamicInit` and `elfDynamicFini` auxdata.
+  * Added patterns for selecting and printing modules by names
 
 # 1.9.0
   * Added a Python wheel to make gtirb-pprinter pip-installable.
