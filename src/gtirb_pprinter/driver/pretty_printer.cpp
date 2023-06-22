@@ -473,7 +473,7 @@ int main(int argc, char** argv) {
     // Apply any needed fixups
     applyFixups(ctx, M, pp);
     // Write ASM to a file.
-    const auto asmPath = gtirb_pprint::substitueOutputFileName(asmSubs,M.getName(),idx);
+    const auto asmPath = gtirb_pprint::getOutputFileName(asmSubs,M.getName());
     if (asmPath){
       if (!asmPath->has_filename()) {
         LOG_ERROR << "The given path \"" << *asmPath << "\" has no filename.\n";
@@ -493,7 +493,7 @@ int main(int argc, char** argv) {
       }
     }
 
-    const auto binaryPath = gtirb_pprint::substitueOutputFileName(binarySubs,M.getName(),idx);
+    const auto binaryPath = gtirb_pprint::getOutputFileName(binarySubs,M.getName());
     if (binaryPath) {
       if (!binaryPath->has_filename()) {
         LOG_ERROR << "The given path \"" << *binaryPath << "\" has no filename.\n";

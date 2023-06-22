@@ -16,13 +16,12 @@ namespace gtirb_pprint {
             Stem,
             Extension,
             StemExtension,
-            Number
         };
         static const std::regex FieldRegex;
         MatchKind Kind;
         std::string Pattern;
         Matcher(const std::string& Field);
-        bool matches(const std::string& Name, ulong index) const;
+        bool matches(const std::string& Name) const;
     };
 
 
@@ -35,11 +34,11 @@ namespace gtirb_pprint {
 
 
     typedef std::pair<Matcher, PathTemplate> Substitution;
-    std::vector<Substitution> parseInput(const std::string& input);
+    std::vector<Substitution> parseInput(const std::string& Input);
     
 
-    std::optional<fs::path> substitueOutputFileName(const std::vector<Substitution>& subs, 
-        const std::string& moduleName, int index);
+    std::optional<fs::path> getOutputFileName(const std::vector<Substitution>& Subs, 
+        const std::string& ModuleName);
 }
 
 #endif

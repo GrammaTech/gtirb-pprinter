@@ -9,8 +9,8 @@ namespace gtirb_pprint {
                       "|(stem|s)" // stem (4)
                       "|(ext|e))" // extension (5)
                     "(?::(.+))?" // optional wildcard expression (6)
-                    R"(|(?:#(\d+)))\}$))" // module number (7)
-                R"(|(?:\{([^=,{}]+)\}$))" // untagged wildcard expression (8)
+                    ")\\}$)"
+                R"(|(?:\{([^=,{}]+)\}$))" // untagged wildcard expression (7)
     };
 
     const std::regex PathTemplate::Components{
@@ -37,10 +37,10 @@ namespace gtirb_pprint {
         return Subs;
     }
     
-    std::optional<fs::path> substitueOutputFileName(const std::vector<Substitution>& Subs, 
-        const std::string& ModuleName, int I){
+    std::optional<fs::path> getOutputFileName(const std::vector<Substitution>& Subs, 
+        const std::string& ModuleName){
         for (const auto & [Match, PT]: Subs){
-            if (Match.matches(ModuleName, I)){
+            if (Match.matches(ModuleName)){
                 return PT.makePath(ModuleName);
             }
         }
@@ -59,7 +59,7 @@ namespace gtirb_pprint {
             if (M[1].matched || M[2].matched){
                 Kind = MatchKind::StemExtension;
                 // {stem}.{extension}
-            } else if (M[3].matched || M[8].matched){
+            } else if (M[3].matched || M[7].matched){
                 // name
                 Kind = MatchKind::Name;
             } else if (M[4].matched){
@@ -67,8 +67,6 @@ namespace gtirb_pprint {
                 Kind = MatchKind::Stem;
             } else if (M[5].matched){
                 Kind = MatchKind::Extension;
-            } else if (M[7].matched){
-                Kind = MatchKind::Number;
             }
             // pattern
             if (M[1].matched){
@@ -78,9 +76,7 @@ namespace gtirb_pprint {
                     Pattern = WildcardStrToRegex(M[6].str());
                 }
             } else if (M[7].matched){
-                Pattern = M[7].str();
-            } else if (M[8].matched){
-                Pattern = WildcardStrToRegex(M[8].str());
+                Pattern = WildcardStrToRegex(M[7].str());
             }
         } else if (Field.length() > 0) {
             Pattern =std::regex_replace(
@@ -99,13 +95,11 @@ namespace gtirb_pprint {
         return ModNameComponents;
     }
 
-    bool Matcher::matches(const std::string& Name, ulong Index) const{
+    bool Matcher::matches(const std::string& Name) const{
         auto Components = parseName(Name);
         auto Stem = Components[1].str();
         auto Extension = Components[2].str();
         switch (Kind){
-            case MatchKind::Number:
-                return std::regex_match(std::to_string(Index),std::regex(Pattern));
             case MatchKind::Stem:
                 return std::regex_match(Stem,std::regex(Pattern));
             case MatchKind::Extension:

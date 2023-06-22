@@ -44,7 +44,6 @@ TEST(Unit_Parser,matchKinds){
         {"{ext}", MatchKind::Extension},
         {"{ext:so*}", MatchKind::Extension},
         {"{e:so*}", MatchKind::Extension},
-        {"{#0}", MatchKind::Number},
         {"{stem:libc}.{ext:so*}", MatchKind::StemExtension}
     };
     for (auto& [input, kind] : cases){
@@ -62,7 +61,6 @@ TEST(Unit_Parser,matchPatterns){
         {"{name:*.so}", "(.*)\\.so"},
         {"{n:*}", "(.*)"},
         {"{*.so.*}", "(.*)\\.so\\.(.*)"},
-        {"{#0}", "0"},
         {"{stem:libc}.{ext:so*}", "libc\\.so(.*)"},
     };
     for (auto& [input, pattern] : cases){
@@ -81,13 +79,11 @@ TEST(Unit_Parser, matchCases){
         {"{ext:so*}", "libc.so.0",0},
         {"{s:*}.{e:so*}","libc.so.0",0},
         {"libc.so", "libc.so",0},
-        {"{#0}", "libc.so.0",0},
-        {"{#2}", "libc.so.0",2},
     };
     for (auto& [input, name, index]: cases){
         Matcher M(input);
-        EXPECT_TRUE(M.matches(name,index));
-        if (!M.matches(name,index)){
+        EXPECT_TRUE(M.matches(name));
+        if (!M.matches(name)){
             std::cerr << "Pattern " <<M.Pattern<<" doesn't match " << name <<"@"<<index<<"\n";
         }
     }
