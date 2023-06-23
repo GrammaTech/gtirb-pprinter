@@ -55,19 +55,6 @@ static bool setStdStreamToBinary(FILE* stream) {
   return true;
 }
 
-// static fs::path getOutputFileName(const fs::path& InitialPath, int Index) {
-//   if (Index == 0)
-//     return InitialPath;
-
-//   // Add the number to the end of the stem of the filename.
-//   std::string Filename = InitialPath.stem().generic_string();
-//   Filename.append(std::to_string(Index));
-//   Filename.append(InitialPath.extension().generic_string());
-//   fs::path FinalPath = InitialPath.parent_path();
-//   FinalPath /= Filename;
-//   return FinalPath;
-// }
-
 static std::unique_ptr<gtirb_bprint::BinaryPrinter>
 getBinaryPrinter(const std::string& format,
                  const gtirb_pprint::PrettyPrinter& pp,

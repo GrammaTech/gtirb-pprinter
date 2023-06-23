@@ -64,18 +64,17 @@ TEST(Unit_Parser, matchPatterns) {
 }
 
 TEST(Unit_Parser, matchCases) {
-  std::vector<std::tuple<std::string, std::string, ulong>> cases{
-      {"{stem:*}.{ext:so*}", "libc.so.0", 0},
-      {"{ext:so*}", "libc.so.0", 0},
-      {"{s:*}.{e:so*}", "libc.so.0", 0},
-      {"libc.so", "libc.so", 0},
+  std::vector<std::tuple<std::string, std::string>> cases{
+      {"{stem:*}.{ext:so*}", "libc.so.0"},
+      {"{ext:so*}", "libc.so.0"},
+      {"{s:*}.{e:so*}", "libc.so.0"},
+      {"libc.so", "libc.so"},
   };
-  for (auto& [input, name, index] : cases) {
+  for (auto& [input, name] : cases) {
     Matcher M(input);
     EXPECT_TRUE(M.matches(name));
     if (!M.matches(name)) {
-      std::cerr << "Pattern " << M.Pattern << " doesn't match " << name << "@"
-                << index << "\n";
+      std::cerr << "Pattern " << M.Pattern << " doesn't match " << name << "\n";
     }
   }
 }
