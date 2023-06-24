@@ -432,7 +432,6 @@ class ElfBinaryPrinterTests(unittest.TestCase):
 
         # Build binary
         with tempfile.TemporaryDirectory() as testdir:
-            testdir = "/ddisasm/tmp/ddisasm/gtirb-pprinter/build/tmp2"
             gtirb_path = os.path.join(testdir, "test.gtirb")
             ir.save_protobuf(gtirb_path)
 
