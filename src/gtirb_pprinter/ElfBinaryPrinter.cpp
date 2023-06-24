@@ -521,6 +521,89 @@ static bool allGlobalSymsExported(gtirb::Context& Ctx, gtirb::IR& Ir) {
   return true;
 }
 
+// Return true if the IR includes any modules that are definitely an executable.
+static bool definitelyEXE(gtirb::IR& ir) {
+  // It is definitely an executable if the file type is "EXEC".
+  bool ExecType =
+      std::count_if(
+          ir.modules_begin(), ir.modules_end(), [](gtirb::Module& M) -> bool {
+            for (const auto& BinTypeStr : aux_data::getBinaryType(M)) {
+              if (BinTypeStr == "EXEC") {
+                return true;
+              }
+            }
+            return false;
+          }) != 0;
+  if (ExecType) {
+    return true;
+  }
+
+  // Flags used by Solaris.
+  // It must be an EXE if DF_1_PIE (0x800000) bit is set in FLAGS_1.
+  bool DF_1_PIE =
+      std::count_if(
+          ir.modules_begin(), ir.modules_end(), [](gtirb::Module& M) -> bool {
+            std::set<uint64_t> RELA = aux_data::getDynamicEntry(M, "FLAGS_1");
+            return !RELA.empty() && ((*RELA.begin() & 0x8000000) != 0);
+          }) != 0;
+  if (DF_1_PIE) {
+    return true;
+  }
+
+  // Executables can be distinguished by the existence of `.interp`
+  // section, and `INTERP` entry in the program header.
+  bool InterpSectExists = std::count_if(ir.sections_begin(), ir.sections_end(),
+                                        [](gtirb::Section& S) -> bool {
+                                          return S.getName() == ".interp";
+                                        }) != 0;
+  if (InterpSectExists) {
+    return true;
+  }
+  return false;
+}
+
+// Return true if IR includes any modules that should not be an executable.
+static bool definitelyNotEXE(gtirb::IR& ir) {
+  // Executables have main.
+  bool MainExists = std::count_if(ir.modules().begin(), ir.modules().end(),
+                                  [](gtirb::Module& M) -> bool {
+                                    return !M.findSymbols("main").empty();
+                                  }) != 0;
+  if (!MainExists) {
+    return true;
+  }
+
+  // SONAME is used at compilation time by linker to provide version
+  // backwards-compatibility information, which is used only for shared
+  // objects.
+  bool SonameExists =
+      std::count_if(
+          ir.modules_begin(), ir.modules_end(), [](gtirb::Module& M) -> bool {
+            std::set<uint64_t> Entries = aux_data::getDynamicEntry(M, "SONAME");
+            return !Entries.empty();
+          }) != 0;
+  if (SonameExists) {
+    return true;
+  }
+
+  // Check for dynamic entries mandatory for executables.
+  // If any of the mandatory entries is missing, it is not EXE.
+  bool MissingMandatoryExists =
+      std::count_if(
+          ir.modules_begin(), ir.modules_end(), [](gtirb::Module& M) -> bool {
+            std::set<uint64_t> RELA = aux_data::getDynamicEntry(M, "RELA");
+            std::set<uint64_t> RELASZ = aux_data::getDynamicEntry(M, "RELASZ");
+            std::set<uint64_t> RELAENT =
+                aux_data::getDynamicEntry(M, "RELAENT");
+            return (RELA.empty() || RELASZ.empty() || RELAENT.empty());
+          }) != 0;
+
+  if (MissingMandatoryExists) {
+    return true;
+  }
+  return false;
+}
+
 std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
     std::string outputFilename, const std::vector<TempFile>& asmPaths,
     gtirb::Context& context, gtirb::IR& ir,
@@ -539,16 +622,9 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
   if (Printer.getShared()) {
     args.push_back("-shared");
   }
-  // Add -pie or -no-pie only when section `.interp` exists:
-  // do not add -pie for shared libraries.
-  //
-  // NOTE: Executables can be distinguished by the existence of `.interp`
-  // section, and `INTERP` entry in the program header.
-  bool InterpSectExists = std::count_if(ir.sections_begin(), ir.sections_end(),
-                                        [](gtirb::Section& S) -> bool {
-                                          return S.getName() == ".interp";
-                                        }) != 0;
-  if (InterpSectExists) {
+  // Add -pie or -no-pie only when the binary is an executable.
+  // Do not add -pie for shared libraries.
+  if (definitelyEXE(ir) && !definitelyNotEXE(ir)) {
     for (gtirb::Module& M : ir.modules()) {
       // if DYN, pie. if EXEC, no-pie. if both, pie overrides no-pie. If none,
       // do not specify either argument.
@@ -579,7 +655,9 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
         break;
       }
     }
+  }
 
+  if (!Printer.getShared()) {
     // append -Wl,--export-dynamic if needed; can occur for both DYN and EXEC.
     // TODO: if some symbols are exported, but not all, build a dynamic list
     // file and pass with `--dynamic-list`.

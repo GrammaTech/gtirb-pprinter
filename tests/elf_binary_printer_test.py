@@ -347,3 +347,128 @@ class ElfBinaryPrinterTests(unittest.TestCase):
         for subtest in subtests:
             with self.subTest(subtest=subtest):
                 self.subtest_dynamic_entries(*subtest)
+
+    def subtest_pie_option(self, mode: str, pie: bool):
+        """
+        Test that shared/pie options are automatically set up right.
+        """
+        # Build a GTIRB module with DT_INIT/DT_FINI entries.
+        (ir, module) = gth.create_test_module(
+            gtirb.Module.FileFormat.ELF,
+            gtirb.Module.ISA.X64,
+        )
+
+        # Build code blocks
+        section_flags = {
+            gtirb.Section.Flag.Readable,
+            gtirb.Section.Flag.Executable,
+            gtirb.Section.Flag.Loaded,
+            gtirb.Section.Flag.Initialized,
+        }
+
+        #    48 31 ff                xor    %rdi,%rdi
+        #    0f 05                   syscall
+        code_bytes = b"\x48\x31\xff\x0f\x05"
+        code_blocks = {}
+        addr = 0x10000
+        section_name = ".text"
+        (section, section_bi) = gth.add_section(
+            module, section_name, address=addr, flags=section_flags
+        )
+        code_blocks[section_name] = gth.add_code_block(
+            section_bi, code_bytes, {}
+        )
+
+        if mode == "NO_DYN":
+            module.aux_data["binaryType"].data.append("EXEC")
+        else:
+            module.aux_data["binaryType"].data.append("DYN")
+
+        if mode == "NO_MAIN":
+            func_name = "foo"
+        else:
+            func_name = "main"
+
+        # Build symbols
+        symbol_main = gth.add_symbol(module, func_name, code_blocks[".text"])
+        module.aux_data["elfSymbolInfo"].data[symbol_main.uuid] = (
+            0,
+            "FUNC",
+            "GLOBAL",
+            "DEFAULT",
+            0,
+        )
+
+        module.aux_data["dynamicEntries"].data.update(
+            {
+                ("RELA", 0),
+                ("RELASZ", 0),
+            }
+        )
+
+        if mode != "MISSING_MANDATORY":
+            module.aux_data["dynamicEntries"].data.add(
+                ("RELAENT", 0),
+            )
+
+        if mode == "FLAGS_1":
+            # PIE: Add FLAGS_1 entry
+            module.aux_data["dynamicEntries"].data.add(("FLAGS_1", 0x8000001))
+
+        if mode == "INTERP":
+            # PIE: Add .interp section
+            addr = 0x10020
+            section_name = ".interp"
+            (section, section_bi) = gth.add_section(
+                module, section_name, address=addr, flags=section_flags
+            )
+            code_blocks[section_name] = gth.add_code_block(
+                section_bi, code_bytes, {}
+            )
+
+        if mode == "SONAME":
+            # SO: Add SONAME entry
+            module.aux_data["dynamicEntries"].data.add(("SONAME", 0))
+
+        # Build binary
+        with tempfile.TemporaryDirectory() as testdir:
+            testdir = "/ddisasm/tmp/ddisasm/gtirb-pprinter/build/tmp2"
+            gtirb_path = os.path.join(testdir, "test.gtirb")
+            ir.save_protobuf(gtirb_path)
+
+            output_path = os.path.join(testdir, "test")
+            output = subprocess.check_output(
+                [
+                    pprinter_binary(),
+                    "--ir",
+                    str(gtirb_path),
+                    "--binary",
+                    str(output_path),
+                    "--policy",
+                    "complete",
+                ]
+            ).decode(sys.stdout.encoding)
+            if pie:
+                self.assertIn("-pie", output)
+            else:
+                self.assertNotIn("-pie", output)
+            if mode == "NO_DYN":
+                self.assertNotIn("-shared", output)
+            self.assertTrue(os.path.exists(output_path))
+
+    def test_pie_option(self):
+        """
+        Set up subtests for shared/pie option
+        """
+        subtests = (
+            ("FLAGS_1", True),
+            ("INTERP", True),
+            ("SONAME", False),
+            ("MISSING_MANDATORY", False),
+            ("NO_MAIN", False),
+            ("NO_DYN", True),
+        )
+
+        for subtest in subtests:
+            with self.subTest(subtest=subtest):
+                self.subtest_pie_option(*subtest)

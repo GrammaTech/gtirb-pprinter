@@ -127,8 +127,10 @@ int main(int argc, char** argv) {
       "The default set of objects to skip when printing assembly. To modify "
       "this set further, use the --keep and --skip options. "
       "Valid policies are 'static', 'dynamic', and 'complete'");
-  desc.add_options()("shared,S", "Output shared libraries, or assembly "
-                                 "that can be compiled to shared libraries.");
+  desc.add_options()(
+      "shared,S", po::value<std::string>(),
+      "Output shared libraries, or assembly "
+      "that can be compiled to shared libraries: yes, no, or auto");
   desc.add_options()("object,O", "Output  object files, but do not link them");
   desc.add_options()("keep-function",
                      po::value<std::vector<std::string>>()->multitoken(),
@@ -369,11 +371,15 @@ int main(int argc, char** argv) {
     }
   }
 
-  if (vm.count("shared") != 0) {
+  const std::string& shared =
+      vm.count("shared") ? vm["shared"].as<std::string>() : "auto";
+  if (shared == "yes") {
     pp.setShared(true);
-  } else {
-    // Although -S is not specified,
-    // if there's at least one DYN module in the ir, set shared.
+  } else if (shared == "no") {
+    pp.setShared(false);
+  } else if (shared == "auto") {
+    pp.setShared(false);
+    // If there's at least one DYN module in the IR, set shared.
     for (gtirb::Module& M : ir->modules()) {
       for (const auto& BinTypeStr : aux_data::getBinaryType(M)) {
         if (BinTypeStr == "DYN") {
@@ -382,6 +388,11 @@ int main(int argc, char** argv) {
         }
       }
     }
+  } else {
+    LOG_ERROR << "Invalid option for 'shared': " << shared
+              << " (should be either 'yes', 'no', or 'auto')"
+              << "\n";
+    return EXIT_FAILURE;
   }
 
   bool EnableSymbolVersions = vm["symbol-versions"].as<bool>();
