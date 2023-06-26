@@ -711,77 +711,13 @@ int ElfBinaryPrinter::assemble(const std::string& outputFilename,
   return -1;
 }
 
-enum DynamicTag {
-  DT_INIT = 1,
-  DT_FINI = 2,
-};
-
-/**
-Build ld arguments to reproduce DT_INIT or DT_FINI entries.
-
-Returns std::nullopt if no argument can be created.
-
-Emits warnings if it cannot build ld arguments for the tag, because many
-binaries will still work without their DT_INIT/DT_FINI entries.
-*/
-static std::optional<std::string> getDynamicTagArg(const gtirb::Module& Module,
-                                                   DynamicTag Tag) {
-  std::string Root;
-  std::string TagName;
-  switch (Tag) {
-  case DynamicTag::DT_INIT:
-    Root = "init";
-    TagName = "INIT";
-    break;
-  case DynamicTag::DT_FINI:
-    Root = "fini";
-    TagName = "FINI";
-    break;
-  default:
-    assert(!"Invalid type for getDynamicTagArg");
-  }
-
-  auto Addresses = aux_data::getDynamicEntry(Module, TagName);
-  if (Addresses.empty()) {
-    return std::nullopt;
-  }
-
-  uint64_t FirstAddr = Addresses.extract(Addresses.begin()).value();
-  if (!Addresses.empty()) {
-    for (uint64_t Addr : Addresses) {
-      // ld will silently ignore extra -init arguments, so we cannot create
-      // the requested binary.
-      LOG_WARNING << "ignoring additional DT_" << TagName << " entry: " << Addr
-                  << "\n";
-    }
-  }
-
-  auto It = Module.findSymbols(gtirb::Addr(FirstAddr));
-  std::string DefaultName = "_" + Root;
-  if (It.empty()) {
-    // no symbol at the address?
-    LOG_WARNING << "ignoring DT_" << TagName << " entry for " << FirstAddr
-                << ": no symbol\n";
-    return std::nullopt;
-  } else if (std::any_of(It.begin(), It.end(), [&](const gtirb::Symbol& Sym) {
-               return Sym.getName() == DefaultName;
-             })) {
-    // if the default name exists, there is no need to specify the argument.
-    return std::nullopt;
-  } else {
-    // default does not exist - we must provide a linker argument.
-    const gtirb::Symbol* FirstSymbol = &*It.begin();
-    return "-Wl,-" + Root + "=" + FirstSymbol->getName();
-  }
-}
-
 int ElfBinaryPrinter::link(const std::string& outputFilename,
                            gtirb::Context& ctx, gtirb::Module& module) const {
   if (debug)
     std::cout << "Generating binary file" << std::endl;
   TempFile tempFile;
   if (!prepareSource(ctx, module, tempFile)) {
-    LOG_ERROR << "Could not write assembly into a temporary file.\n";
+    std::cerr << "ERROR: Could not write assembly into a temporary file.\n";
     return -1;
   }
 
@@ -794,13 +730,14 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
     // Create the temporary directory for storing the synthetic libraries.
     dummySoDir.emplace();
     if (!dummySoDir->created()) {
-      LOG_ERROR << "Failed to create temp dir for synthetic .so files. Errno: "
-                << dummySoDir->errno_code() << "\n";
+      std::cerr
+          << "ERROR: Failed to create temp dir for synthetic .so files. Errno: "
+          << dummySoDir->errno_code() << "\n";
       return -1;
     }
 
     if (!prepareDummySOLibs(ctx, module, dummySoDir->dirName(), libArgs)) {
-      LOG_ERROR << "Could not create dummy so files for linking.\n";
+      std::cerr << "ERROR: Could not create dummy so files for linking.\n";
       return -1;
     }
     // add rpaths from original binary(ies)
@@ -828,25 +765,15 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
   VersionScript.close();
   std::vector<TempFile> Files;
   Files.emplace_back(std::move(tempFile));
-
-  // Add -Wl,-init= and -Wl,-fini= arguments if necessary.
-  // This recreates DT_INIT and DT_FINI dynamic entries.
-  if (auto Arg = getDynamicTagArg(module, DynamicTag::DT_INIT)) {
-    libArgs.push_back(*Arg);
-  }
-  if (auto Arg = getDynamicTagArg(module, DynamicTag::DT_FINI)) {
-    libArgs.push_back(*Arg);
-  }
-
   if (std::optional<int> ret =
           execute(compiler, buildCompilerArgs(outputFilename, Files, ctx,
                                               *module.getIR(), libArgs))) {
     if (*ret)
-      LOG_ERROR << "assembler returned: " << *ret << "\n";
+      std::cerr << "ERROR: assembler returned: " << *ret << "\n";
     return *ret;
   }
 
-  LOG_ERROR << "could not find the assembler '" << compiler
+  std::cerr << "ERROR: could not find the assembler '" << compiler
             << "' on the PATH.\n";
   return -1;
 }
