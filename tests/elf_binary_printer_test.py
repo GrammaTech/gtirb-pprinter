@@ -310,13 +310,8 @@ class ElfBinaryPrinterTests(unittest.TestCase):
         else:
             module.aux_data["binaryType"].data.append("DYN")
 
-        if mode == "NO_MAIN":
-            func_name = "foo"
-        else:
-            func_name = "main"
-
         # Build symbols
-        symbol_main = gth.add_symbol(module, func_name, code_blocks[".text"])
+        symbol_main = gth.add_symbol(module, "foo", code_blocks[".text"])
         module.aux_data["elfSymbolInfo"].data[symbol_main.uuid] = (
             0,
             "FUNC",
@@ -341,7 +336,7 @@ class ElfBinaryPrinterTests(unittest.TestCase):
             # PIE: Add FLAGS_1 entry
             module.aux_data["dynamicEntries"].data.add(("FLAGS_1", 0x8000001))
 
-        if mode == "INTERP":
+        if mode != "NO_INTERP":
             # PIE: Add .interp section
             addr = 0x10020
             section_name = ".interp"
@@ -387,10 +382,9 @@ class ElfBinaryPrinterTests(unittest.TestCase):
         """
         subtests = (
             ("FLAGS_1", True),
-            ("INTERP", True),
+            ("NO_INTERP", False),
             ("SONAME", False),
             ("MISSING_MANDATORY", False),
-            ("NO_MAIN", False),
             ("NO_DYN", True),
         )
 

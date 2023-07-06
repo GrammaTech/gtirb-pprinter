@@ -170,6 +170,12 @@ struct DEBLOAT_PRETTYPRINTER_EXPORT_API PrintingPolicy {
 };
 using NamedPolicyMap = std::unordered_map<std::string, PrintingPolicy>;
 
+enum DynMode {
+  DYN_MODE_SHARED,
+  DYN_MODE_PIE,
+  DYN_MODE_NONE,
+};
+
 /// The primary interface for pretty-printing GTIRB objects. The typical flow
 /// is to create a PrettyPrinter, configure it (e.g., set the output syntax,
 /// enable/disable debugging messages, etc.), then print one or more IR objects.
@@ -204,12 +210,6 @@ public:
   ///
   /// \param ModeName The mode to use
   bool setListingMode(const std::string& ModeName);
-
-  /// Set whether or not we print assembly for shared libraries.
-  void setShared(bool Value) { Shared = Value; }
-
-  /// Indicates whether or not we print assembly for shared libraries.
-  bool getShared() const { return Shared; }
 
   /// Set whether or not symbol versions should be ignored (only for ELF).
   void setIgnoreSymbolVersions(bool Value) { IgnoreSymbolVersions = Value; }
@@ -254,14 +254,20 @@ public:
   bool namedPolicyExists(const std::string& Name) const;
   const PrintingPolicy& getPolicy(const gtirb::Module& Module) const;
 
+  /// Update DynModeMap for the given module
+  void updateDynMode(const gtirb::Module& Module,
+                     const std::string& SharedOption);
+  /// Lookup DynModeMap for the given module
+  DynMode getDynMode(const gtirb::Module& Module) const;
+
 private:
   std::string m_format;
   std::string m_isa;
   std::string m_syntax;
   ListingMode LstMode = ListingAssembler;
+  std::map<const gtirb::Module*, DynMode> DynModeMap;
   PolicyOptions FunctionPolicy, SymbolPolicy, SectionPolicy, ArraySectionPolicy;
   std::string PolicyName = "default";
-  bool Shared = false;
   bool IgnoreSymbolVersions = false;
 
   PrettyPrinterFactory& getFactory(const gtirb::Module& Module) const;

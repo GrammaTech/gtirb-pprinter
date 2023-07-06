@@ -371,25 +371,11 @@ int main(int argc, char** argv) {
     }
   }
 
-  const std::string& shared =
+  const std::string& SharedOption =
       vm.count("shared") ? vm["shared"].as<std::string>() : "auto";
-  if (shared == "yes") {
-    pp.setShared(true);
-  } else if (shared == "no") {
-    pp.setShared(false);
-  } else if (shared == "auto") {
-    pp.setShared(false);
-    // If there's at least one DYN module in the IR, set shared.
-    for (gtirb::Module& M : ir->modules()) {
-      for (const auto& BinTypeStr : aux_data::getBinaryType(M)) {
-        if (BinTypeStr == "DYN") {
-          pp.setShared(true);
-          break;
-        }
-      }
-    }
-  } else {
-    LOG_ERROR << "Invalid option for 'shared': " << shared
+  if (!(SharedOption == "yes" || SharedOption == "no" ||
+        SharedOption == "auto")) {
+    LOG_ERROR << "Invalid option for 'shared': " << SharedOption
               << " (should be either 'yes', 'no', or 'auto')"
               << "\n";
     return EXIT_FAILURE;
@@ -467,6 +453,8 @@ int main(int argc, char** argv) {
         gtirb_layout::fixIntegralSymbols(ctx, M);
       }
     }
+    // Update DynMode (-shared or -pie or none) for the module
+    pp.updateDynMode(M, SharedOption);
     // Apply any needed fixups
     applyFixups(ctx, M, pp);
     // Write ASM to a file.

@@ -28,7 +28,7 @@ void applyFixups(gtirb::Context& Context, gtirb::Module& Module,
   }
   if (format == "elf") {
     fixupELFSymbols(Module);
-    if (Printer.getShared()) {
+    if (Printer.getDynMode(Module) == DYN_MODE_SHARED) {
       fixupSharedObject(Context, Module);
     }
   }
