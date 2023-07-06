@@ -16,6 +16,7 @@
 
 #include "AuxDataSchema.hpp"
 #include "AuxDataUtils.hpp"
+#include "ElfPrettyPrinter.hpp"
 #include "ElfVersionScriptPrinter.hpp"
 #include "FileUtils.hpp"
 #include "driver/Logger.h"
@@ -275,12 +276,17 @@ buildDummySOSymbolGroups(const gtirb::Context& Context,
 
   // All other imported symbols belong in a group each by themselves.
   for (const auto& Sym : Module.symbols()) {
-    if (!Sym.getAddress() &&
-        (!Sym.hasReferent() || Sym.getReferent<gtirb::ProxyBlock>()) &&
-        !isBlackListed(Sym.getName())) {
-
+    if (!isBlackListed(Sym.getName())) {
       if (GroupedSymbols.find(&Sym) == GroupedSymbols.end()) {
-        SymbolGroups.push_back({&Sym});
+        if (Sym.getAddress()) {
+          // There are cases where a symbol is attached to an address in .plt.
+          auto Section = gtirb_pprint::IsGlobalPLTSym(Sym);
+          if (Section) {
+            SymbolGroups.push_back({&Sym});
+          }
+        } else if (!Sym.hasReferent() || Sym.getReferent<gtirb::ProxyBlock>()) {
+          SymbolGroups.push_back({&Sym});
+        }
       }
     }
   }
