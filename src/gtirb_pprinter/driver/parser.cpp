@@ -1,28 +1,30 @@
 #include "parser.hpp"
+using namespace std::literals;
 
 namespace gtirb_multimodule {
 
 std::vector<Substitution> parseInput(const std::string& Input) {
-  std::regex KvRegex{
-      "(?:([^,=]+)=)?([^,=]+)" // (key=)value
-  };
-  std::sregex_iterator MatchEnd;
-  std::sregex_iterator MatchBegin(Input.begin(), Input.end(), KvRegex);
   std::vector<Substitution> Subs;
   int NDefaults = 0;
-  for (auto MIter = MatchBegin; MIter != MatchEnd; MIter++) {
-    auto Prefix = MIter->prefix().str();
-    if (MIter != MatchBegin && !std::regex_match(Prefix.begin(), Prefix.end(),
-                                                 std::regex("\\w*,\\w*"))) {
-      throw std::runtime_error(
-          "input must be either paths or key-value pairs, separated by commas");
+  bool Escaped = false;
+  auto Start = Input.begin();
+  for (auto In = Input.begin(); In != Input.end(); In++) {
+    if (Escaped) {
+      continue;
     }
-    Subs.emplace_back((*MIter)[0].str());
-    if (Subs.back().IsDefault) {
-      NDefaults++;
-      if (NDefaults > 1) {
-        throw std::runtime_error("Only one default pattern allowed");
+    if (*In == '\\') {
+      Escaped = true;
+      continue;
+    }
+    if (*In == ',') {
+      Subs.emplace_back(Start, In);
+      if (Subs.back().IsDefault) {
+        NDefaults++;
+        if (NDefaults > 1) {
+          throw std::runtime_error("Only one default pattern allowed");
+        }
       }
+      Start = In + 1;
     }
   }
   return Subs;
@@ -79,7 +81,7 @@ Matcher::Matcher(std::string::const_iterator FieldBegin,
         if (std::regex_match(i, i + 1, WordChars)) {
           GroupNames.back().push_back(*i);
         } else {
-          throw std::runtime_error("Invalid character in group name: " + *i);
+          throw std::runtime_error("Invalid character in group name: "s + *i);
         }
       }
     } else if (CurrentState == State::Escape) {
@@ -91,7 +93,8 @@ Matcher::Matcher(std::string::const_iterator FieldBegin,
         }
       }
       if (CurrentState != State::Glob) {
-        throw std::runtime_error("Invalid character in escape sequence: " + *i);
+        throw std::runtime_error("Invalid character in escape sequence: "s +
+                                 *i);
       }
     } else { // CurrentState == State::Glob
       switch (*i) {
@@ -100,7 +103,7 @@ Matcher::Matcher(std::string::const_iterator FieldBegin,
         CurrentState = State::Name;
         GroupNames.push_back("");
         if (OpenGroup) {
-          throw std::runtime_error("Invalid character in pattern: " + *i);
+          throw std::runtime_error("Invalid character in pattern: "s + *i);
         }
         OpenGroup = true;
         Pattern.append("(");
@@ -111,7 +114,7 @@ Matcher::Matcher(std::string::const_iterator FieldBegin,
           OpenGroup = false;
           break;
         } else {
-          throw std::runtime_error("Invalid character in pattern: " + *i);
+          throw std::runtime_error("Invalid character in pattern: "s + *i);
         }
       case '*':
         Pattern.append(".*");
@@ -187,6 +190,7 @@ Substitution::Substitution(const std::string& Spec)
 std::string
 Substitution::makeReplacementPattern(std::string::const_iterator PBegin,
                                      std::string::const_iterator PEnd) {
+  auto SpecialChars = "{}\\=,"s;
   State CurrentState = State::Name;
   std::string Pattern;
   std::string GroupName;
@@ -200,33 +204,43 @@ Substitution::makeReplacementPattern(std::string::const_iterator PBegin,
       case '\\':
         CurrentState = State::Escape;
         continue;
+      case '$':
+        Pattern.append("$$");
+        continue;
       default:
         Pattern.push_back(*I);
+        continue;
       }
     } else if (CurrentState == State::Glob) {
       if (*I == '}') {
         auto GroupIndexesIter = Match.GroupIndexes.find(GroupName);
         if (GroupIndexesIter == Match.GroupIndexes.end()) {
-          throw std::runtime_error("Undefined group: " + GroupName);
+          throw std::runtime_error("Undefined group: "s + GroupName);
         }
+        auto GI = GroupIndexesIter->second;
         Pattern.push_back('$');
-        Pattern.append(std::to_string(GroupIndexesIter->second));
+        if (GI == 0) {
+          Pattern.push_back('&');
+        } else {
+          Pattern.append(std::to_string(GroupIndexesIter->second));
+        }
         CurrentState = State::Name;
       } else {
         GroupName.push_back(*I);
       }
     } else if (CurrentState == State::Escape) {
-      for (auto c : std::string("[].+|<>()")) {
-        if (*I == c) {
-          Pattern.append("\\" + *I);
-          break;
+      for (auto& C : SpecialChars) {
+        if (*I == C) {
+          Pattern.push_back(C);
+          CurrentState = State::Name;
+          continue;
         }
       }
-      if (*I == '{' || *I == '}') {
-        Pattern.push_back(*I);
-      } else {
-        throw std::runtime_error("Unknown escape character: " + *I);
-      };
+      Pattern.push_back('\\');
+      if (*I == '$') {
+        Pattern.push_back('$');
+      }
+      Pattern.push_back(*I);
       CurrentState = State::Name;
     }
   }

@@ -55,8 +55,8 @@ TEST(Unit_Parser, SubstitutionPatterns) {
   std::vector<std::pair<std::string, std::string>> cases{
       {"hello.c", "hello.c"},
       {"*=hello.c", "hello.c"},
-      {"{name}", "$0"},
-      {"*={name}", "$0"},
+      {"{name}", "$&"},
+      {"*={name}", "$&"},
       {"{stem:lib*}.{ext:so*}=libs/{stem}.{ext}", "libs/$1.$2"}};
   for (auto& [input, expected] : cases) {
     Substitution sub(input);
