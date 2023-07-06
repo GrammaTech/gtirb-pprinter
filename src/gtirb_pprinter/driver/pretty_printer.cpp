@@ -74,7 +74,7 @@ getBinaryPrinter(const std::string& format,
 int main(int argc, char** argv) {
   gtirb_layout::registerAuxDataTypes();
   gtirb_pprint::registerAuxDataTypes();
-  gtirb_pprint::registerPrettyPrinters();
+  gtirb_pprint::registerPrettyPrinters(); 
 
   po::options_description desc("Allowed options");
   desc.add_options()("help,h", "Produce help message.");
@@ -405,9 +405,7 @@ int main(int argc, char** argv) {
     gtirb_pprint::printVersionScript(*ir, VersionStream);
   }
 
-  std::vector<
-      std::pair<gtirb_multimodule::Matcher, gtirb_multimodule::PathTemplate>>
-      asmSubs, binarySubs;
+  std::vector<gtirb_multimodule::Substitution> asmSubs, binarySubs;
   if (vm.count("asm")) {
     asmSubs = gtirb_multimodule::parseInput(vm["asm"].as<std::string>());
   }

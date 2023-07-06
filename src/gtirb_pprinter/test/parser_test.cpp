@@ -3,56 +3,15 @@
 #include <iomanip>
 
 using namespace gtirb_multimodule;
-using MatchKind = Matcher::MatchKind;
-
-TEST(Unit_Parser, Filters) {
-  auto r1 = Matcher::FieldRegex;
-  std::vector<std::pair<std::string, bool>> testCases{
-      {"{name}", true},           {"{stem}", true},
-      {"{name:hello}", true},     {"{#0}", true},
-      {"{n:*.so.1}", true},       {"{*}", true},
-      {"{*.so.*}", true},         {"{libc.so.*}", true},
-      {"{stem:*}.{ext:*}", true}, {"{s:hello}.{e:dll*}", true},
-      {"{name", false},           {"libc.so.6", false},
-      {"{s}.{e}.{s}.{e}", false}};
-  for (auto& [arg, result] : testCases) {
-    EXPECT_EQ(std::regex_match(arg, r1), result);
-    if (std::regex_match(arg, r1) != result) {
-      std::cerr << "match(" << arg << ") is not " << std::boolalpha << result
-                << std::noboolalpha << "\n";
-    }
-  }
-}
-
-TEST(Unit_Parser, matchKinds) {
-  std::vector<std::pair<std::string, MatchKind>> cases{
-      {"{name}", MatchKind::Name},
-      {"{name:*.so}", MatchKind::Name},
-      {"{n:*}", MatchKind::Name},
-      {"{*.so.*}", MatchKind::Name},
-      {"{stem}", MatchKind::Stem},
-      {"{stem:foo*}", MatchKind::Stem},
-      {"{s:libc*}", MatchKind::Stem},
-      {"{ext}", MatchKind::Extension},
-      {"{ext:so*}", MatchKind::Extension},
-      {"{e:so*}", MatchKind::Extension},
-      {"{stem:libc}.{ext:so*}", MatchKind::StemExtension}};
-  for (auto& [input, kind] : cases) {
-    Matcher M(input);
-    EXPECT_EQ(M.Kind, kind);
-    if (M.Kind != kind) {
-      std::cerr << "Input " << input << " failed!\n";
-    }
-  }
-}
 
 TEST(Unit_Parser, matchPatterns) {
   std::vector<std::pair<std::string, std::string>> cases{
-      {"{name}", "(.*)"},
-      {"{name:*.so}", "(.*)\\.so"},
+      {"*", ".*"},
+      {"hello", "hello"},
+      {"{name:*.so}", "(.*\\.so)"},
       {"{n:*}", "(.*)"},
-      {"{*.so.*}", "(.*)\\.so\\.(.*)"},
-      {"{stem:libc}.{ext:so*}", "libc\\.so(.*)"},
+      {"{stem:libc}.{ext:so*}", "(libc)\\.(so.*)"},
+      {"{stem:\\{*\\}}.*","(\\{.*\\})\\..*"},
   };
   for (auto& [input, pattern] : cases) {
     Matcher M(input);
@@ -60,13 +19,19 @@ TEST(Unit_Parser, matchPatterns) {
     if (M.Pattern != pattern) {
       std::cerr << "Input " << input << " failed!\n";
     }
+    try{
+      std::regex(M.Pattern);
+    } catch (const std::regex_error& err){
+      std::cerr << "Invalid regex: "<< M.Pattern<<"\n"<<err.what()<<"\n";
+    }
   }
 }
 
 TEST(Unit_Parser, matchCases) {
   std::vector<std::tuple<std::string, std::string>> cases{
+      {"{stem:\\{*\\}}.*","{hello}.world"},
       {"{stem:*}.{ext:so*}", "libc.so.0"},
-      {"{ext:so*}", "libc.so.0"},
+      {"*.{ext:so*}", "libc.so.0"},
       {"{s:*}.{e:so*}", "libc.so.0"},
       {"libc.so", "libc.so"},
   };
@@ -79,17 +44,52 @@ TEST(Unit_Parser, matchCases) {
   }
 }
 
-TEST(Unit_Parser, pathTemplates) {
-  std::vector<std::tuple<std::string, std::string, std::string>> cases{
-      {"{name}.rewritten", "hello", "hello.rewritten"},
-      {"{stem}.rewritten.{ext}", "hello.world", "hello.rewritten.world"},
-      {"libs/{name}", "hello", "libs/hello"},
-      {"    ", "hello", "hello"},
-      {"libs/hello.rewritten", "hello", "libs/hello.rewritten"}};
+TEST(Unit_Parser, matchNames){
+  auto input = "{stem:*}.{ext:so*}";
+  Matcher M(input);
+  ASSERT_EQ(M.GroupIndexes["stem"],1);
+  ASSERT_EQ(M.GroupIndexes["ext"],2); 
+}
 
-  for (auto& [pattern, name, expected] : cases) {
-    PathTemplate tmpl(pattern);
-    auto output = tmpl.makePath(name).generic_string();
-    EXPECT_EQ(output, expected);
+TEST(Unit_Parser, SubstitutionPatterns){
+  std::vector<std::pair<std::string,std::string>> cases {
+   {"hello.c","hello.c"},
+   {"*=hello.c", "hello.c"}, 
+   {"{name}","$0"},
+   {"*={name}","$0"},
+   {"{stem:lib*}.{ext:so*}=libs/{stem}.{ext}", "libs/$1.$2"}
+  };
+  for (auto& [input, expected]: cases){
+    Substitution sub(input);
+    ASSERT_EQ(sub.ReplacementPattern,expected);
   }
+}
+
+TEST(Unit_Parser, Substitutions){
+  std::vector<std::tuple<std::string,std::string,std::string>> cases {
+    {"*.{ext:so*}=example.{ext}", "hello.so","example.so"},
+    {"{s1:*}.{s2:*}.{s3:*}.{s4:*}={s3}/{s2}/{s4}/{s1}","a.b.c.d","c/b/d/a"},
+    {"*={n}", "'try-to-[escape]'", "'try-to-[escape]'"},
+  };
+  for (auto& [pattern, name, result]: cases){
+    ASSERT_EQ(Substitution(pattern).substitute(name), result);
+  }
+}
+
+
+TEST(Unit_Parser,Mistakes){
+  std::vector<std::string> cases {
+     "{s%:*}.so={s%}", // group names are only allowed a-zA-Z0-9_
+     "{g1:{hello}}.*={g1}", // brackets in globs need to be escaped 
+     "{g1:{hell\\0}}*=lib/{g1}", // \0 is not a valid escape
+     "{g1:*.so=hello_{g1}" // unclosed brace
+  };
+  for (auto& s: cases){
+    ASSERT_ANY_THROW(Substitution{s});
+  }
+}
+
+TEST(Unit_Parser, E2E){
+  auto Subs = parseInput("{g1:h*o}*={g1},{n}");
+  ASSERT_ANY_THROW(parseInput("{n},lib/{n}"));
 }

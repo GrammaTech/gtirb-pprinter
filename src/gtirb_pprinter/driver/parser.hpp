@@ -12,7 +12,7 @@ namespace gtirb_multimodule {
 static const std::string_view module_help_message{
     "PRINTING MULTIPLE MODULES\n\n"
     "Filenames are specified as "
-    "MODULE_PATTERN1=FILE_PATTERN1[,MODULE_PATTERN2=FILE_PATTERN2...]."
+    "[MODULE_PATTERN1=]FILE_PATTERN1[,MODULE_PATTERN2=FILE_PATTERN2...]."
     "FILE_PATTERN is the name of a path, with one or more selectors. When "
     "printing each module,"
     "the selector will be replaced by the appropriate portion of the module "
@@ -33,28 +33,32 @@ static const std::string_view module_help_message{
     "{stem:lib*}.ext:{so*}"};
 
 struct Matcher {
-  enum class MatchKind {
-    Literal,
-    Name,
-    Stem,
-    Extension,
-    StemExtension,
-  };
-  static const std::regex FieldRegex;
-  MatchKind Kind;
+  std::map<std::string, size_t> GroupIndexes;
   std::string Pattern;
+
+  Matcher(std::string::const_iterator Begin, std::string::const_iterator End);
   Matcher(const std::string& Field);
   bool matches(const std::string& Name) const;
 };
 
-struct PathTemplate {
-  static const std::regex Components;
-  std::string Spec;
-  PathTemplate(const std::string& S) : Spec(S){};
-  fs::path makePath(const std::string& ModuleName) const;
+enum class State {
+    Name,
+    Glob,
+    Escape,
 };
 
-typedef std::pair<Matcher, PathTemplate> Substitution;
+
+struct Substitution {
+  Matcher Match;
+  Substitution(const std::string& Spec);
+  bool IsDefault;
+  std::string ReplacementPattern;
+  std::string makeReplacementPattern(std::string::const_iterator PBegin,
+    std::string::const_iterator PEnd);
+  std::string makeReplacementPattern(const std::string& P);
+  std::string substitute(const std::string& Name);
+};
+
 std::vector<Substitution> parseInput(const std::string& Input);
 
 std::optional<fs::path> getOutputFileName(const std::vector<Substitution>& Subs,
