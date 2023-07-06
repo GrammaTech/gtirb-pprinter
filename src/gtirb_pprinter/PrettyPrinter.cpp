@@ -1658,6 +1658,7 @@ void PrettyPrinter::updateDynMode(const gtirb::Module& Module,
   std::set<uint64_t> FLAGS_1 = aux_data::getDynamicEntry(Module, "FLAGS_1");
   if (!FLAGS_1.empty() && ((*FLAGS_1.begin() & 0x8000000) != 0)) {
     DynModeMap[&Module] = DYN_MODE_PIE;
+    return;
   }
 
   // Executables should include `.interp` section, and `INTERP` entry
