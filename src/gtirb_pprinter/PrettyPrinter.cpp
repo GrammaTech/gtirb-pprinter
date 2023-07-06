@@ -1613,16 +1613,21 @@ bool PrettyPrinterBase::x86InstHasMoffsetEncoding(const cs_insn& inst) {
 //-------------------------------------------------------
 void PrettyPrinter::updateDynMode(const gtirb::Module& Module,
                                   const std::string& SharedOption) {
-  const auto& BinTypeStr = *aux_data::getBinaryType(Module).begin();
-  if (BinTypeStr == "EXEC") {
-    DynModeMap[&Module] = DYN_MODE_NONE;
-    return;
+  std::optional<std::string> BinTypeStr;
+  const auto& T = aux_data::getBinaryType(Module);
+  if (!T.empty()) {
+    if (std::find(T.begin(), T.end(), "DYN") != T.end()) {
+      BinTypeStr = "DYN";
+    } else if (std::find(T.begin(), T.end(), "EXEC") != T.end()) {
+      BinTypeStr = "EXEC";
+    }
   }
 
   if (SharedOption == "yes") {
     DynModeMap[&Module] = DYN_MODE_SHARED;
+    return;
   } else if (SharedOption == "no") {
-    if (BinTypeStr == "DYN") {
+    if (BinTypeStr && *BinTypeStr == "DYN") {
       DynModeMap[&Module] = DYN_MODE_PIE;
     } else {
       DynModeMap[&Module] = DYN_MODE_NONE;
@@ -1632,6 +1637,12 @@ void PrettyPrinter::updateDynMode(const gtirb::Module& Module,
 
   // -------------------------------------------------------------------
   // SharedOption == "auto"
+  // -------------------------------------------------------------------
+
+  if (!BinTypeStr || (*BinTypeStr == "EXEC")) {
+    DynModeMap[&Module] = DYN_MODE_NONE;
+    return;
+  }
 
   // SONAME is used at compilation time by linker to provide version
   // backwards-compatibility information, which is used only for shared
