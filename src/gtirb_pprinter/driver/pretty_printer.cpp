@@ -74,7 +74,7 @@ getBinaryPrinter(const std::string& format,
 int main(int argc, char** argv) {
   gtirb_layout::registerAuxDataTypes();
   gtirb_pprint::registerAuxDataTypes();
-  gtirb_pprint::registerPrettyPrinters(); 
+  gtirb_pprint::registerPrettyPrinters();
 
   po::options_description desc("Allowed options");
   desc.add_options()("help,h", "Produce help message.");
@@ -407,10 +407,20 @@ int main(int argc, char** argv) {
 
   std::vector<gtirb_multimodule::Substitution> asmSubs, binarySubs;
   if (vm.count("asm")) {
-    asmSubs = gtirb_multimodule::parseInput(vm["asm"].as<std::string>());
+    try {
+      asmSubs = gtirb_multimodule::parseInput(vm["asm"].as<std::string>());
+    } catch (const std::runtime_error& err) {
+      LOG_ERROR << "Invalid argument for --asm: " << err.what() << "\n";
+      return 1;
+    }
   }
   if (vm.count("binary")) {
-    binarySubs = gtirb_multimodule::parseInput(vm["binary"].as<std::string>());
+    try {
+      binarySubs =
+          gtirb_multimodule::parseInput(vm["binary"].as<std::string>());
+    } catch (const std::runtime_error& err) {
+      LOG_ERROR << "Invalid argument for --binary: " << err.what() << "\n";
+    }
   }
 
   std::vector<std::pair<gtirb::Module*, int>> Modules;

@@ -38,15 +38,14 @@ struct Matcher {
 
   Matcher(std::string::const_iterator Begin, std::string::const_iterator End);
   Matcher(const std::string& Field);
-  bool matches(const std::string& Name) const;
+  std::optional<std::smatch> matches(const std::string& Name) const;
 };
 
 enum class State {
-    Name,
-    Glob,
-    Escape,
+  Name,
+  Glob,
+  Escape,
 };
-
 
 struct Substitution {
   Matcher Match;
@@ -54,7 +53,7 @@ struct Substitution {
   bool IsDefault;
   std::string ReplacementPattern;
   std::string makeReplacementPattern(std::string::const_iterator PBegin,
-    std::string::const_iterator PEnd);
+                                     std::string::const_iterator PEnd);
   std::string makeReplacementPattern(const std::string& P);
   std::string substitute(const std::string& Name);
 };
