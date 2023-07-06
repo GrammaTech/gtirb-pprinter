@@ -85,6 +85,7 @@ bool ElfBinaryPrinter::generateDummySO(
     std::ofstream AsmFile(AsmFilePath.string());
     AsmFile << "# Generated dummy file for .so undefined symbols\n";
 
+    std::map<std::string, int> VersionedSymNameCounts;
     for (auto& SymGroup : SymGroups) {
       std::optional<uint64_t> SymSize;
 
@@ -117,6 +118,35 @@ bool ElfBinaryPrinter::generateDummySO(
         }
 
         std::string SymType = SymInfo->Type;
+        if (SymType == "FUNC" || SymType == "GNU_IFUNC") {
+          AsmFile << ".text\n";
+        } else if (SymType == "TLS") {
+          AsmFile << ".section .tdata, \"waT\"\n";
+        } else {
+          AsmFile << ".data\n";
+        }
+
+        if (!Printer.getIgnoreSymbolVersions()) {
+          auto Version = aux_data::getSymbolVersionString(*Sym);
+          if (Version) {
+            // There may be multiple versioned symbols of the same name.
+            // Generate unique names for them to prevent linking errors.
+            std::string OriginalName = Name;
+            auto It = VersionedSymNameCounts.find(Name);
+            if (It == VersionedSymNameCounts.end()) {
+              VersionedSymNameCounts[Name] = 1;
+            } else {
+              std::stringstream UniqueNameBuilder;
+              UniqueNameBuilder << Name << "_disambig_" << ++It->second;
+              Name = UniqueNameBuilder.str();
+            }
+
+            AsmFile << ".symver " << Name << "," << OriginalName << *Version
+                    << '\n';
+            EmittedSymvers = true;
+          }
+        }
+
         // TODO: Make use of syntax content in ElfPrettyPrinter?
         std::string Binding;
         if (SymInfo->Binding == "WEAK") {
@@ -125,13 +155,6 @@ bool ElfBinaryPrinter::generateDummySO(
           Binding = ".globl";
         }
 
-        if (SymType == "FUNC" || SymType == "GNU_IFUNC") {
-          AsmFile << ".text\n";
-        } else if (SymType == "TLS") {
-          AsmFile << ".section .tdata, \"waT\"\n";
-        } else {
-          AsmFile << ".data\n";
-        }
         AsmFile << Binding << " " << Name << "\n";
 
         if ((SymType == "OBJECT" || SymType == "TLS") && SymInfo->Size != 0) {
@@ -146,18 +169,12 @@ bool ElfBinaryPrinter::generateDummySO(
             };
         auto TypeNameIt = TypeNameConversion.find(SymType);
         if (TypeNameIt == TypeNameConversion.end()) {
-          LOG_ERROR << "Unknown type: " << SymType << " for symbol: " << Name
-                    << "\n";
+          LOG_ERROR << "Unknown type: " << SymType
+                    << " for symbol: " << Sym->getName() << "\n";
           return false;
         } else {
           const auto& TypeName = TypeNameIt->second;
           AsmFile << ".type " << Name << ", @" << TypeName << "\n";
-        }
-
-        auto Version = aux_data::getSymbolVersionString(*Sym);
-        if (Version && !Printer.getIgnoreSymbolVersions()) {
-          AsmFile << ".symver " << Name << "," << Name << *Version << '\n';
-          EmittedSymvers = true;
         }
 
         AsmFile << Name << ":\n";

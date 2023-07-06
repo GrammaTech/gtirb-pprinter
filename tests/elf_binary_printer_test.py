@@ -213,6 +213,55 @@ class ElfBinaryPrinterTests(unittest.TestCase):
                 r"([0-9a-f]+)\s+0\s+TLS\s+GLOBAL\s+DEFAULT\s+UND\s__lib_value",
             )
 
+    def test_dummyso_versioned_syms(self):
+        """
+        Test printing a gtirb with --dummy-so where there are multiple external
+        versioned symbols of the same name
+        """
+        ir = dummyso.build_versioned_syms_gtirb()
+
+        with tempfile.TemporaryDirectory() as testdir:
+            gtirb_path = os.path.join(testdir, "dummyso.gtirb")
+            ir.save_protobuf(gtirb_path)
+
+            exe_path = os.path.join(testdir, "dummyso_rewritten")
+
+            # Check that we can automatically build a binary that has
+            # dependences on .so files without having those .so files
+            # be present.
+            output = subprocess.check_output(
+                [
+                    pprinter_binary(),
+                    "--ir",
+                    str(gtirb_path),
+                    "--binary",
+                    str(exe_path),
+                    "--dummy-so",
+                    "yes",
+                    "--policy",
+                    "complete",
+                ]
+            ).decode(sys.stdout.encoding)
+            self.assertIn("Compiler arguments:", output)
+            self.assertTrue(os.path.exists(exe_path))
+
+            # Ensure the library is linked
+            ldd_output = subprocess.check_output(["ldd", exe_path]).decode(
+                sys.stdout.encoding
+            )
+            self.assertIn("libmya.so", ldd_output)
+
+            # Ensure the symbols are present
+            pattern = r"([0-9a-f]+)\s+0\s+FUNC\s+GLOBAL\s+DEFAULT\s+UND\s{}"
+            for sym_name in ("a@LIBA_1.0", "a@LIBA_2.0"):
+                readelf_output = subprocess.check_output(
+                    ["readelf", "--dyn-syms", exe_path]
+                ).decode(sys.stdout.encoding)
+                self.assertRegex(
+                    readelf_output,
+                    pattern.format(sym_name),
+                )
+
     def test_use_gcc(self):
         """
         Test --use-gcc, both with a gcc in PATH and with a full path to gcc
