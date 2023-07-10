@@ -49,6 +49,8 @@ enum class State {
 
 struct Substitution {
   Matcher Match;
+  Substitution(std::string::const_iterator SpecBegin,
+               std::string::const_iterator SpecEnd);
   Substitution(const std::string& Spec);
   bool IsDefault;
   std::string ReplacementPattern;

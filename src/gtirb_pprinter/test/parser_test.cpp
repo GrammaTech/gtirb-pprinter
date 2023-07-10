@@ -88,8 +88,12 @@ TEST(Unit_Parser, Mistakes) {
 }
 
 TEST(Unit_Parser, E2E) {
-  auto Subs = parseInput("{g1:h*o}*={g1},{n}");
-  ASSERT_ANY_THROW(parseInput("{n},lib/{n}"));
+  auto Subs = parseInput("{g1:h*o}*={g1},{n}"); // should be fine
+
+  Subs = parseInput("{n},lib/{n}");
+  ASSERT_EQ(Subs.size(), 2);
+  ASSERT_TRUE(Subs[0].IsDefault);
+  ASSERT_TRUE(Subs[1].IsDefault);
 
   Subs = parseInput("{n}.s");
   ASSERT_EQ(getOutputFileName(Subs, "ex")->generic_string(),

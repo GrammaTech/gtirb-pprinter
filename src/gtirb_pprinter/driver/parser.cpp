@@ -27,6 +27,7 @@ std::vector<Substitution> parseInput(const std::string& Input) {
       Start = In + 1;
     }
   }
+  Subs.emplace_back(Start, Input.end());
   return Subs;
 }
 
@@ -163,11 +164,12 @@ std::optional<std::smatch> Matcher::matches(const std::string& Name) const {
   }
 }
 
-Substitution::Substitution(const std::string& Spec)
+Substitution::Substitution(std::string::const_iterator SpecBegin,
+                           std::string::const_iterator SpecEnd)
     : Match("*"), IsDefault(true) {
-  auto SpecIter = Spec.begin();
+  auto SpecIter = SpecBegin;
   bool Escape = false;
-  while (SpecIter != Spec.end()) {
+  while (SpecIter != SpecEnd) {
     if (Escape) {
       ++SpecIter;
       continue;
@@ -177,14 +179,14 @@ Substitution::Substitution(const std::string& Spec)
     }
 
     if (*SpecIter == '=') {
-      Match = gtirb_multimodule::Matcher(Spec.begin(), SpecIter);
+      Match = gtirb_multimodule::Matcher(SpecBegin, SpecIter);
       IsDefault = false;
-      ReplacementPattern = makeReplacementPattern(++SpecIter, Spec.end());
+      ReplacementPattern = makeReplacementPattern(++SpecIter, SpecEnd);
       return;
     }
     ++SpecIter;
   }
-  ReplacementPattern = makeReplacementPattern(Spec);
+  ReplacementPattern = makeReplacementPattern(SpecBegin, SpecEnd);
 }
 
 std::string
@@ -246,6 +248,9 @@ Substitution::makeReplacementPattern(std::string::const_iterator PBegin,
   }
   return Pattern;
 }
+
+Substitution::Substitution(const std::string& Spec)
+    : Substitution(Spec.begin(), Spec.end()){};
 
 std::string Substitution::makeReplacementPattern(const std::string& P) {
   return makeReplacementPattern(P.begin(), P.end());
