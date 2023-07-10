@@ -405,7 +405,7 @@ int main(int argc, char** argv) {
     gtirb_pprint::printVersionScript(*ir, VersionStream);
   }
 
-  std::vector<gtirb_multimodule::Substitution> asmSubs, binarySubs;
+  std::vector<gtirb_multimodule::FilePattern> asmSubs, binarySubs;
   if (vm.count("asm")) {
     try {
       asmSubs = gtirb_multimodule::parseInput(vm["asm"].as<std::string>());

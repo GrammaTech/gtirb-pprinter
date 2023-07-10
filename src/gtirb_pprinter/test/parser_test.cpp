@@ -15,14 +15,15 @@ TEST(Unit_Parser, matchPatterns) {
   };
   for (auto& [input, pattern] : cases) {
     Matcher M(input);
-    EXPECT_EQ(M.Pattern, pattern);
-    if (M.Pattern != pattern) {
+    EXPECT_EQ(M.getRegexStr(), pattern);
+    if (M.getRegexStr() != pattern) {
       std::cerr << "Input " << input << " failed!\n";
     }
     try {
-      std::regex(M.Pattern);
+      std::regex(M.getRegexStr());
     } catch (const std::regex_error& err) {
-      std::cerr << "Invalid regex: " << M.Pattern << "\n" << err.what() << "\n";
+      std::cerr << "Invalid regex: " << M.getRegexStr() << "\n"
+                << err.what() << "\n";
     }
   }
 }
@@ -39,7 +40,8 @@ TEST(Unit_Parser, matchCases) {
     Matcher M(input);
     EXPECT_TRUE(M.matches(name));
     if (!M.matches(name)) {
-      std::cerr << "Pattern " << M.Pattern << " doesn't match " << name << "\n";
+      std::cerr << "Pattern " << M.getRegexStr() << " doesn't match " << name
+                << "\n";
     }
   }
 }
@@ -47,8 +49,8 @@ TEST(Unit_Parser, matchCases) {
 TEST(Unit_Parser, matchNames) {
   auto input = "{stem:*}.{ext:so*}";
   Matcher M(input);
-  ASSERT_EQ(M.GroupIndexes["stem"], 1);
-  ASSERT_EQ(M.GroupIndexes["ext"], 2);
+  ASSERT_EQ(M.getGroupIndexes().find("stem")->second, 1);
+  ASSERT_EQ(M.getGroupIndexes().find("ext")->second, 2);
 }
 
 TEST(Unit_Parser, SubstitutionPatterns) {
@@ -59,8 +61,8 @@ TEST(Unit_Parser, SubstitutionPatterns) {
       {"*={name}", "$&"},
       {"{stem:lib*}.{ext:so*}=libs/{stem}.{ext}", "libs/$1.$2"}};
   for (auto& [input, expected] : cases) {
-    Substitution sub(input);
-    ASSERT_EQ(sub.ReplacementPattern, expected);
+    FilePattern sub(input);
+    ASSERT_EQ(sub.replacementPattern(), expected);
   }
 }
 
@@ -69,21 +71,23 @@ TEST(Unit_Parser, Substitutions) {
       {"*.{ext:so*}=example.{ext}", "hello.so", "example.so"},
       {"{s1:*}.{s2:*}.{s3:*}.{s4:*}={s3}/{s2}/{s4}/{s1}", "a.b.c.d", "c/b/d/a"},
       {"*={n}", "'try-to-[escape]'", "'try-to-[escape]'"},
-  };
+      {R"({a:*}.{b:*}={a}\\{b})", "hello.world", R"(hello\world)"},
+      {R"({a:*}.{b:*}=dir\{a}\\{b})", "hello.world", R"(dir{a}\world)"},
+      {R"({a:*}.{b:*}=C:\dir\\{a})", "hello.world", R"(C:\dir\hello)"}};
   for (auto& [pattern, name, result] : cases) {
-    ASSERT_EQ(Substitution(pattern).substitute(name), result);
+    EXPECT_EQ(*FilePattern(pattern).substitute(name), result);
   }
 }
 
 TEST(Unit_Parser, Mistakes) {
   std::vector<std::string> cases{
-      "{s%:*}.so={s%}",           // group names are only allowed a-zA-Z0-9_
-      "{g1:{hello}}.*={g1}",      // brackets in globs need to be escaped
-      "{g1:{hell\\0}}*=lib/{g1}", // \0 is not a valid escape
-      "{g1:*.so=hello_{g1}"       // unclosed brace
+      "{s%:*}.so={s%}",         // group names are only allowed a-zA-Z0-9_
+      "{g1:{hello}}.*={g1}",    // brackets in globs need to be escaped
+      "{g1:hell\\0}*=lib/{g1}", // \0 is not a valid escape
+      "{g1:*.so=hello_{g1}"     // unclosed brace
   };
   for (auto& s : cases) {
-    ASSERT_ANY_THROW(Substitution{s});
+    ASSERT_ANY_THROW(FilePattern{s});
   }
 }
 
@@ -92,8 +96,8 @@ TEST(Unit_Parser, E2E) {
 
   Subs = parseInput("{n},lib/{n}");
   ASSERT_EQ(Subs.size(), 2);
-  ASSERT_TRUE(Subs[0].IsDefault);
-  ASSERT_TRUE(Subs[1].IsDefault);
+  ASSERT_TRUE(Subs[0].isDefault());
+  ASSERT_TRUE(Subs[1].isDefault());
 
   Subs = parseInput("{n}.s");
   ASSERT_EQ(getOutputFileName(Subs, "ex")->generic_string(),
