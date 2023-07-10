@@ -1,266 +1,200 @@
-import unittest
+import contextlib
 import os
+from pathlib import Path
 import re
 import subprocess
-import sys
 import tempfile
+import typing
+import unittest
+
+import gtirb
 
 import dummyso
 import hello_world
 
-from pprinter_helpers import pprinter_binary, temp_directory
+from pprinter_helpers import pprinter_binary
 
 
 @unittest.skipUnless(os.name == "posix", "only runs on Linux")
 class ElfBinaryPrinterTests(unittest.TestCase):
-    def test_dummyso(self):
-        ir = dummyso.build_gtirb()
-
+    @contextlib.contextmanager
+    def binary_print(self, ir: gtirb.IR, *extra_args) -> Path:
+        """
+        Run binary printer and provide a path to the compiled binary
+        """
         with tempfile.TemporaryDirectory() as testdir:
-            gtirb_path = os.path.join(testdir, "dummyso.gtirb")
-            ir.save_protobuf(gtirb_path)
+            testdir = Path(testdir)
+            gtirb_path = testdir / "test.gtirb"
+            exe_path = testdir / "test_rewritten"
+            ir.save_protobuf(str(gtirb_path))
 
-            exe_path = os.path.join(testdir, "dummyso_rewritten")
+            args = [
+                pprinter_binary(),
+                "--ir",
+                gtirb_path,
+                "--binary",
+                exe_path,
+                "--policy",
+                "complete",
+                *extra_args,
+            ]
 
-            # Check that we can automatically build a binary that has
-            # dependences on .so files without having those .so files
-            # be present.
-            output = subprocess.check_output(
-                [
-                    pprinter_binary(),
-                    "--ir",
-                    str(gtirb_path),
-                    "--binary",
-                    str(exe_path),
-                    "--dummy-so",
-                    "yes",
-                    "--policy",
-                    "complete",
-                ]
-            ).decode(sys.stdout.encoding)
-            self.assertIn("Compiler arguments:", output)
-            self.assertTrue(os.path.exists(exe_path))
+            subprocess.run(args, check=True)
+            self.assertTrue(exe_path.exists())
+            yield exe_path
 
-            # Make sure the .so libs have been built
-            libdir = os.path.join(os.path.dirname(__file__), "dummyso_libs")
-            self.assertTrue(os.path.exists(libdir))
-            subprocess.run(
-                "make",
-                cwd=libdir,
+    def find_syms(
+        self,
+        exe_path: Path,
+        syms: typing.List[typing.Tuple[str, str, str, str]],
+    ) -> typing.List[typing.Optional[int]]:
+        """
+        Find symbols in the ELF file at `exe_path` having the provided
+        properties: (Type, Binding, Visibility, Name)
+
+        Returns addresses corresponding to each symbol, or None for each
+        symbol not found.
+        """
+        readelf = subprocess.run(
+            ["readelf", "--dyn-syms", exe_path],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        addrs = []
+        template = r"([0-9a-f]+)\s+\d+\s+{}\s+{}\s+{}\s+(UND|\d+)\s+{}"
+        for sym_type, binding, vis, name in syms:
+            match = re.search(
+                template.format(sym_type, binding, vis, name), readelf.stdout
             )
-            self.assertTrue(os.path.exists(os.path.join(libdir, "libmya.so")))
-            self.assertTrue(os.path.exists(os.path.join(libdir, "libmyb.so")))
+
+            addrs.append(match.group(1) if match else None)
+
+        return addrs
+
+    def assert_libs_in_ldd(self, exe_path: Path, libs: typing.List[str]):
+        """
+        Asserts each lib in `libs` is linked by the ELF at `exe_path`
+        """
+        ldd = subprocess.run(
+            ["ldd", exe_path], check=True, capture_output=True, text=True
+        )
+        for lib in libs:
+            self.assertIn(lib, ldd.stdout)
+
+    def test_dummyso(self):
+        """
+        Test printing a simple GTIRB with --dummy-so.
+        """
+        ir = dummyso.build_gtirb()
+        with self.binary_print(ir, "--dummy-so", "yes") as exe_path:
+            # Make sure the .so libs have been built
+            libdir = Path(__file__).parent / "dummyso_libs"
+            self.assertTrue(libdir.exists())
+            subprocess.run("make", cwd=libdir, check=True)
+            self.assertTrue((libdir / "libmya.so").exists())
+            self.assertTrue((libdir / "libmyb.so").exists())
 
             # Run the resulting binary with the directory containing the actual
             # .so libs in LD_LIBRARY_PATH, so the loader can find them.
-            output_bin = subprocess.check_output(
-                exe_path, env={"LD_LIBRARY_PATH": libdir}
-            ).decode(sys.stdout.encoding)
-            self.assertTrue("a() invoked!" in output_bin)
-            self.assertTrue("b() invoked!" in output_bin)
+            exec_proc = subprocess.run(
+                str(exe_path),
+                env={"LD_LIBRARY_PATH": libdir},
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            self.assertTrue("a() invoked!" in exec_proc.stdout)
+            self.assertTrue("b() invoked!" in exec_proc.stdout)
 
     def test_dummyso_plt_sec(self):
         """
-        Build a GTIRB where a symbol is attached to a PLT entry in .plt.sec.
+        Test printing a GTIRB where a symbol is attached to a PLT entry in
+        .plt.sec.
+
         Verify that the symbol is generated in dummyso.
         """
         ir = dummyso.build_plt_sec_gtirb()
-
-        with tempfile.TemporaryDirectory() as testdir:
-            gtirb_path = os.path.join(testdir, "dummyso.gtirb")
-            ir.save_protobuf(gtirb_path)
-
-            exe_path = os.path.join(testdir, "dummyso_rewritten")
-
-            # Check that we can automatically build a binary that has
-            # dependences on .so files without having those .so files
-            # be present.
-            output = subprocess.check_output(
-                [
-                    pprinter_binary(),
-                    "--ir",
-                    str(gtirb_path),
-                    "--binary",
-                    str(exe_path),
-                    "--dummy-so",
-                    "yes",
-                    "--policy",
-                    "complete",
-                ]
-            ).decode(sys.stdout.encoding)
-            self.assertIn("Compiler arguments:", output)
-            self.assertTrue(os.path.exists(exe_path))
-
+        with self.binary_print(ir, "--dummy-so", "yes") as exe_path:
             # Make sure the .so libs have been built
-            libdir = os.path.join(os.path.dirname(__file__), "dummyso_libs")
-            self.assertTrue(os.path.exists(libdir))
-            subprocess.run(
-                "make",
-                cwd=libdir,
-            )
-            self.assertTrue(os.path.exists(os.path.join(libdir, "libmya.so")))
+            libdir = Path(__file__).parent / "dummyso_libs"
+            self.assertTrue(libdir.exists())
+            subprocess.run("make", cwd=libdir, check=True)
+            self.assertTrue((libdir / "libmya.so").exists())
 
             # Run the resulting binary with the directory containing the actual
             # .so libs in LD_LIBRARY_PATH, so the loader can find them.
-            output_bin = subprocess.check_output(
-                exe_path, env={"LD_LIBRARY_PATH": libdir}
-            ).decode(sys.stdout.encoding)
-            self.assertTrue("a() invoked!" in output_bin)
+            exec_proc = subprocess.run(
+                str(exe_path),
+                env={"LD_LIBRARY_PATH": libdir},
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            self.assertTrue("a() invoked!" in exec_proc.stdout)
 
     def test_dummyso_copy_relocated(self):
         """
-        Build a GTIRB where its only external symbols are members of a single
-        COPY-relocated group. Verify that the final binary's symbols are
-        generated correctly.
+        Test printing a GTIRB with --dummy-so where its only external symbols
+        are members of a single COPY-relocated group.
+
+        Verify that the final binary's symbols are generated correctly.
         """
         ir = dummyso.build_copy_relocated_gtirb()
-
-        with tempfile.TemporaryDirectory() as testdir:
-            gtirb_path = os.path.join(testdir, "dummyso.gtirb")
-            ir.save_protobuf(gtirb_path)
-
-            exe_path = os.path.join(testdir, "dummyso_rewritten")
-
-            # Check that we can automatically build a binary that has
-            # dependences on .so files without having those .so files
-            # be present.
-            output = subprocess.check_output(
-                [
-                    pprinter_binary(),
-                    "--ir",
-                    str(gtirb_path),
-                    "--binary",
-                    str(exe_path),
-                    "--dummy-so",
-                    "yes",
-                    "--policy",
-                    "complete",
-                ]
-            ).decode(sys.stdout.encoding)
-            self.assertIn("Compiler arguments:", output)
-            self.assertTrue(os.path.exists(exe_path))
-
-            # Ensure the library is linked
-            ldd_output = subprocess.check_output(["ldd", exe_path]).decode(
-                sys.stdout.encoding
-            )
-            self.assertIn("libvalue.so", ldd_output)
+        with self.binary_print(ir, "--dummy-so", "yes") as exe_path:
+            self.assert_libs_in_ldd(exe_path, "libvalue.so")
 
             # Ensure the GLOBAL and WEAK versions of the COPY-relocated symbol
             # refer to the same address; this verifies that they were grouped
             # together for printing.
-            readelf_output = subprocess.check_output(
-                ["readelf", "--dyn-syms", exe_path]
-            ).decode(sys.stdout.encoding)
+            sym_addr, sym_addr_weak = self.find_syms(
+                exe_path,
+                [
+                    ("OBJECT", "GLOBAL", "DEFAULT", "__lib_value"),
+                    ("OBJECT", "WEAK", "DEFAULT", "__lib_value_weak"),
+                ],
+            )
 
-            # The WEAK and GLOBAL symbols should both be present
-            sym_match = re.search(
-                r"([0-9a-f]+)\s+4\s+OBJECT\s+GLOBAL.+__lib_value",
-                readelf_output,
-            )
-            sym_match_weak = re.search(
-                r"([0-9a-f]+)\s+4\s+OBJECT\s+WEAK.+__lib_value_weak",
-                readelf_output,
-            )
-            self.assertIsNotNone(sym_match)
-            self.assertIsNotNone(sym_match_weak)
+            self.assertIsNotNone(sym_addr)
+            self.assertIsNotNone(sym_addr_weak)
 
             # Both symbols should be at the same address.
-            self.assertEqual(
-                int(sym_match.group(1), 16), int(sym_match_weak.group(1), 16)
-            )
+            self.assertEqual(sym_addr, sym_addr_weak)
 
     def test_dummyso_tls(self):
+        """
+        Test printing a GTIRB that links a TLS symbol with --dummy-so
+        """
         ir = dummyso.build_tls_gtirb()
-
-        with tempfile.TemporaryDirectory() as testdir:
-            gtirb_path = os.path.join(testdir, "dummyso.gtirb")
-            ir.save_protobuf(gtirb_path)
-
-            exe_path = os.path.join(testdir, "dummyso_rewritten")
-
-            # Check that we can automatically build a binary that has
-            # dependences on .so files without having those .so files
-            # be present.
-            output = subprocess.check_output(
-                [
-                    pprinter_binary(),
-                    "--ir",
-                    str(gtirb_path),
-                    "--binary",
-                    str(exe_path),
-                    "--dummy-so",
-                    "yes",
-                    "--policy",
-                    "complete",
-                ]
-            ).decode(sys.stdout.encoding)
-            self.assertIn("Compiler arguments:", output)
-            self.assertTrue(os.path.exists(exe_path))
-
-            # Ensure the library is linked
-            ldd_output = subprocess.check_output(["ldd", exe_path]).decode(
-                sys.stdout.encoding
-            )
-            self.assertIn("libvalue.so", ldd_output)
+        with self.binary_print(ir, "--dummy-so", "yes") as exe_path:
+            self.assert_libs_in_ldd(exe_path, "libvalue.so")
 
             # Ensure the TLS symbol is linked
-            readelf_output = subprocess.check_output(
-                ["readelf", "--dyn-syms", exe_path]
-            ).decode(sys.stdout.encoding)
-            self.assertRegex(
-                readelf_output,
-                r"([0-9a-f]+)\s+0\s+TLS\s+GLOBAL\s+DEFAULT\s+UND\s__lib_value",
-            )
+            addr = self.find_syms(
+                exe_path, [("TLS", "GLOBAL", "DEFAULT", "__lib_value")]
+            )[0]
+            self.assertIsNotNone(addr)
 
     def test_dummyso_versioned_syms(self):
         """
-        Test printing a gtirb with --dummy-so where there are multiple external
+        Test printing a GTIRB with --dummy-so where there are multiple external
         versioned symbols of the same name
         """
         ir = dummyso.build_versioned_syms_gtirb()
-
-        with tempfile.TemporaryDirectory() as testdir:
-            gtirb_path = os.path.join(testdir, "dummyso.gtirb")
-            ir.save_protobuf(gtirb_path)
-
-            exe_path = os.path.join(testdir, "dummyso_rewritten")
-
-            # Check that we can automatically build a binary that has
-            # dependences on .so files without having those .so files
-            # be present.
-            output = subprocess.check_output(
-                [
-                    pprinter_binary(),
-                    "--ir",
-                    str(gtirb_path),
-                    "--binary",
-                    str(exe_path),
-                    "--dummy-so",
-                    "yes",
-                    "--policy",
-                    "complete",
-                ]
-            ).decode(sys.stdout.encoding)
-            self.assertIn("Compiler arguments:", output)
-            self.assertTrue(os.path.exists(exe_path))
-
-            # Ensure the library is linked
-            ldd_output = subprocess.check_output(["ldd", exe_path]).decode(
-                sys.stdout.encoding
-            )
-            self.assertIn("libmya.so", ldd_output)
+        with self.binary_print(ir, "--dummy-so", "yes") as exe_path:
+            self.assert_libs_in_ldd(exe_path, "libmya.so")
 
             # Ensure the symbols are present
-            pattern = r"([0-9a-f]+)\s+0\s+FUNC\s+GLOBAL\s+DEFAULT\s+UND\s{}"
-            for sym_name in ("a@LIBA_1.0", "a@LIBA_2.0"):
-                readelf_output = subprocess.check_output(
-                    ["readelf", "--dyn-syms", exe_path]
-                ).decode(sys.stdout.encoding)
-                self.assertRegex(
-                    readelf_output,
-                    pattern.format(sym_name),
-                )
+            addrs = self.find_syms(
+                exe_path,
+                [
+                    ("FUNC", "GLOBAL", "DEFAULT", "a@LIBA_1.0"),
+                    ("FUNC", "GLOBAL", "DEFAULT", "a@LIBA_2.0"),
+                ],
+            )
+            for addr in addrs:
+                self.assertIsNotNone(addr)
 
     def test_use_gcc(self):
         """
@@ -268,55 +202,32 @@ class ElfBinaryPrinterTests(unittest.TestCase):
         """
         ir = hello_world.build_gtirb()
 
-        gcc_full_path = (
-            subprocess.check_output(["which", "gcc"])
-            .decode(sys.stdout.encoding)
-            .strip()
+        which = subprocess.run(
+            ["which", "gcc"],
+            check=True,
+            capture_output=True,
+            text=True,
         )
+        gcc_full_path = which.stdout.strip()
+
         gccs = ("gcc", gcc_full_path)
 
         for gcc in gccs:
             with self.subTest(gcc=gcc):
-                with tempfile.TemporaryDirectory() as testdir:
-                    gtirb_path = os.path.join(testdir, "hello_world.gtirb")
-                    ir.save_protobuf(gtirb_path)
-
-                    exe_path = os.path.join(testdir, "hello_world_rewritten")
-                    subprocess.check_call(
-                        [
-                            pprinter_binary(),
-                            "--ir",
-                            gtirb_path,
-                            "--binary",
-                            exe_path,
-                            "--policy",
-                            "complete",
-                            "--use-gcc",
-                            gcc,
-                        ]
-                    )
-                    self.assertTrue(os.path.exists(exe_path))
+                with self.binary_print(ir, "--use-gcc", gcc):
+                    # Just verify binary_print succeeded.
+                    pass
 
     def test_object(self):
+        """
+        Test the --object argument
+        """
         ir = hello_world.build_gtirb()
-        with temp_directory() as test_dir:
-            gtirb_path = os.path.join(test_dir, "hello_world.gtirb")
-            ir.save_protobuf(gtirb_path)
-            object_path = os.path.join(test_dir, "hello_world_rw.o")
-
-            subprocess.check_call(
-                [
-                    pprinter_binary(),
-                    "--ir",
-                    gtirb_path,
-                    "--binary",
-                    object_path,
-                    "--object",
-                    "--policy",
-                    "complete",
-                ]
+        with self.binary_print(ir, "--object") as object_path:
+            output = subprocess.run(
+                ["file", object_path],
+                check=True,
+                capture_output=True,
+                text=True,
             )
-            self.assertTrue(os.path.exists(object_path))
-
-            output = subprocess.check_output(["file", object_path])
-            self.assertTrue(b"relocatable" in output)
+            self.assertTrue("relocatable" in output.stdout)
