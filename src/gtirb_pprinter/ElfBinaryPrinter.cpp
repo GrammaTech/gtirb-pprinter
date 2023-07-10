@@ -529,7 +529,7 @@ static bool allGlobalSymsExported(gtirb::Context& Ctx, gtirb::IR& Ir) {
 
 std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
     std::string outputFilename, const std::vector<TempFile>& asmPaths,
-    gtirb::Context& context, gtirb::IR& ir, gtirb::Module& module,
+    gtirb::Context& context, gtirb::Module& module,
     const std::vector<std::string>& libArgs) const {
   std::vector<std::string> args;
   // Start constructing the compile arguments, of the form
@@ -543,13 +543,17 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
 
   // add pie, no pie, or shared, depending on the binary type
   gtirb_pprint::DynMode DM = Printer.getDynMode(module);
-  if (DM == gtirb_pprint::DYN_MODE_SHARED) {
+  switch (DM) {
+  case gtirb_pprint::DYN_MODE_SHARED:
     args.push_back("-shared");
-  } else if (DM == gtirb_pprint::DYN_MODE_PIE) {
+    break;
+  case gtirb_pprint::DYN_MODE_PIE:
     args.push_back("-pie");
-  } else if (DM == gtirb_pprint::DYN_MODE_NONE) {
+    break;
+  case gtirb_pprint::DYN_MODE_NONE:
     args.push_back("-no-pie");
-  } else {
+    break;
+  default:
     assert(!"Unknown binary type!");
   }
 
@@ -557,7 +561,7 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
     // append -Wl,--export-dynamic if needed; can occur for both DYN and EXEC.
     // TODO: if some symbols are exported, but not all, build a dynamic list
     // file and pass with `--dynamic-list`.
-    if (allGlobalSymsExported(context, ir)) {
+    if (allGlobalSymsExported(context, *module.getIR())) {
       args.push_back("-Wl,--export-dynamic");
     }
   }
@@ -658,9 +662,10 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
   VersionScript.close();
   std::vector<TempFile> Files;
   Files.emplace_back(std::move(tempFile));
-  if (std::optional<int> ret = execute(
-          compiler, buildCompilerArgs(outputFilename, Files, ctx,
-                                      *module.getIR(), module, libArgs))) {
+
+  if (std::optional<int> ret =
+          execute(compiler, buildCompilerArgs(outputFilename, Files, ctx,
+                                              module, libArgs))) {
     if (*ret)
       std::cerr << "ERROR: assembler returned: " << *ret << "\n";
     return *ret;

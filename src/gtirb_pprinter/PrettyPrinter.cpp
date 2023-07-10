@@ -1611,8 +1611,8 @@ bool PrettyPrinterBase::x86InstHasMoffsetEncoding(const cs_insn& inst) {
 //                               yes /         \ no
 //                             -shared        default:-pie
 //-------------------------------------------------------
-void PrettyPrinter::updateDynMode(const gtirb::Module& Module,
-                                  const std::string& SharedOption) {
+DynMode computeDynMode(const gtirb::Module& Module,
+                       const std::string& SharedOption) {
   std::optional<std::string> BinTypeStr;
   const auto& T = aux_data::getBinaryType(Module);
   if (!T.empty()) {
@@ -1624,15 +1624,13 @@ void PrettyPrinter::updateDynMode(const gtirb::Module& Module,
   }
 
   if (SharedOption == "yes") {
-    DynModeMap[&Module] = DYN_MODE_SHARED;
-    return;
+    return DYN_MODE_SHARED;
   } else if (SharedOption == "no") {
     if (BinTypeStr && *BinTypeStr == "DYN") {
-      DynModeMap[&Module] = DYN_MODE_PIE;
+      return DYN_MODE_PIE;
     } else {
-      DynModeMap[&Module] = DYN_MODE_NONE;
+      return DYN_MODE_NONE;
     }
-    return;
   }
 
   // -------------------------------------------------------------------
@@ -1640,8 +1638,7 @@ void PrettyPrinter::updateDynMode(const gtirb::Module& Module,
   // -------------------------------------------------------------------
 
   if (!BinTypeStr || (*BinTypeStr == "EXEC")) {
-    DynModeMap[&Module] = DYN_MODE_NONE;
-    return;
+    return DYN_MODE_NONE;
   }
 
   // SONAME is used at compilation time by linker to provide version
@@ -1649,27 +1646,21 @@ void PrettyPrinter::updateDynMode(const gtirb::Module& Module,
   // objects.
   std::set<uint64_t> Entries = aux_data::getDynamicEntry(Module, "SONAME");
   if (!Entries.empty()) {
-    DynModeMap[&Module] = DYN_MODE_SHARED;
-    return;
+    return DYN_MODE_SHARED;
   }
 
   // Flags used by Solaris.
   // It must be an EXE if DF_1_PIE (0x800000) bit is set in FLAGS_1.
   std::set<uint64_t> FLAGS_1 = aux_data::getDynamicEntry(Module, "FLAGS_1");
   if (!FLAGS_1.empty() && ((*FLAGS_1.begin() & 0x8000000) != 0)) {
-    DynModeMap[&Module] = DYN_MODE_PIE;
-    return;
+    return DYN_MODE_PIE;
   }
 
   // Executables should include `.interp` section, and `INTERP` entry
   // in the program header.
   // If there is no .interp section, it should be Shared.
-  if (std::find_if(Module.sections_begin(), Module.sections_end(),
-                   [](const gtirb::Section& S) -> bool {
-                     return S.getName() == ".interp";
-                   }) == Module.sections_end()) {
-    DynModeMap[&Module] = DYN_MODE_SHARED;
-    return;
+  if (Module.findSections(".interp").empty()) {
+    return DYN_MODE_SHARED;
   }
 
   // Check for dynamic entries mandatory for executables.
@@ -1678,13 +1669,16 @@ void PrettyPrinter::updateDynMode(const gtirb::Module& Module,
   std::set<uint64_t> RELASZ = aux_data::getDynamicEntry(Module, "RELASZ");
   std::set<uint64_t> RELAENT = aux_data::getDynamicEntry(Module, "RELAENT");
   if (RELA.empty() || RELASZ.empty() || RELAENT.empty()) {
-    DynModeMap[&Module] = DYN_MODE_SHARED;
-    return;
+    return DYN_MODE_SHARED;
   }
 
   // Pie by default
-  DynModeMap[&Module] = DYN_MODE_PIE;
-  return;
+  return DYN_MODE_PIE;
+}
+
+void PrettyPrinter::updateDynMode(const gtirb::Module& Module,
+                                  const std::string& SharedOption) {
+  DynModeMap[&Module] = computeDynMode(Module, SharedOption);
 }
 
 DynMode PrettyPrinter::getDynMode(const gtirb::Module& Module) const {

@@ -80,10 +80,11 @@ private:
                           std::vector<std::string>& libArgs) const;
   void addOrigLibraryArgs(const gtirb::Module& module,
                           std::vector<std::string>& args) const;
-  std::vector<std::string> buildCompilerArgs(
-      std::string outputFilename, const std::vector<TempFile>& asmPath,
-      gtirb::Context& context, gtirb::IR& ir, gtirb::Module& module,
-      const std::vector<std::string>& libArgs) const;
+  std::vector<std::string>
+  buildCompilerArgs(std::string outputFilename,
+                    const std::vector<TempFile>& asmPath,
+                    gtirb::Context& context, gtirb::Module& module,
+                    const std::vector<std::string>& libArgs) const;
 
 public:
   /// Construct a ElfBinaryPrinter with the default configuration.
