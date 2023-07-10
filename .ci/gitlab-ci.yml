@@ -311,11 +311,7 @@ static-drivers:
         curl -F transform=ddisasm -F binary=@$binary --output $binary.gtirb http://gtirb-server/simple ;
         curl -F transform=stack-stamp -F gtirb=@$binary.gtirb --output $binary.stack-stamp.gtirb http://gtirb-server/simple ;
         curl -F transform=shuffle -F gtirb=@$binary.stack-stamp.gtirb --output $binary.stack-stamp.shuffle.gtirb http://gtirb-server/simple ;
-        case "$binary" in
-          *.so*) shared="--shared" ;;
-          *) shared="" ;;
-        esac ;
-        ./build/bin/gtirb-pprinter --ir $binary.stack-stamp.shuffle.gtirb --binary $binary.stack-stamp.shuffle -c "-L$(pwd)/build/lib" $shared ;
+        ./build/bin/gtirb-pprinter --ir $binary.stack-stamp.shuffle.gtirb --binary $binary.stack-stamp.shuffle -c "-L$(pwd)/build/lib" ;
       done
     - for binary in $XFORM_BINARIES ; do
         binary="build/$binary" ;
