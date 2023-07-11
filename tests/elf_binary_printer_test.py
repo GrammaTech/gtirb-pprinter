@@ -274,7 +274,9 @@ class ElfBinaryPrinterTests(unittest.TestCase):
             output = subprocess.check_output(["file", object_path])
             self.assertTrue(b"relocatable" in output)
 
-    def subtest_pie_option(self, mode: str, pie: bool):
+    def subtest_dyn_option(
+        self, mode: str, shared_option: str, pie: bool, shared: bool
+    ):
         """
         Test that shared/pie options are automatically set up right.
         """
@@ -305,10 +307,14 @@ class ElfBinaryPrinterTests(unittest.TestCase):
             section_bi, code_bytes, {}
         )
 
-        if mode == "NO_DYN":
+        if mode == "EXEC":
             module.aux_data["binaryType"].data.append("EXEC")
-        else:
+        elif mode == "SHARED":
             module.aux_data["binaryType"].data.append("DYN")
+            module.aux_data["binaryType"].data.append("SHARED")
+        elif mode == "PIE":
+            module.aux_data["binaryType"].data.append("DYN")
+            module.aux_data["binaryType"].data.append("PIE")
 
         # Build symbols
         symbol_main = gth.add_symbol(module, "foo", code_blocks[".text"])
@@ -319,37 +325,6 @@ class ElfBinaryPrinterTests(unittest.TestCase):
             "DEFAULT",
             0,
         )
-
-        module.aux_data["dynamicEntries"].data.update(
-            {
-                ("RELA", 0),
-                ("RELASZ", 0),
-            }
-        )
-
-        if mode != "MISSING_MANDATORY":
-            module.aux_data["dynamicEntries"].data.add(
-                ("RELAENT", 0),
-            )
-
-        if mode == "FLAGS_1":
-            # PIE: Add FLAGS_1 entry
-            module.aux_data["dynamicEntries"].data.add(("FLAGS_1", 0x8000001))
-
-        if mode != "NO_INTERP":
-            # PIE: Add .interp section
-            addr = 0x10020
-            section_name = ".interp"
-            (section, section_bi) = gth.add_section(
-                module, section_name, address=addr, flags=section_flags
-            )
-            code_blocks[section_name] = gth.add_code_block(
-                section_bi, code_bytes, {}
-            )
-
-        if mode == "SONAME":
-            # SO: Add SONAME entry
-            module.aux_data["dynamicEntries"].data.add(("SONAME", 0))
 
         # Build binary
         with tempfile.TemporaryDirectory() as testdir:
@@ -366,28 +341,39 @@ class ElfBinaryPrinterTests(unittest.TestCase):
                     str(output_path),
                     "--policy",
                     "complete",
+                    "--shared",
+                    shared_option,
                 ]
             ).decode(sys.stdout.encoding)
+
             if pie:
-                self.assertIn("-pie", output)
+                self.assertIn(" -pie", output)
             else:
-                self.assertNotIn("-pie", output)
-            if mode == "NO_DYN":
+                self.assertNotIn(" -pie", output)
+
+            if shared:
+                self.assertIn("-shared", output)
+            else:
                 self.assertNotIn("-shared", output)
+
             self.assertTrue(os.path.exists(output_path))
 
-    def test_pie_option(self):
+    def test_dyn_option(self):
         """
         Set up subtests for shared/pie option
         """
         subtests = (
-            ("FLAGS_1", True),
-            ("NO_INTERP", False),
-            ("SONAME", False),
-            ("MISSING_MANDATORY", False),
-            ("NO_DYN", True),
+            ("EXEC", "yes", False, True),
+            ("EXEC", "no", False, False),
+            ("EXEC", "auto", False, False),
+            ("SHARED", "yes", False, True),
+            ("SHARED", "no", True, False),
+            ("SHARED", "auto", False, True),
+            ("PIE", "yes", False, True),
+            ("PIE", "no", True, False),
+            ("PIE", "auto", True, False),
         )
 
         for subtest in subtests:
             with self.subTest(subtest=subtest):
-                self.subtest_pie_option(*subtest)
+                self.subtest_dyn_option(*subtest)

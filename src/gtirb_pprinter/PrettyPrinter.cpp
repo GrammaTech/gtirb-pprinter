@@ -1593,87 +1593,27 @@ bool PrettyPrinterBase::x86InstHasMoffsetEncoding(const cs_insn& inst) {
          inst.detail->x86.opcode[3] == 0x00;
 }
 
-//-------------------------------------------------------
-// Decision Tree for -shared vs. -pie:
-//
-//      EXEC
-//  yes/    \no
-// none
-//          DYN
-//     no /      \ yes
-//               SONAME
-//         yes /        \ no
-//        -shared       DF_1_PIE
-//                  yes /      \ no
-//                 -pie        .interp
-//                         no /        \ yes
-//                      -shared     missing-mandatory
-//                               yes /         \ no
-//                             -shared        default:-pie
-//-------------------------------------------------------
 DynMode computeDynMode(const gtirb::Module& Module,
                        const std::string& SharedOption) {
-  std::optional<std::string> BinTypeStr;
   const auto& T = aux_data::getBinaryType(Module);
-  if (!T.empty()) {
-    if (std::find(T.begin(), T.end(), "DYN") != T.end()) {
-      BinTypeStr = "DYN";
-    } else if (std::find(T.begin(), T.end(), "EXEC") != T.end()) {
-      BinTypeStr = "EXEC";
-    }
-  }
 
   if (SharedOption == "yes") {
     return DYN_MODE_SHARED;
   } else if (SharedOption == "no") {
-    if (BinTypeStr && *BinTypeStr == "DYN") {
+    if (std::find(T.begin(), T.end(), "DYN") != T.end()) {
+      return DYN_MODE_PIE;
+    } else {
+      return DYN_MODE_NONE;
+    }
+  } else { // SharedOption == "auto"
+    if (std::find(T.begin(), T.end(), "SHARED") != T.end()) {
+      return DYN_MODE_SHARED;
+    } else if (std::find(T.begin(), T.end(), "PIE") != T.end()) {
       return DYN_MODE_PIE;
     } else {
       return DYN_MODE_NONE;
     }
   }
-
-  // -------------------------------------------------------------------
-  // SharedOption == "auto"
-  // -------------------------------------------------------------------
-
-  if (!BinTypeStr || (*BinTypeStr == "EXEC")) {
-    return DYN_MODE_NONE;
-  }
-
-  // SONAME is used at compilation time by linker to provide version
-  // backwards-compatibility information, which is used only for shared
-  // objects.
-  std::set<uint64_t> Entries = aux_data::getDynamicEntry(Module, "SONAME");
-  if (!Entries.empty()) {
-    return DYN_MODE_SHARED;
-  }
-
-  // Flags used by Solaris.
-  // It must be an EXE if DF_1_PIE (0x800000) bit is set in FLAGS_1.
-  std::set<uint64_t> FLAGS_1 = aux_data::getDynamicEntry(Module, "FLAGS_1");
-  if (!FLAGS_1.empty() && ((*FLAGS_1.begin() & 0x8000000) != 0)) {
-    return DYN_MODE_PIE;
-  }
-
-  // Executables should include `.interp` section, and `INTERP` entry
-  // in the program header.
-  // If there is no .interp section, it should be Shared.
-  if (Module.findSections(".interp").empty()) {
-    return DYN_MODE_SHARED;
-  }
-
-  // Check for dynamic entries mandatory for executables.
-  // If any of the mandatory entries is missing, it should be Shared
-  std::set<uint64_t> RELA = aux_data::getDynamicEntry(Module, "RELA");
-  std::set<uint64_t> RELASZ = aux_data::getDynamicEntry(Module, "RELASZ");
-  std::set<uint64_t> RELAENT = aux_data::getDynamicEntry(Module, "RELAENT");
-  if (RELA.empty() || RELASZ.empty() || RELAENT.empty()) {
-    return DYN_MODE_SHARED;
-  }
-
-  // Pie by default
-  return DYN_MODE_PIE;
 }
 
 void PrettyPrinter::updateDynMode(const gtirb::Module& Module,
