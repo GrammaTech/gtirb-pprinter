@@ -1620,6 +1620,8 @@ DynMode PrettyPrinter::getDynMode(const gtirb::Module& Module) const {
     return DYN_MODE_SHARED;
   } else if (std::find(T.begin(), T.end(), "PIE") != T.end()) {
     return DYN_MODE_PIE;
+  } else if (std::find(T.begin(), T.end(), "DYN") != T.end()) {
+    return DYN_MODE_PIE;
   } else {
     return DYN_MODE_NONE;
   }
