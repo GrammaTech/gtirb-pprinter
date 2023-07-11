@@ -198,6 +198,8 @@ std::vector<std::string> getLibraryPaths(const gtirb::Module& Module);
 DEBLOAT_PRETTYPRINTER_EXPORT_API std::vector<std::string>
 getBinaryType(const gtirb::Module& Module);
 
+void setBinaryType(gtirb::Module& Module, const std::vector<std::string>& Vec);
+
 // Load symbol forwarding mapping from the `symbolForwarding' AuxData table.
 std::map<gtirb::UUID, gtirb::UUID>
 getSymbolForwarding(const gtirb::Module& Module);

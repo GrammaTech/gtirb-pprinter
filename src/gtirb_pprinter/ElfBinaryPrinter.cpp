@@ -512,32 +512,30 @@ void ElfBinaryPrinter::addOrigLibraryArgs(
   }
 }
 
-static bool allGlobalSymsExported(gtirb::Context& Ctx, gtirb::IR& Ir) {
-  for (gtirb::Module& M : Ir.modules()) {
-    auto SymbolTabIdxInfo = aux_data::getElfSymbolTabIdxInfo(M);
-    for (auto& [SymUUID, Tables] : SymbolTabIdxInfo) {
-      auto Symbol = gtirb_pprint::nodeFromUUID<gtirb::Symbol>(Ctx, SymUUID);
-      if (!Symbol) {
-        continue;
+static bool allGlobalSymsExported(gtirb::Context& Ctx, gtirb::Module& Module) {
+  auto SymbolTabIdxInfo = aux_data::getElfSymbolTabIdxInfo(Module);
+  for (auto& [SymUUID, Tables] : SymbolTabIdxInfo) {
+    auto Symbol = gtirb_pprint::nodeFromUUID<gtirb::Symbol>(Ctx, SymUUID);
+    if (!Symbol) {
+      continue;
+    }
+
+    auto SymbolInfo = aux_data::getElfSymbolInfo(*Symbol);
+    if (SymbolInfo->Binding != "GLOBAL") {
+      continue;
+    }
+
+    if (Symbol->getReferent<gtirb::CodeBlock>() != nullptr) {
+      bool SymIsExported = false;
+      for (auto& [TableName, Idx] : Tables) {
+        if (TableName == ".dynsym") {
+          SymIsExported = true;
+          break;
+        }
       }
 
-      auto SymbolInfo = aux_data::getElfSymbolInfo(*Symbol);
-      if (SymbolInfo->Binding != "GLOBAL") {
-        continue;
-      }
-
-      if (Symbol->getReferent<gtirb::CodeBlock>() != nullptr) {
-        bool SymIsExported = false;
-        for (auto& [TableName, Idx] : Tables) {
-          if (TableName == ".dynsym") {
-            SymIsExported = true;
-            break;
-          }
-        }
-
-        if (!SymIsExported) {
-          return false;
-        }
+      if (!SymIsExported) {
+        return false;
       }
     }
   }
@@ -578,7 +576,7 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
     // append -Wl,--export-dynamic if needed; can occur for both DYN and EXEC.
     // TODO: if some symbols are exported, but not all, build a dynamic list
     // file and pass with `--dynamic-list`.
-    if (allGlobalSymsExported(context, *module.getIR())) {
+    if (allGlobalSymsExported(context, module)) {
       args.push_back("-Wl,--export-dynamic");
     }
   }

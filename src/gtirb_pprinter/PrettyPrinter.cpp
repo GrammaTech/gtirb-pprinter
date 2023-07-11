@@ -1593,40 +1593,36 @@ bool PrettyPrinterBase::x86InstHasMoffsetEncoding(const cs_insn& inst) {
          inst.detail->x86.opcode[3] == 0x00;
 }
 
-DynMode computeDynMode(const gtirb::Module& Module,
-                       const std::string& SharedOption) {
-  const auto& T = aux_data::getBinaryType(Module);
+void PrettyPrinter::updateDynMode(gtirb::Module& Module,
+                                  const std::string& SharedOption) {
+  if (Module.getFileFormat() != gtirb::FileFormat::ELF)
+    return;
 
   if (SharedOption == "yes") {
-    return DYN_MODE_SHARED;
+    std::vector<std::string> Vec;
+    Vec.push_back("DYN");
+    Vec.push_back("SHARED");
+    aux_data::setBinaryType(Module, Vec);
   } else if (SharedOption == "no") {
+    const auto& T = aux_data::getBinaryType(Module);
     if (std::find(T.begin(), T.end(), "DYN") != T.end()) {
-      return DYN_MODE_PIE;
-    } else {
-      return DYN_MODE_NONE;
-    }
-  } else { // SharedOption == "auto"
-    if (std::find(T.begin(), T.end(), "SHARED") != T.end()) {
-      return DYN_MODE_SHARED;
-    } else if (std::find(T.begin(), T.end(), "PIE") != T.end()) {
-      return DYN_MODE_PIE;
-    } else {
-      return DYN_MODE_NONE;
+      std::vector<std::string> Vec;
+      Vec.push_back("DYN");
+      Vec.push_back("PIE");
+      aux_data::setBinaryType(Module, Vec);
     }
   }
-}
-
-void PrettyPrinter::updateDynMode(const gtirb::Module& Module,
-                                  const std::string& SharedOption) {
-  DynModeMap[&Module] = computeDynMode(Module, SharedOption);
 }
 
 DynMode PrettyPrinter::getDynMode(const gtirb::Module& Module) const {
-  if (auto result = DynModeMap.find(&Module); result != DynModeMap.end()) {
-    return result->second;
+  const auto& T = aux_data::getBinaryType(Module);
+  if (std::find(T.begin(), T.end(), "SHARED") != T.end()) {
+    return DYN_MODE_SHARED;
+  } else if (std::find(T.begin(), T.end(), "PIE") != T.end()) {
+    return DYN_MODE_PIE;
+  } else {
+    return DYN_MODE_NONE;
   }
-  assert(!"should never reach here");
-  return DYN_MODE_NONE;
 }
 
 } // namespace gtirb_pprint

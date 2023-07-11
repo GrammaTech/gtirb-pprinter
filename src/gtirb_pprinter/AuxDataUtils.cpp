@@ -125,6 +125,16 @@ std::vector<std::string> getBinaryType(const gtirb::Module& Module) {
   return util::getOrDefault<gtirb::schema::BinaryType>(Module);
 }
 
+void setBinaryType(gtirb::Module& Module, const std::vector<std::string>& Vec) {
+  auto* BinTypeVec = Module.getAuxData<gtirb::schema::BinaryType>();
+  if (BinTypeVec) {
+    BinTypeVec->clear();
+    for (const auto& S : Vec) {
+      BinTypeVec->push_back(S);
+    }
+  }
+}
+
 std::map<gtirb::UUID, gtirb::UUID>
 getSymbolForwarding(const gtirb::Module& Module) {
   return util::getOrDefault<gtirb::schema::SymbolForwarding>(Module);

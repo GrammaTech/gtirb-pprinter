@@ -254,10 +254,9 @@ public:
   bool namedPolicyExists(const std::string& Name) const;
   const PrintingPolicy& getPolicy(const gtirb::Module& Module) const;
 
-  /// Update DynModeMap for the given module
-  void updateDynMode(const gtirb::Module& Module,
-                     const std::string& SharedOption);
-  /// Lookup DynModeMap for the given module
+  /// Update BinaryType aux_data for the given module
+  void updateDynMode(gtirb::Module& Module, const std::string& SharedOption);
+  /// Lookup BinaryType aux_data for the given module
   DynMode getDynMode(const gtirb::Module& Module) const;
 
 private:
@@ -265,7 +264,6 @@ private:
   std::string m_isa;
   std::string m_syntax;
   ListingMode LstMode = ListingAssembler;
-  std::map<const gtirb::Module*, DynMode> DynModeMap;
   PolicyOptions FunctionPolicy, SymbolPolicy, SectionPolicy, ArraySectionPolicy;
   std::string PolicyName = "default";
   bool IgnoreSymbolVersions = false;
