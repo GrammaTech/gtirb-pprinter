@@ -8,6 +8,7 @@
   * Added `--object` option to print relocatable object files
   * Binary printer methods now operate on modules, rather than the entire IR
   * Add `dynamicEntries` auxdata definition
+  * `--shared` option now takes an argument: either `yes`, `no`, or `auto` (`auto` uses aux_data `binaryType`)
 
 # 1.9.0
   * Added a Python wheel to make gtirb-pprinter pip-installable.
