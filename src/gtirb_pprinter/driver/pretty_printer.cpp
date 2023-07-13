@@ -128,7 +128,8 @@ int main(int argc, char** argv) {
       "this set further, use the --keep and --skip options. "
       "Valid policies are 'static', 'dynamic', and 'complete'");
   desc.add_options()(
-      "shared,S", po::value<std::string>()->default_value("auto"),
+      "shared,S",
+      po::value<std::string>()->default_value("auto")->implicit_value("yes"),
       "Output shared libraries, or assembly "
       "that can be compiled to shared libraries: yes, no, or auto");
   desc.add_options()("object,O", "Output  object files, but do not link them");

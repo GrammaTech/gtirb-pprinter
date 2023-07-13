@@ -328,6 +328,7 @@ class ElfBinaryPrinterTests(unittest.TestCase):
             ("SHARED", "yes", False, True),
             ("SHARED", "no", True, False),
             ("SHARED", "auto", False, True),
+            ("SHARED", "", False, True),
             ("PIE", "yes", False, True),
             ("PIE", "no", True, False),
             ("PIE", "auto", True, False),
