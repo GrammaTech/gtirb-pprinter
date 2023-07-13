@@ -73,20 +73,6 @@ getCFIDirectives(const gtirb::Offset& Offset, const gtirb::Module& Mod) {
   return std::nullopt;
 }
 
-std::set<uint64_t> getDynamicEntry(const gtirb::Module& Mod,
-                                   const std::string& Name) {
-  std::set<uint64_t> Values;
-  auto DynamicEntries =
-      util::getOrDefault<gtirb::provisional_schema::DynamicEntries>(Mod);
-  for (auto& [EntryName, Value] : DynamicEntries) {
-    if (EntryName == Name) {
-      Values.insert(Value);
-    }
-  }
-
-  return Values;
-}
-
 std::optional<std::string> getEncodingType(const gtirb::DataBlock& DataBlock) {
   return util::getByNode<gtirb::schema::Encodings>(
       DataBlock, *(DataBlock.getByteInterval()->getSection()->getModule()));
@@ -226,6 +212,20 @@ std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym) {
         }
       },
       VersionInfo);
+}
+
+gtirb::Symbol*
+findSymWithBinding(gtirb::Module::symbol_ref_range CandidateSymbols,
+                   const std::string& Binding) {
+  auto Result = std::find_if(CandidateSymbols.begin(), CandidateSymbols.end(),
+                             [&](gtirb::Symbol& S) {
+                               auto SymInfo = aux_data::getElfSymbolInfo(S);
+                               return SymInfo->Binding == Binding;
+                             });
+  if (Result == CandidateSymbols.end()) {
+    return nullptr;
+  }
+  return &(*Result);
 }
 
 std::optional<std::tuple<uint64_t, uint64_t>>

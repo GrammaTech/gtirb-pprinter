@@ -27,7 +27,7 @@ void applyFixups(gtirb::Context& Context, gtirb::Module& Module,
     fixupPESymbols(Context, Module);
   }
   if (format == "elf") {
-    fixupELFSymbols(Module);
+    fixupELFSymbols(Context, Module);
     if (Printer.getDynMode(Module) == DYN_MODE_SHARED) {
       fixupSharedObject(Context, Module);
     }
@@ -170,19 +170,50 @@ void fixupSharedObject(gtirb::Context& Context, gtirb::Module& Module) {
 };
 
 /**
-Make sure that the binding of symbol `main` is GLOBAL.
+Update an ELF symbol's binding/visibility to GLOBAL/HIDDEN
 */
-void fixupELFSymbols(gtirb::Module& Module) {
+static void promoteSymbolBinding(gtirb::Symbol& Sym) {
+  auto SymInfo = aux_data::getElfSymbolInfo(Sym);
+  aux_data::ElfSymbolInfo NewSymInfo{*SymInfo};
+  NewSymInfo.Binding = "GLOBAL";
+  // If the binding is not GLOBAL in the final linked binary, then
+  // it was HIDDEN in the object file.
+  NewSymInfo.Visibility = "HIDDEN";
+  aux_data::setElfSymbolInfo(Sym, NewSymInfo);
+}
+
+void fixupELFSymbols(gtirb::Context& Context, gtirb::Module& Module) {
+  // Promote main
+  // Allows _start to reference main when using --policy=dynamic
+  // With --policy=complete, this is unnecessary, but should have no impact on
+  // the final binary.
   if (auto It = Module.findSymbols("main"); !It.empty()) {
-    auto Symbol = &*It.begin();
-    if (auto SymInfo = aux_data::getElfSymbolInfo(*Symbol)) {
+    auto& Symbol = *It.begin();
+    if (auto SymInfo = aux_data::getElfSymbolInfo(Symbol)) {
       if (SymInfo->Binding != "GLOBAL") {
-        aux_data::ElfSymbolInfo NewSymInfo{*SymInfo};
-        NewSymInfo.Binding = "GLOBAL";
-        aux_data::setElfSymbolInfo(*Symbol, NewSymInfo);
+        promoteSymbolBinding(Symbol);
       }
     }
   }
+
+  // Promote or create symbols for DT_INIT and DT_FINI entries
+  auto ensureGlobalSymbolAt = [&](const gtirb::CodeBlock* Block) {
+    if (Block == nullptr) {
+      return;
+    }
+
+    auto Symbols = Module.findSymbols(*Block);
+    if (!aux_data::findSymWithBinding(Symbols, "GLOBAL")) {
+      if (auto LocalSym = aux_data::findSymWithBinding(Symbols, "LOCAL")) {
+        promoteSymbolBinding(*LocalSym);
+      }
+    }
+  };
+
+  ensureGlobalSymbolAt(
+      aux_data::getCodeBlock<gtirb::schema::ElfDynamicInit>(Context, Module));
+  ensureGlobalSymbolAt(
+      aux_data::getCodeBlock<gtirb::schema::ElfDynamicFini>(Context, Module));
 };
 
 void fixupPESymbols(gtirb::Context& Context, gtirb::Module& Module) {

@@ -31,7 +31,6 @@ void registerAuxDataTypes() {
   gtirb::AuxDataContainer::registerAuxDataType<FunctionEntries>();
   gtirb::AuxDataContainer::registerAuxDataType<FunctionBlocks>();
   gtirb::AuxDataContainer::registerAuxDataType<SymbolForwarding>();
-  gtirb::AuxDataContainer::registerAuxDataType<DynamicEntries>();
   gtirb::AuxDataContainer::registerAuxDataType<Encodings>();
   gtirb::AuxDataContainer::registerAuxDataType<SectionProperties>();
   gtirb::AuxDataContainer::registerAuxDataType<CfiDirectives>();
@@ -50,6 +49,8 @@ void registerAuxDataTypes() {
   gtirb::AuxDataContainer::registerAuxDataType<TypeTable>();
   gtirb::AuxDataContainer::registerAuxDataType<PrototypeTable>();
   gtirb::AuxDataContainer::registerAuxDataType<ElfSymbolTabIdxInfo>();
+  gtirb::AuxDataContainer::registerAuxDataType<ElfDynamicInit>();
+  gtirb::AuxDataContainer::registerAuxDataType<ElfDynamicFini>();
 }
 
 void registerPrettyPrinters() {

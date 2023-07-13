@@ -623,13 +623,47 @@ int ElfBinaryPrinter::assemble(const std::string& outputFilename,
   return -1;
 }
 
+/**
+Build ld arguments to reproduce DT_INIT or DT_FINI entries.
+
+Returns std::nullopt if no argument can be created.
+
+Emits warnings if it cannot build ld arguments for the tag, because many
+binaries will still work without their DT_INIT/DT_FINI entries.
+*/
+std::optional<std::string> getDynamicTagArg(const gtirb::Module& Mod,
+                                            const gtirb::CodeBlock* CB,
+                                            const std::string& Arg) {
+  if (!CB) {
+    return std::nullopt;
+  }
+  auto It = Mod.findSymbols(*CB);
+  std::string DefaultName = "_" + Arg;
+  if (std::any_of(It.begin(), It.end(), [&](const gtirb::Symbol& S) {
+        auto Info = aux_data::getElfSymbolInfo(S);
+        return S.getName() == DefaultName && Info->Binding == "GLOBAL";
+      })) {
+    // if the default name exists, there is no need to specify the argument.
+    return std::nullopt;
+  }
+
+  auto Result = aux_data::findSymWithBinding(It, "GLOBAL");
+  if (!Result) {
+    LOG_WARNING << "No viable symbol for -" << Arg << " linker argument\n";
+    return std::nullopt;
+  }
+
+  // default does not exist - we must provide a linker argument.
+  return "-Wl,-" + Arg + "=" + Result->getName();
+}
+
 int ElfBinaryPrinter::link(const std::string& outputFilename,
                            gtirb::Context& ctx, gtirb::Module& module) const {
   if (debug)
     std::cout << "Generating binary file" << std::endl;
   TempFile tempFile;
   if (!prepareSource(ctx, module, tempFile)) {
-    std::cerr << "ERROR: Could not write assembly into a temporary file.\n";
+    LOG_ERROR << "Could not write assembly into a temporary file.\n";
     return -1;
   }
 
@@ -642,14 +676,13 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
     // Create the temporary directory for storing the synthetic libraries.
     dummySoDir.emplace();
     if (!dummySoDir->created()) {
-      std::cerr
-          << "ERROR: Failed to create temp dir for synthetic .so files. Errno: "
-          << dummySoDir->errno_code() << "\n";
+      LOG_ERROR << "Failed to create temp dir for synthetic .so files. Errno: "
+                << dummySoDir->errno_code() << "\n";
       return -1;
     }
 
     if (!prepareDummySOLibs(ctx, module, dummySoDir->dirName(), libArgs)) {
-      std::cerr << "ERROR: Could not create dummy so files for linking.\n";
+      LOG_ERROR << "Could not create dummy so files for linking.\n";
       return -1;
     }
     // add rpaths from original binary(ies)
@@ -678,15 +711,30 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
   std::vector<TempFile> Files;
   Files.emplace_back(std::move(tempFile));
 
+  // Add -Wl,-init= and -Wl,-fini= arguments if necessary.
+  // This recreates DT_INIT and DT_FINI dynamic entries.
+  if (auto Arg = getDynamicTagArg(
+          module,
+          aux_data::getCodeBlock<gtirb::schema::ElfDynamicInit>(ctx, module),
+          "init")) {
+    libArgs.push_back(*Arg);
+  }
+  if (auto Arg = getDynamicTagArg(
+          module,
+          aux_data::getCodeBlock<gtirb::schema::ElfDynamicFini>(ctx, module),
+          "fini")) {
+    libArgs.push_back(*Arg);
+  }
+
   if (std::optional<int> ret =
           execute(compiler, buildCompilerArgs(outputFilename, Files, ctx,
                                               module, libArgs))) {
     if (*ret)
-      std::cerr << "ERROR: assembler returned: " << *ret << "\n";
+      LOG_ERROR << "assembler returned: " << *ret << "\n";
     return *ret;
   }
 
-  std::cerr << "ERROR: could not find the assembler '" << compiler
+  LOG_ERROR << "could not find the assembler '" << compiler
             << "' on the PATH.\n";
   return -1;
 }

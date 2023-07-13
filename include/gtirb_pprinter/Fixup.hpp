@@ -46,8 +46,16 @@ void fixupSharedObject(gtirb::Context& Ctx, gtirb::Module& Mod);
 /// Ensure that PE entry symbols are correctly named
 void fixupPESymbols(gtirb::Context& Ctx, gtirb::Module& Mod);
 
-/// Ensure that `main` symbol is GLOBAL.
-void fixupELFSymbols(gtirb::Module& Mod);
+/// Fixup ELF symbol bindings.
+///
+/// ELF symbol bindings can be changed by the linker from GLOBAL to LOCAL if
+/// they have a HIDDEN visibility in the object file. We need to undo this
+/// process before printing, so that the linker can use needed symbols. We do
+/// this for a few symbols:
+///
+/// - main (only necessary for --policy=dynamic, but we fixup unconditionally)
+/// - DT_INIT and DT_FINI functions
+void fixupELFSymbols(gtirb::Context& Ctx, gtirb::Module& Mod);
 
 } // namespace gtirb_pprint
 

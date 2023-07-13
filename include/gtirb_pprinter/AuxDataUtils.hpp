@@ -218,6 +218,12 @@ getElfSymbolInfo(const gtirb::Symbol& Sym);
 // Store the properties of a symbol to the `elfSymbolInfo' AuxData table.
 void setElfSymbolInfo(gtirb::Symbol& Sym, aux_data::ElfSymbolInfo& Info);
 
+// In the given symbol range, find a symbol with the specified Binding in its
+// elfSymbolInfo auxdata
+gtirb::Symbol*
+findSymWithBinding(gtirb::Module::symbol_ref_range CandidateSymbols,
+                   const std::string& Binding);
+
 // Determine if any versions symbols are defined in the IR.
 DEBLOAT_PRETTYPRINTER_EXPORT_API bool hasVersionedSymDefs(const gtirb::IR& IR);
 
@@ -307,17 +313,26 @@ getPeSafeExceptionHandlers(const gtirb::Module& M);
 gtirb::schema::ElfSymbolTabIdxInfo::Type
 getElfSymbolTabIdxInfo(const gtirb::Module& M);
 
+// Get the code block from an auxdata that contains a single CodeBlock UUID
+template <typename Schema>
+const gtirb::CodeBlock* getCodeBlock(const gtirb::Context& Ctx,
+                                     const gtirb::Module& Mod) {
+  auto UUID = Mod.getAuxData<Schema>();
+  if (UUID) {
+    auto Nd = gtirb::Node::getByUUID(Ctx, *UUID);
+    if (const auto* CB = dyn_cast<gtirb::CodeBlock>(Nd)) {
+      return CB;
+    }
+  }
+  return nullptr;
+}
+
 // Load map from UUIDs to type descriptors
 gtirb::provisional_schema::TypeTable::Type getTypeTable(const gtirb::Module& M);
 
 // Load map from UUIDs for functions to UUIDs for their type signatures
 gtirb::provisional_schema::PrototypeTable::Type
 getPrototypeTable(const gtirb::Module& M);
-
-// Get values for a dynamic entry of a given name.
-// Returns an empty list if the auxdata or name does not exist.
-std::set<uint64_t> getDynamicEntry(const gtirb::Module& Mod,
-                                   const std::string& Name);
 
 } // namespace aux_data
 

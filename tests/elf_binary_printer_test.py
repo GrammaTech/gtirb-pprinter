@@ -54,35 +54,46 @@ class ElfBinaryPrinterTests(unittest.TestCase):
             self.assertTrue(exe_path.exists())
             yield BinaryPrintResult(exe_path, completed_process)
 
-    def find_syms(
-        self,
-        exe_path: Path,
-        syms: typing.List[typing.Tuple[str, str, str, str]],
-    ) -> typing.List[typing.Optional[int]]:
-        """
-        Find symbols in the ELF file at `exe_path` having the provided
-        properties: (Type, Binding, Visibility, Name)
-
-        Returns addresses corresponding to each symbol, or None for each
-        symbol not found.
-        """
-        readelf = subprocess.run(
-            ["readelf", "--dyn-syms", exe_path],
+    def readelf(self, path: Path, *args):
+        return subprocess.run(
+            ["readelf", path, *args],
             check=True,
             capture_output=True,
             text=True,
         )
 
-        addrs = []
+    def assert_regex_match(self, text: str, pattern: str):
+        """
+        Like unittest's assertRegex, but also return the match object on
+        success.
+
+        assertRegex provides a nice output on failure, but doesn't return the
+        match object, so we assert, and then search.
+        """
+        compiled = re.compile(pattern)
+        self.assertRegex(text, compiled)
+        return re.search(compiled, text)
+
+    def assert_readelf_syms(
+        self,
+        readelf: typing.Union[str, Path],
+        *syms: typing.List[typing.Tuple[str, str, str, str]]
+    ) -> typing.List[int]:
+        """
+        Assert that a symbol is present in the given readelf output, and return
+        its address
+
+        The first argument can either be a Path (in which readelf --dyn-syms is
+        run on it) or an existing readelf output string.
+        """
+        if isinstance(readelf, Path):
+            readelf = self.readelf(readelf, "--dyn-syms").stdout
+
         template = r"([0-9a-f]+)\s+\d+\s+{}\s+{}\s+{}\s+(UND|\d+)\s+{}"
-        for sym_type, binding, vis, name in syms:
-            match = re.search(
-                template.format(sym_type, binding, vis, name), readelf.stdout
-            )
-
-            addrs.append(match.group(1) if match else None)
-
-        return addrs
+        return [
+            self.assert_regex_match(readelf, template.format(*s)).group(1)
+            for s in syms
+        ]
 
     def assert_libs_in_ldd(self, exe_path: Path, libs: typing.List[str]):
         """
@@ -159,17 +170,11 @@ class ElfBinaryPrinterTests(unittest.TestCase):
             # Ensure the GLOBAL and WEAK versions of the COPY-relocated symbol
             # refer to the same address; this verifies that they were grouped
             # together for printing.
-            sym_addr, sym_addr_weak = self.find_syms(
+            sym_addr, sym_addr_weak = self.assert_readelf_syms(
                 result.path,
-                [
-                    ("OBJECT", "GLOBAL", "DEFAULT", "__lib_value"),
-                    ("OBJECT", "WEAK", "DEFAULT", "__lib_value_weak"),
-                ],
+                ("OBJECT", "GLOBAL", "DEFAULT", "__lib_value"),
+                ("OBJECT", "WEAK", "DEFAULT", "__lib_value_weak"),
             )
-
-            self.assertIsNotNone(sym_addr)
-            self.assertIsNotNone(sym_addr_weak)
-
             # Both symbols should be at the same address.
             self.assertEqual(sym_addr, sym_addr_weak)
 
@@ -182,10 +187,9 @@ class ElfBinaryPrinterTests(unittest.TestCase):
             self.assert_libs_in_ldd(result.path, "libvalue.so")
 
             # Ensure the TLS symbol is linked
-            addr = self.find_syms(
-                result.path, [("TLS", "GLOBAL", "DEFAULT", "__lib_value")]
-            )[0]
-            self.assertIsNotNone(addr)
+            self.assert_readelf_syms(
+                result.path, ("TLS", "GLOBAL", "DEFAULT", "__lib_value")
+            )
 
     def test_dummyso_versioned_syms(self):
         """
@@ -197,15 +201,11 @@ class ElfBinaryPrinterTests(unittest.TestCase):
             self.assert_libs_in_ldd(result.path, "libmya.so")
 
             # Ensure the symbols are present
-            addrs = self.find_syms(
+            self.assert_readelf_syms(
                 result.path,
-                [
-                    ("FUNC", "GLOBAL", "DEFAULT", "a@LIBA_1.0"),
-                    ("FUNC", "GLOBAL", "DEFAULT", "a@LIBA_2.0"),
-                ],
+                ("FUNC", "GLOBAL", "DEFAULT", "a@LIBA_1.0"),
+                ("FUNC", "GLOBAL", "DEFAULT", "a@LIBA_2.0"),
             )
-            for addr in addrs:
-                self.assertIsNotNone(addr)
 
     def test_use_gcc(self):
         """
@@ -339,3 +339,110 @@ class ElfBinaryPrinterTests(unittest.TestCase):
         for subtest in subtests:
             with self.subTest(subtest=subtest):
                 self.subtest_dyn_option(*subtest)
+
+    def subtest_dynamic_entries(self, sym_init: str, sym_fini: str):
+        """
+        Test that DT_INIT and DT_FINI entries are recreated
+        """
+        # Build a GTIRB module with DT_INIT/DT_FINI entries.
+        ir, module = gth.create_test_module(
+            gtirb.Module.FileFormat.ELF,
+            gtirb.Module.ISA.X64,
+            ["DYN", "PIE"],
+        )
+
+        # Add a .dynamic section (which gtirb-pprinter uses for detecting
+        # static vs. dynamic binaries)
+        gth.add_section(module, ".dynamic")
+
+        # Build code blocks
+        section_flags = {
+            gtirb.Section.Flag.Readable,
+            gtirb.Section.Flag.Executable,
+            gtirb.Section.Flag.Loaded,
+            gtirb.Section.Flag.Initialized,
+        }
+
+        #    48 31 ff                xor    %rdi,%rdi
+        #    0f 05                   syscall
+        code_bytes = b"\x48\x31\xff\x0f\x05"
+        code_blocks = {}
+        addr = 0x10000
+        for section_name in (".text", ".init", ".fini"):
+            (section, section_bi) = gth.add_section(
+                module, section_name, address=addr, flags=section_flags
+            )
+            code_blocks[section_name] = gth.add_code_block(
+                section_bi, code_bytes, {}
+            )
+
+            addr += 0x10
+
+        # Build symbols
+        symbol_start = gth.add_symbol(module, "_start", code_blocks[".text"])
+        module.aux_data["elfSymbolInfo"].data[symbol_start.uuid] = (
+            0,
+            "FUNC",
+            "GLOBAL",
+            "DEFAULT",
+            0,
+        )
+
+        for section_name, sym_name in (
+            (".init", sym_init),
+            (".fini", sym_fini),
+        ):
+            symbol = gth.add_symbol(
+                module, sym_name, code_blocks[section_name]
+            )
+            module.aux_data["elfSymbolInfo"].data[symbol.uuid] = (
+                0,
+                "FUNC",
+                "LOCAL",
+                "DEFAULT",
+                0,
+            )
+
+        module.aux_data["libraries"].data.extend(["libc.so"])
+
+        # Add DT_INIT and DT_FINI entries
+        module.aux_data["elfDynamicInit"] = gtirb.AuxData(
+            type_name="UUID", data=code_blocks[".init"].uuid
+        )
+        module.aux_data["elfDynamicFini"] = gtirb.AuxData(
+            type_name="UUID", data=code_blocks[".fini"].uuid
+        )
+
+        # Build binary
+        with self.binary_print(ir) as result:
+            readelf = self.readelf(result.path, "--syms", "--dynamic")
+
+        # Verify readelf output
+        for (sym, tag) in ((sym_init, "INIT"), (sym_fini, "FINI")):
+            # Find the tag
+            pattern = r"0x[0-9a-f]+\s+\(" + tag + r"\)\s+(0x[0-9a-f]+)"
+            dt_match = self.assert_regex_match(readelf.stdout, pattern)
+
+            # Find the symbol
+            sym_addr = self.assert_readelf_syms(
+                readelf.stdout, ("FUNC", "LOCAL", "DEFAULT", sym)
+            )[0]
+
+            # The symbol and the DT entry should have the same address
+            self.assertEqual(int(sym_addr, 16), int(dt_match.group(1), 16))
+
+    def test_dynamic_entries(self):
+        """
+        Set up subtests for DT_INIT and DT_FINI entries
+        """
+        subtests = (
+            # Default names, which don't require -Wl,-init= arguments to the
+            # linker
+            ("_init", "_fini"),
+            # Non-default names
+            ("_my_init", "_my_fini"),
+        )
+
+        for subtest in subtests:
+            with self.subTest(subtest=subtest):
+                self.subtest_dynamic_entries(*subtest)

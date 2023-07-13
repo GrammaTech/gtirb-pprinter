@@ -171,12 +171,6 @@ struct PrototypeTable {
   typedef std::map<gtirb::UUID, gtirb::UUID> Type;
 };
 
-/// \brief Auxiliary data describing entries from an ELF's .dynamic section
-struct DynamicEntries {
-  static constexpr const char* Name = "dynamicEntries";
-  typedef std::set<std::tuple<std::string, uint64_t>> Type;
-};
-
 } // namespace provisional_schema
 
 } // namespace gtirb
