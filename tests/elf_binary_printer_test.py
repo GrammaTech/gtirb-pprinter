@@ -234,7 +234,11 @@ class ElfBinaryPrinterTests(unittest.TestCase):
             self.assertTrue("relocatable" in output.stdout)
 
     def subtest_dyn_option(
-        self, mode: str, shared_option: str, pie: bool, shared: bool
+        self,
+        mode: str,
+        shared_option: typing.Optional[str],
+        pie: bool,
+        shared: bool,
     ):
         """
         Test that shared/pie options are automatically set up right.
@@ -330,7 +334,7 @@ class ElfBinaryPrinterTests(unittest.TestCase):
             ("SHARED", "yes", False, True),
             ("SHARED", "no", True, False),
             ("SHARED", "auto", False, True),
-            ("SHARED", "", False, True),
+            ("SHARED", None, False, True),
             ("PIE", "yes", False, True),
             ("PIE", "no", True, False),
             ("PIE", "auto", True, False),
