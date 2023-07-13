@@ -1,9 +1,9 @@
 import contextlib
+from dataclasses import dataclass
 import os
 from pathlib import Path
 import re
 import subprocess
-import sys
 import tempfile
 import typing
 import unittest
@@ -16,10 +16,18 @@ import hello_world
 from pprinter_helpers import pprinter_binary
 
 
+@dataclass
+class BinaryPrintResult:
+    """Result of a executing binary print command"""
+
+    path: Path
+    completed_process: subprocess.CompletedProcess
+
+
 @unittest.skipUnless(os.name == "posix", "only runs on Linux")
 class ElfBinaryPrinterTests(unittest.TestCase):
     @contextlib.contextmanager
-    def binary_print(self, ir: gtirb.IR, *extra_args) -> Path:
+    def binary_print(self, ir: gtirb.IR, *extra_args) -> BinaryPrintResult:
         """
         Run binary printer and provide a path to the compiled binary
         """
@@ -40,9 +48,11 @@ class ElfBinaryPrinterTests(unittest.TestCase):
                 *extra_args,
             ]
 
-            subprocess.run(args, check=True)
+            completed_process = subprocess.run(
+                args, check=True, capture_output=True, text=True
+            )
             self.assertTrue(exe_path.exists())
-            yield exe_path
+            yield BinaryPrintResult(exe_path, completed_process)
 
     def find_syms(
         self,
@@ -89,7 +99,7 @@ class ElfBinaryPrinterTests(unittest.TestCase):
         Test printing a simple GTIRB with --dummy-so.
         """
         ir = dummyso.build_gtirb()
-        with self.binary_print(ir, "--dummy-so", "yes") as exe_path:
+        with self.binary_print(ir, "--dummy-so", "yes") as result:
             # Make sure the .so libs have been built
             libdir = Path(__file__).parent / "dummyso_libs"
             self.assertTrue(libdir.exists())
@@ -100,7 +110,7 @@ class ElfBinaryPrinterTests(unittest.TestCase):
             # Run the resulting binary with the directory containing the actual
             # .so libs in LD_LIBRARY_PATH, so the loader can find them.
             exec_proc = subprocess.run(
-                str(exe_path),
+                str(result.path),
                 env={"LD_LIBRARY_PATH": libdir},
                 check=True,
                 capture_output=True,
@@ -117,7 +127,7 @@ class ElfBinaryPrinterTests(unittest.TestCase):
         Verify that the symbol is generated in dummyso.
         """
         ir = dummyso.build_plt_sec_gtirb()
-        with self.binary_print(ir, "--dummy-so", "yes") as exe_path:
+        with self.binary_print(ir, "--dummy-so", "yes") as result:
             # Make sure the .so libs have been built
             libdir = Path(__file__).parent / "dummyso_libs"
             self.assertTrue(libdir.exists())
@@ -127,7 +137,7 @@ class ElfBinaryPrinterTests(unittest.TestCase):
             # Run the resulting binary with the directory containing the actual
             # .so libs in LD_LIBRARY_PATH, so the loader can find them.
             exec_proc = subprocess.run(
-                str(exe_path),
+                str(result.path),
                 env={"LD_LIBRARY_PATH": libdir},
                 check=True,
                 capture_output=True,
@@ -143,14 +153,14 @@ class ElfBinaryPrinterTests(unittest.TestCase):
         Verify that the final binary's symbols are generated correctly.
         """
         ir = dummyso.build_copy_relocated_gtirb()
-        with self.binary_print(ir, "--dummy-so", "yes") as exe_path:
-            self.assert_libs_in_ldd(exe_path, "libvalue.so")
+        with self.binary_print(ir, "--dummy-so", "yes") as result:
+            self.assert_libs_in_ldd(result.path, "libvalue.so")
 
             # Ensure the GLOBAL and WEAK versions of the COPY-relocated symbol
             # refer to the same address; this verifies that they were grouped
             # together for printing.
             sym_addr, sym_addr_weak = self.find_syms(
-                exe_path,
+                result.path,
                 [
                     ("OBJECT", "GLOBAL", "DEFAULT", "__lib_value"),
                     ("OBJECT", "WEAK", "DEFAULT", "__lib_value_weak"),
@@ -168,12 +178,12 @@ class ElfBinaryPrinterTests(unittest.TestCase):
         Test printing a GTIRB that links a TLS symbol with --dummy-so
         """
         ir = dummyso.build_tls_gtirb()
-        with self.binary_print(ir, "--dummy-so", "yes") as exe_path:
-            self.assert_libs_in_ldd(exe_path, "libvalue.so")
+        with self.binary_print(ir, "--dummy-so", "yes") as result:
+            self.assert_libs_in_ldd(result.path, "libvalue.so")
 
             # Ensure the TLS symbol is linked
             addr = self.find_syms(
-                exe_path, [("TLS", "GLOBAL", "DEFAULT", "__lib_value")]
+                result.path, [("TLS", "GLOBAL", "DEFAULT", "__lib_value")]
             )[0]
             self.assertIsNotNone(addr)
 
@@ -183,12 +193,12 @@ class ElfBinaryPrinterTests(unittest.TestCase):
         versioned symbols of the same name
         """
         ir = dummyso.build_versioned_syms_gtirb()
-        with self.binary_print(ir, "--dummy-so", "yes") as exe_path:
-            self.assert_libs_in_ldd(exe_path, "libmya.so")
+        with self.binary_print(ir, "--dummy-so", "yes") as result:
+            self.assert_libs_in_ldd(result.path, "libmya.so")
 
             # Ensure the symbols are present
             addrs = self.find_syms(
-                exe_path,
+                result.path,
                 [
                     ("FUNC", "GLOBAL", "DEFAULT", "a@LIBA_1.0"),
                     ("FUNC", "GLOBAL", "DEFAULT", "a@LIBA_2.0"),
@@ -224,9 +234,9 @@ class ElfBinaryPrinterTests(unittest.TestCase):
         Test the --object argument
         """
         ir = hello_world.build_gtirb()
-        with self.binary_print(ir, "--object") as object_path:
+        with self.binary_print(ir, "--object") as result:
             output = subprocess.run(
-                ["file", object_path],
+                ["file", result.path],
                 check=True,
                 capture_output=True,
                 text=True,
@@ -290,26 +300,12 @@ class ElfBinaryPrinterTests(unittest.TestCase):
         )
 
         # Build binary
-        with tempfile.TemporaryDirectory() as testdir:
-            gtirb_path = os.path.join(testdir, "test.gtirb")
-            ir.save_protobuf(gtirb_path)
+        extra_args = ["--shared"]
+        if shared_option:
+            extra_args.append(shared_option)
 
-            output_path = os.path.join(testdir, "test")
-            pprinter_cmd = [
-                pprinter_binary(),
-                "--ir",
-                str(gtirb_path),
-                "--binary",
-                str(output_path),
-                "--policy",
-                "complete",
-                "--shared",
-            ]
-            if shared_option:
-                pprinter_cmd += [shared_option]
-            output = subprocess.check_output(pprinter_cmd).decode(
-                sys.stdout.encoding
-            )
+        with self.binary_print(ir, *extra_args) as result:
+            output = result.completed_process.stdout
 
             if pie:
                 self.assertIn(" -pie", output)
@@ -321,7 +317,7 @@ class ElfBinaryPrinterTests(unittest.TestCase):
             else:
                 self.assertNotIn("-shared", output)
 
-            self.assertTrue(os.path.exists(output_path))
+            self.assertTrue(result.path.exists())
 
     def test_dyn_option(self):
         """
