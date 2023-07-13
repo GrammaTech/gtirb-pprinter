@@ -291,19 +291,21 @@ class ElfBinaryPrinterTests(unittest.TestCase):
             ir.save_protobuf(gtirb_path)
 
             output_path = os.path.join(testdir, "test")
-            output = subprocess.check_output(
-                [
-                    pprinter_binary(),
-                    "--ir",
-                    str(gtirb_path),
-                    "--binary",
-                    str(output_path),
-                    "--policy",
-                    "complete",
-                    "--shared",
-                    shared_option,
-                ]
-            ).decode(sys.stdout.encoding)
+            pprinter_cmd = [
+                pprinter_binary(),
+                "--ir",
+                str(gtirb_path),
+                "--binary",
+                str(output_path),
+                "--policy",
+                "complete",
+                "--shared",
+            ]
+            if shared_option:
+                pprinter_cmd += [shared_option]
+            output = subprocess.check_output(pprinter_cmd).decode(
+                sys.stdout.encoding
+            )
 
             if pie:
                 self.assertIn(" -pie", output)
