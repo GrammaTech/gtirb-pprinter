@@ -92,7 +92,7 @@ class GtirbPprinterConan(Properties, ConanFile):
     requires = (
         "boost/%s" % (boost_version),
         "gtirb/%s@rewriting+gtirb/master" % (gtirb_version),
-        "capstone/%s@rewriting+extra-packages/next" % (capstone_version),
+        "capstone/%s@rewriting+extra-packages/v5" % (capstone_version),
     )
     author = "GrammaTech Inc."
     generators = "cmake"
