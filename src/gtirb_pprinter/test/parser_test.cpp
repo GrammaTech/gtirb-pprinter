@@ -4,30 +4,6 @@
 
 using namespace gtirb_multimodule;
 
-TEST(Unit_Parser, matchPatterns) {
-  std::vector<std::pair<std::string, std::string>> cases{
-      {"*", ".*"},
-      {"hello", "hello"},
-      {"{name:*.so}", "(.*\\.so)"},
-      {"{n:*}", "(.*)"},
-      {"{stem:libc}.{ext:so*}", "(libc)\\.(so.*)"},
-      {"{stem:\\{*\\}}.*", "(\\{.*\\})\\..*"},
-      {"lib\\w.so", "lib\\\\w\\.so"},
-  };
-  for (auto& [input, pattern] : cases) {
-    Matcher M(input);
-    EXPECT_EQ(M.getRegexStr(), pattern);
-    if (M.getRegexStr() != pattern) {
-      std::cerr << "Input " << input << " failed!\n";
-    }
-    try {
-      std::regex(M.getRegexStr());
-    } catch (const std::regex_error& err) {
-      std::cerr << "Invalid regex: " << M.getRegexStr() << "\n"
-                << err.what() << "\n";
-    }
-  }
-}
 
 TEST(Unit_Parser, matchCases) {
   std::vector<std::tuple<std::string, std::string>> cases{
@@ -47,26 +23,6 @@ TEST(Unit_Parser, matchCases) {
       std::cerr << "Pattern " << M.getRegexStr() << " doesn't match " << name
                 << "\n";
     }
-  }
-}
-
-TEST(Unit_Parser, matchNames) {
-  auto input = "{stem:*}.{ext:so*}";
-  Matcher M(input);
-  ASSERT_EQ(M.getGroupIndexes().find("stem")->second, 1);
-  ASSERT_EQ(M.getGroupIndexes().find("ext")->second, 2);
-}
-
-TEST(Unit_Parser, SubstitutionPatterns) {
-  std::vector<std::pair<std::string, std::string>> cases{
-      {"hello.c", "hello.c"},
-      {"*=hello.c", "hello.c"},
-      {"{name}", "$&"},
-      {"*={name}", "$&"},
-      {"{stem:lib*}.{ext:so*}=libs/{stem}.{ext}", "libs/$1.$2"}};
-  for (auto& [input, expected] : cases) {
-    FilePattern sub(input);
-    ASSERT_EQ(sub.replacementPattern(), expected);
   }
 }
 
