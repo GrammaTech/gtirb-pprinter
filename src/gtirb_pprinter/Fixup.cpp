@@ -197,7 +197,8 @@ void fixupELFSymbols(gtirb::Context& Context, gtirb::Module& Module) {
   }
 
   // Promote or create symbols for DT_INIT and DT_FINI entries
-  auto ensureGlobalSymbolAt = [&](const gtirb::CodeBlock* Block) {
+  auto ensureGlobalSymbolAt = [&](gtirb::CodeBlock* Block,
+                                  const std::string& DefaultName) {
     if (Block == nullptr) {
       return;
     }
@@ -206,14 +207,26 @@ void fixupELFSymbols(gtirb::Context& Context, gtirb::Module& Module) {
     if (!aux_data::findSymWithBinding(Symbols, "GLOBAL")) {
       if (auto LocalSym = aux_data::findSymWithBinding(Symbols, "LOCAL")) {
         promoteSymbolBinding(*LocalSym);
+      } else {
+        std::string Name = DefaultName;
+        for (unsigned int Count = 0; !Module.findSymbols(Name).empty();
+             Count++) {
+          Name = DefaultName + "_disambig_" + std::to_string(Count);
+        }
+
+        gtirb::Symbol* Symbol = Module.addSymbol(Context, Block, Name);
+        aux_data::ElfSymbolInfo Info({0, "NOTYPE", "GLOBAL", "HIDDEN", 0});
+        aux_data::setElfSymbolInfo(*Symbol, Info);
       }
     }
   };
 
   ensureGlobalSymbolAt(
-      aux_data::getCodeBlock<gtirb::schema::ElfDynamicInit>(Context, Module));
+      aux_data::getCodeBlock<gtirb::schema::ElfDynamicInit>(Context, Module),
+      "_init");
   ensureGlobalSymbolAt(
-      aux_data::getCodeBlock<gtirb::schema::ElfDynamicFini>(Context, Module));
+      aux_data::getCodeBlock<gtirb::schema::ElfDynamicFini>(Context, Module),
+      "_fini");
 };
 
 void fixupPESymbols(gtirb::Context& Context, gtirb::Module& Module) {

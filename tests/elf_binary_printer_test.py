@@ -340,7 +340,9 @@ class ElfBinaryPrinterTests(unittest.TestCase):
             with self.subTest(subtest=subtest):
                 self.subtest_dyn_option(*subtest)
 
-    def subtest_dynamic_entries(self, sym_init: str, sym_fini: str):
+    def subtest_dynamic_entries(
+        self, sym_init: typing.Optional[str], sym_fini: typing.Optional[str]
+    ):
         """
         Test that DT_INIT and DT_FINI entries are recreated
         """
@@ -392,6 +394,8 @@ class ElfBinaryPrinterTests(unittest.TestCase):
             (".init", sym_init),
             (".fini", sym_fini),
         ):
+            if sym_name is None:
+                continue
             symbol = gth.add_symbol(
                 module, sym_name, code_blocks[section_name]
             )
@@ -423,13 +427,14 @@ class ElfBinaryPrinterTests(unittest.TestCase):
             pattern = r"0x[0-9a-f]+\s+\(" + tag + r"\)\s+(0x[0-9a-f]+)"
             dt_match = self.assert_regex_match(readelf.stdout, pattern)
 
-            # Find the symbol
-            sym_addr = self.assert_readelf_syms(
-                readelf.stdout, ("FUNC", "LOCAL", "DEFAULT", sym)
-            )[0]
+            if sym_name:
+                # Find the symbol
+                sym_addr = self.assert_readelf_syms(
+                    readelf.stdout, ("FUNC", "LOCAL", "DEFAULT", sym)
+                )[0]
 
-            # The symbol and the DT entry should have the same address
-            self.assertEqual(int(sym_addr, 16), int(dt_match.group(1), 16))
+                # The symbol and the DT entry should have the same address
+                self.assertEqual(int(sym_addr, 16), int(dt_match.group(1), 16))
 
     def test_dynamic_entries(self):
         """
@@ -441,6 +446,8 @@ class ElfBinaryPrinterTests(unittest.TestCase):
             ("_init", "_fini"),
             # Non-default names
             ("_my_init", "_my_fini"),
+            # No symbols
+            (None, None),
         )
 
         for subtest in subtests:

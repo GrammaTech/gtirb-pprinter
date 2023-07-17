@@ -327,6 +327,13 @@ const gtirb::CodeBlock* getCodeBlock(const gtirb::Context& Ctx,
   return nullptr;
 }
 
+template <typename Schema>
+gtirb::CodeBlock* getCodeBlock(gtirb::Context& Ctx, gtirb::Module& Mod) {
+  return const_cast<gtirb::CodeBlock*>(
+      getCodeBlock<Schema>(const_cast<const gtirb::Context&>(Ctx),
+                           const_cast<const gtirb::Module&>(Mod)));
+}
+
 // Load map from UUIDs to type descriptors
 gtirb::provisional_schema::TypeTable::Type getTypeTable(const gtirb::Module& M);
 
