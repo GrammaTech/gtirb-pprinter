@@ -4,6 +4,14 @@ using namespace std::literals;
 
 namespace gtirb_multimodule {
 
+std::string quote(char C){
+  static const std::string NeedEscapingForRegex("^$\\.*+?()[]{}|");
+  if (NeedEscapingForRegex.find(C) != std::string::npos){
+    return "\\"s + C;
+  } else return ""s + C;
+}
+
+
 std::optional<fs::path> getOutputFileName(const std::vector<FilePattern>& Subs,
                                           const std::string& ModuleName) {
   for (const auto& Sub : Subs) {
@@ -127,21 +135,13 @@ FilePattern::makeReplacementPattern(std::string::const_iterator PBegin,
         GroupName.push_back(*I);
       }
     } else if (CurrentState == State::Escape) {
-      for (auto& C : SpecialChars) {
-        if (*I == C) {
-          Pattern.push_back(C);
-          CurrentState = State::Name;
-          break;
-        }
-      }
-      if (CurrentState != State::Name) {
-        Pattern.push_back('\\');
-        if (*I == '$') {
-          Pattern.push_back('$');
-        }
+      if (SpecialChars.find(*I) != std::string::npos){
         Pattern.push_back(*I);
-        CurrentState = State::Name;
+      } else {
+        Pattern.push_back('\\');
+        --I;
       }
+      CurrentState = State::Name;
     }
   }
   return Pattern;
@@ -179,13 +179,11 @@ Matcher::Matcher(std::string::const_iterator FieldBegin,
 
   GroupIndexes["name"] = 0;
   GroupIndexes["n"] = 0;
-  auto i = FieldBegin;
   State CurrentState = State::Glob;
   std::vector<std::string> GroupNames;
-  std::regex WordChars("\\w|_", std::regex::optimize);
-  std::string NeedEscapingForRegex("[].+|<>()");
+  std::regex WordChars("\\w", std::regex::optimize);
   bool OpenGroup = false;
-  while (i != FieldEnd) {
+  for (auto i = FieldBegin; i!= FieldEnd; i++) {
     if (CurrentState == State::Name) {
       switch (*i) {
       case ':':
@@ -199,17 +197,13 @@ Matcher::Matcher(std::string::const_iterator FieldBegin,
         }
       }
     } else if (CurrentState == State::Escape) {
-      for (auto c : SpecialChars) {
-        if (*i == c) {
-          RegexStr.push_back(c);
-          CurrentState = State::Glob;
-          break;
-        }
+      if (SpecialChars.find(*i) != std::string::npos){
+          RegexStr.append(quote(*i));
+      } else {
+        RegexStr.append("\\\\");
+        --i;
       }
-      if (CurrentState != State::Glob) {
-        RegexStr.push_back('\\');
-        RegexStr.push_back(*i);
-      }
+      CurrentState = State::Glob;
     } else { // CurrentState == State::Glob
       switch (*i) {
       case '{':
@@ -220,16 +214,16 @@ Matcher::Matcher(std::string::const_iterator FieldBegin,
           throw std::runtime_error("Invalid character in pattern: "s + *i);
         }
         OpenGroup = true;
-        RegexStr.append("(");
+        RegexStr.push_back('(');
         break;
       case '}':
         if (OpenGroup) {
-          RegexStr.append(")");
+          RegexStr.push_back(')');
           OpenGroup = false;
-          break;
         } else {
-          throw std::runtime_error("Invalid character in pattern: "s + *i);
+          RegexStr.append("\\}");
         }
+          break;
       case '*':
         RegexStr.append(".*");
         break;
@@ -237,29 +231,18 @@ Matcher::Matcher(std::string::const_iterator FieldBegin,
         RegexStr.push_back('.');
         break;
       case '\\':
-        RegexStr.push_back('\\');
         CurrentState = State::Escape;
         break;
       default:
-        for (auto c : NeedEscapingForRegex) {
-          if (*i == c) {
-            RegexStr.push_back('\\');
-            break;
-          }
-        }
-        RegexStr.push_back(*i);
+        RegexStr.append(quote(*i));
       }
     };
-    ++i;
   }
   if (OpenGroup) {
-    throw std::runtime_error("Unclosed '}'");
+    throw std::runtime_error("Unclosed '{' in group"s + GroupNames.back());
   }
   for (size_t s = 0; s < GroupNames.size(); s++) {
     auto& Name = GroupNames[s];
-    // if (GroupIndexes.count(Name) > 0){
-    //   throw std::runtime_error("Duplicate group names not allowed");
-    // }
     GroupIndexes[Name] = s + 1;
   }
 }

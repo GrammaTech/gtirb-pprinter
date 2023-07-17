@@ -228,6 +228,54 @@ int main(int argc, char** argv) {
     return 0;
   }
 
+  std::vector<gtirb_multimodule::FilePattern> asmSubs, binarySubs;
+  if (vm.count("asm")) {
+    try {
+      asmSubs = gtirb_multimodule::parseInput(vm["asm"].as<std::string>());
+    } catch (const std::runtime_error& err) {
+      LOG_ERROR << "Invalid argument for --asm: " << err.what() << "\n";
+      return 1;
+    }
+  }
+  if (vm.count("binary")) {
+    try {
+      binarySubs =
+          gtirb_multimodule::parseInput(vm["binary"].as<std::string>());
+    } catch (const std::runtime_error& err) {
+      LOG_ERROR << "Invalid argument for --binary: " << err.what() << "\n";
+    }
+  }
+
+  std::vector<std::pair<gtirb::Module*, int>> Modules;
+  {
+    int i = 0;
+    for (auto& module : ir->modules()) {
+      Modules.emplace_back(&module, i);
+      i++;
+    }
+  }
+  if (vm.count("module")) {
+    auto Index = vm["module"].as<size_t>();
+    if (Index >= Modules.size()) {
+      LOG_ERROR << "The IR has " << Modules.size()
+                << " modules, module with index " << Index
+                << " cannot be printed.\n";
+      return EXIT_FAILURE;
+    }
+    Modules = {Modules[Index]};
+  } else {
+    // Modules should always be printed after
+    // any other module that they link against
+    std::stable_sort(
+        Modules.begin(), Modules.end(),
+        [](const std::pair<gtirb::Module*, int> MI1,
+           const std::pair<gtirb::Module*, int> MI2) {
+          const auto& Libraries = aux_data::getLibraries(*MI2.first);
+          return std::find(Libraries.begin(), Libraries.end(),
+                           MI1.first->getName()) != Libraries.end();
+        });
+  }
+
   if (vm.count("ir") != 0) {
     fs::path irPath = vm["ir"].as<std::string>();
     LOG_INFO << std::setw(24) << std::left << "Reading GTIRB file: " << irPath
@@ -405,51 +453,6 @@ int main(int argc, char** argv) {
     gtirb_pprint::printVersionScript(*ir, VersionStream);
   }
 
-  std::vector<gtirb_multimodule::FilePattern> asmSubs, binarySubs;
-  if (vm.count("asm")) {
-    try {
-      asmSubs = gtirb_multimodule::parseInput(vm["asm"].as<std::string>());
-    } catch (const std::runtime_error& err) {
-      LOG_ERROR << "Invalid argument for --asm: " << err.what() << "\n";
-      return 1;
-    }
-  }
-  if (vm.count("binary")) {
-    try {
-      binarySubs =
-          gtirb_multimodule::parseInput(vm["binary"].as<std::string>());
-    } catch (const std::runtime_error& err) {
-      LOG_ERROR << "Invalid argument for --binary: " << err.what() << "\n";
-    }
-  }
-
-  std::vector<std::pair<gtirb::Module*, int>> Modules;
-  int i = 0;
-  for (auto& module : ir->modules()) {
-    Modules.emplace_back(&module, i);
-    i++;
-  }
-  if (vm.count("module")) {
-    auto Index = vm["module"].as<size_t>();
-    if (Index >= Modules.size()) {
-      LOG_ERROR << "The IR has " << Modules.size()
-                << " modules, module with index " << Index
-                << " cannot be printed.\n";
-      return EXIT_FAILURE;
-    }
-    Modules = {Modules[Index]};
-  } else {
-    // Modules should always be printed after
-    // any other module that they link against
-    std::stable_sort(
-        Modules.begin(), Modules.end(),
-        [](const std::pair<gtirb::Module*, int> MI1,
-           const std::pair<gtirb::Module*, int> MI2) {
-          const auto& Libraries = aux_data::getLibraries(*MI2.first);
-          return std::find(Libraries.begin(), Libraries.end(),
-                           MI1.first->getName()) != Libraries.end();
-        });
-  }
   bool new_layout = false;
 
   for (auto& [MP, idx] : Modules) {
