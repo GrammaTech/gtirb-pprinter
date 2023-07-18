@@ -1,9 +1,6 @@
-# TODO...
 set(PROJECT_NAME TestNameParser)
 
 include_directories(${GTEST_INCLUDE_DIRS})
-
-set(${PROJECT_NAME}_H)
 
 set(${PROJECT_NAME}_SRC parser_test.cpp ../driver/parser.hpp
                         ../driver/parser.cpp)

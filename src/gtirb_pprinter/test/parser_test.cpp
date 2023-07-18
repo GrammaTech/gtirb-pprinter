@@ -2,8 +2,25 @@
 #include <gtest/gtest.h>
 #include <iomanip>
 
-using namespace gtirb_multimodule;
+using namespace gtirb_pprint_parser;
 
+TEST(Unit_Parser, matchPatterns) {
+  std::vector<std::pair<std::string, std::string>> cases{
+      {"*", ".*"},
+      {"hello", "hello"},
+      {"{name:*.so}", "(.*\\.so)"},
+      {"{n:*}", "(.*)"},
+      {"{stem:libc}.{ext:so*}", "(libc)\\.(so.*)"},
+      {"{stem:\\{*\\}}.*", "(\\{.*\\})\\..*"},
+      {"lib\\w.so", "lib\\\\w\\.so"},
+  };
+  for (auto& [input, pattern] : cases) {
+    auto M = makePattern(input.begin(), input.end());
+    EXPECT_EQ(M.RegexStr, pattern);
+    EXPECT_NO_THROW(std::regex(M.RegexStr))
+        << "Invalid regex: " << M.RegexStr << "\n";
+  }
+}
 
 TEST(Unit_Parser, matchCases) {
   std::vector<std::tuple<std::string, std::string>> cases{
@@ -17,13 +34,17 @@ TEST(Unit_Parser, matchCases) {
       {"lib$.so", "lib$.so"},
   };
   for (auto& [input, name] : cases) {
-    Matcher M(input);
-    EXPECT_TRUE(M.matches(name));
-    if (!M.matches(name)) {
-      std::cerr << "Pattern " << M.getRegexStr() << " doesn't match " << name
-                << "\n";
-    }
+    auto M = makePattern(input.begin(), input.end());
+    EXPECT_TRUE(M.matches(name))
+        << "Pattern " << M.RegexStr << " doesn't match " << name << "\n";
   }
+}
+
+TEST(Unit_Parser, matchNames) {
+  std::string input{"{stem:*}.{ext:so*}"};
+  auto M = makePattern(input.begin(), input.end());
+  EXPECT_EQ(M.GroupIndexes.find("stem")->second, 1);
+  EXPECT_EQ(M.GroupIndexes.find("ext")->second, 2);
 }
 
 TEST(Unit_Parser, Substitutions) {
@@ -33,41 +54,58 @@ TEST(Unit_Parser, Substitutions) {
       {"*={n}", "'try-to-[escape]'", "'try-to-[escape]'"},
       {R"({a:*}.{b:*}={a}\\{b})", "hello.world", R"(hello\world)"},
       {R"({a:*}.{b:*}=dir\{a}\\{b})", "hello.world", R"(dir{a}\world)"},
-      {R"({a:*}.{b:*}=C:\dir\\{a})", "hello.world", R"(C:\dir\hello)"}};
+      {R"({a:*}.{b:*}=C:\dir\\{a})", "hello.world", R"(C:\dir\hello)"},
+      {"{g1:hell\\\\\\=0}*=lib/{g1}", "hell\\=0_world", "lib/hell\\=0"},
+  };
   for (auto& [pattern, name, result] : cases) {
-    EXPECT_EQ(*FilePattern(pattern).substitute(name), result);
+    EXPECT_EQ(*FilePattern(pattern.begin(), pattern.end()).substitute(name),
+              result)
+        << "Applying " << pattern << "to " << name << "does not give" << result
+        << "\n";
   }
 }
 
 TEST(Unit_Parser, Mistakes) {
   std::vector<std::string> cases{
-      "{s%:*}.so={s%}",         // group names are only allowed a-zA-Z0-9_
-      "{g1:{hello}}.*={g1}",    // brackets in globs need to be escaped
-      "{g1:hell\\0}*=lib/{g1}", // \0 is not a valid escape
-      "{g1:*.so=hello_{g1}"     // unclosed brace
+      "{s%:*}.so={s%}",      // group names are only allowed a-zA-Z0-9_
+      "{g1:{hello}}.*={g1}", // brackets in globs need to be escaped
+      "{g1:*.so=hello_{g1}", // unclosed brace
+      "{g1:[*]}",            // brackets need to be escaped
+      "{g1:hell=0}",         // as does '='
   };
   for (auto& s : cases) {
-    ASSERT_ANY_THROW(FilePattern{s});
+    EXPECT_ANY_THROW(FilePattern(s.begin(), s.end()))
+        << "case " << s << " failed to crash";
   }
+
+  // One of the two '='s needs to be escaped
+  EXPECT_ANY_THROW(parseInput("{g1:yes}=4={g1}.s"));
 }
 
 TEST(Unit_Parser, E2E) {
   auto Subs = parseInput("{g1:h*o}*={g1},{n}"); // should be fine
 
   Subs = parseInput("{n},lib/{n}");
-  ASSERT_EQ(Subs.size(), 2);
-  ASSERT_TRUE(Subs[0].isDefault());
-  ASSERT_TRUE(Subs[1].isDefault());
+  EXPECT_EQ(Subs.size(), 2);
 
   Subs = parseInput("{n}.s");
-  ASSERT_EQ(getOutputFileName(Subs, "ex")->generic_string(),
+  EXPECT_EQ(getOutputFileName(Subs, "ex")->generic_string(),
             std::string("ex.s"));
 
   Subs = parseInput("{s:*}.{ext:so*}={s}.rewritten.{ext},{n}");
-  ASSERT_EQ(getOutputFileName(Subs, "libc.so.6"),
+  EXPECT_EQ(getOutputFileName(Subs, "libc.so.6"),
             fs::path("libc.rewritten.so.6"));
-  ASSERT_EQ(getOutputFileName(Subs, "eq"), fs::path("eq"));
+  EXPECT_EQ(getOutputFileName(Subs, "eq"), fs::path("eq"));
 
   Subs = parseInput("{s:*}.{ext:so*}={s}.rewritten.{ext}");
-  ASSERT_EQ(getOutputFileName(Subs, "ex"), std::nullopt);
+  EXPECT_EQ(getOutputFileName(Subs, "ex"), std::nullopt);
+
+  Subs = parseInput(R"(\{{s:*}\}\{{t:*}\}={s}.{t})");
+  EXPECT_EQ(getOutputFileName(Subs, "{hello}{world}"), "hello.world");
+
+  Subs = parseInput(R"(\{\[$.\,\=\]\}={name})");
+  auto Name = "{[$.,=]}";
+  EXPECT_EQ(getOutputFileName(Subs, Name), Name)
+      << "Expected " << Name << ", got "
+      << getOutputFileName(Subs, Name)->generic_string();
 }

@@ -79,8 +79,7 @@ int main(int argc, char** argv) {
   po::options_description desc("Allowed options");
   desc.add_options()("help,h", "Produce help message.");
   desc.add_options()("version", "Print version info and exit.");
-  desc.add_options()("ir,i", po::value<std::string>(),
-                     "GTIRB file(s) to print.");
+  desc.add_options()("ir,i", po::value<std::string>(), "GTIRB file to print.");
   desc.add_options()(
       "asm,a", po::value<std::string>(),
       "Print IR as assembly code to FILE."
@@ -90,8 +89,7 @@ int main(int argc, char** argv) {
       "and specifying file names.");
   desc.add_options()(
       "binary,b", po::value<std::string>(),
-      "Print IR as one or more binary files,"
-      "either exectuables or (with --shared) shared libraries."
+      "Print IR as one or more binary files. "
       "If there is more than one module, files for each can be specified "
       "with 'MODULE1=FILE1[,MODULE2=FILE2...]'."
       "See `--help-modules` for more details regarding selecting modules "
@@ -104,9 +102,10 @@ int main(int argc, char** argv) {
                      po::value<std::vector<std::string>>()->multitoken(),
                      "Library paths to be passed to the linker. Only used "
                      "for binary printing.");
-  desc.add_options()("module,m", po::value<size_t>(),
-                     "The index of the module to be printed if printing to the "
-                     "standard output.");
+  desc.add_options()(
+      "module,m", po::value<size_t>(),
+      "(DEPRECATED) The index of the module to be printed if printing to the "
+      "standard output.");
   desc.add_options()("format,f", po::value<std::string>(),
                      "The format of the target binary object: elf, pe, or raw");
   desc.add_options()("syntax,s", po::value<std::string>(),
@@ -184,7 +183,7 @@ int main(int argc, char** argv) {
   desc.add_options()("version-script", po::value<std::string>(),
                      "Generate a version script file on the given path. Only "
                      "relevant for ELF executables.");
-  desc.add_options()("help-modules", po::value<bool>()->default_value(false),
+  desc.add_options()("help-modules",
                      "Display help about filtering modules and generating "
                      "files for multi-module IRs");
   po::positional_options_description pd;
@@ -198,6 +197,11 @@ int main(int argc, char** argv) {
       std::cout << desc << "\n";
       return 1;
     }
+    if (vm.count("help-modules") != 0) {
+      std::cout << gtirb_pprint_parser::module_help_message;
+      return 1;
+    }
+
     if (vm.count("version") != 0) {
       std::cout << GTIRB_PPRINTER_VERSION_STRING << " ("
                 << GTIRB_PPRINTER_BUILD_REVISION << " "
@@ -223,16 +227,11 @@ int main(int argc, char** argv) {
   ContextForgetter ctx;
   gtirb::IR* ir = nullptr;
 
-  if (vm["help-modules"].as<bool>()) {
-    std::cout << gtirb_multimodule::module_help_message;
-    return 0;
-  }
-
-  std::vector<gtirb_multimodule::FilePattern> asmSubs, binarySubs;
+  std::vector<gtirb_pprint_parser::FilePattern> asmSubs, binarySubs;
   if (vm.count("asm")) {
     try {
-      asmSubs = gtirb_multimodule::parseInput(vm["asm"].as<std::string>());
-    } catch (const std::runtime_error& err) {
+      asmSubs = gtirb_pprint_parser::parseInput(vm["asm"].as<std::string>());
+    } catch (const gtirb_pprint_parser::parse_error& err) {
       LOG_ERROR << "Invalid argument for --asm: " << err.what() << "\n";
       return 1;
     }
@@ -240,42 +239,11 @@ int main(int argc, char** argv) {
   if (vm.count("binary")) {
     try {
       binarySubs =
-          gtirb_multimodule::parseInput(vm["binary"].as<std::string>());
-    } catch (const std::runtime_error& err) {
+          gtirb_pprint_parser::parseInput(vm["binary"].as<std::string>());
+    } catch (const gtirb_pprint_parser::parse_error& err) {
       LOG_ERROR << "Invalid argument for --binary: " << err.what() << "\n";
     }
   }
-
-  std::vector<std::pair<gtirb::Module*, int>> Modules;
-  {
-    int i = 0;
-    for (auto& module : ir->modules()) {
-      Modules.emplace_back(&module, i);
-      i++;
-    }
-  }
-  if (vm.count("module")) {
-    auto Index = vm["module"].as<size_t>();
-    if (Index >= Modules.size()) {
-      LOG_ERROR << "The IR has " << Modules.size()
-                << " modules, module with index " << Index
-                << " cannot be printed.\n";
-      return EXIT_FAILURE;
-    }
-    Modules = {Modules[Index]};
-  } else {
-    // Modules should always be printed after
-    // any other module that they link against
-    std::stable_sort(
-        Modules.begin(), Modules.end(),
-        [](const std::pair<gtirb::Module*, int> MI1,
-           const std::pair<gtirb::Module*, int> MI2) {
-          const auto& Libraries = aux_data::getLibraries(*MI2.first);
-          return std::find(Libraries.begin(), Libraries.end(),
-                           MI1.first->getName()) != Libraries.end();
-        });
-  }
-
   if (vm.count("ir") != 0) {
     fs::path irPath = vm["ir"].as<std::string>();
     LOG_INFO << std::setw(24) << std::left << "Reading GTIRB file: " << irPath
@@ -304,6 +272,63 @@ int main(int argc, char** argv) {
   if (ir->modules().empty()) {
     LOG_ERROR << "GTIRB file contains no modules.\n";
     return EXIT_FAILURE;
+  }
+
+  struct ModulePrintingInfo{
+    gtirb::Module * Module;
+    std::optional<fs::path> AsmName;
+    std::optional<fs::path> BinaryName;
+    ModulePrintingInfo(gtirb::Module* M, std::optional<fs::path> AN, std::optional<fs::path> BN):
+      Module(M), AsmName(AN), BinaryName(BN){};
+  };
+
+  std::vector<ModulePrintingInfo> Modules;
+  std::unordered_set<std::string> AsmNames, BinaryNames;
+  for (auto& m : ir->modules()) {
+    auto AsmName = gtirb_pprint_parser::getOutputFileName(asmSubs, m.getName());
+    auto BinaryName = gtirb_pprint_parser::getOutputFileName(binarySubs, m.getName());
+    // if (AsmName){
+    //   if (AsmNames.count(fs::absolute(*AsmName).generic_string())){
+    //     LOG_ERROR << "Cannot print multiple modules to " << AsmName->generic_string() <<"\n";
+    //     return 1;
+    //   }
+    //   AsmNames.insert(fs::absolute(*AsmName).generic_string()); 
+    // }
+    // if (BinaryName){
+    //   if (BinaryNames.count(fs::absolute(*BinaryName).generic_string())){
+    //     LOG_ERROR << "Cannot print multiple modules to " << AsmName->generic_string() <<"\n";
+    //     return 1;
+    //   }
+    //   BinaryNames.insert(fs::absolute(*BinaryName).generic_string());
+    // }
+    if (AsmName || BinaryName ){
+      Modules.emplace_back(&m, AsmName, BinaryName);
+    };
+  }
+  if (Modules.size() == 0 && (vm.count("asm") || vm.count("binary"))){
+    LOG_ERROR << "No modules match the patterns given\n";
+    return 1;
+  }
+
+  if (vm.count("module")) {
+    LOG_WARNING << "Option `--module` has been deprecated\n";
+    auto Index = vm["module"].as<size_t>();
+    if (Index >= Modules.size()) {
+      LOG_ERROR << "The IR has " << Modules.size()
+                << " modules, module with index " << Index
+                << " cannot be printed.\n";
+      return EXIT_FAILURE;
+    }
+    Modules = {Modules[Index]};
+  } else {
+    // Modules should always be printed after
+    // any other module that they link against
+    std::stable_sort(Modules.begin(), Modules.end(),
+                     [](const ModulePrintingInfo& M1, const ModulePrintingInfo& M2) {
+                       const auto& Libraries = aux_data::getLibraries(*(M2.Module));
+                       return std::find(Libraries.begin(), Libraries.end(),
+                                        M1.Module->getName()) != Libraries.end();
+                     });
   }
 
   // Configure the pretty-printer
@@ -455,8 +480,8 @@ int main(int argc, char** argv) {
 
   bool new_layout = false;
 
-  for (auto& [MP, idx] : Modules) {
-    auto& M = *MP;
+  for (auto& MP : Modules) {
+    auto& M = *(MP.Module);
     // Layout IR in memory without overlap.
     if (vm.count("layout")) {
       LOG_INFO << "Applying new layout to module " << M.getUUID() << "..."
@@ -487,8 +512,7 @@ int main(int argc, char** argv) {
     // Apply any needed fixups
     applyFixups(ctx, M, pp);
     // Write ASM to a file.
-    const auto asmPath =
-        gtirb_multimodule::getOutputFileName(asmSubs, M.getName());
+    const auto asmPath = MP.AsmName;
     if (asmPath) {
       if (!asmPath->has_filename()) {
         LOG_ERROR << "The given path \"" << *asmPath << "\" has no filename.\n";
@@ -499,8 +523,8 @@ int main(int argc, char** argv) {
       std::ofstream ofs(name);
       if (ofs) {
         if (pp.print(ofs, ctx, M)) {
-          LOG_INFO << "Module " << idx << "'s assembly written to: " << name
-                   << "\n";
+          LOG_INFO << "Assembly for module " << M.getName()
+                   << " written to: " << name << "\n";
         }
       } else {
         LOG_ERROR << "Could not output assembly output file: \"" << name
@@ -508,8 +532,7 @@ int main(int argc, char** argv) {
       }
     }
 
-    const auto binaryPath =
-        gtirb_multimodule::getOutputFileName(binarySubs, M.getName());
+    const auto binaryPath = MP.BinaryName;
     if (binaryPath) {
       if (!binaryPath->has_filename()) {
         LOG_ERROR << "The given path \"" << *binaryPath

@@ -2,15 +2,15 @@
 
 using namespace std::literals;
 
-namespace gtirb_multimodule {
+namespace gtirb_pprint_parser {
 
-std::string quote(char C){
+std::string quote(char C) {
   static const std::string NeedEscapingForRegex("^$\\.*+?()[]{}|");
-  if (NeedEscapingForRegex.find(C) != std::string::npos){
+  if (NeedEscapingForRegex.find(C) != std::string::npos) {
     return "\\"s + C;
-  } else return ""s + C;
+  } else
+    return ""s + C;
 }
-
 
 std::optional<fs::path> getOutputFileName(const std::vector<FilePattern>& Subs,
                                           const std::string& ModuleName) {
@@ -22,13 +22,33 @@ std::optional<fs::path> getOutputFileName(const std::vector<FilePattern>& Subs,
   return {};
 }
 
+enum class State {
+  Name,
+  Glob,
+  Escape,
+};
+
+/**
+ * Grammar for substitutions:
+ * INPUT := SUB | SUB,SUBS
+ * SUB := FILE | MODULE=FILE
+ *
+ */
+
 std::vector<FilePattern> parseInput(const std::string& Input) {
+  /**
+   * @brief Parse a string into a list of substitutions to be made
+   *
+   * Substitution patterns are presumed to be separated by commas;
+   * literal commas need to be escaped
+   *
+   */
   std::vector<FilePattern> Subs;
-  int NDefaults = 0;
   bool Escaped = false;
   auto Start = Input.begin();
   for (auto In = Input.begin(); In != Input.end(); In++) {
     if (Escaped) {
+      Escaped = false;
       continue;
     }
     if (*In == '\\') {
@@ -37,12 +57,6 @@ std::vector<FilePattern> parseInput(const std::string& Input) {
     }
     if (*In == ',') {
       Subs.emplace_back(Start, In);
-      if (Subs.back().isDefault()) {
-        NDefaults++;
-        if (NDefaults > 1) {
-          throw std::runtime_error("Only one default pattern allowed");
-        }
-      }
       Start = In + 1;
     }
   }
@@ -52,19 +66,13 @@ std::vector<FilePattern> parseInput(const std::string& Input) {
 
 FilePattern::FilePattern(std::string::const_iterator SpecBegin,
                          std::string::const_iterator SpecEnd)
-    : Match("*"), IsDefault(true) {
-  /**
-   * Grammar for substitutions:
-   *
-   * SUB := FILE | MODULE=FILE
-   *
-   *
-   */
+    : MPattern{".*", {{"name", 0}, {"n", 0}}} {
   auto SpecIter = SpecBegin;
   bool Escape = false;
   while (SpecIter != SpecEnd) {
     if (Escape) {
       ++SpecIter;
+      Escape = false;
       continue;
     }
     if (*SpecIter == '\\') {
@@ -72,8 +80,7 @@ FilePattern::FilePattern(std::string::const_iterator SpecBegin,
     }
 
     if (*SpecIter == '=') {
-      Match = gtirb_multimodule::Matcher(SpecBegin, SpecIter);
-      IsDefault = false;
+      MPattern = makePattern(SpecBegin, SpecIter);
       ReplacementPattern = makeReplacementPattern(++SpecIter, SpecEnd);
       return;
     }
@@ -96,7 +103,7 @@ FilePattern::makeReplacementPattern(std::string::const_iterator PBegin,
    * `\` only needs to be escaped when it would otherwise form an escape
    * sequence
    */
-  std::string SpecialChars{"{,=\\"};
+  std::string SpecialChars{"{\\,="};
   State CurrentState = State::Name;
   std::string Pattern;
   std::string GroupName;
@@ -105,7 +112,6 @@ FilePattern::makeReplacementPattern(std::string::const_iterator PBegin,
       switch (*I) {
       case '{':
         CurrentState = State::Glob;
-        GroupName = "";
         continue;
       case '\\':
         CurrentState = State::Escape;
@@ -113,15 +119,19 @@ FilePattern::makeReplacementPattern(std::string::const_iterator PBegin,
       case '$':
         Pattern.append("$$");
         continue;
+      case ',':
+      case '=':
+        throw parse_error("Character "s + *I + " must be escaped");
       default:
         Pattern.push_back(*I);
         continue;
       }
     } else if (CurrentState == State::Glob) {
-      if (*I == '}') {
-        auto GroupIndexesIter = Match.GroupIndexes.find(GroupName);
-        if (GroupIndexesIter == Match.GroupIndexes.end()) {
-          throw std::runtime_error("Undefined group: "s + GroupName);
+      if (auto J = std::find(I, PEnd, '}'); J != PEnd) {
+        GroupName = std::string(I, J);
+        auto GroupIndexesIter = MPattern.GroupIndexes.find(GroupName);
+        if (GroupIndexesIter == MPattern.GroupIndexes.end()) {
+          throw parse_error("Undefined group: "s + GroupName);
         }
         auto GI = GroupIndexesIter->second;
         Pattern.push_back('$');
@@ -131,11 +141,12 @@ FilePattern::makeReplacementPattern(std::string::const_iterator PBegin,
           Pattern.append(std::to_string(GroupIndexesIter->second));
         }
         CurrentState = State::Name;
+        I = J;
       } else {
-        GroupName.push_back(*I);
+        throw parse_error("Unclosed `{` in file template");
       }
     } else if (CurrentState == State::Escape) {
-      if (SpecialChars.find(*I) != std::string::npos){
+      if (SpecialChars.find(*I) != std::string::npos) {
         Pattern.push_back(*I);
       } else {
         Pattern.push_back('\\');
@@ -144,18 +155,21 @@ FilePattern::makeReplacementPattern(std::string::const_iterator PBegin,
       CurrentState = State::Name;
     }
   }
+  if (CurrentState == State::Escape) { // Terminal character is '\'
+    Pattern.push_back('\\');
+  }
   return Pattern;
 }
 
 std::optional<std::string> FilePattern::substitute(const std::string& P) const {
-  if (auto M = Match.matches(P)) {
+  if (auto M = matches(P)) {
     return M->format(ReplacementPattern);
   }
   return {};
 }
 
-Matcher::Matcher(std::string::const_iterator FieldBegin,
-                 std::string::const_iterator FieldEnd) {
+ModulePattern makePattern(std::string::const_iterator FieldBegin,
+                          std::string::const_iterator FieldEnd) {
   /*
   Grammar for module patterns:
 
@@ -171,36 +185,43 @@ Matcher::Matcher(std::string::const_iterator FieldBegin,
 
   EXPR ::= '*' | '?' | LITERAL
 
-  LITERAL ::= '\\' | '\*' | '\?' | '\=' | '\,' | '\{' | '\}' | '\['
+  LITERAL ::= '\\' | '\*' | '\?' | '\=' | '\,' | '\{' | '\}' | '\[' | '\]'
             | any unescaped character except the special characters above
 
   */
-  std::string SpecialChars{"\\=,{}:*?"};
+  ModulePattern Pattern;
+  Pattern.GroupIndexes["name"] = 0;
+  Pattern.GroupIndexes["n"] = 0;
 
-  GroupIndexes["name"] = 0;
-  GroupIndexes["n"] = 0;
+  std::string SpecialChars{"\\=,{}:*?[]"};
   State CurrentState = State::Glob;
   std::vector<std::string> GroupNames;
-  std::regex WordChars("\\w", std::regex::optimize);
+  std::regex WordChars("^\\w+", std::regex::optimize);
   bool OpenGroup = false;
-  for (auto i = FieldBegin; i!= FieldEnd; i++) {
+  for (auto i = FieldBegin; i != FieldEnd; i++) {
     if (CurrentState == State::Name) {
+      std::smatch M;
       switch (*i) {
       case ':':
         CurrentState = State::Glob;
         break;
       default:
-        if (std::regex_match(i, i + 1, WordChars)) {
-          GroupNames.back().push_back(*i);
+        if (std::regex_search(i, FieldEnd, M, WordChars)) {
+          GroupNames.push_back(M.str());
+          if (M.str().length() == 0) {
+            throw parse_error("All groups must be named");
+          }
+          i += M.str().length() - 1;
+
         } else {
-          throw std::runtime_error("Invalid character in group name: "s + *i);
+          throw parse_error("Invalid character in group name: "s + *i);
         }
       }
     } else if (CurrentState == State::Escape) {
-      if (SpecialChars.find(*i) != std::string::npos){
-          RegexStr.append(quote(*i));
+      if (SpecialChars.find(*i) != std::string::npos) {
+        Pattern.RegexStr.append(quote(*i));
       } else {
-        RegexStr.append("\\\\");
+        Pattern.RegexStr.append("\\\\");
         --i;
       }
       CurrentState = State::Glob;
@@ -209,52 +230,42 @@ Matcher::Matcher(std::string::const_iterator FieldBegin,
       case '{':
         // begin NAMEDGLOB
         CurrentState = State::Name;
-        GroupNames.push_back("");
         if (OpenGroup) {
-          throw std::runtime_error("Invalid character in pattern: "s + *i);
+          throw parse_error("Invalid character in pattern: "s + *i);
         }
         OpenGroup = true;
-        RegexStr.push_back('(');
+        Pattern.RegexStr.push_back('(');
         break;
       case '}':
         if (OpenGroup) {
-          RegexStr.push_back(')');
+          Pattern.RegexStr.push_back(')');
           OpenGroup = false;
         } else {
-          RegexStr.append("\\}");
+          Pattern.RegexStr.append("\\}");
         }
-          break;
+        break;
       case '*':
-        RegexStr.append(".*");
+        Pattern.RegexStr.append(".*");
         break;
       case '?':
-        RegexStr.push_back('.');
+        Pattern.RegexStr.push_back('.');
         break;
       case '\\':
         CurrentState = State::Escape;
         break;
       default:
-        RegexStr.append(quote(*i));
+        Pattern.RegexStr.append(quote(*i));
       }
     };
   }
   if (OpenGroup) {
-    throw std::runtime_error("Unclosed '{' in group"s + GroupNames.back());
+    throw parse_error("Unclosed '{' in group"s + GroupNames.back());
   }
   for (size_t s = 0; s < GroupNames.size(); s++) {
     auto& Name = GroupNames[s];
-    GroupIndexes[Name] = s + 1;
+    Pattern.GroupIndexes[Name] = s + 1;
   }
-}
-
-std::optional<std::smatch> Matcher::matches(const std::string& Name) const {
-  std::smatch M;
-  bool IsMatch = std::regex_match(Name, M, std::regex(RegexStr));
-  if (IsMatch) {
-    return M;
-  } else {
-    return {};
-  }
+  return Pattern;
 }
 
 } // namespace gtirb_multimodule
