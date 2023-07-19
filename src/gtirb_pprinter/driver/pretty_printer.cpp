@@ -274,38 +274,42 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
 
-  struct ModulePrintingInfo{
-    gtirb::Module * Module;
+  struct ModulePrintingInfo {
+    gtirb::Module* Module;
     std::optional<fs::path> AsmName;
     std::optional<fs::path> BinaryName;
-    ModulePrintingInfo(gtirb::Module* M, std::optional<fs::path> AN, std::optional<fs::path> BN):
-      Module(M), AsmName(AN), BinaryName(BN){};
+    ModulePrintingInfo(gtirb::Module* M, std::optional<fs::path> AN,
+                       std::optional<fs::path> BN)
+        : Module(M), AsmName(AN), BinaryName(BN){};
   };
 
   std::vector<ModulePrintingInfo> Modules;
   std::unordered_set<std::string> AsmNames, BinaryNames;
   for (auto& m : ir->modules()) {
     auto AsmName = gtirb_pprint_parser::getOutputFileName(asmSubs, m.getName());
-    auto BinaryName = gtirb_pprint_parser::getOutputFileName(binarySubs, m.getName());
-    // if (AsmName){
-    //   if (AsmNames.count(fs::absolute(*AsmName).generic_string())){
-    //     LOG_ERROR << "Cannot print multiple modules to " << AsmName->generic_string() <<"\n";
-    //     return 1;
-    //   }
-    //   AsmNames.insert(fs::absolute(*AsmName).generic_string()); 
-    // }
-    // if (BinaryName){
-    //   if (BinaryNames.count(fs::absolute(*BinaryName).generic_string())){
-    //     LOG_ERROR << "Cannot print multiple modules to " << AsmName->generic_string() <<"\n";
-    //     return 1;
-    //   }
-    //   BinaryNames.insert(fs::absolute(*BinaryName).generic_string());
-    // }
-    if (AsmName || BinaryName ){
+    auto BinaryName =
+        gtirb_pprint_parser::getOutputFileName(binarySubs, m.getName());
+    if (AsmName) {
+      if (AsmNames.count(fs::absolute(*AsmName).generic_string())) {
+        LOG_ERROR << "Cannot print multiple modules to "
+                  << AsmName->generic_string() << "\n";
+        return 1;
+      }
+      AsmNames.insert(fs::absolute(*AsmName).generic_string());
+    }
+    if (BinaryName) {
+      if (BinaryNames.count(fs::absolute(*BinaryName).generic_string())) {
+        LOG_ERROR << "Cannot print multiple modules to "
+                  << AsmName->generic_string() << "\n";
+        return 1;
+      }
+      BinaryNames.insert(fs::absolute(*BinaryName).generic_string());
+    }
+    if (AsmName || BinaryName) {
       Modules.emplace_back(&m, AsmName, BinaryName);
     };
   }
-  if (Modules.size() == 0 && (vm.count("asm") || vm.count("binary"))){
+  if (Modules.size() == 0 && (vm.count("asm") || vm.count("binary"))) {
     LOG_ERROR << "No modules match the patterns given\n";
     return 1;
   }
@@ -323,12 +327,13 @@ int main(int argc, char** argv) {
   } else {
     // Modules should always be printed after
     // any other module that they link against
-    std::stable_sort(Modules.begin(), Modules.end(),
-                     [](const ModulePrintingInfo& M1, const ModulePrintingInfo& M2) {
-                       const auto& Libraries = aux_data::getLibraries(*(M2.Module));
-                       return std::find(Libraries.begin(), Libraries.end(),
-                                        M1.Module->getName()) != Libraries.end();
-                     });
+    std::stable_sort(
+        Modules.begin(), Modules.end(),
+        [](const ModulePrintingInfo& M1, const ModulePrintingInfo& M2) {
+          const auto& Libraries = aux_data::getLibraries(*(M2.Module));
+          return std::find(Libraries.begin(), Libraries.end(),
+                           M1.Module->getName()) != Libraries.end();
+        });
   }
 
   // Configure the pretty-printer

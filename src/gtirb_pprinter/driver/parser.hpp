@@ -160,6 +160,6 @@ struct parse_error : public std::runtime_error {
   parse_error(Args&&... args) : std::runtime_error(args...){};
 };
 
-} // namespace gtirb_multimodule
+} // namespace gtirb_pprint_parser
 
 #endif // GPPRINT_PARSER_H

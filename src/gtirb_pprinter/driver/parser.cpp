@@ -268,4 +268,4 @@ ModulePattern makePattern(std::string::const_iterator FieldBegin,
   return Pattern;
 }
 
-} // namespace gtirb_multimodule
+} // namespace gtirb_pprint_parser
