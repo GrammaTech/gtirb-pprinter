@@ -284,34 +284,41 @@ int main(int argc, char** argv) {
   };
 
   std::vector<ModulePrintingInfo> Modules;
-  std::unordered_set<std::string> AsmNames, BinaryNames;
-  for (auto& m : ir->modules()) {
-    auto AsmName = gtirb_pprint_parser::getOutputFileName(asmSubs, m.getName());
-    auto BinaryName =
-        gtirb_pprint_parser::getOutputFileName(binarySubs, m.getName());
-    if (AsmName) {
-      if (AsmNames.count(fs::absolute(*AsmName).generic_string())) {
-        LOG_ERROR << "Cannot print multiple modules to "
-                  << AsmName->generic_string() << "\n";
-        return 1;
+  if (vm.count("asm") || vm.count("binary")) {
+    std::unordered_set<std::string> AsmNames, BinaryNames;
+    for (auto& m : ir->modules()) {
+      auto AsmName =
+          gtirb_pprint_parser::getOutputFileName(asmSubs, m.getName());
+      auto BinaryName =
+          gtirb_pprint_parser::getOutputFileName(binarySubs, m.getName());
+      if (AsmName) {
+        if (AsmNames.count(fs::absolute(*AsmName).generic_string())) {
+          LOG_ERROR << "Cannot print multiple modules to "
+                    << AsmName->generic_string() << "\n";
+          return 1;
+        }
+        AsmNames.insert(fs::absolute(*AsmName).generic_string());
       }
-      AsmNames.insert(fs::absolute(*AsmName).generic_string());
-    }
-    if (BinaryName) {
-      if (BinaryNames.count(fs::absolute(*BinaryName).generic_string())) {
-        LOG_ERROR << "Cannot print multiple modules to "
-                  << AsmName->generic_string() << "\n";
-        return 1;
+      if (BinaryName) {
+        if (BinaryNames.count(fs::absolute(*BinaryName).generic_string())) {
+          LOG_ERROR << "Cannot print multiple modules to "
+                    << AsmName->generic_string() << "\n";
+          return 1;
+        }
+        BinaryNames.insert(fs::absolute(*BinaryName).generic_string());
       }
-      BinaryNames.insert(fs::absolute(*BinaryName).generic_string());
+      if (AsmName || BinaryName) {
+        Modules.emplace_back(&m, AsmName, BinaryName);
+      };
     }
-    if (AsmName || BinaryName) {
-      Modules.emplace_back(&m, AsmName, BinaryName);
-    };
-  }
-  if (Modules.size() == 0 && (vm.count("asm") || vm.count("binary"))) {
-    LOG_ERROR << "No modules match the patterns given\n";
-    return 1;
+    if (Modules.size() == 0) {
+      LOG_ERROR << "No modules match the patterns given\n";
+      return 1;
+    }
+  } else {
+    for (auto& m : ir->modules()) {
+      Modules.emplace_back(&m, std::nullopt, std::nullopt);
+    }
   }
 
   if (vm.count("module")) {
