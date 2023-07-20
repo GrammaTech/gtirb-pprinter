@@ -11,22 +11,18 @@ namespace gtirb_pprint_parser {
 
 /**
  * @brief This module defines the syntax for the command-line arguments
- * defining the final assembly or binary file. See `--help-modules` for
+ * defining the final assembly or binary file. See below for
  * details
  */
 
 static const std::string_view module_help_message{R"""(
- The arguments `--asm` and `--binary` both use a a shell-like
- syntax for users to specify which file each module in the IR
- will be printed to.
+ The arguments `--asm` and `--binary` both use a a shell-like syntax
+ for users to specify which file each module in the IR will be printed to.
 
  You can pass these arguments the following:
 
- 1. A filename. Each module will be written to that file.
-    If there's only one module in your IR, great!
-    If not, the last module (by name, alphabetically)
-    will be the one written to that file at the end,
-    which is probably not what you wanted
+ 1. A filename. Each module will be written to that file. If an IR has
+   more than one module, this will raise an error.
 
  2. A pattern of filenames, based on the module name.
     Use {name} or {n} as a placeholder for the module name, as in:
@@ -37,27 +33,32 @@ static const std::string_view module_help_message{R"""(
     to be escaped if it would otherwise be the beginning of an
     escape sequence.
 
- 3. You can use a wildcard expression to only print modules with a
-    certain kind of name. For example:  `lib*.so*=libs/{name}`
+ 3. A module pattern followed by a filename pattern,
+    to specify which modules in an IR should be printed following that
+    pattern. Module patterns use `*` to match any number of characters,
+    and `?` to match any single character. For example:  `lib*.so*=libs/{name}`
     will print a module named `libfoo.so` to `libs/libfoo.so`, and
     `libc.so.6` to `libs/libc.so.6`, but will skip modules named
-    `myexe` or `mylibrary.dll`. You can also use `?` to match any
-    single character. Wildcards can also just match a single name:
+    `myexe` or `mylibrary.dll`. A module pattern can also just match a single name:
     `hello=bin/hello` will print the module named `hello` and no others.
 
-    The following characters need to be escaped in wildcards,
+    The following characters need to be escaped in module patterns,
     by preceding them with a `\`:
 
     `[`,`]`,`{`,`}`, `\`,`=`,`,`,`*`, and `?`
 
- 4. You can name different parts of your wildcard expression, and use them
-    in your file pattern. For example:
+    You can name different groups in a module pattern and use them
+    in the file pattern. For example:
     `lib{stem:*}.{ext:so*}=libs/{stem}.rewritten.{ext}` will print the module
-    `libfoo.so.1` to `libs/libfoo.rewritten.so.1`. Only letters, numbers, and
-    `_` are allowed in group names.
+    `libfoo.so.1` to `libs/libfoo.rewritten.so.1` -- the group `{stem}`
+    matches `foo`, and the group `{ext}` matches `so.1`.
 
- 5. You can use commas to separate multiple patterns. Each module will use the
-    first pattern that it matches.
+    Only letters, numbers, and `_` are allowed in group names.
+
+ 4. A list of filename patterns, with or without corresponding module patterns,
+    separated by commas. Each module in the IR will be printed to the first
+    pattern that matches its name; a file pattern with no module pattern
+    matches everything.
 
     Example:
     `hello=hello,libhello.so=libs/{n}` will print the module named `hello`
@@ -98,7 +99,6 @@ std::optional<fs::path> getOutputFileName(const std::vector<FilePattern>& Subs,
  *  into a regular expression for matching and parsing module names
  *
  */
-
 struct ModulePattern {
   std::string RegexStr;
   std::map<std::string, size_t> GroupIndexes;
@@ -113,12 +113,12 @@ struct ModulePattern {
 };
 
 /**
- * @brief Translates a string representing a module pattern
+ * @brief Translates a character sequence representing a module pattern
  * into an ECMAScript regex, along with a map from names to
  * group numbers
  *
- * @param Begin
- * @param End
+ * @param Begin An iterator pointing to the beginning of the sequence
+ * @param End An iterator pointing to one past the end of the sequence
  * @return ModulePattern
  */
 ModulePattern makePattern(std::string::const_iterator Begin,
