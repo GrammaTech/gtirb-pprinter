@@ -207,6 +207,23 @@ class ElfBinaryPrinterTests(unittest.TestCase):
                 ("FUNC", "GLOBAL", "DEFAULT", "a@LIBA_2.0"),
             )
 
+    def test_dummyso_weak_versioned_sym_shared(self):
+        """
+        Test printing a GTIRB with --dummy-so where there are multiple external
+        versioned symbols of the same name
+
+        Fails if gtirb-pprinter does not apply --no-as-needed
+        """
+        ir = dummyso.build_weak_versioned_sym_gtirb()
+        with self.binary_print(ir, "--dummy-so", "yes", "--shared") as result:
+            self.assert_libs_in_ldd(result.path, "libmya.so")
+
+            # Ensure the symbols are present
+            self.assert_readelf_syms(
+                result.path,
+                ("FUNC", "WEAK", "DEFAULT", "a@LIBA_1.0"),
+            )
+
     def test_use_gcc(self):
         """
         Test --use-gcc, both with a gcc in PATH and with a full path to gcc
