@@ -350,9 +350,9 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
   // For any group that contains a versioned symbol, we have a mapping of which
   // library they belong to.
   // Otherwise, we do not, but the ELF format doesn't keep that information
-  // either for unversioned symbols, so we put them in unallocatedSymbols.
+  // either for unversioned symbols, so we put them in the first lib.
   std::map<std::string, std::vector<SymbolGroup>> AllocatedSymbols;
-  std::vector<SymbolGroup> UnallocatedSymbols;
+  const std::string& FirstLib = *Libs.begin();
 
   for (SymbolGroup& SymGroup : SymbolGroups) {
     std::optional<std::string> LibNameOpt = std::nullopt;
@@ -418,38 +418,13 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
       }
     }
 
-    // Just put unversioned symbol groups in special list. We need to
-    // distribute them later to any libraries that have no symbols.
-    UnallocatedSymbols.push_back(SymGroup);
+    // Just put unversioned symbol groups in the first lib.
+    AllocatedSymbols[FirstLib].push_back(SymGroup);
   }
 
   // Generate the .so files
-  auto UndefinedSymIt = UnallocatedSymbols.begin();
-  auto UndefinedSymItEnd = UnallocatedSymbols.end();
-  auto LastLibIt = --Libs.end();
-  for (auto LibIt = Libs.begin(); LibIt != Libs.end(); LibIt++) {
-    std::string& Lib = *LibIt;
-    auto& LibSyms = AllocatedSymbols[Lib];
-
-    if (LibIt == LastLibIt) {
-      // If this is the last library, dump the rest of the symbol groups in.
-      for (; UndefinedSymIt != UndefinedSymItEnd; UndefinedSymIt++) {
-        LibSyms.push_back(*UndefinedSymIt);
-      }
-    } else if (LibSyms.size() == 0) {
-      // If this library has no symbol groups, take an unallocated one.
-      // We need to ensure each dummy .so has at least one, or the final binary
-      // will not actually be linked with this library.
-      if (UndefinedSymIt == UndefinedSymItEnd) {
-        // We ran out of symbol groups.
-        LOG_ERROR << "No symbols remain to assign to " << Lib << "\n";
-        return false;
-      }
-
-      LibSyms.push_back(*UndefinedSymIt++);
-    }
-
-    if (!generateDummySO(Module, LibDir, Lib, LibSyms)) {
+  for (const auto& Lib : Libs) {
+    if (!generateDummySO(Module, LibDir, Lib, AllocatedSymbols[Lib])) {
       LOG_ERROR << "Failed generating dummy .so for " << Lib << "\n";
       return false;
     }
@@ -553,6 +528,7 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
   args.emplace_back(outputFilename);
   std::transform(asmPaths.begin(), asmPaths.end(), std::back_inserter(args),
                  [](const TempFile& TF) { return TF.fileName(); });
+  args.emplace_back("-Wl,--no-as-needed");
   args.insert(args.end(), ExtraCompileArgs.begin(), ExtraCompileArgs.end());
   args.insert(args.end(), libArgs.begin(), libArgs.end());
 
