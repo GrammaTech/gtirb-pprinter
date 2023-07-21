@@ -89,6 +89,11 @@ class IntelInstructionsTest(PPrinterTest):
                 b"\x62\xB3\x2D\x21\x3F\xC0\x00",
                 "vpcmpeqb K0{K1},YMM26,YMM16",
             ),
+            (b"\x62\xF3\x45\x28\x1F\xC2\x01", "vpcmpltd K0,YMM7,YMM2"),
+            (b"\x62\xF3\x45\x28\x1F\xC2\x02", "vpcmpled K0,YMM7,YMM2"),
+            (b"\x62\xF1\x45\x28\x76\xC2", "vpcmpeqd K0,YMM7,YMM2"),
+            (b"\x62\xF3\x45\x28\x1F\xC2\x04", "vpcmpneqd K0,YMM7,YMM2"),
+            (b"\x62\xF3\x45\x28\x1F\xC2\x05", "vpcmpnltd K0,YMM7,YMM2"),
             (b"\x62\xf3\x6d\x28\x1f\xc7\x06", "vpcmpnled K0,YMM2,YMM7"),
         ]
 
