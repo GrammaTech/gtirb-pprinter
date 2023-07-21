@@ -52,6 +52,7 @@ TEST(Unit_Parser, Substitutions) {
       {"*.{ext:so*}=example.{ext}", "hello.so", "example.so"},
       {"{s1:*}.{s2:*}.{s3:*}.{s4:*}={s3}/{s2}/{s4}/{s1}", "a.b.c.d", "c/b/d/a"},
       {"*={n}", "'try-to-[escape]'", "'try-to-[escape]'"},
+      {"{a:*}-{b:*}={a}1-{b}2", "hello-world", "hello1-world2"},
       {R"({a:*}.{b:*}={a}\\{b})", "hello.world", R"(hello\world)"},
       {R"({a:*}.{b:*}=dir\{a}\\{b})", "hello.world", R"(dir{a}\world)"},
       {R"({a:*}.{b:*}=C:\dir\\{a})", "hello.world", R"(C:\dir\hello)"},
@@ -60,8 +61,8 @@ TEST(Unit_Parser, Substitutions) {
   for (auto& [pattern, name, result] : cases) {
     EXPECT_EQ(*FilePattern(pattern.begin(), pattern.end()).substitute(name),
               result)
-        << "Applying " << pattern << "to " << name << "does not give" << result
-        << "\n";
+        << "Applying " << pattern << "to " << name << " does not give "
+        << result << "\n";
   }
 }
 

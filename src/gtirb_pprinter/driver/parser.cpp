@@ -1,4 +1,5 @@
 #include "parser.hpp"
+#include <iomanip>
 
 using namespace std::literals;
 
@@ -137,8 +138,10 @@ FilePattern::makeReplacementPattern(std::string::const_iterator PBegin,
         Pattern.push_back('$');
         if (GI == 0) {
           Pattern.push_back('&');
+        } else if (GI < 10) {
+          Pattern.append("0"s + std::to_string(GI));
         } else {
-          Pattern.append(std::to_string(GroupIndexesIter->second));
+          Pattern.append(std::to_string(GI));
         }
         CurrentState = State::Name;
         I = J;
