@@ -68,3 +68,38 @@ class IntelInstructionsTest(PPrinterTest):
         # QWORD PTR or a YMMWORD PTR.
         asm = run_asm_pprinter(ir, ["--syntax=intel"])
         self.assertIn("QWORD PTR", asm)
+
+    def test_avx512_intel(self):
+        """
+        This test ensures that we print avx512 instructions correctly.
+        """
+        ir, m = create_test_module(
+            file_format=gtirb.Module.FileFormat.ELF, isa=gtirb.Module.ISA.X64
+        )
+        s, bi = add_text_section(m)
+
+        instructions = [
+            (b"\x62\xF1\xE5\xC9\xD4\xCA", "vpaddq ZMM1{K1}{z},ZMM3,ZMM2"),
+            (
+                b"\x62\xF3\x7D\x20\x1F\x07\x00",
+                "vpcmpeqd K0,YMM16,YMMWORD PTR [RDI]",
+            ),
+            (b"\x62\xB2\x75\x20\x26\xC9", "vptestmb K1,YMM17,YMM17"),
+            (
+                b"\x62\xB3\x2D\x21\x3F\xC0\x00",
+                "vpcmpeqb K0{K1},YMM26,YMM16",
+            ),
+            (b"\x62\xf3\x6d\x28\x1f\xc7\x06", "vpcmpnled K0,YMM2,YMM7"),
+        ]
+
+        for insn_bytes, insn_str in instructions:
+            with self.subTest(instruction=insn_str):
+
+                ir, m = create_test_module(
+                    file_format=gtirb.Module.FileFormat.ELF,
+                    isa=gtirb.Module.ISA.X64,
+                )
+                s, bi = add_text_section(m)
+                add_code_block(bi, insn_bytes)
+                asm = run_asm_pprinter(ir, ["--syntax=intel"])
+                self.assertIn(insn_str, asm)

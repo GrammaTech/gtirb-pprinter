@@ -6,8 +6,9 @@ from pprinter_helpers import run_asm_pprinter, PPrinterTest
 
 class ATTInstructionsTest(PPrinterTest):
     def test_avx512_att(self):
-        # This test ensures that we do not regress on the following issue:
-        # git.grammatech.com/rewriting/gtirb-pprinter/-/merge_requests/330
+        """
+        This test ensures that we print avx512 instructions correctly.
+        """
         ir, m = create_test_module(
             file_format=gtirb.Module.FileFormat.ELF, isa=gtirb.Module.ISA.X64
         )
@@ -21,6 +22,7 @@ class ATTInstructionsTest(PPrinterTest):
                 b"\x62\xB3\x2D\x21\x3F\xC0\x00",
                 "vpcmpeqb %ymm16,%ymm26,%k0{%k1}",
             ),
+            (b"\x62\xf3\x6d\x28\x1f\xc7\x06", "vpcmpnled %ymm7,%ymm2,%k0"),
         ]
 
         for insn_bytes, insn_str in instructions:
