@@ -13,6 +13,7 @@ TEST(Unit_Parser, matchPatterns) {
       {"{stem:libc}.{ext:so*}", "(libc)\\.(so.*)"},
       {"{stem:\\{*\\}}.*", "(\\{.*\\})\\..*"},
       {"lib\\w.so", "lib\\\\w\\.so"},
+      {"\\*.so", "\\*\\.so"},
   };
   for (auto& [input, pattern] : cases) {
     auto M = makePattern(input.begin(), input.end());
@@ -32,7 +33,9 @@ TEST(Unit_Parser, matchCases) {
       {"lib^.so", "lib^.so"},
       {"lib\\w.so", "lib\\w.so"},
       {"lib$.so", "lib$.so"},
-  };
+      {"lib().so", "lib().so"},
+      {"lib\\(", "lib\\("},
+      {"(?:hello)", "(?:hello)"}};
   for (auto& [input, name] : cases) {
     auto M = makePattern(input.begin(), input.end());
     EXPECT_TRUE(M.matches(name))

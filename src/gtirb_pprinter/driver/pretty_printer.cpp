@@ -77,22 +77,25 @@ int main(int argc, char** argv) {
   gtirb_pprint::registerPrettyPrinters();
 
   po::options_description desc("Allowed options");
-  desc.add_options()("help,h", "Produce help message.");
+  desc.add_options()("help,h", po::value<std::string>()->implicit_value(""),
+                     "Produce help message.");
   desc.add_options()("version", "Print version info and exit.");
   desc.add_options()("ir,i", po::value<std::string>(), "GTIRB file to print.");
   desc.add_options()(
-      "asm,a", po::value<std::string>(),
+      "asm,a", po::value<std::string>()->value_name("FILE"),
       "Print IR as assembly code to FILE."
       "If there is more than one module, files for each can be specified "
-      "with 'MODULE1=FILE1[,MODULE2=FILE2...]'."
-      "See `--help-modules` for more details regarding selecting modules "
+      "as so: \n `[MODULE1=]FILE1[,[MODULE2]=FILE2...]`\n"
+      "Run `gtirb-pprinter --help modules` for more details regarding "
+      "selecting modules "
       "and specifying file names.");
   desc.add_options()(
-      "binary,b", po::value<std::string>(),
-      "Print IR as one or more binary files. "
+      "binary,b", po::value<std::string>()->value_name("FILE"),
+      "Print IR as binary to FILE. "
       "If there is more than one module, files for each can be specified "
-      "with 'MODULE1=FILE1[,MODULE2=FILE2...]'."
-      "See `--help-modules` for more details regarding selecting modules "
+      "as so: \n `[MODULE1=]FILE1[,[MODULE2]=FILE2...]`\n"
+      "Run `gtirb-ppprinter --help modules` for more details regarding "
+      "selecting modules "
       "and specifying file names.");
   desc.add_options()("compiler-args,c",
                      po::value<std::vector<std::string>>()->multitoken(),
@@ -183,9 +186,6 @@ int main(int argc, char** argv) {
   desc.add_options()("version-script", po::value<std::string>(),
                      "Generate a version script file on the given path. Only "
                      "relevant for ELF executables.");
-  desc.add_options()("help-modules",
-                     "Display help about filtering modules and generating "
-                     "files for multi-module IRs");
   po::positional_options_description pd;
   pd.add("ir", -1);
   po::variables_map vm;
@@ -194,11 +194,12 @@ int main(int argc, char** argv) {
         po::command_line_parser(argc, argv).options(desc).positional(pd).run(),
         vm);
     if (vm.count("help") != 0) {
-      std::cout << desc << "\n";
-      return 1;
-    }
-    if (vm.count("help-modules") != 0) {
-      std::cout << gtirb_pprint_parser::module_help_message;
+      auto help_arg = vm["help"].as<std::string>();
+      if (help_arg == "modules") {
+        std::cout << gtirb_pprint_parser::module_help_message << "\n";
+      } else {
+        std::cout << desc << "\n";
+      }
       return 1;
     }
 
