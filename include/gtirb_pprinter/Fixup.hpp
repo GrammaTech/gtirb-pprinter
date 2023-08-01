@@ -15,6 +15,9 @@
 #ifndef GT_PPRINTER_FIXUP_H
 #define GT_PPRINTER_FIXUP_H
 #include "Export.hpp"
+#include <boost/filesystem.hpp>
+
+namespace fs = boost::filesystem;
 
 namespace gtirb {
 class Context;
@@ -56,6 +59,11 @@ void fixupPESymbols(gtirb::Context& Ctx, gtirb::Module& Mod);
 /// - main (only necessary for --policy=dynamic, but we fixup unconditionally)
 /// - DT_INIT and DT_FINI functions
 void fixupELFSymbols(gtirb::Context& Ctx, gtirb::Module& Mod);
+
+typedef std::pair<gtirb::Module *, fs::path> PrintedModule;
+
+std::vector<PrintedModule> fixupLibraryAuxData(std::vector<PrintedModule> PrintedModules);
+
 
 } // namespace gtirb_pprint
 

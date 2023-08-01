@@ -17,6 +17,10 @@
 #include "AuxDataUtils.hpp"
 #include "PrettyPrinter.hpp"
 #include <gtirb/gtirb.hpp>
+#include <boost/filesystem.hpp>
+
+namespace fs = boost::filesystem;
+using namespace std::literals::string_literals;
 
 namespace gtirb_pprint {
 
@@ -247,5 +251,115 @@ void fixupPESymbols(gtirb::Context& Context, gtirb::Module& Module) {
     }
   }
 };
+
+const fs::path Origin("$ORIGIN");
+
+/**
+ * @brief Class for tracking dependency relations between modules
+ * for the purpose of updating Libraries and LibraryPaths based on 
+ * where each module is going to be printed
+ */
+class DependencyGraph{
+
+  std::map<PrintedModule, std::vector<PrintedModule>> Uses, UsedBy;
+  std::vector<PrintedModule> Modules;
+  std::map<std::string, PrintedModule> ModulesByName;
+  public:
+  DependencyGraph(
+    std::vector<PrintedModule> PrintedModules): Modules(PrintedModules){
+
+    // TODO: what if two modules share a name?
+    for (auto & PM: PrintedModules){
+      ModulesByName[std::get<gtirb::Module *>(PM)->getName()] = PM;
+    }
+
+    for (auto& [M,Pth]: PrintedModules){
+      auto Libraries = aux_data::getLibraries(*M);
+      for (auto& LibName: Libraries){
+          if (auto MIter = ModulesByName.find(LibName); MIter != ModulesByName.end()){
+          Uses[{M,Pth}].push_back(MIter->second);
+          UsedBy[MIter->second].emplace_back(M,Pth);
+        }
+      }
+    }
+  };
+
+  /**
+   * @brief Change the name of a module to match the file it will be printed to,
+   * and update any Libraries AuxData that reference it.
+   * 
+   * @param M
+   */
+  void updateLibraryName(PrintedModule M){
+    auto OldName = M.first->getName();
+    auto NewName = M.second.filename().generic_string();
+    for (auto UserPMod: UsedBy[M]){
+      auto * Libraries = std::get<gtirb::Module*>(UserPMod)->getAuxData<gtirb::schema::Libraries>();
+      std::replace(Libraries->begin(), Libraries->end(), M.first->getName(), NewName);
+    }
+    M.first->setName(NewName);
+    ModulesByName.erase(OldName);
+    ModulesByName[NewName] = M;
+  };
+
+  void updateLibraryPath(PrintedModule M){
+    auto NewPath = M.second.parent_path();
+    for (auto& [UserMod, UserPath]: UsedBy[M]){
+      auto * LibraryPaths = UserMod->getAuxData<gtirb::schema::LibraryPaths>();
+      auto RPath = Origin / fs::relative(NewPath, UserPath);
+      LibraryPaths->push_back(RPath.generic_string());
+    }
+  }
+
+  void fixNames(){
+    for (auto& PM: Modules){
+      updateLibraryName(PM);
+    }
+  }
+
+  void fixPaths(){
+    for (auto& PM: Modules) {
+      updateLibraryPath(PM);
+    }
+  }
+
+
+  std::vector<PrintedModule> sortedModules(){
+    std::vector<PrintedModule> Sorted, Free;
+
+    for (auto& [M,ULst]: Uses){
+      if (ULst.empty()){
+        Free.emplace_back(M);
+      }
+    }
+    
+    while(Free.size() > 0){
+      auto M = Free.back();
+      Free.pop_back();
+      Sorted.push_back(M);
+      for (auto & N: UsedBy[M]){
+        auto UsesLst = Uses[N];
+        if (auto MIter = std::find(UsesLst.begin(), UsesLst.end(), M);
+          MIter != UsesLst.end()){
+          UsesLst.erase(MIter);
+        }
+        if (UsesLst.size() == 0){
+          Free.push_back(N);
+        }
+      }
+    }
+    return Sorted;
+  }
+};
+
+
+std::vector<PrintedModule> fixupLibraryAuxData(std::vector<PrintedModule> PrintedModules){
+  DependencyGraph DG(PrintedModules);
+  DG.fixNames();
+  DG.fixPaths();
+
+  return DG.sortedModules();
+
+}
 
 } // namespace gtirb_pprint
