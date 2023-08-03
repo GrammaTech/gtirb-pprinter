@@ -276,16 +276,7 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
 
-  struct ModulePrintingInfo {
-    gtirb::Module* Module;
-    std::optional<fs::path> AsmName;
-    std::optional<fs::path> BinaryName;
-    ModulePrintingInfo(gtirb::Module* M, std::optional<fs::path> AN,
-                       std::optional<fs::path> BN)
-        : Module(M), AsmName(AN), BinaryName(BN){};
-  };
-
-  std::vector<ModulePrintingInfo> Modules;
+  std::vector<gtirb_pprint::ModulePrintingInfo> Modules;
   if (vm.count("asm") || vm.count("binary")) {
     std::set<fs::path> AsmNames, BinaryNames;
     for (auto& m : ir->modules()) {
@@ -329,17 +320,9 @@ int main(int argc, char** argv) {
       return EXIT_FAILURE;
     }
     Modules = {Modules[Index]};
-  } else {
-    // Modules should always be printed after
-    // any other module that they link against
-    std::stable_sort(
-        Modules.begin(), Modules.end(),
-        [](const ModulePrintingInfo& M1, const ModulePrintingInfo& M2) {
-          const auto& Libraries = aux_data::getLibraries(*(M2.Module));
-          return std::find(Libraries.begin(), Libraries.end(),
-                           M1.Module->getName()) != Libraries.end();
-        });
   }
+
+  Modules = gtirb_pprint::fixupLibraryAuxData(Modules);
 
   // Configure the pretty-printer
   gtirb_pprint::PrettyPrinter pp;

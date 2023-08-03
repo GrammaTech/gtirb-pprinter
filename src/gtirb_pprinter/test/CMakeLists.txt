@@ -1,9 +1,17 @@
 set(PROJECT_NAME TestNameParser)
 
 include_directories(${GTEST_INCLUDE_DIRS})
+include_directories(${CMAKE_SOURCE_DIR}/include
+                    ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter)
 
-set(${PROJECT_NAME}_SRC parser_test.cpp ../driver/parser.hpp
-                        ../driver/parser.cpp)
+set(${PROJECT_NAME}_SRC
+    ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Fixup.hpp
+    ../Fixup.cpp
+    parser_test.cpp
+    libraries_test.cpp
+    test_main.cpp
+    ../driver/parser.hpp
+    ../driver/parser.cpp)
 
 if(UNIX AND NOT WIN32)
   set(SYSLIBS dl)
@@ -13,5 +21,5 @@ endif()
 
 add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_SRC})
 target_link_libraries(${PROJECT_NAME} ${SYSLIBS} ${Boost_LIBRARIES} gtest
-                      gtest_main)
+                      gtirb_pprinter)
 add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})

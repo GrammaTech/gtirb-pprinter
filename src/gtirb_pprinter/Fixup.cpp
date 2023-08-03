@@ -16,8 +16,8 @@
 #include "Fixup.hpp"
 #include "AuxDataUtils.hpp"
 #include "PrettyPrinter.hpp"
-#include <gtirb/gtirb.hpp>
 #include <boost/filesystem.hpp>
+#include <gtirb/gtirb.hpp>
 
 namespace fs = boost::filesystem;
 using namespace std::literals::string_literals;
@@ -256,29 +256,36 @@ const fs::path Origin("$ORIGIN");
 
 /**
  * @brief Class for tracking dependency relations between modules
- * for the purpose of updating Libraries and LibraryPaths based on 
+ * for the purpose of updating Libraries and LibraryPaths based on
  * where each module is going to be printed
  */
-class DependencyGraph{
+struct DependencyGraph {
 
-  std::map<PrintedModule, std::vector<PrintedModule>> Uses, UsedBy;
-  std::vector<PrintedModule> Modules;
-  std::map<std::string, PrintedModule> ModulesByName;
-  public:
-  DependencyGraph(
-    std::vector<PrintedModule> PrintedModules): Modules(PrintedModules){
+  std::map<ModulePrintingInfo, std::vector<ModulePrintingInfo>> Uses, UsedBy;
+  std::vector<ModulePrintingInfo> BinaryPrintingModules;
+  std::vector<ModulePrintingInfo> OtherModules;
+  std::map<std::string, ModulePrintingInfo> ModulesByName;
+
+  DependencyGraph(std::vector<ModulePrintingInfo> ModuleInfos) {
 
     // TODO: what if two modules share a name?
-    for (auto & PM: PrintedModules){
-      ModulesByName[std::get<gtirb::Module *>(PM)->getName()] = PM;
+    for (auto& MPI : ModuleInfos) {
+      if (MPI.BinaryName) {
+        BinaryPrintingModules.push_back(MPI);
+        ModulesByName[MPI.Module->getName()] = MPI;
+      } else {
+        OtherModules.push_back(MPI);
+      }
     }
 
-    for (auto& [M,Pth]: PrintedModules){
-      auto Libraries = aux_data::getLibraries(*M);
-      for (auto& LibName: Libraries){
-          if (auto MIter = ModulesByName.find(LibName); MIter != ModulesByName.end()){
-          Uses[{M,Pth}].push_back(MIter->second);
-          UsedBy[MIter->second].emplace_back(M,Pth);
+    for (auto& MPI : BinaryPrintingModules) {
+      Uses[MPI] = std::vector<ModulePrintingInfo>();
+      auto Libraries = aux_data::getLibraries(*MPI.Module);
+      for (auto& LibName : Libraries) {
+        if (auto MIter = ModulesByName.find(LibName);
+            MIter != ModulesByName.end()) {
+          Uses[MPI].push_back(MIter->second);
+          UsedBy[MIter->second].push_back(MPI);
         }
       }
     }
@@ -287,79 +294,107 @@ class DependencyGraph{
   /**
    * @brief Change the name of a module to match the file it will be printed to,
    * and update any Libraries AuxData that reference it.
-   * 
+   *
    * @param M
    */
-  void updateLibraryName(PrintedModule M){
-    auto OldName = M.first->getName();
-    auto NewName = M.second.filename().generic_string();
-    for (auto UserPMod: UsedBy[M]){
-      auto * Libraries = std::get<gtirb::Module*>(UserPMod)->getAuxData<gtirb::schema::Libraries>();
-      std::replace(Libraries->begin(), Libraries->end(), M.first->getName(), NewName);
+  void updateLibraryName(ModulePrintingInfo M) {
+    auto OldName = M.Module->getName();
+    auto NewName = M.BinaryName->filename().generic_string();
+    for (auto UserMPI : UsedBy[M]) {
+      auto* Libraries = UserMPI.Module->getAuxData<gtirb::schema::Libraries>();
+      std::replace(Libraries->begin(), Libraries->end(), OldName, NewName);
     }
-    M.first->setName(NewName);
+    M.Module->setName(NewName);
     ModulesByName.erase(OldName);
     ModulesByName[NewName] = M;
   };
 
-  void updateLibraryPath(PrintedModule M){
-    auto NewPath = M.second.parent_path();
-    for (auto& [UserMod, UserPath]: UsedBy[M]){
-      auto * LibraryPaths = UserMod->getAuxData<gtirb::schema::LibraryPaths>();
-      auto RPath = Origin / fs::relative(NewPath, UserPath);
-      LibraryPaths->push_back(RPath.generic_string());
+  void updateLibraryPath(ModulePrintingInfo M) {
+    auto NewPath = M.BinaryName->parent_path();
+    if (NewPath.is_relative()) {
+      NewPath = fs::path(".") / NewPath;
+    }
+    for (auto& UserMPI : UsedBy[M]) {
+      auto UserPath = UserMPI.BinaryName->parent_path();
+      if (UserPath == "") {
+        UserPath = fs::path(".");
+      } else if (UserPath.is_relative()) {
+        UserPath = fs::path(".") / UserPath;
+      }
+      fs::path RPath;
+      if (NewPath.is_absolute()) {
+        RPath = NewPath;
+      } else {
+        RPath = Origin / fs::relative(NewPath, UserPath);
+      }
+      auto* LibraryPaths =
+          UserMPI.Module->getAuxData<gtirb::schema::LibraryPaths>();
+      if (!LibraryPaths) {
+        std::vector<std::string> LibPaths{RPath.generic_string()};
+        UserMPI.Module->addAuxData<gtirb::schema::LibraryPaths>(
+            std::move(LibPaths));
+      } else {
+        LibraryPaths->push_back(RPath.generic_string());
+      }
     }
   }
 
-  void fixNames(){
-    for (auto& PM: Modules){
+  void fixNames() {
+    for (auto& PM : BinaryPrintingModules) {
       updateLibraryName(PM);
     }
   }
 
-  void fixPaths(){
-    for (auto& PM: Modules) {
+  void fixPaths() {
+    for (auto& PM : BinaryPrintingModules) {
       updateLibraryPath(PM);
     }
   }
 
+  /// @brief Topologically sort the dependency graph,
+  /// so that each module appears after all of its dependencies
+  /// @return
+  std::vector<ModulePrintingInfo> sortedModules() {
 
-  std::vector<PrintedModule> sortedModules(){
-    std::vector<PrintedModule> Sorted, Free;
+    /// Adapted from
+    /// https://en.wikipedia.org/wiki/Topological_sorting#Kahn's_algorithm
+    std::vector<ModulePrintingInfo> Sorted, Free;
 
-    for (auto& [M,ULst]: Uses){
-      if (ULst.empty()){
+    for (auto& [M, ULst] : Uses) {
+      if (ULst.empty()) {
         Free.emplace_back(M);
       }
     }
-    
-    while(Free.size() > 0){
+
+    while (Free.size() > 0) {
       auto M = Free.back();
       Free.pop_back();
       Sorted.push_back(M);
-      for (auto & N: UsedBy[M]){
+      for (auto& N : UsedBy[M]) {
         auto UsesLst = Uses[N];
         if (auto MIter = std::find(UsesLst.begin(), UsesLst.end(), M);
-          MIter != UsesLst.end()){
+            MIter != UsesLst.end()) {
           UsesLst.erase(MIter);
         }
-        if (UsesLst.size() == 0){
+        if (UsesLst.size() == 0) {
           Free.push_back(N);
         }
       }
+    }
+    for (auto& MPI : OtherModules) {
+      Sorted.push_back(MPI);
     }
     return Sorted;
   }
 };
 
-
-std::vector<PrintedModule> fixupLibraryAuxData(std::vector<PrintedModule> PrintedModules){
-  DependencyGraph DG(PrintedModules);
+std::vector<ModulePrintingInfo>
+fixupLibraryAuxData(std::vector<ModulePrintingInfo> ModuleInfos) {
+  DependencyGraph DG(ModuleInfos);
   DG.fixNames();
   DG.fixPaths();
 
   return DG.sortedModules();
-
 }
 
 } // namespace gtirb_pprint
