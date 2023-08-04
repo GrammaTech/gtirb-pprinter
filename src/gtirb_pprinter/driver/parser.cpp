@@ -132,7 +132,7 @@ FilePattern::makeReplacementPattern(std::string::const_iterator PBegin,
         GroupName = std::string(I, J);
         auto GroupIndexesIter = MPattern.GroupIndexes.find(GroupName);
         if (GroupIndexesIter == MPattern.GroupIndexes.end()) {
-          throw parse_error("Undefined group: "s + GroupName);
+          throw parse_error("Undefined group: {"s + GroupName + "}");
         }
         auto GI = GroupIndexesIter->second;
         Pattern.push_back('$');
@@ -204,22 +204,19 @@ ModulePattern makePattern(std::string::const_iterator FieldBegin,
   for (auto i = FieldBegin; i != FieldEnd; i++) {
     if (CurrentState == State::Name) {
       std::smatch M;
-      switch (*i) {
-      case ':':
-        CurrentState = State::Glob;
-        break;
-      default:
-        if (std::regex_search(i, FieldEnd, M, WordChars)) {
-          GroupNames.push_back(M.str());
-          if (M.str().length() == 0) {
-            throw parse_error("All groups must be named");
-          }
-          i += M.str().length() - 1;
-
-        } else {
-          throw parse_error("Invalid character in group name: "s + *i);
-        }
+      std::regex_search(i, FieldEnd, M, WordChars);
+      GroupNames.push_back(M.str());
+      i += M.str().length();
+      if (i == FieldEnd) {
+        throw parse_error("Unclosed '{' in group "s + GroupNames.back());
       }
+      if (*i != ':') {
+        throw parse_error("Invalid character in group name: '"s + *i + "'");
+      }
+      if (M.str().length() == 0) {
+        throw parse_error("All groups must be named");
+      }
+      CurrentState = State::Glob;
     } else if (CurrentState == State::Escape) {
       if (SpecialChars.find(*i) != std::string::npos) {
         Pattern.RegexStr.append(quote(*i));

@@ -54,12 +54,10 @@ to the file described by its file template. It may contain the following:
     The following characters need to be escaped in module patterns,
     by preceding them with a `\`:
 
-      `[`,`]`,`{`,`}`, `\`,`=`,`,`,`*`, and `?`
+      `[`, `]`, `{`, `}`, `\`, `=`, `,`, `*`, and `?`
 
 2.  Wildcards. The wildcard character `?` will match any single character, and
-    the wildcard character `*` will match any number of characters
-    pattern. Module patterns use `*` to match any number of characters,
-    and `?` to match any single character.
+    the wildcard character `*` will match any number of characters.
 
     For example: the module pattern `lib?.so*` will match a module named
     `libc.so` or `libc.so.6`, but not modules named `myexe` or `libfoobar.so`.
@@ -137,11 +135,11 @@ ModulePattern makePattern(std::string::const_iterator Begin,
  *
  */
 class FilePattern {
-  ModulePattern MPattern;
+  ModulePattern Pattern;
+  std::string Template;
 
-  std::string ReplacementPattern;
-  std::string makeReplacementPattern(std::string::const_iterator PBegin,
-                                     std::string::const_iterator PEnd);
+  std::string makeTemplate(std::string::const_iterator PBegin,
+                           std::string::const_iterator PEnd);
   std::string makeReplacementPattern(const std::string& P) {
     return makeReplacementPattern(P.begin(), P.end());
   };

@@ -286,27 +286,19 @@ int main(int argc, char** argv) {
 
   std::vector<ModulePrintingInfo> Modules;
   if (vm.count("asm") || vm.count("binary")) {
-    std::unordered_set<std::string> AsmNames, BinaryNames;
+    std::set<fs::path> AsmNames, BinaryNames;
     for (auto& m : ir->modules()) {
       auto AsmName =
           gtirb_pprint_parser::getOutputFileName(asmSubs, m.getName());
       auto BinaryName =
           gtirb_pprint_parser::getOutputFileName(binarySubs, m.getName());
-      if (AsmName) {
-        if (AsmNames.count(fs::absolute(*AsmName).generic_string())) {
-          LOG_ERROR << "Cannot print multiple modules to "
-                    << AsmName->generic_string() << "\n";
-          return 1;
-        }
-        AsmNames.insert(fs::absolute(*AsmName).generic_string());
+      if (AsmName && !AsmNames.insert(fs::absolute(*AsmName)).second) {
+        LOG_ERROR << "Cannot print multiple modules to " << *AsmName << "\n";
+        return 1;
       }
-      if (BinaryName) {
-        if (BinaryNames.count(fs::absolute(*BinaryName).generic_string())) {
-          LOG_ERROR << "Cannot print multiple modules to "
-                    << AsmName->generic_string() << "\n";
-          return 1;
-        }
-        BinaryNames.insert(fs::absolute(*BinaryName).generic_string());
+      if (BinaryName && !BinaryNames.insert(fs::absolute(*BinaryName)).second) {
+        LOG_ERROR << "Cannot print multiple modules to " << *BinaryName << "\n";
+        return 1;
       }
       if (AsmName || BinaryName) {
         Modules.emplace_back(&m, AsmName, BinaryName);
