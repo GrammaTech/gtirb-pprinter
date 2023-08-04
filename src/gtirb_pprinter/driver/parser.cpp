@@ -24,21 +24,20 @@ getOutputFileName(const std::vector<FileTemplateRule>& Subs,
   return {};
 }
 
-/**
- * Grammar for substitutions:
- * INPUT := SUB | SUB,SUBS
- * SUB := FILE | MODULE=FILE
- *
- */
 
-std::vector<FileTemplateRule> parseInput(const std::string& Input) {
   /**
    * @brief Parse a string into a list of substitutions to be made
    *
    * Substitution patterns are presumed to be separated by commas;
    * literal commas need to be escaped
    *
+    * 
+   * Grammar for substitutions:
+   * INPUT := SUB | SUB,SUBS
+   * SUB := FILE | MODULE=FILE
+   *
    */
+std::vector<FileTemplateRule> parseInput(const std::string& Input) {
   std::vector<FileTemplateRule> Subs;
   bool Escaped = false;
   auto Start = Input.begin();
@@ -90,7 +89,7 @@ enum class TemplateState { Name, Literal, Escape };
 std::string
 FileTemplateRule::makeFileTemplate(std::string::const_iterator PBegin,
                                    std::string::const_iterator PEnd) {
-  /**
+  /*
    * Grammar for file patterns:
    *
    * FILE := TERM | TERM TERMS
@@ -169,12 +168,6 @@ FileTemplateRule::substitute(const std::string& P) const {
   return {};
 }
 
-enum class PatternState {
-  Name,
-  Glob,
-  Escape,
-};
-
 ModulePattern makePattern(std::string::const_iterator FieldBegin,
                           std::string::const_iterator FieldEnd) {
   /*
@@ -201,44 +194,31 @@ ModulePattern makePattern(std::string::const_iterator FieldBegin,
   Pattern.GroupIndexes["n"] = 0;
 
   std::string SpecialChars{"\\=,{}:*?[]"};
-  PatternState CurrentState = PatternState::Glob;
   std::vector<std::string> GroupNames;
   std::regex WordChars("^\\w+", std::regex::optimize);
   bool OpenGroup = false;
   for (auto i = FieldBegin; i != FieldEnd; i++) {
-    if (CurrentState == PatternState::Name) {
-      std::smatch M;
-      std::regex_search(i, FieldEnd, M, WordChars);
-      GroupNames.push_back(M.str());
-      i += M.str().length();
-      if (i == FieldEnd) {
-        throw parse_error("Unclosed '{' in group "s + GroupNames.back());
-      }
-      if (*i != ':') {
-        throw parse_error("Invalid character in group name: '"s + *i + "'");
-      }
-      if (M.str().length() == 0) {
-        throw parse_error("All groups must be named");
-      }
-      CurrentState = PatternState::Glob;
-    } else if (CurrentState == PatternState::Escape) {
-      if (SpecialChars.find(*i) != std::string::npos) {
-        Pattern.RegexStr.append(quote(*i));
-      } else {
-        Pattern.RegexStr.append("\\\\");
-        --i;
-      }
-      CurrentState = PatternState::Glob;
-    } else { // CurrentState == State::Glob
       switch (*i) {
       case '{':
-        // begin NAMEDGLOB
-        CurrentState = PatternState::Name;
         if (OpenGroup) {
           throw parse_error("Invalid character in pattern: "s + *i);
         }
         OpenGroup = true;
         Pattern.RegexStr.push_back('(');
+        ++i;
+        {std::smatch M;
+        std::regex_search(i, FieldEnd, M, WordChars);
+        GroupNames.push_back(M.str());
+        i += M.str().length();
+        if (i == FieldEnd) {
+          throw parse_error("Unclosed '{' in group "s + GroupNames.back());
+        }
+        if (*i != ':') {
+          throw parse_error("Invalid character in group name: '"s + *i + "'");
+        }
+        if (M.str().length() == 0) {
+          throw parse_error("All groups must be named");
+        }} 
         break;
       case '}':
         if (OpenGroup) {
@@ -255,12 +235,17 @@ ModulePattern makePattern(std::string::const_iterator FieldBegin,
         Pattern.RegexStr.push_back('.');
         break;
       case '\\':
-        CurrentState = PatternState::Escape;
+        ++i;
+          if (SpecialChars.find(*i) != std::string::npos) {
+          Pattern.RegexStr.append(quote(*i));
+        } else {
+          Pattern.RegexStr.append("\\\\");
+          --i;
+        }
         break;
       default:
         Pattern.RegexStr.append(quote(*i));
       }
-    };
   }
   if (OpenGroup) {
     throw parse_error("Unclosed '{' in group"s + GroupNames.back());
