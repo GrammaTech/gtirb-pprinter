@@ -15,40 +15,40 @@ namespace gtirb_pprint_parser {
  * details
  */
 
+// width: 80; tab-width: 2
 static const std::string_view module_help_message{R"""(
-The options `--asm` and `--binary` both accept arguments of the
-following form:
+The options `--asm` and `--binary` both accept arguments of the following form:
 
   [module pattern 1=]file template 1[,[module pattern 2=]file template 2]...
 
-Since the syntax for file templates and module patterns is very similar to
-what many shells use for file expansion, one should typically enclose the
-entire argument in quotes.
+Since the syntax for file templates and module patterns is very similar to what
+many shells use for file expansion, one should typically enclose the entire
+argument in quotes.
 
-Each file template describes a path the file may be written to, and can
-be either:
+Each file template describes a path the file may be written to, and can be
+either:
 
- 1. A filename. Each module will be written to that file. If an IR has
-    more than one module, this will raise an error.
+  1.  A filename. Each module will be written to that file. If an IR has more
+      than one module, this will raise an error.
 
- 2. A template of filenames, based on the module name.
+  2.  A template of filenames, based on the module name.
 
-    If the file template has a corresponding
-    module pattern (see below), the capture groups from that pattern
-    can be also be used in the template. Each module will be written
-    to the first file template with a module pattern that matches its
-    name. The groups `{name}` and `{n}` can always be used as placeholders
-    for the entire module name in a file template: `my_dir/{n}_rewritten`
+      If the file template has a corresponding module pattern (see below), the
+      capture groups from that pattern can be also be used in the template.
+      Each module will be written to the first file template with a module
+      pattern that matches its name. The groups `{name}` and `{n}` can always
+      be used as placeholders for the entire module name in a file template:
+      `my_dir/{n}_rewritten`
 
-The characters `{`, `,`, and `=` need to be escaped in all file templates
-by preceding them with a `\`. The character `\` needs
-to be escaped if it would otherwise be the beginning of an
-escape sequence, otherwise it is treated literally.
+The characters `{`, `,`, and `=` need to be escaped in all file templates by
+preceding them with a `\`. The character `\` needs to be escaped if it would
+otherwise be the beginning of an escape sequence, otherwise it is treated
+literally.
 
 
 A file template can optionally be preceded by a module pattern, with an `=`
-joining the two. A module pattern describes which modules will be printed
-to the file described by its file template. It may contain the following:
+joining the two. A module pattern describes which modules will be printed to
+the file described by its file template. It may contain the following:
 
 1.  Ordinary text. All whitespace is considered as a part of the pattern.
     The following characters need to be escaped in module patterns,
@@ -61,20 +61,40 @@ to the file described by its file template. It may contain the following:
 
     For example: the module pattern `lib?.so*` will match a module named
     `libc.so` or `libc.so.6`, but not modules named `myexe` or `libfoobar.so`.
-    The module pattern `hello` will only match a module named `hello`, and no others.
+    The module pattern `hello` will only match a module named `hello`, and no
+    others.
 
-3.  Named capture groups. A portion of a module pattern can be enclosed in curly
-    braces and given a name, as in `{libname:lib*}`. These groups can then be
-    referenced in the module pattern's corresponding file template.
+3.  Named capture groups. A portion of a module pattern can be enclosed in
+    curly braces and given a name, as in `{libname:lib*}`. These groups can
+    then be referenced in the module pattern's corresponding file template.
 
     For example:
 
-        `lib{stem:*}.{ext:so*}=libs/{stem}.rewritten.{ext}`
+      `lib{stem:*}.{ext:so*}=libs/{stem}.rewritten.{ext}`
 
     will print the module `libfoo.so.1` to `libs/libfoo.rewritten.so.1`, with
     the group `{stem}` matching `foo` and the group `{ext}` matching `so.1`.
 
     Only letters, numbers, and `_` are allowed in group names.
+
+
+EXAMPLES
+
+  1. To write everything to a single directory `./rewritten`: 
+    ./rewritten/{name} or *=./rewritten/{name}
+
+  2. To only print the module "hello_world": 
+    
+    "hello_world=hello_world" or "hello_world={name}"
+  
+  3. To write everything with a file extension to the directory `./libs`, 
+      and everything else to the directory "./bin": 
+        *.*=./libs/{name},*=./bin/{name}
+  
+  4. To add the suffix "_rw" before the extension of a module if it exists,
+     or at the end of the filename if there is no extension: 
+
+     {stem:*}.{ext:*}={stem}_rw.{ext},{name}={name}_rw
 
 )"""};
 
@@ -109,8 +129,13 @@ struct ModulePattern {
   std::string RegexStr;
   std::map<std::string, size_t> GroupIndexes;
 
-  /// Returns a match group that matches the pattern in Name,
-  /// or std::nullopt if there is no match
+  /**
+   * @brief Returns a match group that matches the pattern in Name,
+   * or std::nullopt if there is no match
+   *
+   * @param Name
+   * @return std::optional<std::smatch>
+   */
   std::optional<std::smatch> matches(const std::string& Name) const {
     std::smatch Match;
     std::regex ModuleRegex{RegexStr};
@@ -154,10 +179,10 @@ class FileTemplateRule {
 public:
   /**
    * @brief Construct a new File Template object by iterating through
-   * a string
+   * a character sequence
    *
-   * @param SpecBegin
-   * @param SpecEnd
+   * @param SpecBegin Iterator to the beginning of the sequence
+   * @param SpecEnd One-past-the-end iterator for the sequence
    */
   FileTemplateRule(std::string::const_iterator SpecBegin,
                    std::string::const_iterator SpecEnd);

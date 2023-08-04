@@ -24,19 +24,18 @@ getOutputFileName(const std::vector<FileTemplateRule>& Subs,
   return {};
 }
 
-
-  /**
-   * @brief Parse a string into a list of substitutions to be made
-   *
-   * Substitution patterns are presumed to be separated by commas;
-   * literal commas need to be escaped
-   *
-    * 
-   * Grammar for substitutions:
-   * INPUT := SUB | SUB,SUBS
-   * SUB := FILE | MODULE=FILE
-   *
-   */
+/**
+ * @brief Parse a string into a list of substitutions to be made
+ *
+ * Substitution patterns are presumed to be separated by commas;
+ * literal commas need to be escaped
+ *
+ *
+ * Grammar for substitutions:
+ * INPUT := SUB | SUB,SUBS
+ * SUB := FILE | MODULE=FILE
+ *
+ */
 std::vector<FileTemplateRule> parseInput(const std::string& Input) {
   std::vector<FileTemplateRule> Subs;
   bool Escaped = false;
@@ -198,15 +197,16 @@ ModulePattern makePattern(std::string::const_iterator FieldBegin,
   std::regex WordChars("^\\w+", std::regex::optimize);
   bool OpenGroup = false;
   for (auto i = FieldBegin; i != FieldEnd; i++) {
-      switch (*i) {
-      case '{':
-        if (OpenGroup) {
-          throw parse_error("Invalid character in pattern: "s + *i);
-        }
-        OpenGroup = true;
-        Pattern.RegexStr.push_back('(');
-        ++i;
-        {std::smatch M;
+    switch (*i) {
+    case '{':
+      if (OpenGroup) {
+        throw parse_error("Invalid character in pattern: "s + *i);
+      }
+      OpenGroup = true;
+      Pattern.RegexStr.push_back('(');
+      ++i;
+      {
+        std::smatch M;
         std::regex_search(i, FieldEnd, M, WordChars);
         GroupNames.push_back(M.str());
         i += M.str().length();
@@ -218,34 +218,35 @@ ModulePattern makePattern(std::string::const_iterator FieldBegin,
         }
         if (M.str().length() == 0) {
           throw parse_error("All groups must be named");
-        }} 
-        break;
-      case '}':
-        if (OpenGroup) {
-          Pattern.RegexStr.push_back(')');
-          OpenGroup = false;
-        } else {
-          Pattern.RegexStr.append("\\}");
         }
-        break;
-      case '*':
-        Pattern.RegexStr.append(".*");
-        break;
-      case '?':
-        Pattern.RegexStr.push_back('.');
-        break;
-      case '\\':
-        ++i;
-          if (SpecialChars.find(*i) != std::string::npos) {
-          Pattern.RegexStr.append(quote(*i));
-        } else {
-          Pattern.RegexStr.append("\\\\");
-          --i;
-        }
-        break;
-      default:
-        Pattern.RegexStr.append(quote(*i));
       }
+      break;
+    case '}':
+      if (OpenGroup) {
+        Pattern.RegexStr.push_back(')');
+        OpenGroup = false;
+      } else {
+        Pattern.RegexStr.append("\\}");
+      }
+      break;
+    case '*':
+      Pattern.RegexStr.append(".*");
+      break;
+    case '?':
+      Pattern.RegexStr.push_back('.');
+      break;
+    case '\\':
+      ++i;
+      if (SpecialChars.find(*i) != std::string::npos) {
+        Pattern.RegexStr.append(quote(*i));
+      } else {
+        Pattern.RegexStr.append("\\\\");
+        --i;
+      }
+      break;
+    default:
+      Pattern.RegexStr.append(quote(*i));
+    }
   }
   if (OpenGroup) {
     throw parse_error("Unclosed '{' in group"s + GroupNames.back());

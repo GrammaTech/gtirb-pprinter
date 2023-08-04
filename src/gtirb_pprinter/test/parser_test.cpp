@@ -3,6 +3,7 @@
 #include <iomanip>
 
 using namespace gtirb_pprint_parser;
+using namespace std::literals;
 
 TEST(Unit_Parser, matchPatterns) {
   std::vector<std::pair<std::string, std::string>> cases{
@@ -35,11 +36,27 @@ TEST(Unit_Parser, matchCases) {
       {"lib$.so", "lib$.so"},
       {"lib().so", "lib().so"},
       {"lib\\(", "lib\\("},
-      {"(?:hello)", "(?:hello)"}};
+      {"(?:hello)", "(?:hello)"},
+      {"lib?.so", "liba.so"},
+      {"lib?.so", "lib..so"},
+  };
   for (auto& [input, name] : cases) {
     auto M = makePattern(input.begin(), input.end());
     EXPECT_TRUE(M.matches(name))
         << "Pattern " << M.RegexStr << " doesn't match " << name << "\n";
+  }
+
+  // check that any regex special characters that aren't part of our language
+  // are treated literally
+  for (auto RegexChar : "^$.+()|"s) {
+    auto Input = "lib"s + RegexChar;
+    auto M = makePattern(Input.begin(), Input.end());
+    EXPECT_TRUE(M.matches(Input))
+        << "Character " << RegexChar << "handled wrong\n";
+    Input = "lib\\"s + RegexChar;
+    M = makePattern(Input.begin(), Input.end());
+    EXPECT_TRUE(M.matches(Input))
+        << "Character " << RegexChar << "handled wrong\n";
   }
 }
 
