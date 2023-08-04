@@ -10,14 +10,14 @@ namespace fs = boost::filesystem;
 namespace gtirb_pprint_parser {
 
 /**
- * @brief This module defines the syntax for the command-line arguments
+ * @file Defines the syntax for the command-line arguments
  * defining the final assembly or binary file. See below for
  * details
  */
 
 static const std::string_view module_help_message{R"""(
- The options `--asm` and `--binary` both accept arguments of the
- following form:
+The options `--asm` and `--binary` both accept arguments of the
+following form:
 
   [module pattern 1=]file template 1[,[module pattern 2=]file template 2]...
 
@@ -29,7 +29,7 @@ Each file template describes a path the file may be written to, and can
 be either:
 
  1. A filename. Each module will be written to that file. If an IR has
-   more than one module, this will raise an error.
+    more than one module, this will raise an error.
 
  2. A template of filenames, based on the module name.
 
@@ -78,7 +78,7 @@ to the file described by its file template. It may contain the following:
 
 )"""};
 
-class FilePattern;
+class FileTemplateRule;
 
 /**
  * @brief Turn a command-line argument into a list of file patterns
@@ -86,7 +86,7 @@ class FilePattern;
  * @param Input
  * @return std::vector<FilePattern>
  */
-std::vector<FilePattern> parseInput(const std::string& Input);
+std::vector<FileTemplateRule> parseInput(const std::string& Input);
 
 /**
  * @brief Produce a filename from the first pattern that matches
@@ -96,9 +96,9 @@ std::vector<FilePattern> parseInput(const std::string& Input);
  * @param ModuleName
  * @return std::optional<fs::path>
  */
-
-std::optional<fs::path> getOutputFileName(const std::vector<FilePattern>& Subs,
-                                          const std::string& ModuleName);
+std::optional<fs::path>
+getOutputFileName(const std::vector<FileTemplateRule>& Subs,
+                  const std::string& ModuleName);
 
 /**
  * @brief Translates a wildcard expression, given by the user,
@@ -108,6 +108,9 @@ std::optional<fs::path> getOutputFileName(const std::vector<FilePattern>& Subs,
 struct ModulePattern {
   std::string RegexStr;
   std::map<std::string, size_t> GroupIndexes;
+
+  /// Returns a match group that matches the pattern in Name,
+  /// or std::nullopt if there is no match
   std::optional<std::smatch> matches(const std::string& Name) const {
     std::smatch Match;
     std::regex ModuleRegex{RegexStr};
@@ -131,25 +134,33 @@ ModulePattern makePattern(std::string::const_iterator Begin,
                           std::string::const_iterator End);
 
 /**
- * @brief Represents a rule for turning module names into file names
- *
+ * @brief Represents a rule for turning module names into file names,
+ * consisting of a file template and a module pattern
  */
-class FilePattern {
-  ModulePattern Pattern;
-  std::string Template;
 
-  std::string makeTemplate(std::string::const_iterator PBegin,
-                           std::string::const_iterator PEnd);
-  std::string makeReplacementPattern(const std::string& P) {
-    return makeReplacementPattern(P.begin(), P.end());
+class FileTemplateRule {
+  ModulePattern MPattern;
+
+  std::string FileTemplate;
+  std::string makeFileTemplate(std::string::const_iterator PBegin,
+                               std::string::const_iterator PEnd);
+  std::string makeFileTemplate(const std::string& P) {
+    return makeFileTemplate(P.begin(), P.end());
   };
   std::optional<std::smatch> matches(const std::string& Name) const {
     return MPattern.matches(Name);
   }
 
 public:
-  FilePattern(std::string::const_iterator SpecBegin,
-              std::string::const_iterator SpecEnd);
+  /**
+   * @brief Construct a new File Template object by iterating through
+   * a string
+   *
+   * @param SpecBegin
+   * @param SpecEnd
+   */
+  FileTemplateRule(std::string::const_iterator SpecBegin,
+                   std::string::const_iterator SpecEnd);
 
   /**
    * @brief Returns the path for a module named `Name` if

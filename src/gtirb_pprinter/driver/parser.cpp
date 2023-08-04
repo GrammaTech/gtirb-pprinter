@@ -13,8 +13,9 @@ std::string quote(char C) {
     return ""s + C;
 }
 
-std::optional<fs::path> getOutputFileName(const std::vector<FilePattern>& Subs,
-                                          const std::string& ModuleName) {
+std::optional<fs::path>
+getOutputFileName(const std::vector<FileTemplateRule>& Subs,
+                  const std::string& ModuleName) {
   for (const auto& Sub : Subs) {
     if (auto Path = Sub.substitute(ModuleName)) {
       return fs::path(*Path);
@@ -23,12 +24,6 @@ std::optional<fs::path> getOutputFileName(const std::vector<FilePattern>& Subs,
   return {};
 }
 
-enum class State {
-  Name,
-  Glob,
-  Escape,
-};
-
 /**
  * Grammar for substitutions:
  * INPUT := SUB | SUB,SUBS
@@ -36,7 +31,7 @@ enum class State {
  *
  */
 
-std::vector<FilePattern> parseInput(const std::string& Input) {
+std::vector<FileTemplateRule> parseInput(const std::string& Input) {
   /**
    * @brief Parse a string into a list of substitutions to be made
    *
@@ -44,7 +39,7 @@ std::vector<FilePattern> parseInput(const std::string& Input) {
    * literal commas need to be escaped
    *
    */
-  std::vector<FilePattern> Subs;
+  std::vector<FileTemplateRule> Subs;
   bool Escaped = false;
   auto Start = Input.begin();
   for (auto In = Input.begin(); In != Input.end(); In++) {
@@ -65,8 +60,8 @@ std::vector<FilePattern> parseInput(const std::string& Input) {
   return Subs;
 }
 
-FilePattern::FilePattern(std::string::const_iterator SpecBegin,
-                         std::string::const_iterator SpecEnd)
+FileTemplateRule::FileTemplateRule(std::string::const_iterator SpecBegin,
+                                   std::string::const_iterator SpecEnd)
     : MPattern{".*", {{"name", 0}, {"n", 0}}} {
   auto SpecIter = SpecBegin;
   bool Escape = false;
@@ -82,17 +77,19 @@ FilePattern::FilePattern(std::string::const_iterator SpecBegin,
 
     if (*SpecIter == '=') {
       MPattern = makePattern(SpecBegin, SpecIter);
-      ReplacementPattern = makeReplacementPattern(++SpecIter, SpecEnd);
+      FileTemplate = makeFileTemplate(++SpecIter, SpecEnd);
       return;
     }
     ++SpecIter;
   }
-  ReplacementPattern = makeReplacementPattern(SpecBegin, SpecEnd);
+  FileTemplate = makeFileTemplate(SpecBegin, SpecEnd);
 }
 
+enum class TemplateState { Name, Literal, Escape };
+
 std::string
-FilePattern::makeReplacementPattern(std::string::const_iterator PBegin,
-                                    std::string::const_iterator PEnd) {
+FileTemplateRule::makeFileTemplate(std::string::const_iterator PBegin,
+                                   std::string::const_iterator PEnd) {
   /**
    * Grammar for file patterns:
    *
@@ -105,17 +102,17 @@ FilePattern::makeReplacementPattern(std::string::const_iterator PBegin,
    * sequence
    */
   std::string SpecialChars{"{\\,="};
-  State CurrentState = State::Name;
+  TemplateState CurrentState = TemplateState::Literal;
   std::string Pattern;
   std::string GroupName;
   for (auto I = PBegin; I != PEnd; I++) {
-    if (CurrentState == State::Name) {
+    if (CurrentState == TemplateState::Literal) {
       switch (*I) {
       case '{':
-        CurrentState = State::Glob;
+        CurrentState = TemplateState::Name;
         continue;
       case '\\':
-        CurrentState = State::Escape;
+        CurrentState = TemplateState::Escape;
         continue;
       case '$':
         Pattern.append("$$");
@@ -127,7 +124,7 @@ FilePattern::makeReplacementPattern(std::string::const_iterator PBegin,
         Pattern.push_back(*I);
         continue;
       }
-    } else if (CurrentState == State::Glob) {
+    } else if (CurrentState == TemplateState::Name) {
       if (auto J = std::find(I, PEnd, '}'); J != PEnd) {
         GroupName = std::string(I, J);
         auto GroupIndexesIter = MPattern.GroupIndexes.find(GroupName);
@@ -143,33 +140,40 @@ FilePattern::makeReplacementPattern(std::string::const_iterator PBegin,
         } else {
           Pattern.append(std::to_string(GI));
         }
-        CurrentState = State::Name;
+        CurrentState = TemplateState::Literal;
         I = J;
       } else {
         throw parse_error("Unclosed `{` in file template");
       }
-    } else if (CurrentState == State::Escape) {
+    } else if (CurrentState == TemplateState::Escape) {
       if (SpecialChars.find(*I) != std::string::npos) {
         Pattern.push_back(*I);
       } else {
         Pattern.push_back('\\');
         --I;
       }
-      CurrentState = State::Name;
+      CurrentState = TemplateState::Literal;
     }
   }
-  if (CurrentState == State::Escape) { // Terminal character is '\'
+  if (CurrentState == TemplateState::Escape) { // Terminal character is '\'
     Pattern.push_back('\\');
   }
   return Pattern;
 }
 
-std::optional<std::string> FilePattern::substitute(const std::string& P) const {
+std::optional<std::string>
+FileTemplateRule::substitute(const std::string& P) const {
   if (auto M = matches(P)) {
-    return M->format(ReplacementPattern);
+    return M->format(FileTemplate);
   }
   return {};
 }
+
+enum class PatternState {
+  Name,
+  Glob,
+  Escape,
+};
 
 ModulePattern makePattern(std::string::const_iterator FieldBegin,
                           std::string::const_iterator FieldEnd) {
@@ -197,12 +201,12 @@ ModulePattern makePattern(std::string::const_iterator FieldBegin,
   Pattern.GroupIndexes["n"] = 0;
 
   std::string SpecialChars{"\\=,{}:*?[]"};
-  State CurrentState = State::Glob;
+  PatternState CurrentState = PatternState::Glob;
   std::vector<std::string> GroupNames;
   std::regex WordChars("^\\w+", std::regex::optimize);
   bool OpenGroup = false;
   for (auto i = FieldBegin; i != FieldEnd; i++) {
-    if (CurrentState == State::Name) {
+    if (CurrentState == PatternState::Name) {
       std::smatch M;
       std::regex_search(i, FieldEnd, M, WordChars);
       GroupNames.push_back(M.str());
@@ -216,20 +220,20 @@ ModulePattern makePattern(std::string::const_iterator FieldBegin,
       if (M.str().length() == 0) {
         throw parse_error("All groups must be named");
       }
-      CurrentState = State::Glob;
-    } else if (CurrentState == State::Escape) {
+      CurrentState = PatternState::Glob;
+    } else if (CurrentState == PatternState::Escape) {
       if (SpecialChars.find(*i) != std::string::npos) {
         Pattern.RegexStr.append(quote(*i));
       } else {
         Pattern.RegexStr.append("\\\\");
         --i;
       }
-      CurrentState = State::Glob;
+      CurrentState = PatternState::Glob;
     } else { // CurrentState == State::Glob
       switch (*i) {
       case '{':
         // begin NAMEDGLOB
-        CurrentState = State::Name;
+        CurrentState = PatternState::Name;
         if (OpenGroup) {
           throw parse_error("Invalid character in pattern: "s + *i);
         }
@@ -251,7 +255,7 @@ ModulePattern makePattern(std::string::const_iterator FieldBegin,
         Pattern.RegexStr.push_back('.');
         break;
       case '\\':
-        CurrentState = State::Escape;
+        CurrentState = PatternState::Escape;
         break;
       default:
         Pattern.RegexStr.append(quote(*i));

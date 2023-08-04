@@ -228,7 +228,7 @@ int main(int argc, char** argv) {
   ContextForgetter ctx;
   gtirb::IR* ir = nullptr;
 
-  std::vector<gtirb_pprint_parser::FilePattern> asmSubs, binarySubs;
+  std::vector<gtirb_pprint_parser::FileTemplateRule> asmSubs, binarySubs;
   if (vm.count("asm")) {
     try {
       asmSubs = gtirb_pprint_parser::parseInput(vm["asm"].as<std::string>());

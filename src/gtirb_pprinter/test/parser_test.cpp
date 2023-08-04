@@ -62,8 +62,9 @@ TEST(Unit_Parser, Substitutions) {
       {"{g1:hell\\\\\\=0}*=lib/{g1}", "hell\\=0_world", "lib/hell\\=0"},
   };
   for (auto& [pattern, name, result] : cases) {
-    EXPECT_EQ(*FilePattern(pattern.begin(), pattern.end()).substitute(name),
-              result)
+    EXPECT_EQ(
+        *FileTemplateRule(pattern.begin(), pattern.end()).substitute(name),
+        result)
         << "Applying " << pattern << "to " << name << " does not give "
         << result << "\n";
   }
@@ -78,7 +79,7 @@ TEST(Unit_Parser, Mistakes) {
       "{g1:hell=0}",         // as does '='
   };
   for (auto& s : cases) {
-    EXPECT_ANY_THROW(FilePattern(s.begin(), s.end()))
+    EXPECT_ANY_THROW(FileTemplateRule(s.begin(), s.end()))
         << "case " << s << " failed to crash";
   }
 
