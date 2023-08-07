@@ -80,19 +80,19 @@ the file described by its file template. It may contain the following:
 
 EXAMPLES
 
-  1. To write everything to a single directory `./rewritten`: 
+  1. To write everything to a single directory `./rewritten`:
     ./rewritten/{name} or *=./rewritten/{name}
 
-  2. To only print the module "hello_world": 
-    
+  2. To only print the module "hello_world":
+
     "hello_world=hello_world" or "hello_world={name}"
-  
-  3. To write everything with a file extension to the directory `./libs`, 
-      and everything else to the directory "./bin": 
+
+  3. To write everything with a file extension to the directory `./libs`,
+      and everything else to the directory "./bin":
         *.*=./libs/{name},*=./bin/{name}
-  
+
   4. To add the suffix "_rw" before the extension of a module if it exists,
-     or at the end of the filename if there is no extension: 
+     or at the end of the filename if there is no extension:
 
      {stem:*}.{ext:*}={stem}_rw.{ext},{name}={name}_rw
 

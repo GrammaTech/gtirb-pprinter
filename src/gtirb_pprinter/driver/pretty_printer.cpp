@@ -316,8 +316,10 @@ int main(int argc, char** argv) {
 
   if (vm.count("module")) {
     LOG_WARNING << "Option `--module` has been deprecated; users should "
-    "select modules by name rather than index. Run " << argv[0] <<" --help modules "
-    "for more information\n";
+                   "select modules by name rather than index. Run "
+                << argv[0]
+                << " --help modules "
+                   "for more information\n";
     auto Index = vm["module"].as<size_t>();
     if (Index >= Modules.size()) {
       LOG_ERROR << "The IR has " << Modules.size()

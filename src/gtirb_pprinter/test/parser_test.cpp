@@ -7,12 +7,12 @@ using namespace std::literals;
 
 TEST(Unit_Parser, matchPatterns) {
   std::vector<std::pair<std::string, std::string>> cases{
-      {"*", ".*"},
+      {"*", ".*?"},
       {"hello", "hello"},
-      {"{name:*.so}", "(.*\\.so)"},
-      {"{n:*}", "(.*)"},
-      {"{stem:libc}.{ext:so*}", "(libc)\\.(so.*)"},
-      {"{stem:\\{*\\}}.*", "(\\{.*\\})\\..*"},
+      {"{name:*.so}", "(.*?\\.so)"},
+      {"{n:*}", "(.*?)"},
+      {"{stem:libc}.{ext:so*}", "(libc)\\.(so.*?)"},
+      {"{stem:\\{*\\}}.*", "(\\{.*?\\})\\..*?"},
       {"lib\\w.so", "lib\\\\w\\.so"},
       {"\\*.so", "\\*\\.so"},
   };
@@ -70,6 +70,7 @@ TEST(Unit_Parser, matchNames) {
 TEST(Unit_Parser, Substitutions) {
   std::vector<std::tuple<std::string, std::string, std::string>> cases{
       {"*.{ext:so*}=example.{ext}", "hello.so", "example.so"},
+      {"{stem:*}.{ext:*}={stem}.rw.{ext}", "hello.so.3", "hello.rw.so.3"},
       {"{s1:*}.{s2:*}.{s3:*}.{s4:*}={s3}/{s2}/{s4}/{s1}", "a.b.c.d", "c/b/d/a"},
       {"*={n}", "'try-to-[escape]'", "'try-to-[escape]'"},
       {"{a:*}-{b:*}={a}1-{b}2", "hello-world", "hello1-world2"},

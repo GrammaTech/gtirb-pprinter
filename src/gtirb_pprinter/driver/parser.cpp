@@ -230,7 +230,7 @@ ModulePattern makePattern(std::string::const_iterator FieldBegin,
       }
       break;
     case '*':
-      Pattern.RegexStr.append(".*");
+      Pattern.RegexStr.append(".*?");
       break;
     case '?':
       Pattern.RegexStr.push_back('.');
