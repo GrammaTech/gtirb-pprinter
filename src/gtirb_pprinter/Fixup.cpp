@@ -16,7 +16,6 @@
 #include "Fixup.hpp"
 #include "AuxDataUtils.hpp"
 #include "PrettyPrinter.hpp"
-#include <boost/filesystem.hpp>
 #include <gtirb/gtirb.hpp>
 
 namespace fs = boost::filesystem;

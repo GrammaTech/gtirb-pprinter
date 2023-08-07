@@ -5,8 +5,6 @@ include_directories(${CMAKE_SOURCE_DIR}/include
                     ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter)
 
 set(${PROJECT_NAME}_SRC
-    ${CMAKE_SOURCE_DIR}/include/gtirb_pprinter/Fixup.hpp
-    ../Fixup.cpp
     parser_test.cpp
     libraries_test.cpp
     test_main.cpp
