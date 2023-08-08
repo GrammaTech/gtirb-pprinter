@@ -628,14 +628,15 @@ int PeBinaryPrinter::assemble(const std::string& Path, gtirb::Context& Context,
   // Find the target platform.
   std::optional<std::string> Machine = getPeMachine(Module);
   TempFile tempOutput;
-  auto retc = executeCommands(assembleCommands(
-      {Asm.fileName(), tempOutput.fileName(), Machine, ExtraCompileArgs, LibraryPaths}));
-  if (retc == 0){
+  auto retc = executeCommands(
+      assembleCommands({Asm.fileName(), tempOutput.fileName(), Machine,
+                        ExtraCompileArgs, LibraryPaths}));
+  if (retc == 0) {
     boost::filesystem::path outputPath(Path);
-      if (outputPath.has_parent_path()){
-        boost::filesystem::create_directories(outputPath.parent_path());
-      }
-      boost::filesystem::rename(tempOutput.fileName(), Path);
+    if (outputPath.has_parent_path()) {
+      boost::filesystem::create_directories(outputPath.parent_path());
+    }
+    boost::filesystem::rename(tempOutput.fileName(), Path);
   }
   return retc;
 }
@@ -699,13 +700,13 @@ int PeBinaryPrinter::link(const std::string& OutputFile,
   Compilands.emplace_back(std::move(Compiland));
   TempFile tempOutput;
   // Add assemble-link commands.
-  CommandList LinkCommands =
-      linkCommands({tempOutput.fileName(), Compilands, Resources, ExportDef, EntryPoint,
-                    Subsystem, Machine, Dll, ExtraCompileArgs, LibraryPaths});
+  CommandList LinkCommands = linkCommands(
+      {tempOutput.fileName(), Compilands, Resources, ExportDef, EntryPoint,
+       Subsystem, Machine, Dll, ExtraCompileArgs, LibraryPaths});
   appendCommands(Commands, LinkCommands);
   boost::filesystem::path outputPath(OutputFile);
-  if (outputPath.has_parent_path()){
-      boost::filesystem::create_directories(outputPath.parent_path());
+  if (outputPath.has_parent_path()) {
+    boost::filesystem::create_directories(outputPath.parent_path());
   }
   boost::filesystem::rename(tempOutput.fileName(), outputPath);
 

@@ -512,7 +512,7 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
       }
       auto name = asmPath->generic_string();
-      if (asmPath->has_parent_path()){
+      if (asmPath->has_parent_path()) {
         fs::create_directories(asmPath->parent_path());
       }
       std::ofstream ofs(name);

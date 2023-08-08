@@ -478,9 +478,10 @@ void ElfBinaryPrinter::addOrigLibraryArgs(
   }
   // add binary library paths (add them to rpath as well)
   for (const auto& LibraryPath : aux_data::getLibraryPaths(module)) {
-    std::string LinkPath = LibraryPath; 
-    for (auto pos = LinkPath.find("$ORIGIN"); pos != std::string::npos; pos=LinkPath.find("$ORIGIN")){
-      LinkPath.replace(pos,7,".");
+    std::string LinkPath = LibraryPath;
+    for (auto pos = LinkPath.find("$ORIGIN"); pos != std::string::npos;
+         pos = LinkPath.find("$ORIGIN")) {
+      LinkPath.replace(pos, 7, ".");
     }
     args.push_back("-L" + LinkPath);
     args.push_back("-Wl,-rpath," + LibraryPath);
@@ -593,15 +594,15 @@ int ElfBinaryPrinter::assemble(const std::string& outputFilename,
   args.push_back(tempFile.fileName());
 
   if (std::optional<int> ret = execute(compiler, args)) {
-    if (*ret){
+    if (*ret) {
       std::cerr << "ERROR: assembler returned: " << *ret << "\n";
-      } else {
-        boost::filesystem::path outputPath(outputFilename);
-        if (outputPath.has_parent_path()){
-          boost::filesystem::create_directories(outputPath.parent_path());
-        }
-        boost::filesystem::rename(tempOutput.fileName(), outputFilename);
+    } else {
+      boost::filesystem::path outputPath(outputFilename);
+      if (outputPath.has_parent_path()) {
+        boost::filesystem::create_directories(outputPath.parent_path());
       }
+      boost::filesystem::rename(tempOutput.fileName(), outputFilename);
+    }
     return *ret;
   }
 
@@ -716,11 +717,11 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
   if (std::optional<int> ret =
           execute(compiler, buildCompilerArgs(outputFile.fileName(), Files, ctx,
                                               module, libArgs))) {
-    if (*ret){
+    if (*ret) {
       LOG_ERROR << "assembler returned: " << *ret << "\n";
     } else {
       boost::filesystem::path outputPath(outputFilename);
-      if (outputPath.has_parent_path()){
+      if (outputPath.has_parent_path()) {
         boost::filesystem::create_directories(outputPath.parent_path());
       }
       boost::filesystem::rename(outputFile.fileName(), outputFilename);
