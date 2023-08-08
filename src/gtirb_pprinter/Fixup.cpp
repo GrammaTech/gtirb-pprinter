@@ -374,6 +374,7 @@ struct DependencyGraph {
         if (auto MIter = std::find(UsesLst.begin(), UsesLst.end(), M);
             MIter != UsesLst.end()) {
           UsesLst.erase(MIter);
+          Uses[N] = UsesLst;
         }
         if (UsesLst.size() == 0) {
           Free.push_back(N);

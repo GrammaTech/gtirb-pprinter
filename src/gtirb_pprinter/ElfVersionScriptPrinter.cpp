@@ -21,7 +21,8 @@
 
 namespace gtirb_pprint {
 
-bool printVersionScript(const gtirb::Module& Module, std::ofstream& VersionScript) {
+bool printVersionScript(const gtirb::Module& Module,
+                        std::ofstream& VersionScript) {
   LOG_INFO << "Preparing linker version script...\n";
   if (!VersionScript.is_open()) {
     LOG_ERROR << "Unable to open version script file \n";
@@ -37,7 +38,7 @@ bool printVersionScript(const gtirb::Module& Module, std::ofstream& VersionScrip
   auto SymbolVersions = aux_data::getSymbolVersions(Module);
   if (!SymbolVersions) {
     LOG_INFO << "Module: " << Module.getBinaryPath()
-              << "contains no symbol versions\n";
+             << "contains no symbol versions\n";
     return true;
   }
   auto& [SymVerDefs, SymVersNeeded, SymVerEntries] = *SymbolVersions;
@@ -77,7 +78,6 @@ bool printVersionScript(const gtirb::Module& Module, std::ofstream& VersionScrip
   return VersionScript.tellp() > 0;
 }
 
-
 bool printVersionScript(const gtirb::IR& IR, std::ofstream& VersionScript) {
   LOG_INFO << "Preparing linker version script...\n";
   if (!VersionScript.is_open()) {
@@ -86,7 +86,7 @@ bool printVersionScript(const gtirb::IR& IR, std::ofstream& VersionScript) {
   }
   std::unordered_set<std::string> Defined;
 
-  for (auto& Module: IR.modules()){
+  for (auto& Module : IR.modules()) {
     if (Module.getFileFormat() != gtirb::FileFormat::ELF) {
       LOG_WARNING << "Module: " << Module.getBinaryPath()
                   << "is not ELF; cannot generate symbol versions.\n";
@@ -95,7 +95,7 @@ bool printVersionScript(const gtirb::IR& IR, std::ofstream& VersionScript) {
     auto SymbolVersions = aux_data::getSymbolVersions(Module);
     if (!SymbolVersions) {
       LOG_INFO << "Module: " << Module.getBinaryPath()
-                << "contains no symbol versions\n";
+               << "contains no symbol versions\n";
       continue;
     }
     auto& [SymVerDefs, SymVersNeeded, SymVerEntries] = *SymbolVersions;

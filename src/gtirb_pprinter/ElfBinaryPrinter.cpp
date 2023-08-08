@@ -601,7 +601,7 @@ int ElfBinaryPrinter::assemble(const std::string& outputFilename,
       if (outputPath.has_parent_path()) {
         boost::filesystem::create_directories(outputPath.parent_path());
       }
-      boost::filesystem::rename(tempOutput.fileName(), outputFilename);
+      boost::filesystem::copy(tempOutput.fileName(), outputFilename);
     }
     return *ret;
   }
@@ -724,7 +724,7 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
       if (outputPath.has_parent_path()) {
         boost::filesystem::create_directories(outputPath.parent_path());
       }
-      boost::filesystem::rename(outputFile.fileName(), outputFilename);
+      boost::filesystem::copy_file(outputFile.fileName(), outputFilename);
     }
     outputFile.close();
     return *ret;
