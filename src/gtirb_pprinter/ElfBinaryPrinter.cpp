@@ -203,7 +203,7 @@ bool ElfBinaryPrinter::generateDummySO(
   if (EmittedSymvers) {
     if (!Printer.getIgnoreSymbolVersions()) {
       // A version script is only needed if we define versioned symbols.
-      if (gtirb_pprint::printVersionScript(*module.getIR(), VersionScript)) {
+      if (gtirb_pprint::printVersionScript(module, VersionScript)) {
         Args.push_back("-Wl,--version-script=" + VersionScript.fileName());
       }
     }
@@ -691,7 +691,7 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
   if (aux_data::hasVersionedSymDefs(*module.getIR()) &&
       !Printer.getIgnoreSymbolVersions()) {
     // A version script is only needed if we define versioned symbols.
-    if (gtirb_pprint::printVersionScript(*module.getIR(), VersionScript)) {
+    if (gtirb_pprint::printVersionScript(module, VersionScript)) {
       libArgs.push_back("-Wl,--version-script=" + VersionScript.fileName());
     }
   }
