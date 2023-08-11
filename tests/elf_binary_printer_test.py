@@ -470,3 +470,93 @@ class ElfBinaryPrinterTests(unittest.TestCase):
         for subtest in subtests:
             with self.subTest(subtest=subtest):
                 self.subtest_dynamic_entries(*subtest)
+
+    def test_export_dynamic(self):
+        """
+        Test that we pass -Wl,--export-dynamic when all
+        global visible symbols are in .dynsym.
+        """
+
+        ir, module = gth.create_test_module(
+            gtirb.Module.FileFormat.ELF,
+            gtirb.Module.ISA.X64,
+            ["DYN", "PIE"],
+        )
+
+        # Add a .dynamic section (which gtirb-pprinter uses for detecting
+        # static vs. dynamic binaries)
+        gth.add_section(module, ".dynamic")
+
+        # Build code blocks
+        section_flags = {
+            gtirb.Section.Flag.Readable,
+            gtirb.Section.Flag.Executable,
+            gtirb.Section.Flag.Loaded,
+            gtirb.Section.Flag.Initialized,
+        }
+
+        #    48 31 ff                xor    %rdi,%rdi
+        #    0f 05                   syscall
+        code_bytes = b"\x48\x31\xff\x0f\x05"
+        (section, section_bi) = gth.add_section(
+            module, ".text", address=0x10000, flags=section_flags
+        )
+        # Add global exported symbols
+        for index, symbol_name in enumerate(
+            ["_start", "f2_symbol", "f3_symbol"]
+        ):
+            block = gth.add_code_block(section_bi, code_bytes, {})
+            symbol = gth.add_symbol(module, symbol_name, block)
+            module.aux_data["elfSymbolInfo"].data[symbol.uuid] = (
+                0,
+                "FUNC",
+                "GLOBAL",
+                "DEFAULT",
+                0,
+            )
+            module.aux_data["elfSymbolTabIdxInfo"].data[symbol.uuid] = [
+                (".symtab", index),
+                (".dynsym", index),
+            ]
+
+        # Add global hidden non exported symbols
+        for index, symbol_name in enumerate(
+            ["f4_symbol", "f5_symbol"], start=3
+        ):
+            block = gth.add_code_block(section_bi, code_bytes, {})
+
+            symbol = gth.add_symbol(module, symbol_name, block)
+            module.aux_data["elfSymbolInfo"].data[symbol.uuid] = (
+                0,
+                "FUNC",
+                "GLOBAL",
+                "HIDDEN",
+                0,
+            )
+            module.aux_data["elfSymbolTabIdxInfo"].data[symbol.uuid] = [
+                (".symtab", index)
+            ]
+
+        module.aux_data["libraries"].data.extend(["libc.so"])
+
+        # Build binary
+        with self.binary_print(ir) as result:
+            dynsym = self.readelf(result.path, "--dyn-syms")
+            symtab = self.readelf(result.path, "--syms")
+
+            # All the symbols in dynsym have been exported
+            self.assert_readelf_syms(
+                dynsym.stdout,
+                ("FUNC", "GLOBAL", "DEFAULT", "_start"),
+                ("FUNC", "GLOBAL", "DEFAULT", "f2_symbol"),
+                ("FUNC", "GLOBAL", "DEFAULT", "f3_symbol"),
+            )
+            # The hidden global are not exported
+            self.assertNotIn("f4_symbol", dynsym.stdout)
+            self.assertNotIn("f5_symbol", dynsym.stdout)
+            # The hidden global have been transformed to local
+            self.assert_readelf_syms(
+                symtab.stdout,
+                ("FUNC", "LOCAL", "DEFAULT", "f4_symbol"),
+                ("FUNC", "LOCAL", "DEFAULT", "f5_symbol"),
+            )

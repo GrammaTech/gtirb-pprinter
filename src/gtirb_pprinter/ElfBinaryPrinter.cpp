@@ -487,7 +487,8 @@ void ElfBinaryPrinter::addOrigLibraryArgs(
   }
 }
 
-static bool allGlobalSymsExported(gtirb::Context& Ctx, gtirb::Module& Module) {
+static bool allGlobalVisibleSymsExported(gtirb::Context& Ctx,
+                                         gtirb::Module& Module) {
   auto SymbolTabIdxInfo = aux_data::getElfSymbolTabIdxInfo(Module);
   for (auto& [SymUUID, Tables] : SymbolTabIdxInfo) {
     auto Symbol = gtirb_pprint::nodeFromUUID<gtirb::Symbol>(Ctx, SymUUID);
@@ -497,6 +498,9 @@ static bool allGlobalSymsExported(gtirb::Context& Ctx, gtirb::Module& Module) {
 
     auto SymbolInfo = aux_data::getElfSymbolInfo(*Symbol);
     if (SymbolInfo->Binding != "GLOBAL") {
+      continue;
+    }
+    if (SymbolInfo->Visibility == "HIDDEN") {
       continue;
     }
 
@@ -552,7 +556,7 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
     // append -Wl,--export-dynamic if needed; can occur for both DYN and EXEC.
     // TODO: if some symbols are exported, but not all, build a dynamic list
     // file and pass with `--dynamic-list`.
-    if (allGlobalSymsExported(context, module)) {
+    if (allGlobalVisibleSymsExported(context, module)) {
       args.push_back("-Wl,--export-dynamic");
     }
   }
