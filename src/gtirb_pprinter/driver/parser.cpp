@@ -83,8 +83,6 @@ FileTemplateRule::FileTemplateRule(std::string::const_iterator SpecBegin,
   FileTemplate = makeFileTemplate(SpecBegin, SpecEnd);
 }
 
-enum class TemplateState { Name, Literal, Escape };
-
 std::string
 FileTemplateRule::makeFileTemplate(std::string::const_iterator PBegin,
                                    std::string::const_iterator PEnd) {
@@ -100,29 +98,12 @@ FileTemplateRule::makeFileTemplate(std::string::const_iterator PBegin,
    * sequence
    */
   std::string SpecialChars{"{\\,="};
-  TemplateState CurrentState = TemplateState::Literal;
   std::string Pattern;
   std::string GroupName;
   for (auto I = PBegin; I != PEnd; I++) {
-    if (CurrentState == TemplateState::Literal) {
-      switch (*I) {
-      case '{':
-        CurrentState = TemplateState::Name;
-        continue;
-      case '\\':
-        CurrentState = TemplateState::Escape;
-        continue;
-      case '$':
-        Pattern.append("$$");
-        continue;
-      case ',':
-      case '=':
-        throw parse_error("Character "s + *I + " must be escaped");
-      default:
-        Pattern.push_back(*I);
-        continue;
-      }
-    } else if (CurrentState == TemplateState::Name) {
+    switch (*I) {
+    case '{':
+      I++;
       if (auto J = std::find(I, PEnd, '}'); J != PEnd) {
         GroupName = std::string(I, J);
         auto GroupIndexesIter = MPattern.GroupIndexes.find(GroupName);
@@ -138,23 +119,30 @@ FileTemplateRule::makeFileTemplate(std::string::const_iterator PBegin,
         } else {
           Pattern.append(std::to_string(GI));
         }
-        CurrentState = TemplateState::Literal;
         I = J;
       } else {
         throw parse_error("Unclosed `{` in file template");
       }
-    } else if (CurrentState == TemplateState::Escape) {
-      if (SpecialChars.find(*I) != std::string::npos) {
+      break;
+    case '\\':
+      I++;
+      if (I != PEnd && SpecialChars.find(*I) != std::string::npos) {
         Pattern.push_back(*I);
       } else {
         Pattern.push_back('\\');
         --I;
       }
-      CurrentState = TemplateState::Literal;
+      break;
+    case '$':
+      Pattern.append("$$");
+      break;
+    case ',':
+    case '=':
+      throw parse_error("Character "s + *I + " must be escaped");
+    default:
+      Pattern.push_back(*I);
+      break;
     }
-  }
-  if (CurrentState == TemplateState::Escape) { // Terminal character is '\'
-    Pattern.push_back('\\');
   }
   return Pattern;
 }
@@ -197,6 +185,7 @@ ModulePattern makePattern(std::string::const_iterator FieldBegin,
   std::regex WordChars("^\\w+", std::regex::optimize);
   bool OpenGroup = false;
   for (auto i = FieldBegin; i != FieldEnd; i++) {
+    std::smatch M;
     switch (*i) {
     case '{':
       if (OpenGroup) {
@@ -204,21 +193,20 @@ ModulePattern makePattern(std::string::const_iterator FieldBegin,
       }
       OpenGroup = true;
       Pattern.RegexStr.push_back('(');
+      // If we reach the end of the range when we advance,
+      // there's a syntax error in the input and so we'll throw an exception
       ++i;
-      {
-        std::smatch M;
-        std::regex_search(i, FieldEnd, M, WordChars);
-        GroupNames.push_back(M.str());
-        i += M.str().length();
-        if (i == FieldEnd) {
-          throw parse_error("Unclosed '{' in group "s + GroupNames.back());
-        }
-        if (*i != ':') {
-          throw parse_error("Invalid character in group name: '"s + *i + "'");
-        }
-        if (M.str().length() == 0) {
-          throw parse_error("All groups must be named");
-        }
+      std::regex_search(i, FieldEnd, M, WordChars);
+      GroupNames.push_back(M.str());
+      i += M.str().length();
+      if (i == FieldEnd) {
+        throw parse_error("Unclosed '{' in group "s + GroupNames.back());
+      }
+      if (*i != ':') {
+        throw parse_error("Invalid character in group name: '"s + *i + "'");
+      }
+      if (M.str().length() == 0) {
+        throw parse_error("All groups must be named");
       }
       break;
     case '}':
@@ -237,7 +225,7 @@ ModulePattern makePattern(std::string::const_iterator FieldBegin,
       break;
     case '\\':
       ++i;
-      if (SpecialChars.find(*i) != std::string::npos) {
+      if (i != FieldEnd && SpecialChars.find(*i) != std::string::npos) {
         Pattern.RegexStr.append(quote(*i));
       } else {
         Pattern.RegexStr.append("\\\\");
