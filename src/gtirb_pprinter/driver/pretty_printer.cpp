@@ -77,8 +77,10 @@ int main(int argc, char** argv) {
   gtirb_pprint::registerPrettyPrinters();
 
   po::options_description desc("Allowed options");
-  desc.add_options()("help,h", po::value<std::string>()->implicit_value(""),
-                     "Produce help message.");
+  desc.add_options()(
+      "help,h", po::value<std::string>()->implicit_value(""),
+      "Print this help message, or use `-h modules` to print help"
+      "with selecting modules and specifying file names");
   desc.add_options()("version", "Print version info and exit.");
   desc.add_options()("ir,i", po::value<std::string>(), "GTIRB file to print.");
   desc.add_options()(
@@ -87,16 +89,14 @@ int main(int argc, char** argv) {
       "If there is more than one module, files for each can be specified "
       "as so: \n `[MODULE1=]FILE1[,[MODULE2]=FILE2...]`\n"
       "Run `gtirb-pprinter --help modules` for more details regarding "
-      "selecting modules "
-      "and specifying file names.");
+      "selecting modules and specifying file names.");
   desc.add_options()(
       "binary,b", po::value<std::string>()->value_name("FILE"),
       "Print IR as binary to FILE. "
       "If there is more than one module, files for each can be specified "
       "as so: \n `[MODULE1=]FILE1[,[MODULE2]=FILE2...]`\n"
       "Run `gtirb-ppprinter --help modules` for more details regarding "
-      "selecting modules "
-      "and specifying file names.");
+      "selecting modules and specifying file names.");
   desc.add_options()("compiler-args,c",
                      po::value<std::vector<std::string>>()->multitoken(),
                      "Additional arguments to pass to the compiler. Only used "
