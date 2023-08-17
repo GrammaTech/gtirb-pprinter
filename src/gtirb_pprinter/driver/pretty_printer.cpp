@@ -243,6 +243,7 @@ int main(int argc, char** argv) {
           gtirb_pprint_parser::parseInput(vm["binary"].as<std::string>());
     } catch (const gtirb_pprint_parser::parse_error& err) {
       LOG_ERROR << "Invalid argument for --binary: " << err.what() << "\n";
+      return 1;
     }
   }
   if (vm.count("ir") != 0) {
