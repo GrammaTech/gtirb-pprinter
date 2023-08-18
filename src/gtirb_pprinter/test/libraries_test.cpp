@@ -121,3 +121,40 @@ TEST(Unit_Libraries, TestSorting) {
   EXPECT_LT(IndexOf(LibBar), IndexOf(Ex2));
   EXPECT_LT(IndexOf(LibBaz), IndexOf(Ex2));
 }
+
+TEST(Unit_Libraries, TestSortingCycle) {
+  gtirb::Context Ctx;
+  auto* Ex = gtirb::Module::Create(Ctx, "ex");
+  auto* Lib1 = gtirb::Module::Create(Ctx, "lib1");
+  auto* Lib2 = gtirb::Module::Create(Ctx, "lib2");
+  auto* Lib3 = gtirb::Module::Create(Ctx, "lib3");
+
+  Ex->addAuxData<gtirb::schema::Libraries>(std::vector<std::string>{"lib1"});
+  Lib1->addAuxData<gtirb::schema::Libraries>(std::vector<std::string>{"lib2"});
+  Lib2->addAuxData<gtirb::schema::Libraries>(
+      std::vector<std::string>{"lib1", "lib3"});
+
+  std::vector<ModulePrintingInfo> MPIs;
+  for (auto* M : std::vector<gtirb::Module*>{Ex, Lib1, Lib2, Lib3}) {
+    MPIs.emplace_back(M, std::nullopt, M->getName());
+  }
+  ASSERT_EQ(MPIs.size(), 4);
+  MPIs = fixupLibraryAuxData(MPIs);
+  EXPECT_EQ(MPIs.size(), 4);
+
+  auto IndexOf = [&MPIs](const gtirb::Module* M) -> auto {
+    for (auto MPIter = MPIs.begin(); MPIter != MPIs.end(); MPIter++) {
+      if (MPIter->Module == M) {
+        return MPIter;
+      }
+    }
+    return MPIs.end();
+  };
+
+  EXPECT_EQ(MPIs[0].Module, Lib3);
+  EXPECT_EQ(MPIs[3].Module, Ex);
+  EXPECT_LT(IndexOf(Lib3), IndexOf(Lib2));
+  EXPECT_LT(IndexOf(Lib3), IndexOf(Lib1));
+  EXPECT_LT(IndexOf(Lib2), IndexOf(Ex));
+  EXPECT_LT(IndexOf(Lib1), IndexOf(Ex));
+}

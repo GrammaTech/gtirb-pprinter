@@ -355,34 +355,25 @@ struct DependencyGraph {
   /// @return
   std::vector<ModulePrintingInfo> sortedModules() {
 
-    /// Adapted from
-    /// https://en.wikipedia.org/wiki/Topological_sorting#Kahn's_algorithm
-    std::vector<ModulePrintingInfo> Sorted, Free;
+    std::vector<ModulePrintingInfo> Sorted, Pending(BinaryPrintingModules);
+    std::set<ModulePrintingInfo> Started, Visited;
 
-    for (auto& [M, ULst] : Uses) {
-      if (ULst.empty()) {
-        Free.emplace_back(M);
+    while (Pending.size() > 0) {
+      auto M = Pending.back();
+      Pending.pop_back();
+      if (Started.count(M) == 0) {
+        Started.insert(M);
+        Pending.push_back(M);
+        for (auto& Dep : Uses[M]) {
+          Pending.push_back(Dep);
+        }
+      } else if (Visited.count(M) == 0) {
+        Visited.insert(M);
+        Sorted.push_back(M);
       }
     }
-
-    while (Free.size() > 0) {
-      auto M = Free.back();
-      Free.pop_back();
+    for (auto& M : OtherModules) {
       Sorted.push_back(M);
-      for (auto& N : UsedBy[M]) {
-        auto UsesLst = Uses[N];
-        if (auto MIter = std::find(UsesLst.begin(), UsesLst.end(), M);
-            MIter != UsesLst.end()) {
-          UsesLst.erase(MIter);
-          Uses[N] = UsesLst;
-        }
-        if (UsesLst.size() == 0) {
-          Free.push_back(N);
-        }
-      }
-    }
-    for (auto& MPI : OtherModules) {
-      Sorted.push_back(MPI);
     }
     return Sorted;
   }
