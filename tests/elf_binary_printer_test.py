@@ -224,6 +224,41 @@ class ElfBinaryPrinterTests(unittest.TestCase):
                 ("FUNC", "WEAK", "DEFAULT", "a@LIBA_1.0"),
             )
 
+    def test_dummyso_no_libs(self):
+        """
+        Test printing a GTIRB that has no libraries with --dummy-so=yes
+        """
+        ir, module = gth.create_test_module(
+            gtirb.Module.FileFormat.ELF,
+            gtirb.Module.ISA.X64,
+        )
+        text_section, text_bi = gth.add_text_section(module)
+
+        # For the following code:
+        #    48 31 c0                xor    %rax,%rax
+        #    48 c7 c0 3c 00 00 00    mov    $0x3c,%rax
+        #    48 31 ff                xor    %rdi,%rdi
+        #    0f 05                   syscall
+        cb = gth.add_code_block(
+            text_bi,
+            b"\x48\x31\xc0"
+            b"\x48\xc7\xc0\x3c\x00\x00\x00"
+            b"\x48\x31\xff"
+            b"\x0f\x05",
+        )
+        symbol_start = gth.add_symbol(module, "_start", cb)
+        module.aux_data["elfSymbolInfo"].data[symbol_start.uuid] = (
+            0,
+            "FUNC",
+            "GLOBAL",
+            "DEFAULT",
+            0,
+        )
+
+        with self.binary_print(ir, "--dummy-so", "yes"):
+            # Just verify binary_print succeeded.
+            pass
+
     def test_use_gcc(self):
         """
         Test --use-gcc, both with a gcc in PATH and with a full path to gcc
