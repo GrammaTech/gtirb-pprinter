@@ -193,11 +193,12 @@ ModulePattern makePattern(std::string::const_iterator FieldBegin,
       }
       OpenGroup = true;
       Pattern.RegexStr.push_back('(');
-      // If we reach the end of the range when we advance,
-      // there's a syntax error in the input and so we'll throw an exception
       ++i;
+      // We know at this point that `i <= FieldEnd`. If `i == FieldEnd`, then
+      // std::regex_search will scan an empty sequence and won't dereference
+      // `i`, and M.str().length() will be 0 so `i` won't advance further
       std::regex_search(i, FieldEnd, M, WordChars);
-      GroupNames.push_back(M.str());
+      // M.str().length() can never be greater than `FieldEnd - i`
       i += M.str().length();
       if (i == FieldEnd) {
         throw parse_error("Unclosed '{' in group "s + GroupNames.back());
@@ -208,6 +209,7 @@ ModulePattern makePattern(std::string::const_iterator FieldBegin,
       if (M.str().length() == 0) {
         throw parse_error("All groups must be named");
       }
+      GroupNames.push_back(M.str());
       break;
     case '}':
       if (OpenGroup) {
