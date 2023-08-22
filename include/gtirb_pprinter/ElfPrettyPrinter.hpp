@@ -177,7 +177,7 @@ in the ELF metadata. This seems to occur sometimes.
 If the given symbol is such a symbol, return the section that it belongs to.
 Otherwise, return null.
 */
-const gtirb::Section* IsGlobalPLTSym(const gtirb::Symbol& Sym);
+const gtirb::Section* IsExternalPLTSym(const gtirb::Symbol& Sym);
 
 } // namespace gtirb_pprint
 

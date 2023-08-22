@@ -297,7 +297,7 @@ buildDummySOSymbolGroups(const gtirb::Context& Context,
       if (GroupedSymbols.find(&Sym) == GroupedSymbols.end()) {
         if (Sym.getAddress()) {
           // There are cases where a symbol is attached to an address in .plt.
-          auto Section = gtirb_pprint::IsGlobalPLTSym(Sym);
+          auto Section = gtirb_pprint::IsExternalPLTSym(Sym);
           if (Section) {
             SymbolGroups.push_back({&Sym});
           }

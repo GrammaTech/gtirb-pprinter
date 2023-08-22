@@ -144,6 +144,7 @@ class ElfBinaryPrinterTests(unittest.TestCase):
             self.assertTrue(libdir.exists())
             subprocess.run("make", cwd=libdir, check=True)
             self.assertTrue((libdir / "libmya.so").exists())
+            self.assertTrue((libdir / "libmyb.so").exists())
 
             # Run the resulting binary with the directory containing the actual
             # .so libs in LD_LIBRARY_PATH, so the loader can find them.
@@ -155,6 +156,7 @@ class ElfBinaryPrinterTests(unittest.TestCase):
                 text=True,
             )
             self.assertTrue("a() invoked!" in exec_proc.stdout)
+            self.assertTrue("b() invoked!" in exec_proc.stdout)
 
     def test_dummyso_copy_relocated(self):
         """
