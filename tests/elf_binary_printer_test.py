@@ -158,6 +158,13 @@ class ElfBinaryPrinterTests(unittest.TestCase):
             self.assertTrue("a() invoked!" in exec_proc.stdout)
             self.assertTrue("b() invoked!" in exec_proc.stdout)
 
+            # Ensure the bindings of a and b are GLOBAL and WEAK, respectively.
+            self.assert_readelf_syms(
+                result.path,
+                ("FUNC", "GLOBAL", "DEFAULT", "a"),
+                ("FUNC", "WEAK", "DEFAULT", "b"),
+            )
+
     def test_dummyso_copy_relocated(self):
         """
         Test printing a GTIRB with --dummy-so where its only external symbols
