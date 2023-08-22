@@ -337,11 +337,17 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
     }
     Libs.push_back(Library);
   }
-  if (Libs.empty()) {
-    std::cerr << "Note: no dynamic libraries present.\n";
-    return false;
+
+  // Build with -nodefaultlibs to ensure we only link the generated dummy-so
+  // libraries.
+  LibArgs.push_back("-nodefaultlibs");
+  for (const auto& RPath : LibraryPaths) {
+    LibArgs.push_back("-Wl,-rpath," + RPath);
   }
 
+  if (Libs.empty()) {
+    return true;
+  }
   // Get groups of symbols which must be printed together.
   std::vector<SymbolGroup> SymbolGroups =
       buildDummySOSymbolGroups(Context, Module);
@@ -422,26 +428,16 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
     AllocatedSymbols[FirstLib].push_back(SymGroup);
   }
 
+  LibArgs.push_back("-L" + LibDir);
+
   // Generate the .so files
   for (const auto& Lib : Libs) {
     if (!generateDummySO(Module, LibDir, Lib, AllocatedSymbols[Lib])) {
       LOG_ERROR << "Failed generating dummy .so for " << Lib << "\n";
       return false;
     }
-  }
 
-  // Determine the args that need to be passed to the linker.
-  // Note that we build with -nodefaultlibs, since with --dummy-so it is
-  // assumed that the libs we would need are not present. This may futher
-  // require the --keep-function-symbol argument paired with -c -nostartfiles
-  // to preserve startup code.
-  LibArgs.push_back("-L" + LibDir);
-  LibArgs.push_back("-nodefaultlibs");
-  for (const auto& Lib : Libs) {
     LibArgs.push_back("-l:" + Lib);
-  }
-  for (const auto& RPath : LibraryPaths) {
-    LibArgs.push_back("-Wl,-rpath," + RPath);
   }
 
   return true;
