@@ -291,8 +291,8 @@ def build_plt_sec_gtirb() -> gtirb.IR:
 
     plt_code_block_b = gth.add_code_block(plt, b"\x00\x00\x00\x00")
 
-    symbol_b = gth.add_symbol(module, "a", plt_code_block_b)
-    symbol_b_plt = gth.add_symbol(module, "a_plt", plt_code_block_b)
+    symbol_b = gth.add_symbol(module, "b", plt_code_block_b)
+    symbol_b_plt = gth.add_symbol(module, "b_plt", plt_code_block_b)
 
     se_b = gtirb.SymAddrConst(
         0, symbol_b_plt, {gtirb.SymbolicExpression.Attribute.PLT}
