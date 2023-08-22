@@ -347,10 +347,10 @@ void ElfPrettyPrinter::printSymbolDefinitionRelativeToPC(
   os << "\n";
 }
 
-const gtirb::Section* IsGlobalPLTSym(const gtirb::Symbol& Sym) {
+const gtirb::Section* IsExternalPLTSym(const gtirb::Symbol& Sym) {
   if (Sym.getAddress()) {
     if (auto Info = aux_data::getElfSymbolInfo(Sym)) {
-      if (Info->Binding == "GLOBAL") {
+      if (Info->Binding == "GLOBAL" || Info->Binding == "WEAK") {
         if (auto Block = Sym.getReferent<gtirb::CodeBlock>()) {
           if (auto ByteInterval = Block->getByteInterval()) {
             if (auto Section = ByteInterval->getSection()) {
@@ -372,7 +372,7 @@ void ElfPrettyPrinter::printIntegralSymbols(std::ostream& os) {
 
   // Print integral symbols attached to the PLT.
   for (const auto& sym : module.symbols_by_name()) {
-    auto Section = IsGlobalPLTSym(sym);
+    auto Section = IsExternalPLTSym(sym);
     if (Section && shouldSkip(policy, *Section)) {
       // Symbol is attached to the .plt, but it is skipped.
       // In such cases, we need to emit the symbol definition, ensuring
