@@ -112,23 +112,23 @@ TEST(Unit_Parser, E2E) {
   EXPECT_EQ(Subs.size(), 2);
 
   Subs = parseInput("{n}.s");
-  EXPECT_EQ(getOutputFileName(Subs, "ex")->generic_string(),
+  EXPECT_EQ(getOutputFilePath(Subs, "ex")->generic_string(),
             std::string("ex.s"));
 
   Subs = parseInput("{s:*}.{ext:so*}={s}.rewritten.{ext},{n}");
-  EXPECT_EQ(getOutputFileName(Subs, "libc.so.6"),
+  EXPECT_EQ(getOutputFilePath(Subs, "libc.so.6"),
             fs::path("libc.rewritten.so.6"));
-  EXPECT_EQ(getOutputFileName(Subs, "eq"), fs::path("eq"));
+  EXPECT_EQ(getOutputFilePath(Subs, "eq"), fs::path("eq"));
 
   Subs = parseInput("{s:*}.{ext:so*}={s}.rewritten.{ext}");
-  EXPECT_EQ(getOutputFileName(Subs, "ex"), std::nullopt);
+  EXPECT_EQ(getOutputFilePath(Subs, "ex"), std::nullopt);
 
   Subs = parseInput(R"(\{{s:*}\}\{{t:*}\}={s}.{t})");
-  EXPECT_EQ(getOutputFileName(Subs, "{hello}{world}"), "hello.world");
+  EXPECT_EQ(getOutputFilePath(Subs, "{hello}{world}"), "hello.world");
 
   Subs = parseInput(R"(\{\[$.\,\=\]\}={name})");
   auto Name = "{[$.,=]}";
-  EXPECT_EQ(getOutputFileName(Subs, Name), Name)
+  EXPECT_EQ(getOutputFilePath(Subs, Name), Name)
       << "Expected " << Name << ", got "
-      << getOutputFileName(Subs, Name)->generic_string();
+      << getOutputFilePath(Subs, Name)->generic_string();
 }

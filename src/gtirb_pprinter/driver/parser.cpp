@@ -14,7 +14,7 @@ std::string quote(char C) {
 }
 
 std::optional<fs::path>
-getOutputFileName(const std::vector<FileTemplateRule>& Subs,
+getOutputFilePath(const std::vector<FileTemplateRule>& Subs,
                   const std::string& ModuleName) {
   for (const auto& Sub : Subs) {
     if (auto Path = Sub.substitute(ModuleName)) {
@@ -61,11 +61,9 @@ std::vector<FileTemplateRule> parseInput(const std::string& Input) {
 FileTemplateRule::FileTemplateRule(std::string::const_iterator SpecBegin,
                                    std::string::const_iterator SpecEnd)
     : MPattern{".*", {{"name", 0}, {"n", 0}}} {
-  auto SpecIter = SpecBegin;
   bool Escape = false;
-  while (SpecIter != SpecEnd) {
+  for (auto SpecIter = SpecBegin; SpecIter != SpecEnd; ++SpecIter) {
     if (Escape) {
-      ++SpecIter;
       Escape = false;
       continue;
     }
@@ -78,7 +76,6 @@ FileTemplateRule::FileTemplateRule(std::string::const_iterator SpecBegin,
       FileTemplate = makeFileTemplate(++SpecIter, SpecEnd);
       return;
     }
-    ++SpecIter;
   }
   FileTemplate = makeFileTemplate(SpecBegin, SpecEnd);
 }

@@ -38,6 +38,7 @@ either:
       Each module will be written to the first file template with a module
       pattern that matches its name. The groups `{name}` and `{n}` can always
       be used as placeholders for the entire module name in a file template:
+
       `my_dir/{n}_rewritten`
 
 The characters `{`, `,`, and `=` need to be escaped in all file templates by
@@ -81,20 +82,22 @@ the file described by its file template. It may contain the following:
 EXAMPLES
 
   1. To write everything to a single directory `./rewritten`:
-    ./rewritten/{name} or *=./rewritten/{name}
+
+    "./rewritten/{name}" or "*=./rewritten/{name}"
 
   2. To only print the module "hello_world":
 
     "hello_world=hello_world" or "hello_world={name}"
 
   3. To write everything with a file extension to the directory `./libs`,
-      and everything else to the directory "./bin":
-        *.*=./libs/{name},*=./bin/{name}
+     and everything else to the directory "./bin":
+
+     "*.*=./libs/{name},*=./bin/{name}"
 
   4. To add the suffix "_rw" before the extension of a module if it exists,
      or at the end of the filename if there is no extension:
 
-     {stem:*}.{ext:*}={stem}_rw.{ext},{name}={name}_rw
+     "{stem:*}.{ext:*}={stem}_rw.{ext},{name}={name}_rw"
 
 )"""};
 
@@ -109,7 +112,7 @@ class FileTemplateRule;
 std::vector<FileTemplateRule> parseInput(const std::string& Input);
 
 /**
- * @brief Produce a filename from the first pattern that matches
+ * @brief Produce a file path from the first pattern that matches
  * the module name
  *
  * @param Subs
@@ -117,7 +120,7 @@ std::vector<FileTemplateRule> parseInput(const std::string& Input);
  * @return std::optional<fs::path>
  */
 std::optional<fs::path>
-getOutputFileName(const std::vector<FileTemplateRule>& Subs,
+getOutputFilePath(const std::vector<FileTemplateRule>& Subs,
                   const std::string& ModuleName);
 
 /**
@@ -204,4 +207,4 @@ struct parse_error : public std::runtime_error {
 
 } // namespace gtirb_pprint_parser
 
-#endif // GPPRINT_PARSER_H
+#endif // GTPRINT_PARSER_H

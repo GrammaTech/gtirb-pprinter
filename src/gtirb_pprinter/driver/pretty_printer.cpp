@@ -85,7 +85,7 @@ int main(int argc, char** argv) {
   desc.add_options()("ir,i", po::value<std::string>(), "GTIRB file to print.");
   desc.add_options()(
       "asm,a", po::value<std::string>()->value_name("FILE"),
-      "Print IR as assembly code to FILE."
+      "Print IR as assembly code to FILE. "
       "If there is more than one module, files for each can be specified "
       "as so: \n `[MODULE1=]FILE1[,[MODULE2]=FILE2...]`\n"
       "Run `gtirb-pprinter --help modules` for more details regarding "
@@ -290,9 +290,9 @@ int main(int argc, char** argv) {
     std::set<fs::path> AsmNames, BinaryNames;
     for (auto& m : ir->modules()) {
       auto AsmName =
-          gtirb_pprint_parser::getOutputFileName(asmSubs, m.getName());
+          gtirb_pprint_parser::getOutputFilePath(asmSubs, m.getName());
       auto BinaryName =
-          gtirb_pprint_parser::getOutputFileName(binarySubs, m.getName());
+          gtirb_pprint_parser::getOutputFilePath(binarySubs, m.getName());
       if (AsmName && !AsmNames.insert(fs::absolute(*AsmName)).second) {
         LOG_ERROR << "Cannot print multiple modules to " << *AsmName << "\n";
         return 1;
