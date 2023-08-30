@@ -224,6 +224,9 @@ gtirb::Symbol*
 findSymWithBinding(gtirb::Module::symbol_ref_range CandidateSymbols,
                    const std::string& Binding);
 
+// Determine if any version symbols are defined in a module
+DEBLOAT_PRETTYPRINTER_EXPORT_API bool hasVersionedSymDefs(const gtirb::Module& Module);
+
 // Determine if any versions symbols are defined in the IR.
 DEBLOAT_PRETTYPRINTER_EXPORT_API bool hasVersionedSymDefs(const gtirb::IR& IR);
 

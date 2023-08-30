@@ -65,11 +65,13 @@ struct ModulePrintingInfo {
   gtirb::Module* Module;
   std::optional<fs::path> AsmName;
   std::optional<fs::path> BinaryName;
-  ModulePrintingInfo(gtirb::Module* M, std::optional<fs::path> AN,
-                     std::optional<fs::path> BN)
-      : Module(M), AsmName(AN), BinaryName(BN){};
+  std::optional<fs::path> VersionScriptName;
+  ModulePrintingInfo(gtirb::Module* M, std::optional<fs::path> AN=std::nullopt,
+                     std::optional<fs::path> BN=std::nullopt, 
+                     std::optional<fs::path> VN=std::nullopt)
+      : Module(M), AsmName(AN), BinaryName(BN), VersionScriptName(VN){};
   ModulePrintingInfo()
-      : Module(nullptr), AsmName(std::nullopt), BinaryName(std::nullopt){};
+      : ModulePrintingInfo(nullptr){};
 
   // Need to define these in order to use this struct with std::map
   auto operator<(const ModulePrintingInfo& Other) {

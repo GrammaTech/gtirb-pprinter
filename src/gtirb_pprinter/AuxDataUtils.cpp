@@ -143,25 +143,33 @@ void setElfSymbolInfo(gtirb::Symbol& Sym, aux_data::ElfSymbolInfo& Info) {
   (*Table)[Sym.getUUID()] = Info.asAuxData();
 }
 
+bool hasVersionedSymDefs(const gtirb::Module& Module){
+  if (Module.getFileFormat() != gtirb::FileFormat::ELF) {
+    return false;
+  }
+
+  auto SymbolVersions = aux_data::getSymbolVersions(Module);
+  if (!SymbolVersions) {
+    return false;
+  }
+
+  auto& [SymVerDefs, SymVersNeeded, SymVerEntries] = *SymbolVersions;
+  if (SymVerDefs.size() > 0) {
+    return true;
+  }
+  return false;
+}
+
 bool hasVersionedSymDefs(const gtirb::IR& IR) {
   for (const gtirb::Module& Module : IR.modules()) {
-    if (Module.getFileFormat() != gtirb::FileFormat::ELF) {
-      continue;
-    }
-
-    auto SymbolVersions = aux_data::getSymbolVersions(Module);
-    if (!SymbolVersions) {
-      continue;
-    }
-
-    auto& [SymVerDefs, SymVersNeeded, SymVerEntries] = *SymbolVersions;
-    if (SymVerDefs.size() > 0) {
+    if (hasVersionedSymDefs(Module)){
       return true;
     }
   }
-
   return false;
 }
+
+
 
 const gtirb::provisional_schema::ElfSymbolVersions::Type*
 getSymbolVersions(const gtirb::Module& M) {

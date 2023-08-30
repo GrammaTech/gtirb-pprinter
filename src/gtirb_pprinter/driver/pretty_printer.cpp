@@ -183,9 +183,14 @@ int main(int argc, char** argv) {
       "Enable symbol versions. If symbol versions are considered many "
       "binaries will require a version linker script. Only relevant for ELF "
       "executables.");
-  desc.add_options()("version-script", po::value<std::string>(),
-                     "Generate a version script file on the given path. Only "
-                     "relevant for ELF executables.");
+  desc.add_options()(
+    "version-script", po::value<std::string>()->value_name("FILE"),
+    "Generate a version script file on the given path. Only "
+    "relevant for ELF executables."
+    "If there is more than one module, files for each can be specified "
+    "as so: \n `[MODULE1=]FILE1[,[MODULE2]=FILE2...]`\n"
+    "Run `gtirb-ppprinter --help modules` for more details regarding "
+    "selecting modules and specifying file names.");
   po::positional_options_description pd;
   pd.add("ir", -1);
   po::variables_map vm;
@@ -228,7 +233,7 @@ int main(int argc, char** argv) {
   ContextForgetter ctx;
   gtirb::IR* ir = nullptr;
 
-  std::vector<gtirb_pprint_parser::FileTemplateRule> asmSubs, binarySubs;
+  std::vector<gtirb_pprint_parser::FileTemplateRule> asmSubs, binarySubs, vsSubs;
   if (vm.count("asm")) {
     try {
       asmSubs = gtirb_pprint_parser::parseInput(vm["asm"].as<std::string>());
@@ -243,6 +248,14 @@ int main(int argc, char** argv) {
           gtirb_pprint_parser::parseInput(vm["binary"].as<std::string>());
     } catch (const gtirb_pprint_parser::parse_error& err) {
       LOG_ERROR << "Invalid argument for --binary: " << err.what() << "\n";
+      return 1;
+    }
+  }
+  if (vm.count("version-script")){
+    try {
+      vsSubs = gtirb_pprint_parser::parseInput(vm["version-script"].as<std::string>());
+    } catch (const gtirb_pprint_parser::parse_error& err) {
+      LOG_ERROR << "Invalid argument for --asm: " << err.what() << "\n";
       return 1;
     }
   }
@@ -277,13 +290,14 @@ int main(int argc, char** argv) {
   }
 
   std::vector<gtirb_pprint::ModulePrintingInfo> Modules;
-  if (vm.count("asm") || vm.count("binary")) {
-    std::set<fs::path> AsmNames, BinaryNames;
+  if (vm.count("asm") || vm.count("binary") || vm.count("version-script")) {
+    std::set<fs::path> AsmNames, BinaryNames, VersionScriptNames;
     for (auto& m : ir->modules()) {
       auto AsmName =
           gtirb_pprint_parser::getOutputFilePath(asmSubs, m.getName());
       auto BinaryName =
           gtirb_pprint_parser::getOutputFilePath(binarySubs, m.getName());
+      auto VersionScriptName = gtirb_pprint_parser::getOutputFilePath(vsSubs,m.getName());
       if (AsmName && !AsmNames.insert(fs::absolute(*AsmName)).second) {
         LOG_ERROR << "Cannot print multiple modules to " << *AsmName << "\n";
         return 1;
@@ -456,12 +470,6 @@ int main(int argc, char** argv) {
   }
 
   if (vm.count("version-script") != 0) {
-    if (!EnableSymbolVersions) {
-      LOG_ERROR
-          << "Cannot emit a version script while ignoring symbol versions\n";
-      return EXIT_FAILURE;
-    }
-
     if (!aux_data::hasVersionedSymDefs(*ir)) {
       LOG_INFO << "Generating version script, but it is not needed.\n";
     }
@@ -504,6 +512,22 @@ int main(int argc, char** argv) {
     pp.updateDynMode(M, SharedOption);
     // Apply any needed fixups
     applyFixups(ctx, M, pp);
+    // Write version script to a file
+    if (MP.VersionScriptName){
+      if (!EnableSymbolVersions) {
+        LOG_ERROR
+          << "Cannot emit a version script while ignoring symbol versions\n";
+        return EXIT_FAILURE;
+      }
+      if (!aux_data::hasVersionedSymDefs(*MP.Module)) {
+      LOG_INFO << "Generating version script, but it is not needed.\n";
+      }
+
+      const auto versionScriptPath = MP.VersionScriptName->generic_string();
+      std::ofstream VersionStream(versionScriptPath);
+      gtirb_pprint::printVersionScript(*MP.Module, VersionStream);
+    }
+
     // Write ASM to a file.
     const auto asmPath = MP.AsmName;
     if (asmPath) {
