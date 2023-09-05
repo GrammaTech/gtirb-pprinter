@@ -261,34 +261,46 @@ const fs::path Origin("$ORIGIN");
 struct DependencyGraph {
 
   std::map<ModulePrintingInfo, std::vector<ModulePrintingInfo>> Uses, UsedBy;
-  std::vector<ModulePrintingInfo> BinaryPrintingModules;
-  std::vector<ModulePrintingInfo> OtherModules;
   std::map<std::string, ModulePrintingInfo> ModulesByName;
 
   DependencyGraph(std::vector<ModulePrintingInfo> ModuleInfos) {
 
     // TODO: what if two modules share a name?
     for (auto& MPI : ModuleInfos) {
-      if (MPI.BinaryName) {
-        BinaryPrintingModules.push_back(MPI);
-        ModulesByName[MPI.Module->getName()] = MPI;
-      } else {
-        OtherModules.push_back(MPI);
-      }
+      ModulesByName[MPI.Module->getName()] = MPI;
     }
-
-    for (auto& MPI : BinaryPrintingModules) {
-      Uses[MPI] = std::vector<ModulePrintingInfo>();
-      auto Libraries = aux_data::getLibraries(*MPI.Module);
-      for (auto& LibName : Libraries) {
-        if (auto MIter = ModulesByName.find(LibName);
-            MIter != ModulesByName.end()) {
-          Uses[MPI].push_back(MIter->second);
-          UsedBy[MIter->second].push_back(MPI);
+    for (auto& MPI : ModuleInfos) {
+      auto* Libraries = MPI.Module->getAuxData<gtirb::schema::Libraries>();
+      if (Libraries) {
+        for (auto& L : *Libraries) {
+          Uses[MPI].push_back(ModulesByName[L]);
         }
       }
     }
   };
+
+  /**
+   * @brief produce the RPATH necessary for a binary at ModuleLocation
+   * to load a library at LibraryLocation
+   *
+   * @param LibraryLocation The directory containing the target library
+   * @param ModuleLocation The directory containing the module that loads it
+   * @return std::string
+   */
+  std::string toRpath(const fs::path& LibraryLocation,
+                      const fs::path& ModuleLocation) {
+
+    if (LibraryLocation.is_absolute()) {
+      return LibraryLocation.generic_string();
+    } else {
+      auto LibPath = fs::path(".") / LibraryLocation;
+      auto ModulePath = ModuleLocation.is_relative()
+                            ? fs::path(".") / ModuleLocation
+                            : ModuleLocation;
+      auto Rpath = Origin / fs::relative(LibPath, ModulePath);
+      return Rpath.generic_string();
+    }
+  }
 
   /**
    * @brief Change the name of a module to match the file it will be printed to,
@@ -296,67 +308,41 @@ struct DependencyGraph {
    *
    * @param M
    */
-  void updateLibraryName(ModulePrintingInfo M) {
-    auto OldName = M.Module->getName();
-    auto NewName = M.BinaryName->filename().generic_string();
-    for (auto UserMPI : UsedBy[M]) {
-      auto* Libraries = UserMPI.Module->getAuxData<gtirb::schema::Libraries>();
-      std::replace(Libraries->begin(), Libraries->end(), OldName, NewName);
+  void updateLibraries(ModulePrintingInfo M) {
+    std::vector<std::string> NewLibraries, NewLibraryPaths;
+    auto* Libraries = M.Module->getAuxData<gtirb::schema::Libraries>();
+    auto* LibraryPaths = M.Module->getAuxData<gtirb::schema::LibraryPaths>();
+    if (!Libraries || !LibraryPaths) {
+      return;
     }
-    M.Module->setName(NewName);
-    ModulesByName.erase(OldName);
-    ModulesByName[NewName] = M;
+    for (auto& L : *Libraries) {
+      auto LibPath = ModulesByName[L].BinaryName;
+      if (!LibPath) {
+        continue;
+      }
+      NewLibraries.push_back(LibPath->filename().generic_string());
+      if (M.BinaryName) {
+        NewLibraryPaths.push_back(
+            toRpath(LibPath->parent_path(), M.BinaryName->parent_path()));
+      }
+    }
+    for (auto& Path : *LibraryPaths) {
+      NewLibraryPaths.push_back(Path);
+    }
+    *Libraries = NewLibraries;
+    *LibraryPaths = NewLibraryPaths;
   };
-
-  void updateLibraryPath(ModulePrintingInfo M) {
-    auto NewPath = M.BinaryName->parent_path();
-    if (NewPath.is_relative()) {
-      NewPath = fs::path(".") / NewPath;
-    }
-    for (auto& UserMPI : UsedBy[M]) {
-      auto UserPath = UserMPI.BinaryName->parent_path();
-      if (UserPath == "") {
-        UserPath = fs::path(".");
-      } else if (UserPath.is_relative()) {
-        UserPath = fs::path(".") / UserPath;
-      }
-      fs::path RPath;
-      if (NewPath.is_absolute()) {
-        RPath = NewPath;
-      } else {
-        RPath = Origin / fs::relative(NewPath, UserPath);
-      }
-      auto* LibraryPaths =
-          UserMPI.Module->getAuxData<gtirb::schema::LibraryPaths>();
-      if (!LibraryPaths) {
-        std::vector<std::string> LibPaths{RPath.generic_string()};
-        UserMPI.Module->addAuxData<gtirb::schema::LibraryPaths>(
-            std::move(LibPaths));
-      } else {
-        LibraryPaths->push_back(RPath.generic_string());
-      }
-    }
-  }
-
-  void fixNames() {
-    for (auto& PM : BinaryPrintingModules) {
-      updateLibraryName(PM);
-    }
-  }
-
-  void fixPaths() {
-    for (auto& PM : BinaryPrintingModules) {
-      updateLibraryPath(PM);
-    }
-  }
 
   /// @brief Topologically sort the dependency graph,
   /// so that each module appears after all of its dependencies
   /// @return
   std::vector<ModulePrintingInfo> sortedModules() {
 
-    std::vector<ModulePrintingInfo> Sorted, Pending(BinaryPrintingModules);
+    std::vector<ModulePrintingInfo> Sorted, Pending;
     std::set<ModulePrintingInfo> Started, Visited;
+    for (auto& [K, V] : ModulesByName) {
+      Pending.push_back(V);
+    }
 
     while (Pending.size() > 0) {
       auto M = Pending.back();
@@ -372,9 +358,6 @@ struct DependencyGraph {
         Sorted.push_back(M);
       }
     }
-    for (auto& M : OtherModules) {
-      Sorted.push_back(M);
-    }
     return Sorted;
   }
 };
@@ -382,10 +365,11 @@ struct DependencyGraph {
 std::vector<ModulePrintingInfo>
 fixupLibraryAuxData(std::vector<ModulePrintingInfo> ModuleInfos) {
   DependencyGraph DG(ModuleInfos);
-  DG.fixNames();
-  DG.fixPaths();
-
-  return DG.sortedModules();
+  auto Sorted = DG.sortedModules();
+  for (auto MI : Sorted) {
+    DG.updateLibraries(MI);
+  }
+  return Sorted;
 }
 
 } // namespace gtirb_pprint

@@ -16,64 +16,68 @@ TEST(Unit_Libraries, TestLibraryName) {
   M2->setFileFormat(gtirb::FileFormat::ELF);
   M2->setISA(gtirb::ISA::X64);
 
-  gtirb::schema::Libraries::Type Libraries{"libfoo.so"s};
-  M1->addAuxData<gtirb::schema::Libraries>(std::vector<std::string>(Libraries));
-  gtirb::schema::LibraryPaths::Type LibraryPaths;
-  M1->addAuxData<gtirb::schema::LibraryPaths>(
-      std::vector<std::string>(LibraryPaths));
-
+  M1->addAuxData<gtirb::schema::Libraries>({"libfoo.so"s});
+  M1->addAuxData<gtirb::schema::LibraryPaths>({});
   std::vector<ModulePrintingInfo> MPIs;
   MPIs.emplace_back(M1, std::nullopt, fs::path("ex"));
   MPIs.emplace_back(M2, std::nullopt, fs::path("libfoo_rw.so"));
 
   MPIs = gtirb_pprint::fixupLibraryAuxData(MPIs);
-
-  EXPECT_EQ(M2->getName(), "libfoo_rw.so");
-  EXPECT_EQ(M1->getAuxData<gtirb::schema::Libraries>()->at(0), "libfoo_rw.so");
-
+  ASSERT_EQ(MPIs.size(), 2);
   EXPECT_EQ(MPIs[0].Module, M2);
+  EXPECT_EQ(M1->getAuxData<gtirb::schema::Libraries>()->at(0), "libfoo_rw.so");
 }
 
-TEST(Unit_Libraries, Test_LibraryPath) {
+class LibraryModules : public ::testing::Test {
+protected:
   gtirb::Context Ctx;
-  auto* M1 = gtirb::Module::Create(Ctx, "ex"s);
-  M1->setFileFormat(gtirb::FileFormat::ELF);
-  M1->setISA(gtirb::ISA::X64);
-
-  auto* M2 = gtirb::Module::Create(Ctx, "libfoo.so"s);
-  M2->setFileFormat(gtirb::FileFormat::ELF);
-  M2->setISA(gtirb::ISA::X64);
-
-  gtirb::schema::Libraries::Type Libraries{"libfoo.so"s};
-  M1->addAuxData<gtirb::schema::Libraries>(std::vector<std::string>(Libraries));
-  gtirb::schema::LibraryPaths::Type LibraryPaths;
-  M1->addAuxData<gtirb::schema::LibraryPaths>(
-      std::vector<std::string>(LibraryPaths));
-
+  gtirb::Module* M1;
+  gtirb::Module* M2;
+  std::vector<std::string>* LibPaths;
   std::vector<ModulePrintingInfo> MPIs;
+
+public:
+  LibraryModules() {
+    M1 = gtirb::Module::Create(Ctx, "ex"s);
+    M1->setFileFormat(gtirb::FileFormat::ELF);
+    M1->setISA(gtirb::ISA::X64);
+    M1->addAuxData<gtirb::schema::Libraries>({"libfoo.so"});
+    M1->addAuxData<gtirb::schema::LibraryPaths>({});
+
+    M2 = gtirb::Module::Create(Ctx, "libfoo.so"s);
+    M2->setFileFormat(gtirb::FileFormat::ELF);
+    M2->setISA(gtirb::ISA::X64);
+
+    LibPaths = M1->getAuxData<gtirb::schema::LibraryPaths>();
+  }
+};
+
+TEST_F(LibraryModules, Test_LibraryPath1) {
+
   MPIs.emplace_back(M1, std::nullopt, fs::path("ex"));
   MPIs.emplace_back(M2, std::nullopt, fs::path("libs/libfoo.so"));
 
   gtirb_pprint::fixupLibraryAuxData(MPIs);
 
-  auto* LibPaths = M1->getAuxData<gtirb::schema::LibraryPaths>();
   EXPECT_EQ(LibPaths->size(), 1);
   EXPECT_EQ(LibPaths->at(0), "$ORIGIN/libs");
+}
 
-  LibPaths->clear();
-  MPIs.clear();
+TEST_F(LibraryModules, Test_LibraryPath2) {
 
   MPIs.emplace_back(M1, std::nullopt, fs::path("rw/ex"));
   MPIs.emplace_back(M2, std::nullopt, fs::path("rw/libs/ex"));
   gtirb_pprint::fixupLibraryAuxData(MPIs);
 
   EXPECT_EQ(LibPaths->at(0), "$ORIGIN/libs");
+}
 
-  LibPaths->clear();
-  MPIs.clear();
+TEST_F(LibraryModules, Test_LibraryPath3) {
+
   MPIs.emplace_back(M1, std::nullopt, fs::path("ex"));
   MPIs.emplace_back(M2, std::nullopt, fs::absolute(fs::path("libfoo.so")));
   gtirb_pprint::fixupLibraryAuxData(MPIs);
+
   EXPECT_TRUE(fs::path(LibPaths->at(0)).is_absolute()) << LibPaths->at(0);
 }
 
@@ -88,16 +92,16 @@ TEST(Unit_Libraries, TestSorting) {
 
   auto* LibFooDep = gtirb::Module::Create(Ctx, "libfoo-dep.so");
 
-  gtirb::schema::Libraries::Type Ex1Libs{"libfoo.so", "libbar.so"};
-  gtirb::schema::Libraries::Type Ex2Libs{"libbar.so", "libbaz.so"};
-  gtirb::schema::Libraries::Type LibFooLibs{"libfoo-dep.so"};
+  gtirb::schema::Libraries::Type Ex1Libs;
+  gtirb::schema::Libraries::Type Ex2Libs;
+  gtirb::schema::Libraries::Type LibFooLibs;
 
-  Ex1->addAuxData<gtirb::schema::Libraries>(std::move(Ex1Libs));
-  Ex2->addAuxData<gtirb::schema::Libraries>(std::move(Ex2Libs));
-  LibFoo->addAuxData<gtirb::schema::Libraries>(std::move(LibFooLibs));
-  Ex1->addAuxData<gtirb::schema::LibraryPaths>(std::vector<std::string>());
-  Ex2->addAuxData<gtirb::schema::LibraryPaths>(std::vector<std::string>());
-  LibFoo->addAuxData<gtirb::schema::LibraryPaths>(std::vector<std::string>());
+  Ex1->addAuxData<gtirb::schema::Libraries>({"libfoo.so", "libbar.so"});
+  Ex2->addAuxData<gtirb::schema::Libraries>({"libbar.so", "libbaz.so"});
+  LibFoo->addAuxData<gtirb::schema::Libraries>({"libfoo-dep.so"});
+  Ex1->addAuxData<gtirb::schema::LibraryPaths>({});
+  Ex2->addAuxData<gtirb::schema::LibraryPaths>({});
+  LibFoo->addAuxData<gtirb::schema::LibraryPaths>({});
 
   std::vector<ModulePrintingInfo> MPIs;
   for (auto* M : std::vector<gtirb::Module*>{Ex1, Ex2, LibFoo, LibBar, LibBaz,
@@ -129,10 +133,9 @@ TEST(Unit_Libraries, TestSortingCycle) {
   auto* Lib2 = gtirb::Module::Create(Ctx, "lib2");
   auto* Lib3 = gtirb::Module::Create(Ctx, "lib3");
 
-  Ex->addAuxData<gtirb::schema::Libraries>(std::vector<std::string>{"lib1"});
-  Lib1->addAuxData<gtirb::schema::Libraries>(std::vector<std::string>{"lib2"});
-  Lib2->addAuxData<gtirb::schema::Libraries>(
-      std::vector<std::string>{"lib1", "lib3"});
+  Ex->addAuxData<gtirb::schema::Libraries>({"lib1"});
+  Lib1->addAuxData<gtirb::schema::Libraries>({"lib2"});
+  Lib2->addAuxData<gtirb::schema::Libraries>({"lib1", "lib3"});
 
   std::vector<ModulePrintingInfo> MPIs;
   for (auto* M : std::vector<gtirb::Module*>{Ex, Lib1, Lib2, Lib3}) {

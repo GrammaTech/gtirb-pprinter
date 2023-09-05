@@ -443,8 +443,9 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
   return true;
 }
 
-void ElfBinaryPrinter::addOrigLibraryArgs(
-    const gtirb::Module& module, std::vector<std::string>& args) const {
+void ElfBinaryPrinter::addOrigLibraryArgs(const gtirb::Module& module,
+                                          std::vector<std::string>& args,
+                                          const std::string& Location) const {
   // collect all the library paths
   std::vector<std::string> allBinaryPaths = LibraryPaths;
 
@@ -476,12 +477,15 @@ void ElfBinaryPrinter::addOrigLibraryArgs(
   for (const auto& libraryPath : LibraryPaths) {
     args.push_back("-L" + libraryPath);
   }
+  std::string L = (Location == "" ? "." : Location) + "/";
   // add binary library paths (add them to rpath as well)
   for (const auto& LibraryPath : aux_data::getLibraryPaths(module)) {
     std::string LinkPath = LibraryPath;
-    for (auto pos = LinkPath.find("$ORIGIN"); pos != std::string::npos;
-         pos = LinkPath.find("$ORIGIN")) {
-      LinkPath.replace(pos, 7, ".");
+    for (std::string origin : {"$ORIGIN/", "${ORIGIN}/"}) {
+      for (auto pos = LinkPath.find(origin); pos != std::string::npos;
+           pos = LinkPath.find(origin)) {
+        LinkPath.replace(pos, origin.length(), L);
+      }
     }
     args.push_back("-L" + LinkPath);
     args.push_back("-Wl,-rpath," + LibraryPath);
@@ -662,6 +666,8 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
   // longer than the call to the compiler.
   std::optional<TempDir> dummySoDir;
   std::vector<std::string> libArgs;
+  boost::filesystem::path outputPath(outputFilename);
+
   if (useDummySO) {
     // Create the temporary directory for storing the synthetic libraries.
     dummySoDir.emplace();
@@ -686,7 +692,8 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
     // If we're not using synthetic libraries, we just need to pass
     // along the appropriate arguments.
 
-    addOrigLibraryArgs(module, libArgs);
+    addOrigLibraryArgs(module, libArgs,
+                       outputPath.parent_path().generic_string());
   }
 
   TempFile VersionScript(".map");
@@ -722,7 +729,6 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
     if (*ret) {
       LOG_ERROR << "assembler returned: " << *ret << "\n";
     } else {
-      boost::filesystem::path outputPath(outputFilename);
       if (outputPath.has_parent_path()) {
         boost::filesystem::create_directories(outputPath.parent_path());
       }
