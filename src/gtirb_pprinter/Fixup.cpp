@@ -273,7 +273,9 @@ struct DependencyGraph {
       auto* Libraries = MPI.Module->getAuxData<gtirb::schema::Libraries>();
       if (Libraries) {
         for (auto& L : *Libraries) {
-          Uses[MPI].push_back(ModulesByName[L]);
+          if (ModulesByName.count(L)){
+            Uses[MPI].push_back(ModulesByName[L]);
+          }
         }
       }
     }
@@ -341,7 +343,7 @@ struct DependencyGraph {
     std::vector<ModulePrintingInfo> Sorted, Pending;
     std::set<ModulePrintingInfo> Started, Visited;
     for (auto& [K, V] : ModulesByName) {
-      Pending.push_back(V);
+        Pending.push_back(V);
     }
 
     while (Pending.size() > 0) {
@@ -350,8 +352,10 @@ struct DependencyGraph {
       if (Started.count(M) == 0) {
         Started.insert(M);
         Pending.push_back(M);
-        for (auto& Dep : Uses[M]) {
-          Pending.push_back(Dep);
+        if (Uses.count(M)){
+          for (auto& Dep : Uses[M]) {
+              Pending.push_back(Dep);
+          }
         }
       } else if (Visited.count(M) == 0) {
         Visited.insert(M);

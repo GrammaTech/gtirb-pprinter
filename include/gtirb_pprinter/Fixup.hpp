@@ -74,9 +74,6 @@ struct ModulePrintingInfo {
       : ModulePrintingInfo(nullptr){};
 
   // Need to define these in order to use this struct with std::map
-  auto operator<(const ModulePrintingInfo& Other) {
-    return (size_t)Module < (size_t)Other.Module;
-  }
   auto operator<(const ModulePrintingInfo& Other) const {
     return (size_t)Module < (size_t)Other.Module;
   }
@@ -85,9 +82,8 @@ struct ModulePrintingInfo {
     return (Module == Other.Module) && (AsmName == Other.AsmName) &&
            (BinaryName == Other.BinaryName);
   }
-  auto operator==(const ModulePrintingInfo& Other) {
-    return (Module == Other.Module) && (AsmName == Other.AsmName) &&
-           (BinaryName == Other.BinaryName);
+  operator bool(){
+    return Module != nullptr;
   }
 };
 
