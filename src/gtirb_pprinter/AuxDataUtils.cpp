@@ -143,7 +143,7 @@ void setElfSymbolInfo(gtirb::Symbol& Sym, aux_data::ElfSymbolInfo& Info) {
   (*Table)[Sym.getUUID()] = Info.asAuxData();
 }
 
-bool hasVersionedSymDefs(const gtirb::Module& Module){
+bool hasVersionedSymDefs(const gtirb::Module& Module) {
   if (Module.getFileFormat() != gtirb::FileFormat::ELF) {
     return false;
   }
@@ -162,14 +162,12 @@ bool hasVersionedSymDefs(const gtirb::Module& Module){
 
 bool hasVersionedSymDefs(const gtirb::IR& IR) {
   for (const gtirb::Module& Module : IR.modules()) {
-    if (hasVersionedSymDefs(Module)){
+    if (hasVersionedSymDefs(Module)) {
       return true;
     }
   }
   return false;
 }
-
-
 
 const gtirb::provisional_schema::ElfSymbolVersions::Type*
 getSymbolVersions(const gtirb::Module& M) {

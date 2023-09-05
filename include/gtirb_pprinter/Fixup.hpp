@@ -66,12 +66,12 @@ struct ModulePrintingInfo {
   std::optional<fs::path> AsmName;
   std::optional<fs::path> BinaryName;
   std::optional<fs::path> VersionScriptName;
-  ModulePrintingInfo(gtirb::Module* M, std::optional<fs::path> AN=std::nullopt,
-                     std::optional<fs::path> BN=std::nullopt, 
-                     std::optional<fs::path> VN=std::nullopt)
+  ModulePrintingInfo(gtirb::Module* M,
+                     std::optional<fs::path> AN = std::nullopt,
+                     std::optional<fs::path> BN = std::nullopt,
+                     std::optional<fs::path> VN = std::nullopt)
       : Module(M), AsmName(AN), BinaryName(BN), VersionScriptName(VN){};
-  ModulePrintingInfo()
-      : ModulePrintingInfo(nullptr){};
+  ModulePrintingInfo() : ModulePrintingInfo(nullptr){};
 
   // Need to define these in order to use this struct with std::map
   auto operator<(const ModulePrintingInfo& Other) const {
@@ -82,9 +82,7 @@ struct ModulePrintingInfo {
     return (Module == Other.Module) && (AsmName == Other.AsmName) &&
            (BinaryName == Other.BinaryName);
   }
-  operator bool(){
-    return Module != nullptr;
-  }
+  operator bool() { return Module != nullptr; }
 };
 
 /// @brief Fixup Libraries and LibraryPaths AuxData tables
