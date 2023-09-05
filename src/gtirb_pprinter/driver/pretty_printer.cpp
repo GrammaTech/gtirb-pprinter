@@ -21,6 +21,7 @@
 #include <unistd.h>
 #endif
 #include "parser.hpp"
+#include "printing_paths.hpp"
 
 namespace fs = boost::filesystem;
 namespace po = boost::program_options;
@@ -291,7 +292,7 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
 
-  std::vector<gtirb_pprint::ModulePrintingInfo> Modules;
+  std::vector<ModulePrintingInfo> Modules;
   if (vm.count("asm") || vm.count("binary") || vm.count("version-script")) {
     std::set<fs::path> AsmNames, BinaryNames, VersionScriptNames;
     for (auto& m : ir->modules()) {
@@ -339,7 +340,7 @@ int main(int argc, char** argv) {
     Modules = {Modules[Index]};
   }
 
-  Modules = gtirb_pprint::fixupLibraryAuxData(Modules);
+  Modules = fixupLibraryAuxData(Modules);
 
   // Configure the pretty-printer
   gtirb_pprint::PrettyPrinter pp;

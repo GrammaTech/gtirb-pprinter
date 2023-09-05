@@ -1,9 +1,8 @@
 #include <gtest/gtest.h>
 #include <gtirb/gtirb.hpp>
 #include <gtirb_pprinter/AuxDataSchema.hpp>
-#include <gtirb_pprinter/Fixup.hpp>
+#include "../driver/printing_paths.hpp"
 
-using namespace gtirb_pprint;
 using namespace std::literals;
 
 TEST(Unit_Libraries, TestLibraryName) {
@@ -22,7 +21,7 @@ TEST(Unit_Libraries, TestLibraryName) {
   MPIs.emplace_back(M1, std::nullopt, fs::path("ex"));
   MPIs.emplace_back(M2, std::nullopt, fs::path("libfoo_rw.so"));
 
-  MPIs = gtirb_pprint::fixupLibraryAuxData(MPIs);
+  MPIs = fixupLibraryAuxData(MPIs);
   ASSERT_EQ(MPIs.size(), 2);
   EXPECT_EQ(MPIs[0].Module, M2);
   EXPECT_EQ(M1->getAuxData<gtirb::schema::Libraries>()->at(0), "libfoo_rw.so");
@@ -57,7 +56,7 @@ TEST_F(LibraryModules, Test_LibraryPath1) {
   MPIs.emplace_back(M1, std::nullopt, fs::path("ex"));
   MPIs.emplace_back(M2, std::nullopt, fs::path("libs/libfoo.so"));
 
-  gtirb_pprint::fixupLibraryAuxData(MPIs);
+  fixupLibraryAuxData(MPIs);
 
   EXPECT_EQ(LibPaths->size(), 1);
   EXPECT_EQ(LibPaths->at(0), "$ORIGIN/libs");
@@ -67,7 +66,7 @@ TEST_F(LibraryModules, Test_LibraryPath2) {
 
   MPIs.emplace_back(M1, std::nullopt, fs::path("rw/ex"));
   MPIs.emplace_back(M2, std::nullopt, fs::path("rw/libs/ex"));
-  gtirb_pprint::fixupLibraryAuxData(MPIs);
+  fixupLibraryAuxData(MPIs);
 
   EXPECT_EQ(LibPaths->at(0), "$ORIGIN/libs");
 }
@@ -76,7 +75,7 @@ TEST_F(LibraryModules, Test_LibraryPath3) {
 
   MPIs.emplace_back(M1, std::nullopt, fs::path("ex"));
   MPIs.emplace_back(M2, std::nullopt, fs::absolute(fs::path("libfoo.so")));
-  gtirb_pprint::fixupLibraryAuxData(MPIs);
+  fixupLibraryAuxData(MPIs);
 
   EXPECT_TRUE(fs::path(LibPaths->at(0)).is_absolute()) << LibPaths->at(0);
 }
