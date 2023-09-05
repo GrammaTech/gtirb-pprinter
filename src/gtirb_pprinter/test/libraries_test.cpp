@@ -1,9 +1,42 @@
+#include "../driver/printing_paths.hpp"
 #include <gtest/gtest.h>
 #include <gtirb/gtirb.hpp>
 #include <gtirb_pprinter/AuxDataSchema.hpp>
-#include "../driver/printing_paths.hpp"
 
 using namespace std::literals;
+
+TEST(Unit_Libraries, TestNull) {
+  gtirb::Context Ctx;
+  auto* M1 = gtirb::Module::Create(Ctx, "ex"s);
+  M1->setFileFormat(gtirb::FileFormat::ELF);
+  M1->setISA(gtirb::ISA::X64);
+
+  M1->addAuxData<gtirb::schema::Libraries>({});
+  M1->addAuxData<gtirb::schema::LibraryPaths>({});
+  std::vector<ModulePrintingInfo> MPIs{{M1, std::nullopt, "ex"}};
+  auto NewMPIs = fixupLibraryAuxData(MPIs);
+  ASSERT_EQ(NewMPIs, MPIs);
+}
+
+TEST(Unit_Libraries, TestSingleModule) {
+  gtirb::Context Ctx;
+  auto* M1 = gtirb::Module::Create(Ctx, "ex"s);
+  M1->setFileFormat(gtirb::FileFormat::ELF);
+  M1->setISA(gtirb::ISA::X64);
+
+  M1->addAuxData<gtirb::schema::Libraries>({"libc.so.6"});
+  M1->addAuxData<gtirb::schema::LibraryPaths>({"$ORIGIN"});
+  std::vector<ModulePrintingInfo> MPIs{{M1, std::nullopt, "ex"}};
+  auto NewMPIs = fixupLibraryAuxData(MPIs);
+  ASSERT_EQ(NewMPIs, MPIs);
+  auto* Libs = M1->getAuxData<gtirb::schema::Libraries>();
+  ASSERT_EQ(Libs->size(), 1);
+  ASSERT_EQ(Libs->at(0), "libc.so.6");
+
+  auto* LibraryPaths = M1->getAuxData<gtirb::schema::LibraryPaths>();
+  ASSERT_EQ(LibraryPaths->size(), 1);
+  ASSERT_EQ(LibraryPaths->at(0), "$ORIGIN");
+}
 
 TEST(Unit_Libraries, TestLibraryName) {
   gtirb::Context Ctx;
@@ -68,6 +101,7 @@ TEST_F(LibraryModules, Test_LibraryPath2) {
   MPIs.emplace_back(M2, std::nullopt, fs::path("rw/libs/ex"));
   fixupLibraryAuxData(MPIs);
 
+  EXPECT_EQ(LibPaths->size(), 1);
   EXPECT_EQ(LibPaths->at(0), "$ORIGIN/libs");
 }
 
@@ -78,6 +112,16 @@ TEST_F(LibraryModules, Test_LibraryPath3) {
   fixupLibraryAuxData(MPIs);
 
   EXPECT_TRUE(fs::path(LibPaths->at(0)).is_absolute()) << LibPaths->at(0);
+}
+
+TEST_F(LibraryModules, Test_LibraryPathExisting){
+  auto * LibraryPaths = M1->getAuxData<gtirb::schema::LibraryPaths>();
+  LibraryPaths->push_back("$ORIGIN");
+  MPIs.emplace_back(M1, std::nullopt, fs::path("rw/ex"));
+  MPIs.emplace_back(M2, std::nullopt, fs::path("rw/libs/ex"));
+  fixupLibraryAuxData(MPIs);
+  ASSERT_EQ(LibraryPaths->size(), 2);
+  ASSERT_EQ(LibraryPaths->at(1), "$ORIGIN");
 }
 
 TEST(Unit_Libraries, TestSorting) {

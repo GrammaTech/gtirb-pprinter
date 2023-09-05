@@ -1,5 +1,5 @@
-#include <gtirb/Module.hpp>
 #include <boost/filesystem.hpp>
+#include <gtirb/Module.hpp>
 #include <vector>
 
 namespace fs = boost::filesystem;
@@ -18,12 +18,12 @@ struct ModulePrintingInfo {
 
   // Need to define these in order to use this struct with std::map
   auto operator<(const ModulePrintingInfo& Other) const {
-    if (Module == Other.Module){
-      if (AsmName == Other.AsmName){
-        if (BinaryName == Other.BinaryName){
+    if (Module == Other.Module) {
+      if (AsmName == Other.AsmName) {
+        if (BinaryName == Other.BinaryName) {
           return VersionScriptName < Other.VersionScriptName;
         }
-        return BinaryName < Other.BinaryName; 
+        return BinaryName < Other.BinaryName;
       }
       return AsmName < Other.AsmName;
     }
@@ -31,11 +31,11 @@ struct ModulePrintingInfo {
   }
 
   auto operator==(const ModulePrintingInfo& Other) const {
-    return (Module == Other.Module) && (AsmName == Other.AsmName) 
-      && (BinaryName == Other.BinaryName) 
-      && (VersionScriptName == Other.VersionScriptName);
+    return (Module == Other.Module) && (AsmName == Other.AsmName) &&
+           (BinaryName == Other.BinaryName) &&
+           (VersionScriptName == Other.VersionScriptName);
   }
-  
+
   operator bool() { return Module != nullptr; }
 };
 
@@ -54,4 +54,3 @@ struct ModulePrintingInfo {
 /// its dependencies
 std::vector<ModulePrintingInfo>
 fixupLibraryAuxData(std::vector<ModulePrintingInfo> ModuleInfos);
-
