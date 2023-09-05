@@ -318,6 +318,11 @@ struct DependencyGraph {
       return;
     }
     for (auto& L : *Libraries) {
+      if (ModulesByName.count(L) == 0) {
+        NewLibraries.push_back(L);
+        continue;
+      }
+
       auto LibPath = ModulesByName[L].BinaryName;
       if (!LibPath) {
         continue;
