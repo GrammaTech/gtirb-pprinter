@@ -6,12 +6,16 @@
     DT_NEEDED entries after rewriting with `--dummy-so`.
   * Removed `--binaries` option
   * `--binary` option now links each module of the IR into a separate binary
-  * `--module` option to work in tandem with the --asm and --binary options
+  * `--asm` option now prints the assembly for each module of an IR separately
+  * `--version-script` now prints a separate version script for each module
+    of an IR 
+  * `--module` option deprecated
   * Added `--object` option to print relocatable object files
   * Binary printer methods now operate on modules, rather than the entire IR
   * `--shared` option now takes an argument: either `yes`, `no`, or `auto` (`auto` uses aux_data `binaryType`)
   * Pass `-init` and `-fini` to `ld` based on `elfDynamicInit` and `elfDynamicFini` auxdata.
   * Added patterns for selecting and printing modules by names
+
 
 # 1.9.0
   * Added a Python wheel to make gtirb-pprinter pip-installable.
