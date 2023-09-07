@@ -61,12 +61,14 @@ struct DependencyGraph {
    * @param M
    */
   void updateLibraries(ModulePrintingInfo M) {
-    std::vector<std::string> NewLibraries, NewLibraryPaths;
+    std::vector<std::string> NewLibraries, OldLibraryPaths;
+    std::set<std::string> NewLibraryPaths;
     auto* Libraries = M.Module->getAuxData<gtirb::schema::Libraries>();
     auto* LibraryPaths = M.Module->getAuxData<gtirb::schema::LibraryPaths>();
     if (!Libraries || !LibraryPaths) {
       return;
     }
+    OldLibraryPaths = *LibraryPaths;
     for (auto& L : *Libraries) {
       if (ModulesByName.count(L) == 0) {
         NewLibraries.push_back(L);
@@ -79,15 +81,18 @@ struct DependencyGraph {
       }
       NewLibraries.push_back(LibPath->filename().generic_string());
       if (M.BinaryName) {
-        NewLibraryPaths.push_back(
+        NewLibraryPaths.insert(
             toRpath(LibPath->parent_path(), M.BinaryName->parent_path()));
       }
     }
-    for (auto& Path : *LibraryPaths) {
-      NewLibraryPaths.push_back(Path);
-    }
     *Libraries = NewLibraries;
-    *LibraryPaths = NewLibraryPaths;
+    LibraryPaths->clear();
+    for (auto LP : NewLibraryPaths) {
+      LibraryPaths->push_back(LP);
+    }
+    for (auto LP : OldLibraryPaths) {
+      LibraryPaths->push_back(LP);
+    }
   };
 
   /// @brief Topologically sort the dependency graph,
