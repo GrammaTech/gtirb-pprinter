@@ -310,8 +310,14 @@ int main(int argc, char** argv) {
         LOG_ERROR << "Cannot print multiple modules to " << *BinaryName << "\n";
         return 1;
       }
-      if (AsmName || BinaryName) {
-        Modules.emplace_back(&m, AsmName, BinaryName);
+      if ((AsmName &&
+           ((AsmName == BinaryName) || (AsmName == VersionScriptName))) ||
+          (BinaryName && BinaryName == VersionScriptName)) {
+        LOG_ERROR << "Cannot print multiple files to : "
+                  << *(AsmName ? AsmName : BinaryName) << "\n";
+      }
+      if (AsmName || BinaryName || VersionScriptName) {
+        Modules.emplace_back(&m, AsmName, BinaryName, VersionScriptName);
       };
     }
     if (Modules.size() == 0) {
@@ -473,16 +479,6 @@ int main(int argc, char** argv) {
     pp.setIgnoreSymbolVersions(!EnableSymbolVersions);
   }
 
-  if (vm.count("version-script") != 0) {
-    if (!aux_data::hasVersionedSymDefs(*ir)) {
-      LOG_INFO << "Generating version script, but it is not needed.\n";
-    }
-
-    const auto versionScriptPath = vm["version-script"].as<std::string>();
-    std::ofstream VersionStream(versionScriptPath);
-    gtirb_pprint::printVersionScript(*ir, VersionStream);
-  }
-
   bool new_layout = false;
 
   for (auto& MP : Modules) {
@@ -530,8 +526,10 @@ int main(int argc, char** argv) {
                     "anyway\n";
       }
 
-      const auto versionScriptPath = MP.VersionScriptName->generic_string();
-      std::ofstream VersionStream(versionScriptPath);
+      if (MP.VersionScriptName->has_parent_path()) {
+        fs::create_directories(MP.VersionScriptName->parent_path());
+      }
+      std::ofstream VersionStream(MP.VersionScriptName->generic_string());
       gtirb_pprint::printVersionScript(*MP.Module, VersionStream);
     }
 
@@ -599,7 +597,8 @@ int main(int argc, char** argv) {
     }
 
     // Write ASM to the standard output if no other action was taken.
-    if ((vm.count("asm") == 0) && (vm.count("binary") == 0)) {
+    if ((vm.count("asm") == 0) && (vm.count("binary") == 0) &&
+        (vm.count("version-script") == 0)) {
       pp.print(std::cout, ctx, M);
     }
   }
