@@ -506,7 +506,7 @@ int main(int argc, char** argv) {
                       [](const gtirb::Symbol& Sym) {
                         return !Sym.hasReferent() && Sym.getAddress();
                       })) {
-        LOG_INFO << "Module " << M.getUUID()
+        LOG_INFO << "Module " << M.getName()
                  << " has integral symbols; attempting to assign referents..."
                  << std::endl;
         gtirb_layout::fixIntegralSymbols(ctx, M);
@@ -518,13 +518,14 @@ int main(int argc, char** argv) {
     applyFixups(ctx, M, pp);
     // Write version script to a file
     if (MP.VersionScriptName) {
+      LOG_INFO << "Generating version script for module " << M.getName() <<"\n";
       if (!EnableSymbolVersions) {
         LOG_ERROR
             << "Cannot emit a version script while ignoring symbol versions\n";
         return EXIT_FAILURE;
       }
       if (!aux_data::hasVersionedSymDefs(*MP.Module)) {
-        LOG_INFO << "Generating version script, but it is not needed.\n";
+        LOG_INFO << "No versioned symbols present, generating version script anyway\n";
       }
 
       const auto versionScriptPath = MP.VersionScriptName->generic_string();
@@ -539,6 +540,7 @@ int main(int argc, char** argv) {
         LOG_ERROR << "The given path \"" << *asmPath << "\" has no filename.\n";
         return EXIT_FAILURE;
       }
+      LOG_INFO << "Generating assembly file for module " << M.getName() << "\n";
       auto name = asmPath->generic_string();
       if (asmPath->has_parent_path()) {
         fs::create_directories(asmPath->parent_path());
@@ -562,7 +564,7 @@ int main(int argc, char** argv) {
                   << "\" has no filename.\n";
         return EXIT_FAILURE;
       }
-
+      LOG_INFO << "Generating binary for module "<< M.getName() << "\n";
       std::vector<std::string> extraCompilerArgs;
       if (vm.count("compiler-args") != 0)
         extraCompilerArgs = vm["compiler-args"].as<std::vector<std::string>>();
@@ -593,7 +595,7 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
       }
     }
-
+    
     // Write ASM to the standard output if no other action was taken.
     if ((vm.count("asm") == 0) && (vm.count("binary") == 0)) {
       pp.print(std::cout, ctx, M);
