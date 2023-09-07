@@ -518,14 +518,16 @@ int main(int argc, char** argv) {
     applyFixups(ctx, M, pp);
     // Write version script to a file
     if (MP.VersionScriptName) {
-      LOG_INFO << "Generating version script for module " << M.getName() <<"\n";
+      LOG_INFO << "Generating version script for module " << M.getName()
+               << "\n";
       if (!EnableSymbolVersions) {
         LOG_ERROR
             << "Cannot emit a version script while ignoring symbol versions\n";
         return EXIT_FAILURE;
       }
       if (!aux_data::hasVersionedSymDefs(*MP.Module)) {
-        LOG_INFO << "No versioned symbols present, generating version script anyway\n";
+        LOG_INFO << "No versioned symbols present, generating version script "
+                    "anyway\n";
       }
 
       const auto versionScriptPath = MP.VersionScriptName->generic_string();
@@ -564,7 +566,7 @@ int main(int argc, char** argv) {
                   << "\" has no filename.\n";
         return EXIT_FAILURE;
       }
-      LOG_INFO << "Generating binary for module "<< M.getName() << "\n";
+      LOG_INFO << "Generating binary for module " << M.getName() << "\n";
       std::vector<std::string> extraCompilerArgs;
       if (vm.count("compiler-args") != 0)
         extraCompilerArgs = vm["compiler-args"].as<std::vector<std::string>>();
@@ -595,7 +597,7 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
       }
     }
-    
+
     // Write ASM to the standard output if no other action was taken.
     if ((vm.count("asm") == 0) && (vm.count("binary") == 0)) {
       pp.print(std::cout, ctx, M);

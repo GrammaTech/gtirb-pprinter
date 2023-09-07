@@ -8,7 +8,7 @@
   * `--binary` option now links each module of the IR into a separate binary
   * `--asm` option now prints the assembly for each module of an IR separately
   * `--version-script` now prints a separate version script for each module
-    of an IR 
+    of an IR
   * `--module` option deprecated
   * Added `--object` option to print relocatable object files
   * Binary printer methods now operate on modules, rather than the entire IR

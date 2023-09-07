@@ -114,8 +114,8 @@ TEST_F(LibraryModules, Test_LibraryPath3) {
   EXPECT_TRUE(fs::path(LibPaths->at(0)).is_absolute()) << LibPaths->at(0);
 }
 
-TEST_F(LibraryModules, Test_LibraryPathExisting){
-  auto * LibraryPaths = M1->getAuxData<gtirb::schema::LibraryPaths>();
+TEST_F(LibraryModules, Test_LibraryPathExisting) {
+  auto* LibraryPaths = M1->getAuxData<gtirb::schema::LibraryPaths>();
   LibraryPaths->push_back("$ORIGIN");
   MPIs.emplace_back(M1, std::nullopt, fs::path("rw/ex"));
   MPIs.emplace_back(M2, std::nullopt, fs::path("rw/libs/ex"));
