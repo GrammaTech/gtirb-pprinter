@@ -4,6 +4,7 @@
 #include <gtirb_pprinter/AuxDataSchema.hpp>
 
 using namespace std::literals;
+using namespace gtirb_pprint;
 
 TEST(Unit_Libraries, TestNull) {
   gtirb::Context Ctx;
@@ -80,7 +81,6 @@ public:
     M2->setFileFormat(gtirb::FileFormat::ELF);
     M2->setISA(gtirb::ISA::X64);
 
-    LibPaths = M1->getAuxData<gtirb::schema::LibraryPaths>();
   }
 };
 
@@ -90,6 +90,7 @@ TEST_F(LibraryModules, Test_LibraryPath1) {
   MPIs.emplace_back(M2, std::nullopt, fs::path("libs/libfoo.so"));
 
   fixupLibraryAuxData(MPIs);
+  LibPaths = M1->getAuxData<gtirb::schema::LibraryPaths>();
 
   EXPECT_EQ(LibPaths->size(), 1);
   EXPECT_EQ(LibPaths->at(0), "$ORIGIN/libs");
@@ -100,6 +101,7 @@ TEST_F(LibraryModules, Test_LibraryPath2) {
   MPIs.emplace_back(M1, std::nullopt, fs::path("rw/ex"));
   MPIs.emplace_back(M2, std::nullopt, fs::path("rw/libs/ex"));
   fixupLibraryAuxData(MPIs);
+  LibPaths = M1->getAuxData<gtirb::schema::LibraryPaths>();
 
   EXPECT_EQ(LibPaths->size(), 1);
   EXPECT_EQ(LibPaths->at(0), "$ORIGIN/libs");
@@ -110,6 +112,7 @@ TEST_F(LibraryModules, Test_LibraryPath3) {
   MPIs.emplace_back(M1, std::nullopt, fs::path("ex"));
   MPIs.emplace_back(M2, std::nullopt, fs::absolute(fs::path("libfoo.so")));
   fixupLibraryAuxData(MPIs);
+  LibPaths = M1->getAuxData<gtirb::schema::LibraryPaths>();
 
   EXPECT_TRUE(fs::path(LibPaths->at(0)).is_absolute()) << LibPaths->at(0);
 }
@@ -120,6 +123,7 @@ TEST_F(LibraryModules, Test_LibraryPathExisting) {
   MPIs.emplace_back(M1, std::nullopt, fs::path("rw/ex"));
   MPIs.emplace_back(M2, std::nullopt, fs::path("rw/libs/ex"));
   fixupLibraryAuxData(MPIs);
+  LibraryPaths = M1->getAuxData<gtirb::schema::LibraryPaths>();
   ASSERT_EQ(LibraryPaths->size(), 2);
   ASSERT_EQ(LibraryPaths->at(1), "$ORIGIN");
 }

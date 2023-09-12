@@ -292,7 +292,7 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
 
-  std::vector<ModulePrintingInfo> Modules;
+  std::vector<gtirb_pprint::ModulePrintingInfo> Modules;
   if (vm.count("asm") || vm.count("binary") || vm.count("version-script")) {
     std::set<fs::path> AsmNames, BinaryNames, VersionScriptNames;
     for (auto& m : ir->modules()) {
