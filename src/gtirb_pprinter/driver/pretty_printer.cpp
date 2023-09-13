@@ -72,6 +72,21 @@ getBinaryPrinter(const std::string& format,
   return nullptr;
 }
 
+static std::vector<gtirb_pprint_parser::FileTemplateRule>
+getTemplateRules(const po::variables_map& vm, const std::string& name) {
+  if (vm.count(name)) {
+    try {
+      return gtirb_pprint_parser::parseInput(vm[name].as<std::string>());
+    } catch (const gtirb_pprint_parser::parse_error& err) {
+      LOG_ERROR << "Invalid argument for --" << name << ": " << err.what()
+                << "\n";
+      throw;
+    }
+  } else {
+    return {};
+  }
+};
+
 int main(int argc, char** argv) {
   gtirb_layout::registerAuxDataTypes();
   gtirb_pprint::registerAuxDataTypes();
@@ -233,34 +248,14 @@ int main(int argc, char** argv) {
 
   ContextForgetter ctx;
   gtirb::IR* ir = nullptr;
-
-  std::vector<gtirb_pprint_parser::FileTemplateRule> asmSubs, binarySubs,
-      vsSubs;
-  if (vm.count("asm")) {
-    try {
-      asmSubs = gtirb_pprint_parser::parseInput(vm["asm"].as<std::string>());
-    } catch (const gtirb_pprint_parser::parse_error& err) {
-      LOG_ERROR << "Invalid argument for --asm: " << err.what() << "\n";
-      return 1;
-    }
-  }
-  if (vm.count("binary")) {
-    try {
-      binarySubs =
-          gtirb_pprint_parser::parseInput(vm["binary"].as<std::string>());
-    } catch (const gtirb_pprint_parser::parse_error& err) {
-      LOG_ERROR << "Invalid argument for --binary: " << err.what() << "\n";
-      return 1;
-    }
-  }
-  if (vm.count("version-script")) {
-    try {
-      vsSubs = gtirb_pprint_parser::parseInput(
-          vm["version-script"].as<std::string>());
-    } catch (const gtirb_pprint_parser::parse_error& err) {
-      LOG_ERROR << "Invalid argument for --asm: " << err.what() << "\n";
-      return 1;
-    }
+  std::vector<gtirb_pprint_parser::FileTemplateRule> AsmRules, BinaryRules,
+      VSRules;
+  try {
+    AsmRules = getTemplateRules(vm, "asm");
+    BinaryRules = getTemplateRules(vm, "binary");
+    VSRules = getTemplateRules(vm, "version-script");
+  } catch (const gtirb_pprint_parser::parse_error& err) {
+    return EXIT_FAILURE;
   }
   if (vm.count("ir") != 0) {
     fs::path irPath = vm["ir"].as<std::string>();
@@ -294,27 +289,21 @@ int main(int argc, char** argv) {
 
   std::vector<gtirb_pprint::ModulePrintingInfo> Modules;
   if (vm.count("asm") || vm.count("binary") || vm.count("version-script")) {
-    std::set<fs::path> AsmNames, BinaryNames, VersionScriptNames;
+    std::set<fs::path> Paths;
     for (auto& m : ir->modules()) {
       auto AsmName =
-          gtirb_pprint_parser::getOutputFilePath(asmSubs, m.getName());
+          gtirb_pprint_parser::getOutputFilePath(AsmRules, m.getName());
       auto BinaryName =
-          gtirb_pprint_parser::getOutputFilePath(binarySubs, m.getName());
+          gtirb_pprint_parser::getOutputFilePath(BinaryRules, m.getName());
       auto VersionScriptName =
-          gtirb_pprint_parser::getOutputFilePath(vsSubs, m.getName());
-      if (AsmName && !AsmNames.insert(fs::absolute(*AsmName)).second) {
-        LOG_ERROR << "Cannot print multiple modules to " << *AsmName << "\n";
-        return 1;
-      }
-      if (BinaryName && !BinaryNames.insert(fs::absolute(*BinaryName)).second) {
-        LOG_ERROR << "Cannot print multiple modules to " << *BinaryName << "\n";
-        return 1;
-      }
-      if ((AsmName &&
-           ((AsmName == BinaryName) || (AsmName == VersionScriptName))) ||
-          (BinaryName && BinaryName == VersionScriptName)) {
-        LOG_ERROR << "Cannot print multiple files to : "
-                  << *(AsmName ? AsmName : BinaryName) << "\n";
+          gtirb_pprint_parser::getOutputFilePath(VSRules, m.getName());
+      for (auto& Name : {AsmName, BinaryName, VersionScriptName}) {
+        if (Name && Paths.count(*Name)) {
+          LOG_ERROR << "Cannot print multiple modules to " << *AsmName << "\n";
+          return 1;
+        } else {
+          Paths.insert(Name->begin(), Name->end());
+        }
       }
       if (AsmName || BinaryName || VersionScriptName) {
         Modules.emplace_back(&m, AsmName, BinaryName, VersionScriptName);

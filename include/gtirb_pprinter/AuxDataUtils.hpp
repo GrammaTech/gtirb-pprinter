@@ -192,6 +192,7 @@ DEBLOAT_PRETTYPRINTER_EXPORT_API
 std::vector<std::string> getLibraries(const gtirb::Module& Module);
 
 // Load all library path names from the `libraryPaths' AuxData table.
+DEBLOAT_PRETTYPRINTER_EXPORT_API
 std::vector<std::string> getLibraryPaths(const gtirb::Module& Module);
 
 // Load all binary type specifiers from the `binaryType' AuxData table.

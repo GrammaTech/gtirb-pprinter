@@ -80,7 +80,6 @@ public:
     M2 = gtirb::Module::Create(Ctx, "libfoo.so"s);
     M2->setFileFormat(gtirb::FileFormat::ELF);
     M2->setISA(gtirb::ISA::X64);
-
   }
 };
 

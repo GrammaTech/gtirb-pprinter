@@ -477,16 +477,11 @@ void ElfBinaryPrinter::addOrigLibraryArgs(const gtirb::Module& module,
   for (const auto& libraryPath : LibraryPaths) {
     args.push_back("-L" + libraryPath);
   }
-  std::string L = (Location == "" ? "." : Location) + "/";
+  std::string L = (Location == "" ? "." : Location);
   // add binary library paths (add them to rpath as well)
+  std::regex OriginRegex{R"((\$ORIGIN\b)|($\{ORIGIN\}))"};
   for (const auto& LibraryPath : aux_data::getLibraryPaths(module)) {
-    std::string LinkPath = LibraryPath;
-    for (std::string origin : {"$ORIGIN/", "${ORIGIN}/"}) {
-      for (auto pos = LinkPath.find(origin); pos != std::string::npos;
-           pos = LinkPath.find(origin)) {
-        LinkPath.replace(pos, origin.length(), L);
-      }
-    }
+    std::string LinkPath = std::regex_replace(LibraryPath, OriginRegex, L);
     args.push_back("-L" + LinkPath);
     args.push_back("-Wl,-rpath," + LibraryPath);
   }
