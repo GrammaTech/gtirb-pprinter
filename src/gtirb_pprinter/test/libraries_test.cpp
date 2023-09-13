@@ -17,6 +17,10 @@ TEST(Unit_Libraries, TestNull) {
   std::vector<ModulePrintingInfo> MPIs{{M1, std::nullopt, "ex"}};
   auto NewMPIs = fixupLibraryAuxData(MPIs);
   ASSERT_EQ(NewMPIs, MPIs);
+  auto* Libs = M1->getAuxData<gtirb::schema::Libraries>();
+  ASSERT_EQ(Libs->size(), 0);
+  auto* LibraryPaths = M1->getAuxData<gtirb::schema::LibraryPaths>();
+  ASSERT_EQ(LibraryPaths->size(), 0);
 }
 
 TEST(Unit_Libraries, TestSingleModule) {

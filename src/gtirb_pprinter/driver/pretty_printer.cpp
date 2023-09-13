@@ -254,7 +254,7 @@ int main(int argc, char** argv) {
     AsmRules = getTemplateRules(vm, "asm");
     BinaryRules = getTemplateRules(vm, "binary");
     VSRules = getTemplateRules(vm, "version-script");
-  } catch (const gtirb_pprint_parser::parse_error& err) {
+  } catch (const gtirb_pprint_parser::parse_error& /*err*/) {
     return EXIT_FAILURE;
   }
   if (vm.count("ir") != 0) {

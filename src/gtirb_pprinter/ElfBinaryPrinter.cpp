@@ -596,13 +596,8 @@ int ElfBinaryPrinter::assemble(const std::string& outputFilename,
     if (*ret) {
       std::cerr << "ERROR: assembler returned: " << *ret << "\n";
     } else {
-      boost::filesystem::path outputPath(outputFilename);
-      if (outputPath.has_parent_path()) {
-        boost::filesystem::create_directories(outputPath.parent_path());
-      }
-      boost::filesystem::copy_file(
-          tempOutput.fileName(), outputFilename,
-          boost::filesystem::copy_option::overwrite_if_exists);
+      LOG_INFO << "Saving file to " << outputFilename << "\n";
+      copyFile(tempOutput.fileName(), outputFilename);
     }
     return *ret;
   }
@@ -717,27 +712,23 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
           "fini")) {
     libArgs.push_back(*Arg);
   }
-  TempFile outputFile(std::string(""));
+  TempFile tempOutput(std::string(""));
   if (std::optional<int> ret =
-          execute(compiler, buildCompilerArgs(outputFile.fileName(), Files, ctx,
+          execute(compiler, buildCompilerArgs(tempOutput.fileName(), Files, ctx,
                                               module, libArgs))) {
     if (*ret) {
       LOG_ERROR << "assembler returned: " << *ret << "\n";
     } else {
-      if (outputPath.has_parent_path()) {
-        boost::filesystem::create_directories(outputPath.parent_path());
-      }
-      boost::filesystem::copy_file(
-          outputFile.fileName(), outputFilename,
-          boost::filesystem::copy_option::overwrite_if_exists);
+      LOG_INFO << "Saving file to " << outputFilename << "\n";
+      copyFile(tempOutput.fileName(), outputFilename);
     }
-    outputFile.close();
+    tempOutput.close();
     return *ret;
   }
 
   LOG_ERROR << "could not find the assembler '" << compiler
             << "' on the PATH.\n";
-  outputFile.close();
+  tempOutput.close();
   return -1;
 }
 

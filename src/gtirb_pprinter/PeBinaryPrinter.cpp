@@ -632,11 +632,7 @@ int PeBinaryPrinter::assemble(const std::string& Path, gtirb::Context& Context,
       assembleCommands({Asm.fileName(), tempOutput.fileName(), Machine,
                         ExtraCompileArgs, LibraryPaths}));
   if (retc == 0) {
-    boost::filesystem::path outputPath(Path);
-    if (outputPath.has_parent_path()) {
-      boost::filesystem::create_directories(outputPath.parent_path());
-    }
-    boost::filesystem::copy(tempOutput.fileName(), Path);
+    copyFile(tempOutput.fileName(), Path);
   }
   return retc;
 }
@@ -704,12 +700,7 @@ int PeBinaryPrinter::link(const std::string& OutputFile,
       {tempOutput.fileName(), Compilands, Resources, ExportDef, EntryPoint,
        Subsystem, Machine, Dll, ExtraCompileArgs, LibraryPaths});
   appendCommands(Commands, LinkCommands);
-  boost::filesystem::path outputPath(OutputFile);
-  if (outputPath.has_parent_path()) {
-    boost::filesystem::create_directories(outputPath.parent_path());
-  }
-  boost::filesystem::copy(tempOutput.fileName(), outputPath);
-
+  copyFile(tempOutput.fileName(), OutputFile);
   // Execute the assemble-link command list.
   return executeCommands(Commands);
 }

@@ -132,4 +132,14 @@ std::optional<int> execute(const std::string& Tool,
   }
   return bp::system(Path, Args);
 }
+
+void copyFile(const std::string& src, const std::string& dest) {
+  fs::path DestPath(dest);
+  if (DestPath.has_parent_path()) {
+    boost::filesystem::create_directories(DestPath.parent_path());
+  }
+  boost::filesystem::copy_file(
+      src, dest, boost::filesystem::copy_option::overwrite_if_exists);
+}
+
 } // namespace gtirb_bprint
