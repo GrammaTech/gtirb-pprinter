@@ -1,4 +1,6 @@
-# 1.10.0 (Unreleased)
+# 2.0.1 (Unreleased)
+
+# 2.0.0
   * Remove unnecessary --isa,-I option.
   * Fix bug where a binary with COPY-relocated symbols could be missing
     DT_NEEDED entries after rewriting with `--dummy-so`.
