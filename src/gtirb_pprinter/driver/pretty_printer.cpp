@@ -298,11 +298,14 @@ int main(int argc, char** argv) {
       auto VersionScriptName =
           gtirb_pprint_parser::getOutputFilePath(VSRules, m.getName());
       for (auto& Name : {AsmName, BinaryName, VersionScriptName}) {
-        if (Name && Paths.count(*Name)) {
-          LOG_ERROR << "Cannot print multiple modules to " << *AsmName << "\n";
+        if (!Name) {
+          continue;
+        }
+        if (Paths.count(*Name)) {
+          LOG_ERROR << "Cannot print multiple modules to " << *Name << "\n";
           return 1;
         } else {
-          Paths.insert(Name->begin(), Name->end());
+          Paths.insert(*Name);
         }
       }
       if (AsmName || BinaryName || VersionScriptName) {

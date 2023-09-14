@@ -634,6 +634,7 @@ int PeBinaryPrinter::assemble(const std::string& Path, gtirb::Context& Context,
   if (retc == 0) {
     copyFile(tempOutput.fileName(), Path);
   }
+  tempOutput.close();
   return retc;
 }
 
@@ -700,9 +701,13 @@ int PeBinaryPrinter::link(const std::string& OutputFile,
       {tempOutput.fileName(), Compilands, Resources, ExportDef, EntryPoint,
        Subsystem, Machine, Dll, ExtraCompileArgs, LibraryPaths});
   appendCommands(Commands, LinkCommands);
-  copyFile(tempOutput.fileName(), OutputFile);
   // Execute the assemble-link command list.
-  return executeCommands(Commands);
+  auto retc = executeCommands(Commands);
+  if (retc == 0) {
+    copyFile(tempOutput.fileName(), OutputFile);
+  }
+  tempOutput.close();
+  return retc;
 }
 
 int PeBinaryPrinter::libs(const gtirb::Module& Module) const {
