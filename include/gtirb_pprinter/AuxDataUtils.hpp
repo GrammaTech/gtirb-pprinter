@@ -320,7 +320,7 @@ const gtirb::CodeBlock* getCodeBlock(const gtirb::Context& Ctx,
   auto UUID = Mod.getAuxData<Schema>();
   if (UUID) {
     auto Nd = gtirb::Node::getByUUID(Ctx, *UUID);
-    if (const auto* CB = dyn_cast<gtirb::CodeBlock>(Nd)) {
+    if (const auto* CB = dyn_cast_or_null<gtirb::CodeBlock>(Nd)) {
       return CB;
     }
   }
