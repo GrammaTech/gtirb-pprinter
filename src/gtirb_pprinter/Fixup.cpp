@@ -18,9 +18,6 @@
 #include "PrettyPrinter.hpp"
 #include <gtirb/gtirb.hpp>
 
-namespace fs = boost::filesystem;
-using namespace std::literals::string_literals;
-
 namespace gtirb_pprint {
 
 void applyFixups(gtirb::Context& Context, gtirb::Module& Module,

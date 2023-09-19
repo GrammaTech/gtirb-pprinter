@@ -160,15 +160,6 @@ bool hasVersionedSymDefs(const gtirb::Module& Module) {
   return false;
 }
 
-bool hasVersionedSymDefs(const gtirb::IR& IR) {
-  for (const gtirb::Module& Module : IR.modules()) {
-    if (hasVersionedSymDefs(Module)) {
-      return true;
-    }
-  }
-  return false;
-}
-
 const gtirb::provisional_schema::ElfSymbolVersions::Type*
 getSymbolVersions(const gtirb::Module& M) {
   return M.getAuxData<gtirb::provisional_schema::ElfSymbolVersions>();

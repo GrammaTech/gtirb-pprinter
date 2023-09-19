@@ -26,9 +26,6 @@ namespace gtirb_pprint {
 DEBLOAT_PRETTYPRINTER_EXPORT_API bool
 printVersionScript(const gtirb::Module& Module, std::ofstream& VersionScript);
 
-DEBLOAT_PRETTYPRINTER_EXPORT_API bool
-printVersionScript(const gtirb::IR& IR, std::ofstream& VersionScript);
-
 } // namespace gtirb_pprint
 
 #endif /* GTIRB_PP_ELFVERSIONSCRIPT_PRINTER_H */

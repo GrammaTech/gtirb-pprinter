@@ -596,7 +596,6 @@ int ElfBinaryPrinter::assemble(const std::string& outputFilename,
     if (*ret) {
       std::cerr << "ERROR: assembler returned: " << *ret << "\n";
     } else {
-      LOG_INFO << "Saving file to " << outputFilename << "\n";
       copyFile(tempOutput.fileName(), outputFilename);
     }
     return *ret;
@@ -687,7 +686,7 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
   }
 
   TempFile VersionScript(".map");
-  if (aux_data::hasVersionedSymDefs(*module.getIR()) &&
+  if (aux_data::hasVersionedSymDefs(module) &&
       !Printer.getIgnoreSymbolVersions()) {
     // A version script is only needed if we define versioned symbols.
     if (gtirb_pprint::printVersionScript(module, VersionScript)) {
@@ -719,7 +718,6 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
     if (*ret) {
       LOG_ERROR << "assembler returned: " << *ret << "\n";
     } else {
-      LOG_INFO << "Saving file to " << outputFilename << "\n";
       copyFile(tempOutput.fileName(), outputFilename);
     }
     tempOutput.close();

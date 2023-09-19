@@ -15,10 +15,6 @@
 #ifndef GT_PPRINTER_FIXUP_H
 #define GT_PPRINTER_FIXUP_H
 #include "Export.hpp"
-#include <boost/filesystem.hpp>
-#include <optional>
-
-namespace fs = boost::filesystem;
 
 namespace gtirb {
 class Context;

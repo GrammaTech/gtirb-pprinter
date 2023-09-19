@@ -229,9 +229,6 @@ findSymWithBinding(gtirb::Module::symbol_ref_range CandidateSymbols,
 DEBLOAT_PRETTYPRINTER_EXPORT_API bool
 hasVersionedSymDefs(const gtirb::Module& Module);
 
-// Determine if any versions symbols are defined in the IR.
-DEBLOAT_PRETTYPRINTER_EXPORT_API bool hasVersionedSymDefs(const gtirb::IR& IR);
-
 const gtirb::provisional_schema::ElfSymbolVersions::Type*
 getSymbolVersions(const gtirb::Module& M);
 

@@ -32,9 +32,8 @@ std::string toRpath(const fs::path& LibraryLocation,
 }
 
 /**
- * @brief Change the name of a module to match the file it will be printed to,
- * and update any Libraries AuxData that reference it.
- *
+ * @brief Update the entries in the `Libraries` and `LibraryPaths` auxdata for M
+ *  to reflect where its dependent libraries will be printed to
  * @param M
  * @param ModulesByName
  */
@@ -45,10 +44,8 @@ void updateLibraries(ModulePrintingInfo M, const ModuleIndex& ModulesByName) {
   auto Libraries = aux_data::getLibraries(*M.Module);
   auto LibraryPaths = aux_data::getLibraryPaths(*M.Module);
   for (auto& L : Libraries) {
-    if (ModulesByName.count(L) == 0 ||
-        ModulesByName.at(L).BinaryName == std::nullopt) {
+    if (ModulesByName.count(L) == 0 || !ModulesByName.at(L).BinaryName) {
       NewLibraries.push_back(L);
-      continue;
     } else {
       auto LibPath = ModulesByName.at(L).BinaryName;
       NewLibraries.push_back(LibPath->filename().generic_string());

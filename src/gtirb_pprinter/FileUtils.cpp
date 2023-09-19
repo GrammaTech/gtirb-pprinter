@@ -138,6 +138,7 @@ void copyFile(const std::string& src, const std::string& dest) {
   if (DestPath.has_parent_path()) {
     boost::filesystem::create_directories(DestPath.parent_path());
   }
+  LOG_INFO << "Saving file to " << dest << "\n";
   boost::filesystem::copy_file(
       src, dest, boost::filesystem::copy_option::overwrite_if_exists);
 }

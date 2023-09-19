@@ -43,28 +43,6 @@ TEST(Unit_Libraries, TestSingleModule) {
   ASSERT_EQ(LibraryPaths->at(0), "$ORIGIN");
 }
 
-TEST(Unit_Libraries, TestLibraryName) {
-  gtirb::Context Ctx;
-  auto* M1 = gtirb::Module::Create(Ctx, "ex"s);
-  M1->setFileFormat(gtirb::FileFormat::ELF);
-  M1->setISA(gtirb::ISA::X64);
-
-  auto* M2 = gtirb::Module::Create(Ctx, "libfoo.so"s);
-  M2->setFileFormat(gtirb::FileFormat::ELF);
-  M2->setISA(gtirb::ISA::X64);
-
-  M1->addAuxData<gtirb::schema::Libraries>({"libfoo.so"s});
-  M1->addAuxData<gtirb::schema::LibraryPaths>({});
-  std::vector<ModulePrintingInfo> MPIs;
-  MPIs.emplace_back(M1, std::nullopt, fs::path("ex"));
-  MPIs.emplace_back(M2, std::nullopt, fs::path("libfoo_rw.so"));
-
-  MPIs = fixupLibraryAuxData(MPIs);
-  ASSERT_EQ(MPIs.size(), 2);
-  EXPECT_EQ(MPIs[0].Module, M2);
-  EXPECT_EQ(M1->getAuxData<gtirb::schema::Libraries>()->at(0), "libfoo_rw.so");
-}
-
 class LibraryModules : public ::testing::Test {
 protected:
   gtirb::Context Ctx;
@@ -86,6 +64,17 @@ public:
     M2->setISA(gtirb::ISA::X64);
   }
 };
+
+TEST_F(LibraryModules, TestLibraryName) {
+
+  MPIs.emplace_back(M1, std::nullopt, fs::path("ex"));
+  MPIs.emplace_back(M2, std::nullopt, fs::path("libfoo_rw.so"));
+
+  MPIs = fixupLibraryAuxData(MPIs);
+  ASSERT_EQ(MPIs.size(), 2);
+  EXPECT_EQ(MPIs[0].Module, M2);
+  EXPECT_EQ(M1->getAuxData<gtirb::schema::Libraries>()->at(0), "libfoo_rw.so");
+}
 
 TEST_F(LibraryModules, Test_LibraryPath1) {
 
@@ -112,12 +101,13 @@ TEST_F(LibraryModules, Test_LibraryPath2) {
 
 TEST_F(LibraryModules, Test_LibraryPath3) {
 
-  MPIs.emplace_back(M1, std::nullopt, fs::path("ex"));
-  MPIs.emplace_back(M2, std::nullopt, fs::absolute(fs::path("libfoo.so")));
+  MPIs.emplace_back(M1, std::nullopt, fs::path("rw/bin/ex"));
+  MPIs.emplace_back(M2, std::nullopt,
+                    fs::absolute(fs::path("rw/lib/libfoo.so")));
   fixupLibraryAuxData(MPIs);
   LibPaths = M1->getAuxData<gtirb::schema::LibraryPaths>();
 
-  EXPECT_TRUE(fs::path(LibPaths->at(0)).is_absolute()) << LibPaths->at(0);
+  EXPECT_EQ(LibPaths->at(0), fs::absolute(fs::path("rw/lib")));
 }
 
 TEST_F(LibraryModules, Test_LibraryPathExisting) {
