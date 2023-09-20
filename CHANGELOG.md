@@ -1,4 +1,10 @@
 # 2.0.1 (Unreleased)
+  * `--asm` option now prints the assembly for each module of an IR separately
+  * `--version-script` now prints a separate version script for each module
+    of an IR
+  * `--module` option deprecated
+  * Binaries printed from a multi-module IR are linked against other binaries from the
+    same IR whenever possible
 
 # 2.0.0
   * Remove unnecessary --isa,-I option.
@@ -6,10 +12,6 @@
     DT_NEEDED entries after rewriting with `--dummy-so`.
   * Removed `--binaries` option
   * `--binary` option now links each module of the IR into a separate binary
-  * `--asm` option now prints the assembly for each module of an IR separately
-  * `--version-script` now prints a separate version script for each module
-    of an IR
-  * `--module` option deprecated
   * Added `--object` option to print relocatable object files
   * Binary printer methods now operate on modules, rather than the entire IR
   * `--shared` option now takes an argument: either `yes`, `no`, or `auto` (`auto` uses aux_data `binaryType`)
