@@ -196,6 +196,16 @@ void fixupELFSymbols(gtirb::Context& Context, gtirb::Module& Module) {
     }
   }
 
+  // Promote _start if it is not global
+  if (auto It = Module.findSymbols("_start"); !It.empty()) {
+    auto& Symbol = *It.begin();
+    if (auto SymInfo = aux_data::getElfSymbolInfo(Symbol)) {
+      if (SymInfo->Binding != "GLOBAL") {
+        promoteSymbolBinding(Symbol);
+      }
+    }
+  }
+
   // Promote or create symbols for DT_INIT and DT_FINI entries
   auto ensureGlobalSymbolAt = [&](gtirb::CodeBlock* Block,
                                   const std::string& DefaultName) {
