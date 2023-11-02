@@ -5,6 +5,7 @@
   * `--module` option deprecated
   * Binaries printed from a multi-module IR are linked against other binaries from the
     same IR whenever possible
+  * Use `elfStackExec` and `elfStackSize` auxdata to generate appropriate linker flags.
 
 # 2.0.0
   * Remove unnecessary --isa,-I option.

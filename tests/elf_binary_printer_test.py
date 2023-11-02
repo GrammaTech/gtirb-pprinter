@@ -54,7 +54,7 @@ class ElfBinaryPrinterTests(unittest.TestCase):
             self.assertTrue(exe_path.exists())
             yield BinaryPrintResult(exe_path, completed_process)
 
-    def readelf(self, path: Path, *args):
+    def readelf(self, path: Path, *args) -> subprocess.CompletedProcess:
         return subprocess.run(
             ["readelf", path, *args],
             check=True,
@@ -62,7 +62,7 @@ class ElfBinaryPrinterTests(unittest.TestCase):
             text=True,
         )
 
-    def assert_regex_match(self, text: str, pattern: str):
+    def assert_regex_match(self, text: str, pattern: str) -> re.Match:
         """
         Like unittest's assertRegex, but also return the match object on
         success.
@@ -104,6 +104,38 @@ class ElfBinaryPrinterTests(unittest.TestCase):
         )
         for lib in libs:
             self.assertIn(lib, ldd.stdout)
+
+    def build_basic_ir(self) -> typing.Tuple[gtirb.IR, gtirb.Module]:
+        """
+        Build a generic IR with a _start procedure.
+        """
+        ir, module = gth.create_test_module(
+            gtirb.Module.FileFormat.ELF,
+            gtirb.Module.ISA.X64,
+        )
+        text_section, text_bi = gth.add_text_section(module)
+
+        # For the following code:
+        #    48 31 c0                xor    %rax,%rax
+        #    48 c7 c0 3c 00 00 00    mov    $0x3c,%rax
+        #    48 31 ff                xor    %rdi,%rdi
+        #    0f 05                   syscall
+        cb = gth.add_code_block(
+            text_bi,
+            b"\x48\x31\xc0"
+            b"\x48\xc7\xc0\x3c\x00\x00\x00"
+            b"\x48\x31\xff"
+            b"\x0f\x05",
+        )
+        symbol_start = gth.add_symbol(module, "_start", cb)
+        module.aux_data["elfSymbolInfo"].data[symbol_start.uuid] = (
+            0,
+            "FUNC",
+            "GLOBAL",
+            "DEFAULT",
+            0,
+        )
+        return ir, module
 
     def test_dummyso(self):
         """
@@ -237,33 +269,7 @@ class ElfBinaryPrinterTests(unittest.TestCase):
         """
         Test printing a GTIRB that has no libraries with --dummy-so=yes
         """
-        ir, module = gth.create_test_module(
-            gtirb.Module.FileFormat.ELF,
-            gtirb.Module.ISA.X64,
-        )
-        text_section, text_bi = gth.add_text_section(module)
-
-        # For the following code:
-        #    48 31 c0                xor    %rax,%rax
-        #    48 c7 c0 3c 00 00 00    mov    $0x3c,%rax
-        #    48 31 ff                xor    %rdi,%rdi
-        #    0f 05                   syscall
-        cb = gth.add_code_block(
-            text_bi,
-            b"\x48\x31\xc0"
-            b"\x48\xc7\xc0\x3c\x00\x00\x00"
-            b"\x48\x31\xff"
-            b"\x0f\x05",
-        )
-        symbol_start = gth.add_symbol(module, "_start", cb)
-        module.aux_data["elfSymbolInfo"].data[symbol_start.uuid] = (
-            0,
-            "FUNC",
-            "GLOBAL",
-            "DEFAULT",
-            0,
-        )
-
+        ir, _ = self.build_basic_ir()
         with self.binary_print(ir, "--dummy-so", "yes"):
             # Just verify binary_print succeeded.
             pass
@@ -604,3 +610,42 @@ class ElfBinaryPrinterTests(unittest.TestCase):
                 ("FUNC", "LOCAL", "DEFAULT", "f4_symbol"),
                 ("FUNC", "LOCAL", "DEFAULT", "f5_symbol"),
             )
+
+    def subtest_elf_stack_properties(self, stack_size: int, stack_exec: bool):
+        """
+        Test generating `-Wl,-z,stack-size` and `-z,-execstack`
+        """
+        ir, module = self.build_basic_ir()
+
+        module.aux_data["elfStackSize"] = gtirb.AuxData(
+            type_name="uint64_t", data=stack_size
+        )
+        module.aux_data["elfStackExec"] = gtirb.AuxData(
+            type_name="bool", data=stack_exec
+        )
+
+        with self.binary_print(ir) as result:
+            segments = self.readelf(result.path, "--segments", "--wide")
+            match = self.assert_regex_match(
+                segments.stdout,
+                # Type,Offset,VirtAddr,PhysAddr,FileSize,MemSize,Flg,Align
+                r"GNU_STACK\s+(?:0x0+\s+){4}(0x[\da-f]+)\s+(R?W?E?)\s+"
+                r"0x[\da-f]+",
+            )
+
+            self.assertEqual(int(match.group(1), 16), stack_size)
+            self.assertEqual(match.group(2), "RWE" if stack_exec else "RW")
+
+    def test_elf_stack_properties(self):
+        """
+        Set up subtests ELF stack properties
+        """
+        subtests = (
+            # Size, Exec?
+            (0x200000, True),
+            (0x400000, False),
+        )
+
+        for stack_size, stack_exec in subtests:
+            with self.subTest(stack_size=stack_size, stack_exec=stack_exec):
+                self.subtest_elf_stack_properties(stack_size, stack_exec)

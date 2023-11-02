@@ -566,6 +566,15 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
     args.push_back("-m32");
   }
 
+  // Add stack properties linker flags
+  if (auto StackSize = module.getAuxData<gtirb::schema::ElfStackSize>()) {
+    args.push_back("-Wl,-z,stack-size=" + std::to_string(*StackSize));
+  }
+
+  if (auto StackExec = module.getAuxData<gtirb::schema::ElfStackExec>()) {
+    args.push_back(*StackExec ? "-Wl,-z,execstack" : "-Wl,-z,noexecstack");
+  }
+
   // add arguments given by the printing policy
   const auto& Policy = Printer.getPolicy(module);
   args.insert(args.end(), Policy.compilerArguments.begin(),

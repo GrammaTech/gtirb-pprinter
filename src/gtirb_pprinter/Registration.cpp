@@ -51,6 +51,8 @@ void registerAuxDataTypes() {
   gtirb::AuxDataContainer::registerAuxDataType<ElfSymbolTabIdxInfo>();
   gtirb::AuxDataContainer::registerAuxDataType<ElfDynamicInit>();
   gtirb::AuxDataContainer::registerAuxDataType<ElfDynamicFini>();
+  gtirb::AuxDataContainer::registerAuxDataType<ElfStackExec>();
+  gtirb::AuxDataContainer::registerAuxDataType<ElfStackSize>();
 }
 
 void registerPrettyPrinters() {
