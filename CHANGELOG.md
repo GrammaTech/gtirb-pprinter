@@ -6,6 +6,7 @@
   * Binaries printed from a multi-module IR are linked against other binaries from the
     same IR whenever possible
   * Use `elfStackExec` and `elfStackSize` auxdata to generate appropriate linker flags.
+  * Requires gtirb >=1.12.1
 
 # 2.0.0
   * Remove unnecessary --isa,-I option.
