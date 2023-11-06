@@ -141,3 +141,5 @@ In order to generate new binaries, gtirb-binary-printer also uses the following 
 |------------------|----------------------------------|----------------------------------------------------------------------------------|
 | libraries        | `std::vector<std::string>`       | Names of the libraries that are needed.                                          |
 | libraryPaths     | `std::vector<std::string>`       | Paths contained in the rpath of the binary                                       |
+| elfStackExec     | `bool` |  Stack executable flag specified by PT_GNU_STACK segment in ELF files. Binary-printed with `-Wl,-z,stack,[no]execstack` |
+| elfStackSize     | `uint64_t` | Stack size specified by PT_GNU_STACK segment in ELF files. Binary-printed with `-Wl,-z,stack-size=value`. |
