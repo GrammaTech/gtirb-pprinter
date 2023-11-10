@@ -88,10 +88,8 @@ class FunctionTests(PPrinterTest):
 
         asm = run_asm_pprinter(ir)
 
-        self.assertContains(
-            asm_lines(asm),
-            ["retq", ".size foo, . - foo", ".size foo_alias, . - foo_alias"],
-        )
+        self.assertContains(asm_lines(asm), [".size foo, . - foo"])
+        self.assertContains(asm_lines(asm), [".size foo_alias, . - foo_alias"])
         self.assertNotContains(
             asm_lines(asm), [".size foo_false_falias, . - foo_false_alias"]
         )

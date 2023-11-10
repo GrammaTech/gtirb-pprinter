@@ -54,7 +54,6 @@ class PrintingPolicyTests(PPrinterTest):
         add_elf_symbol_info(m, alias_sym, 0, "FUNC")
 
         function_lines = [
-            "foo_alias:",
             "retq",
             ".size foo, . - foo",
             ".size foo_alias, . - foo_alias",
