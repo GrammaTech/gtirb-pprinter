@@ -54,8 +54,9 @@ class FunctionTests(PPrinterTest):
         code_block = add_code_block(bi, b"\xC3")
         add_function(m, "foo", code_block)
         alias_sym = add_symbol(m, "foo_alias", code_block)
-        add_symbol(m, "foo_false_alias", code_block)
         add_elf_symbol_info(m, alias_sym, 0, "FUNC")
+        # This is not an alias because it is not of type FUNC
+        add_symbol(m, "foo_false_alias", code_block)
 
         asm = run_asm_pprinter(ir)
 
