@@ -2,6 +2,7 @@ import unittest
 import sys
 import gtirb
 import os
+import uuid
 
 from gtirb_helpers import (
     add_byte_block,
@@ -162,6 +163,10 @@ class WindowsBinaryPrinterTests_NoMock(PPrinterTest):
         sym = add_symbol(m, "__glutInitWithExit", block)
 
         m.aux_data["peExportedSymbols"].data.append(sym.uuid)
+        func_uuid = uuid.uuid4()
+        m.aux_data["functionNames"].data[func_uuid] = sym
+        m.aux_data["functionEntries"].data[func_uuid] = [block]
+        m.aux_data["functionBlocks"].data[func_uuid] = [block]
 
         asm = run_asm_pprinter(ir)
 

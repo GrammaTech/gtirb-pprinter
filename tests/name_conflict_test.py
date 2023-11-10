@@ -48,7 +48,7 @@ class NameConflictTest(unittest.TestCase):
         asm = pprinter_helpers.run_asm_pprinter(
             ir, ["--syntax", "masm", "--format", "raw"]
         )
-        self.assertIn("di_renamed:", asm)
+        self.assertIn("di_renamed PROC", asm)
 
     def test_div_intel(self):
         ir = create_ir_with_name("div")
@@ -60,7 +60,7 @@ class NameConflictTest(unittest.TestCase):
         asm = pprinter_helpers.run_asm_pprinter(
             ir, ["--syntax", "masm", "--format", "raw"]
         )
-        self.assertIn("div_renamed:", asm)
+        self.assertIn("div_renamed PROC", asm)
 
     # Make sure that the renaming scheme for
     # ambiguous symbol names is being
