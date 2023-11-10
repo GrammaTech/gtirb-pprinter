@@ -171,6 +171,9 @@ getFunctionEntries(const gtirb::Module& Mod);
 std::map<gtirb::UUID, std::set<gtirb::UUID>>
 getFunctionBlocks(const gtirb::Module& Mod);
 
+// Load all function name UUIDs from the `functionNames' AuxData table.
+std::map<gtirb::UUID, gtirb::UUID> getFunctionNames(const gtirb::Module& Mod);
+
 // Find the size of a symbolic expression by offset (`symbolicExpressionSizes').
 std::optional<uint64_t> getSymbolicExpressionSize(const gtirb::Offset& Offset,
                                                   const gtirb::Module& Mod);

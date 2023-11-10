@@ -347,6 +347,10 @@ protected:
                                   const gtirb::Section& section);
   virtual void printSectionFooterDirective(std::ostream& os,
                                            const gtirb::Section& section) = 0;
+
+  // Print the function ending of the function whose name is the given symbol.
+  virtual void printFunctionEnd(std::ostream& OS,
+                                const gtirb::Symbol& FunctionSymbol) = 0;
   virtual void printBlock(std::ostream& os, const gtirb::CodeBlock& block);
   virtual void printBlock(std::ostream& os, const gtirb::DataBlock& block);
   virtual void printBlockContents(std::ostream& os,
@@ -459,15 +463,16 @@ protected:
   gtirb::Context& context;
   const gtirb::Module& module;
 
-  std::optional<std::string> getContainerFunctionName(gtirb::Addr Addr) const;
-  virtual std::string getFunctionName(gtirb::Addr x) const;
+  // Get the symbol of the function that contains Addr.
+  const gtirb::Symbol* getContainerFunctionSymbol(gtirb::Addr Addr) const;
+  // Check if the given DataBlock or CodeBlock UUID corresponds to
+  // the last block of a function.
+  bool isFunctionLastBlock(const gtirb::UUID& Uuid) const;
+
   virtual std::string getSymbolName(const gtirb::Symbol& symbol) const;
   virtual std::optional<std::string>
   getForwardedSymbolName(const gtirb::Symbol* symbol) const;
   virtual gtirb::Symbol* getForwardedSymbol(const gtirb::Symbol* Sym) const;
-
-  bool isFunctionEntry(gtirb::Addr Addr) const;
-  bool isFunctionLastBlock(gtirb::Addr Addr) const;
 
   // Currently, this only works for symbolic expressions in data blocks.
   // For the symbolic expressions that are part of code blocks, Capstone
@@ -506,8 +511,14 @@ private:
   static bool x86InstHasMoffsetEncoding(const cs_insn& inst);
 
 protected:
-  std::set<gtirb::Addr> functionEntry;
-  std::set<gtirb::Addr> functionLastBlock;
+  // A sorted map from function addresses to the symbols that define
+  // the function name.
+  std::map<gtirb::Addr, const gtirb::Symbol*> FunctionEntrySymbols;
+  // The set of all symbols associated to a function.
+  std::set<const gtirb::Symbol*> FunctionSymbols;
+  // Set of UUIDs corresponding to the last CodeBlocks or DataBlocks
+  // of each function.
+  std::set<gtirb::UUID> FunctionLastBlocks;
   std::map<const gtirb::Symbol*, std::string> AmbiguousSymbols;
   std::string m_accum_comment;
   static std::string s_symaddr_0_warning(uint64_t symAddr);

@@ -501,17 +501,26 @@ void MasmPrettyPrinter::printSymbolDefinition(std::ostream& Stream,
     const gtirb::CodeBlock* Block = Symbol.getReferent<gtirb::CodeBlock>();
     bool SafeSeh = aux_data::getPeSafeExceptionHandlers(module).count(
                        Block->getUUID()) > 0;
-    if (Exported) {
-      Stream << Name << ' ' << masmSyntax.proc() << " EXPORT\n"
-             << Name << ' ' << masmSyntax.endp() << '\n';
-    } else if (SafeSeh) {
-      Stream << Name << ' ' << masmSyntax.proc() << "\n"
-             << ".SAFESEH " << Name << "\n"
-             << Name << ' ' << masmSyntax.endp() << '\n';
+    bool FunctionSymbol = FunctionSymbols.count(&Symbol) > 0;
+    if (FunctionSymbol) {
+      Stream << Name << ' ' << masmSyntax.proc();
+      if (Exported) {
+        Stream << " EXPORT";
+      }
+      Stream << "\n";
+      if (SafeSeh) {
+        Stream << ".SAFESEH " << Name << "\n";
+      }
     } else {
-      Stream << Name << ":\n";
+      // double colon makes labels available outside procedures
+      Stream << Name << "::\n";
     }
   }
+}
+
+void MasmPrettyPrinter::printFunctionEnd(std::ostream& OS,
+                                         const gtirb::Symbol& FunctionName) {
+  OS << getSymbolName(FunctionName) << ' ' << masmSyntax.endp() << '\n';
 }
 
 void MasmPrettyPrinter::printSymbolDefinitionRelativeToPC(

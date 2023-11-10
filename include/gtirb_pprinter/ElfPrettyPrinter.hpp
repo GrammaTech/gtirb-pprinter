@@ -115,6 +115,11 @@ protected:
   void printSectionFooterDirective(std::ostream& os,
                                    const gtirb::Section& addr) override;
 
+  // Print the `.size FunctionName, . - FunctionName` label that
+  // defines the size of the function symbol.
+  void printFunctionEnd(std::ostream& OS,
+                        const gtirb::Symbol& FunctionName) override;
+
   void printByte(std::ostream& os, std::byte byte) override;
 
   void printSymExprSuffix(std::ostream& OS, const gtirb::SymAttributeSet& Attrs,
@@ -143,8 +148,8 @@ protected:
   void printSymbolType(std::ostream& os, std::string& Name,
                        const aux_data::ElfSymbolInfo& SymbolInfo);
 
-  void printSymbolSize(std::ostream& os, std::string& Name,
-                       const aux_data::ElfSymbolInfo& SymbolInfo);
+  void printObjectSymbolSize(std::ostream& os, std::string& Name,
+                             const aux_data::ElfSymbolInfo& SymbolInfo);
 
   void printString(std::ostream& Stream, const gtirb::DataBlock& Block,
                    uint64_t Offset, bool NullTerminated = true) override;

@@ -59,6 +59,10 @@ getFunctionBlocks(const gtirb::Module& Mod) {
   return util::getOrDefault<gtirb::schema::FunctionBlocks>(Mod);
 }
 
+std::map<gtirb::UUID, gtirb::UUID> getFunctionNames(const gtirb::Module& Mod) {
+  return util::getOrDefault<gtirb::schema::FunctionNames>(Mod);
+}
+
 std::optional<std::vector<CFIDirective>>
 getCFIDirectives(const gtirb::Offset& Offset, const gtirb::Module& Mod) {
   if (auto Lst = util::getByOffset<gtirb::schema::CfiDirectives>(Offset, Mod)) {

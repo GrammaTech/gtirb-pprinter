@@ -249,7 +249,7 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
     }
     printSymbolType(os, Name, *SymbolInfo);
     if (SymbolInfo->Type == "OBJECT") {
-      printSymbolSize(os, Name, *SymbolInfo);
+      printObjectSymbolSize(os, Name, *SymbolInfo);
     }
     printBar(os, false);
   }
@@ -277,13 +277,19 @@ void ElfPrettyPrinter::printSymbolType(
   }
 }
 
-void ElfPrettyPrinter::printSymbolSize(
+void ElfPrettyPrinter::printObjectSymbolSize(
     std::ostream& os, std::string& Name,
     const aux_data::ElfSymbolInfo& SymbolInfo) {
   auto Size = SymbolInfo.Size;
   if (Size != 0) {
     os << ".size" << ' ' << Name << ", " << Size << "\n";
   }
+}
+
+void ElfPrettyPrinter::printFunctionEnd(std::ostream& OS,
+                                        const gtirb::Symbol& FunctionSymbol) {
+  std::string FunctionName = getSymbolName(FunctionSymbol);
+  OS << ".size" << ' ' << FunctionName << ", . - " << FunctionName << "\n";
 }
 
 void ElfPrettyPrinter::printSymExprSuffix(std::ostream& OS,

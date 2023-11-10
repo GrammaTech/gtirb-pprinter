@@ -30,6 +30,7 @@ void registerAuxDataTypes() {
   gtirb::AuxDataContainer::registerAuxDataType<Comments>();
   gtirb::AuxDataContainer::registerAuxDataType<FunctionEntries>();
   gtirb::AuxDataContainer::registerAuxDataType<FunctionBlocks>();
+  gtirb::AuxDataContainer::registerAuxDataType<FunctionNames>();
   gtirb::AuxDataContainer::registerAuxDataType<SymbolForwarding>();
   gtirb::AuxDataContainer::registerAuxDataType<Encodings>();
   gtirb::AuxDataContainer::registerAuxDataType<SectionProperties>();

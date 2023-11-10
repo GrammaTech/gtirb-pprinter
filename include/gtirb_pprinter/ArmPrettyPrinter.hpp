@@ -77,8 +77,6 @@ protected:
                             const gtirb::Symbol* symbol) override;
   void printSymExprSuffix(std::ostream& OS, const gtirb::SymAttributeSet& Attrs,
                           bool IsNotBranch = false) override;
-
-  std::string getFunctionName(gtirb::Addr x) const override;
 };
 
 class ArmPrettyPrinterFactory : public ElfPrettyPrinterFactory {
