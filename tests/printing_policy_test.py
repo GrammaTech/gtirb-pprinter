@@ -23,9 +23,12 @@ class PrintingPolicyTests(PPrinterTest):
         asm = run_asm_pprinter(
             ir, ["--syntax", "intel", "--policy", "dynamic"]
         )
-        self.assertNotContains(asm_lines(asm), ["_start:", "ret"])
-
+        self.assertNotContains(
+            asm_lines(asm), ["_start:", "ret", ".size _start, . - _start"]
+        )
         asm = run_asm_pprinter(
             ir, ["--keep-function", "_start", "--syntax", "intel"]
         )
-        self.assertContains(asm_lines(asm), ["_start:", "ret"])
+        self.assertContains(
+            asm_lines(asm), ["_start:", "ret", ".size _start, . - _start"]
+        )
