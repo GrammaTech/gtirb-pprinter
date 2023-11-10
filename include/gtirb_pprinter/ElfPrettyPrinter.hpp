@@ -160,6 +160,7 @@ protected:
 
 private:
   bool TlsGdSequence = false;
+  void computeFunctionAliases();
 };
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API ElfPrettyPrinterFactory

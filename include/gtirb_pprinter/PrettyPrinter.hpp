@@ -483,6 +483,10 @@ protected:
 
   std::optional<uint64_t> getAlignment(gtirb::Addr Addr) const;
 
+  // A function is skipped if its name or any of its aliases are
+  // in the function skip policy.
+  bool isFunctionSkipped(const PrintingPolicy& Policy,
+                         const gtirb::Symbol& FunctionSymbol) const;
   bool shouldSkip(const PrintingPolicy& Policy,
                   const gtirb::Section& section) const;
   bool shouldSkip(const PrintingPolicy& Policy,
@@ -510,6 +514,12 @@ private:
 
   static bool x86InstHasMoffsetEncoding(const cs_insn& inst);
 
+  // Populate the fields: FunctionEntrySymbols FunctionSymbols
+  // and FunctionLastBlocks.
+  void computeFunctionInformation();
+  // Populate AmbiguousSymbols;
+  void computeAmbiguousSymbols();
+
 protected:
   // A sorted map from function addresses to the symbols that define
   // the function name.
@@ -519,6 +529,11 @@ protected:
   // Set of UUIDs corresponding to the last CodeBlocks or DataBlocks
   // of each function.
   std::set<gtirb::UUID> FunctionLastBlocks;
+  // Mapping from function names to aliases. These are computed
+  // depending on the file format.
+  std::map<const gtirb::Symbol*, std::set<const gtirb::Symbol*>>
+      FunctionAliases;
+
   std::map<const gtirb::Symbol*, std::string> AmbiguousSymbols;
   std::string m_accum_comment;
   static std::string s_symaddr_0_warning(uint64_t symAddr);

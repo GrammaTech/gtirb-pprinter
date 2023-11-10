@@ -94,6 +94,7 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
       elfSyntax(syntax_) {
 
   skipVersionSymbols();
+  computeFunctionAliases();
 }
 
 void ElfPrettyPrinter::skipVersionSymbols() {
@@ -111,6 +112,23 @@ void ElfPrettyPrinter::skipVersionSymbols() {
   for (auto& [Library, VersionMap] : SymVersNeeded) {
     for (auto& [VerId, VerName] : VersionMap) {
       policy.skipSymbols.insert(VerName);
+    }
+  }
+}
+
+void ElfPrettyPrinter::computeFunctionAliases() {
+  for (const auto* Symbol : FunctionSymbols) {
+    if (!Symbol->getAddress()) {
+      continue;
+    }
+    for (const auto& Alias : module.findSymbols(*Symbol->getAddress())) {
+      if (&Alias == Symbol) {
+        continue;
+      }
+      auto AliasSymInfo = aux_data::getElfSymbolInfo(Alias);
+      if (AliasSymInfo->Type == "FUNC") {
+        FunctionAliases[Symbol].insert(&Alias);
+      }
     }
   }
 }

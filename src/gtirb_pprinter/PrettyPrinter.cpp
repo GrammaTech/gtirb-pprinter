@@ -302,13 +302,22 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
       context(context_), module(module_),
       PreferredEOLCommentPos(64), type_printer{module_, context_} {
 
+  computeFunctionInformation();
+  computeAmbiguousSymbols();
+}
+
+PrettyPrinterBase::~PrettyPrinterBase() { cs_close(&this->csHandle); }
+
+void PrettyPrinterBase::computeFunctionInformation() {
   auto FunctionNameMap = aux_data::getFunctionNames(module);
+  // Compute function names
   for (const auto& Pair : FunctionNameMap) {
     const auto* Symbol = nodeFromUUID<gtirb::Symbol>(context, Pair.second);
     assert(Symbol != nullptr &&
            "Value entries in the functionNames Auxdata should be symbols");
     FunctionSymbols.insert(Symbol);
   }
+  // Compute function entries
   for (auto const& Function : aux_data::getFunctionEntries(module)) {
     for (auto& EntryBlockUuid : Function.second) {
       const auto* Block =
@@ -332,7 +341,7 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
       }
     }
   }
-
+  // Compute function endings
   for (auto const& Function : aux_data::getFunctionBlocks(module)) {
     assert(Function.second.size() > 0);
     gtirb::Addr LastAddr{0};
@@ -350,7 +359,7 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
         const auto* DataBlock =
             nodeFromUUID<gtirb::DataBlock>(context, BlockUuid);
         if (DataBlock) {
-          gtirb::Addr End = *CodeBlock->getAddress() + CodeBlock->getSize();
+          gtirb::Addr End = *DataBlock->getAddress() + DataBlock->getSize();
           if (End > LastAddr) {
             LastAddr = End;
             LastBlock = BlockUuid;
@@ -364,7 +373,9 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
     }
     FunctionLastBlocks.insert(LastBlock);
   }
+}
 
+void PrettyPrinterBase::computeAmbiguousSymbols() {
   // Collect all ambiguous symbols in the module and give them
   // unique names
   std::map<const std::string, std::multimap<gtirb::Addr, const gtirb::Symbol*>>
@@ -396,8 +407,6 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
     }
   }
 }
-
-PrettyPrinterBase::~PrettyPrinterBase() { cs_close(&this->csHandle); }
 
 bool PrettyPrinterBase::isFunctionLastBlock(
     const gtirb::UUID& BlockUuid) const {
@@ -921,11 +930,17 @@ void PrettyPrinterBase::printBlockImpl(std::ostream& os, BlockType& block) {
       printSymbolDefinition(os, sym);
     }
   }
-  // Print function end if applicable
+  // Print function ends if applicable
   if (isFunctionLastBlock(block.getUUID())) {
     const gtirb::Symbol* FunctionSymbol = getContainerFunctionSymbol(addr);
     if (FunctionSymbol) {
       printFunctionEnd(os, *FunctionSymbol);
+      if (auto Aliases = FunctionAliases.find(FunctionSymbol);
+          Aliases != FunctionAliases.end()) {
+        for (const auto* Alias : Aliases->second) {
+          printFunctionEnd(os, *Alias);
+        }
+      }
     }
   }
 }
@@ -1294,6 +1309,23 @@ PrettyPrinterBase::getContainerFunctionSymbol(gtirb::Addr x) const {
   return it->second;
 }
 
+bool PrettyPrinterBase::isFunctionSkipped(
+    const PrintingPolicy& Policy, const gtirb::Symbol& FunctionSymbol) const {
+  if (Policy.skipFunctions.count(FunctionSymbol.getName())) {
+    return true;
+  }
+  auto Aliases = FunctionAliases.find(&FunctionSymbol);
+  if (Aliases == FunctionAliases.end()) {
+    return false;
+  }
+  for (const auto* Alias : Aliases->second) {
+    if (Policy.skipFunctions.count(Alias->getName())) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool PrettyPrinterBase::shouldSkip(const PrintingPolicy& Policy,
                                    const gtirb::Section& section) const {
   if (Policy.LstMode == ListingDebug) {
@@ -1332,8 +1364,7 @@ bool PrettyPrinterBase::shouldSkip(const PrintingPolicy& Policy,
     }
   } else if (auto Addr = Symbol.getAddress()) {
     auto FunctionSymbol = getContainerFunctionSymbol(*Addr);
-    return FunctionSymbol &&
-           Policy.skipFunctions.count(FunctionSymbol->getName());
+    return FunctionSymbol && isFunctionSkipped(Policy, *FunctionSymbol);
   } else {
     return false;
   }
@@ -1351,8 +1382,7 @@ bool PrettyPrinterBase::shouldSkip(const PrintingPolicy& Policy,
   }
 
   auto FunctionSymbol = getContainerFunctionSymbol(*block.getAddress());
-  return FunctionSymbol &&
-         Policy.skipFunctions.count(FunctionSymbol->getName());
+  return FunctionSymbol && isFunctionSkipped(Policy, *FunctionSymbol);
 }
 
 bool PrettyPrinterBase::shouldSkip(const PrintingPolicy& Policy,
@@ -1367,8 +1397,7 @@ bool PrettyPrinterBase::shouldSkip(const PrintingPolicy& Policy,
   }
 
   auto FunctionSymbol = getContainerFunctionSymbol(*block.getAddress());
-  return FunctionSymbol &&
-         Policy.skipFunctions.count(FunctionSymbol->getName());
+  return FunctionSymbol && isFunctionSkipped(Policy, *FunctionSymbol);
 }
 
 const std::optional<const gtirb::Section*>
