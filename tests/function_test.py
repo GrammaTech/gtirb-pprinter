@@ -37,6 +37,34 @@ class FunctionTests(PPrinterTest):
             ["foo:", "retq", ".byte 0xcc", ".size foo, . - foo"],
         )
 
+    def test_masm_function(self):
+        """
+        Check that ENDP is printed at the end of
+        a function correctly.
+        """
+        ir, m = create_test_module(
+            file_format=gtirb.Module.FileFormat.PE,
+            isa=gtirb.Module.ISA.X64,
+        )
+        _, bi = add_text_section(m)
+        func_uuid = add_function(m, "foo", add_code_block(bi, b"\xC3"))
+
+        asm = run_asm_pprinter(ir)
+
+        self.assertContains(
+            asm_lines(asm),
+            ["foo PROC", "ret", "foo ENDP"],
+        )
+
+        data_block = add_data_block(bi, b"\xCC")
+        m.aux_data["functionBlocks"].data[func_uuid].add(data_block)
+
+        asm = run_asm_pprinter(ir)
+        self.assertContains(
+            asm_lines(asm),
+            ["foo PROC", "ret", "BYTE 0ccH", "foo ENDP"],
+        )
+
     def test_function_with_alias(self):
         """
         Check that a function alias gets a size
