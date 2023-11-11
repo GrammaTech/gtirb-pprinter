@@ -126,7 +126,7 @@ void ElfPrettyPrinter::computeFunctionAliases() {
         continue;
       }
       auto AliasSymInfo = aux_data::getElfSymbolInfo(Alias);
-      if (AliasSymInfo->Type == "FUNC") {
+      if (AliasSymInfo && AliasSymInfo->Type == "FUNC") {
         FunctionAliases[Symbol].insert(&Alias);
       }
     }
