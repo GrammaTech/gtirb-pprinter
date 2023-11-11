@@ -118,11 +118,11 @@ def run_asm_pprinter(ir: gtirb.IR, args: Iterable[str] = ()) -> str:
     :param args: Any additional arguments for the pretty printer.
     :returns: The assembly string.
     """
-    asm, _ = run_asm_pprinter_with_outputput(ir, args)
+    asm, _ = run_asm_pprinter_with_output(ir, args)
     return asm
 
 
-def run_asm_pprinter_with_outputput(
+def run_asm_pprinter_with_output(
     ir: gtirb.IR, args: Iterable[str] = ()
 ) -> Tuple[str, str]:
     """
