@@ -491,6 +491,9 @@ std::string MasmPrettyPrinter::getRegisterName(unsigned int Reg) const {
 void MasmPrettyPrinter::printSymbolDefinition(std::ostream& Stream,
                                               const gtirb::Symbol& Symbol) {
   std::string Name = getSymbolName(Symbol);
+  // In MASM procedures can be exported by declaring "PROC EXPORT"
+  // Non-procedures (data) need to be declared "PUBLIC" AND
+  // be specified in the .def file.
   bool Exported = Exports.count(Symbol.getUUID()) > 0;
   if (Symbol.getReferent<gtirb::DataBlock>()) {
     if (Exported) {
@@ -512,6 +515,9 @@ void MasmPrettyPrinter::printSymbolDefinition(std::ostream& Stream,
         Stream << ".SAFESEH " << Name << "\n";
       }
     } else {
+      if (Exported) {
+        Stream << syntax.global() << ' ' << Name << '\n';
+      }
       // double colon makes labels available outside procedures
       Stream << Name << "::\n";
     }
