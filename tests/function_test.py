@@ -15,9 +15,8 @@ from pprinter_helpers import run_asm_pprinter, PPrinterTest, asm_lines
 class FunctionTests(PPrinterTest):
     def test_function_with_data_block(self):
         """
-        Check that the function size is printed
-        at the end, after the data block that belongs
-        to the function.
+        Check that the function size is printed at the end, after the data
+        block that belongs to the function.
         """
         ir, m = create_test_module(
             file_format=gtirb.Module.FileFormat.ELF,
@@ -39,8 +38,7 @@ class FunctionTests(PPrinterTest):
 
     def test_masm_function(self):
         """
-        Check that ENDP is printed at the end of
-        a function correctly.
+        Check that ENDP is printed at the end of a function correctly.
         """
         ir, m = create_test_module(
             file_format=gtirb.Module.FileFormat.PE,
@@ -67,10 +65,8 @@ class FunctionTests(PPrinterTest):
 
     def test_function_with_alias(self):
         """
-        Check that a function alias gets a size
-        directive too.
-        In ELF, a Symbol at the same location is only alias
-        if it is of type FUNC.
+        Check that a function alias gets a size directive too. In ELF, a Symbol
+        at the same location is only alias if it is of type FUNC.
         """
         ir, m = create_test_module(
             file_format=gtirb.Module.FileFormat.ELF,
