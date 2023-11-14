@@ -6,6 +6,9 @@
   * Binaries printed from a multi-module IR are linked against other binaries from the
     same IR whenever possible
   * Use `elfStackExec` and `elfStackSize` auxdata to generate appropriate linker flags.
+  * Use function boundaries to print `.size` directives for function symbols in ELF binaries.
+  * Use function boundaries to print `ENDP` directives in PE binaries.
+  * Rely on the `functionNames` auxdata.
   * Requires gtirb >=1.12.1
   * Set entrypoint in ELF files to `_start` symbol even if the symbol is not
     `GLOBAL`. Fixes segfaults in rewritten binaries with non-global `_start`
