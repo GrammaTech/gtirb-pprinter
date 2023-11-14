@@ -313,9 +313,12 @@ void PrettyPrinterBase::computeFunctionInformation() {
   // Compute function names
   for (const auto& Pair : FunctionNameMap) {
     const auto* Symbol = nodeFromUUID<gtirb::Symbol>(context, Pair.second);
-    assert(Symbol != nullptr &&
-           "Value entries in the functionNames Auxdata should be symbols");
-    FunctionSymbols.insert(Symbol);
+    if (Symbol) {
+      FunctionSymbols.insert(Symbol);
+    } else {
+      LOG_ERROR << "Value entry UUID " << boost::uuids::to_string(Pair.second)
+                << " in the functionNames Auxdata is not a valid symbol\n";
+    }
   }
   // Compute function entries
   for (auto const& Function : aux_data::getFunctionEntries(module)) {
