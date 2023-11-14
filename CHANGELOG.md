@@ -8,7 +8,7 @@
   * Use `elfStackExec` and `elfStackSize` auxdata to generate appropriate linker flags.
   * Use function boundaries to print `.size` directives for function symbols in ELF binaries.
   * Use function boundaries to print `ENDP` directives in PE binaries.
-  * Rely on the `functionNames` auxdata.
+  * Use `functionNames` auxdata to associate function symbols with the function boundaries.
   * Requires gtirb >=1.12.1
   * Set entrypoint in ELF files to `_start` symbol even if the symbol is not
     `GLOBAL`. Fixes segfaults in rewritten binaries with non-global `_start`
