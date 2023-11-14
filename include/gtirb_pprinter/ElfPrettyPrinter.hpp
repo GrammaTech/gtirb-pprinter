@@ -116,10 +116,10 @@ protected:
   void printSectionFooterDirective(std::ostream& os,
                                    const gtirb::Section& addr) override;
 
-  // Print the `.size FunctionName, . - FunctionName` label that
+  // Print the `.size FunctionSymbol, . - FunctionSymbol` label that
   // defines the size of the function symbol.
   void printFunctionEnd(std::ostream& OS,
-                        const gtirb::Symbol& FunctionName) override;
+                        const gtirb::Symbol& FunctionSymbol) override;
 
   void printByte(std::ostream& os, std::byte byte) override;
 

@@ -525,8 +525,8 @@ void MasmPrettyPrinter::printSymbolDefinition(std::ostream& Stream,
 }
 
 void MasmPrettyPrinter::printFunctionEnd(std::ostream& OS,
-                                         const gtirb::Symbol& FunctionName) {
-  OS << getSymbolName(FunctionName) << ' ' << masmSyntax.endp() << '\n';
+                                         const gtirb::Symbol& FunctionSymbol) {
+  OS << getSymbolName(FunctionSymbol) << ' ' << masmSyntax.endp() << '\n';
 }
 
 void MasmPrettyPrinter::printSymbolDefinitionRelativeToPC(

@@ -115,9 +115,9 @@ protected:
   void printSectionFooterDirective(std::ostream& os,
                                    const gtirb::Section& addr) override;
 
-  // Print the "FunctionName ENDP" label.
+  // Print the "FunctionSymbol ENDP" label.
   void printFunctionEnd(std::ostream& OS,
-                        const gtirb::Symbol& FunctionName) override;
+                        const gtirb::Symbol& FunctionSymbol) override;
 
   void printOpRegdirect(std::ostream& os, const cs_insn& inst,
                         uint64_t index) override;
