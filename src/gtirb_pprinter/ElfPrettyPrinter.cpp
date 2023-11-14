@@ -126,7 +126,8 @@ void ElfPrettyPrinter::computeFunctionAliases() {
         continue;
       }
       auto AliasSymInfo = aux_data::getElfSymbolInfo(Alias);
-      if (AliasSymInfo && AliasSymInfo->Type == "FUNC") {
+      if (AliasSymInfo &&
+          (AliasSymInfo->Type == "FUNC" || AliasSymInfo->Type == "GNU_IFUNC")) {
         FunctionAliases[Symbol].insert(&Alias);
       }
     }
@@ -266,8 +267,8 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
       assert(!"unknown visibility in elfSymbolInfo!");
     }
     printSymbolType(os, Name, *SymbolInfo);
-    if (SymbolInfo->Type == "OBJECT") {
-      printObjectSymbolSize(os, Name, *SymbolInfo);
+    if (SymbolInfo->Type == "OBJECT" || SymbolInfo->Type == "TLS") {
+      printDataSymbolSize(os, Name, *SymbolInfo);
     }
     printBar(os, false);
   }
@@ -295,7 +296,7 @@ void ElfPrettyPrinter::printSymbolType(
   }
 }
 
-void ElfPrettyPrinter::printObjectSymbolSize(
+void ElfPrettyPrinter::printDataSymbolSize(
     std::ostream& os, std::string& Name,
     const aux_data::ElfSymbolInfo& SymbolInfo) {
   auto Size = SymbolInfo.Size;

@@ -66,7 +66,7 @@ class FunctionTests(PPrinterTest):
     def test_function_with_alias(self):
         """
         Check that a function alias gets a size directive too. In ELF, a Symbol
-        at the same location is only alias if it is of type FUNC.
+        at the same location is only alias if it is of type FUNC or GNU_IFUNC
         """
         ir, m = create_test_module(
             file_format=gtirb.Module.FileFormat.ELF,
@@ -77,8 +77,11 @@ class FunctionTests(PPrinterTest):
         _, bi = add_text_section(m)
         code_block = add_code_block(bi, b"\xC3")
         add_function(m, "foo", code_block)
+        # add aliases
         alias_sym = add_symbol(m, "foo_alias", code_block)
         add_elf_symbol_info(m, alias_sym, 0, "FUNC")
+        ifunc_alias_sym = add_symbol(m, "ifunc_foo_alias", code_block)
+        add_elf_symbol_info(m, ifunc_alias_sym, 0, "GNU_IFUNC")
         # This is not an alias because it is not of type FUNC
         add_symbol(m, "foo_false_alias", code_block)
 
@@ -86,6 +89,9 @@ class FunctionTests(PPrinterTest):
 
         self.assertContains(asm_lines(asm), [".size foo, . - foo"])
         self.assertContains(asm_lines(asm), [".size foo_alias, . - foo_alias"])
+        self.assertContains(
+            asm_lines(asm), [".size ifunc_foo_alias, . - ifunc_foo_alias"]
+        )
         self.assertNotContains(
-            asm_lines(asm), [".size foo_false_falias, . - foo_false_alias"]
+            asm_lines(asm), [".size foo_false_alias, . - foo_false_alias"]
         )
