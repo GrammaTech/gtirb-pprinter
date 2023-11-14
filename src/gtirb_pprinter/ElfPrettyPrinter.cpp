@@ -300,14 +300,15 @@ void ElfPrettyPrinter::printObjectSymbolSize(
     const aux_data::ElfSymbolInfo& SymbolInfo) {
   auto Size = SymbolInfo.Size;
   if (Size != 0) {
-    os << ".size" << ' ' << Name << ", " << Size << "\n";
+    os << elfSyntax.symSize() << ' ' << Name << ", " << Size << "\n";
   }
 }
 
 void ElfPrettyPrinter::printFunctionEnd(std::ostream& OS,
                                         const gtirb::Symbol& FunctionSymbol) {
   std::string FunctionName = getSymbolName(FunctionSymbol);
-  OS << ".size" << ' ' << FunctionName << ", . - " << FunctionName << "\n";
+  OS << elfSyntax.symSize() << ' ' << FunctionName << ", . - " << FunctionName
+     << "\n";
 }
 
 void ElfPrettyPrinter::printSymExprSuffix(std::ostream& OS,

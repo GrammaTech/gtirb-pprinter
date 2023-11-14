@@ -55,6 +55,7 @@ public:
   const std::string& uleb128() const { return ULEB128Directive; }
   const std::string& sleb128() const { return SLEB128Directive; }
   const std::string& symVer() const { return SymVerDirective; }
+  const std::string& symSize() const { return SymSizeDirective; }
 
 private:
   const std::string CommentStyle{"#"};
@@ -82,7 +83,7 @@ private:
   const std::string InternalDirective{".internal"};
   const std::string ULEB128Directive{".uleb128"};
   const std::string SLEB128Directive{".sleb128"};
-
+  const std::string SymSizeDirective{".size"};
   const std::string SymVerDirective{".symver"};
 
 protected:
