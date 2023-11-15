@@ -463,10 +463,13 @@ protected:
   gtirb::Context& context;
   const gtirb::Module& module;
 
-  // Get the symbol of the function that contains Addr.
-  const gtirb::Symbol* getContainerFunctionSymbol(gtirb::Addr Addr) const;
-  // Check if the given DataBlock or CodeBlock UUID corresponds to
-  // the last block of a function.
+  /** Get the symbol of the function that contains the block.
+   * This could return `nullptr` if the block does not belong to any function
+   * or if the function does not have any symbol associated to it.*/
+  const gtirb::Symbol*
+  getContainerFunctionSymbol(const gtirb::UUID& Uuid) const;
+  /** Check if the given DataBlock or CodeBlock UUID corresponds to the last
+   * block of a function.*/
   bool isFunctionLastBlock(const gtirb::UUID& Uuid) const;
 
   virtual std::string getSymbolName(const gtirb::Symbol& symbol) const;
@@ -514,23 +517,25 @@ private:
 
   static bool x86InstHasMoffsetEncoding(const cs_insn& inst);
 
-  // Populate the fields: FunctionEntrySymbols FunctionSymbols
-  // and FunctionLastBlocks.
+  /** Populate Function-related fields.*/
   void computeFunctionInformation();
-  // Populate AmbiguousSymbols;
+  /** Populate AmbiguousSymbols */
   void computeAmbiguousSymbols();
 
 protected:
-  // A sorted map from function addresses to the symbols that define
-  // the function name.
-  std::map<gtirb::Addr, const gtirb::Symbol*> FunctionEntrySymbols;
-  // The set of all symbols associated to a function.
+  /** Mapping from function UUIDs to the symbols that define the function
+   * name.*/
+  std::map<gtirb::UUID, const gtirb::Symbol*> FunctionToSymbols;
+  /** The set of all symbols associated to a function.*/
   std::set<const gtirb::Symbol*> FunctionSymbols;
-  // Set of UUIDs corresponding to the last CodeBlocks or DataBlocks
-  // of each function.
+  /** Mapping from Block UUIDs to Function UUIDs.*/
+  std::map<gtirb::UUID, gtirb::UUID> BlockToFunction;
+  /** Set of blocks that are the first in each function.*/
+  std::set<gtirb::UUID> FunctionFirstBlocks;
+  /** Set of block UUIDS that are the last in each function.*/
   std::set<gtirb::UUID> FunctionLastBlocks;
-  // Mapping from function names to aliases. These are computed
-  // depending on the file format.
+  /** Mapping from function names to aliases. These are computed depending on
+   * the file format.*/
   std::map<const gtirb::Symbol*, std::set<const gtirb::Symbol*>>
       FunctionAliases;
 

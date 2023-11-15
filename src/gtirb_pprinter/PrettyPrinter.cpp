@@ -315,65 +315,61 @@ void PrettyPrinterBase::computeFunctionInformation() {
     const auto* Symbol = nodeFromUUID<gtirb::Symbol>(context, Pair.second);
     if (Symbol) {
       FunctionSymbols.insert(Symbol);
+      FunctionToSymbols[Pair.first] = Symbol;
     } else {
       LOG_ERROR << "Value entry UUID " << boost::uuids::to_string(Pair.second)
                 << " in the functionNames Auxdata is not a valid symbol\n";
     }
   }
-  // Compute function entries
-  for (auto const& Function : aux_data::getFunctionEntries(module)) {
-    for (auto& EntryBlockUuid : Function.second) {
-      const auto* Block =
-          nodeFromUUID<gtirb::CodeBlock>(context, EntryBlockUuid);
-      if (Block) {
-        if (auto NameEntry = FunctionNameMap.find(Function.first);
-            NameEntry != FunctionNameMap.end()) {
-          const auto* Symbol =
-              nodeFromUUID<gtirb::Symbol>(context, (*NameEntry).second);
-          FunctionEntrySymbols[*Block->getAddress()] = Symbol;
-        } else {
-          LOG_WARNING << "Function UUID "
-                      << boost::uuids::to_string(Function.first)
-                      << " does not have a name associated to it\n";
-        }
 
-      } else {
-        LOG_WARNING << "UUID " << boost::uuids::to_string(EntryBlockUuid)
-                    << " in functionEntries table references non-existent "
-                    << "block.\n";
+  // Compute the begin and end address of a block
+  auto getUUIDAddrRange = [&](gtirb::UUID Uuid) {
+    std::optional<gtirb::Addr> Addr;
+    uint64_t Size{0};
+    const auto* CodeBlock = nodeFromUUID<gtirb::CodeBlock>(context, Uuid);
+    if (CodeBlock) {
+      Addr = CodeBlock->getAddress();
+      Size = CodeBlock->getSize();
+    } else {
+      const auto* DataBlock = nodeFromUUID<gtirb::DataBlock>(context, Uuid);
+      if (DataBlock) {
+        Addr = DataBlock->getAddress();
+        Size = DataBlock->getSize();
       }
     }
-  }
-  // Compute function endings
+    std::optional<std::tuple<gtirb::Addr, gtirb::Addr>> AddrRange;
+    if (Addr) {
+      AddrRange = {*Addr, *Addr + Size};
+    }
+    return AddrRange;
+  };
+  // Compute function blocks, start, and ends
   for (auto const& Function : aux_data::getFunctionBlocks(module)) {
-    assert(Function.second.size() > 0);
-    gtirb::Addr LastAddr{0};
-    gtirb::UUID LastBlock;
+    if (Function.second.size() == 0) {
+      continue;
+    }
+    gtirb::Addr FirstAddr{std::numeric_limits<uint64_t>::max()}, LastAddr{0};
+    gtirb::UUID FirstBlock, LastBlock;
     for (auto& BlockUuid : Function.second) {
-      const auto* CodeBlock =
-          nodeFromUUID<gtirb::CodeBlock>(context, BlockUuid);
-      if (CodeBlock) {
-        gtirb::Addr End = *CodeBlock->getAddress() + CodeBlock->getSize();
-        if (End > LastAddr) {
-          LastAddr = End;
-          LastBlock = BlockUuid;
-        }
-      } else {
-        const auto* DataBlock =
-            nodeFromUUID<gtirb::DataBlock>(context, BlockUuid);
-        if (DataBlock) {
-          gtirb::Addr End = *DataBlock->getAddress() + DataBlock->getSize();
-          if (End > LastAddr) {
-            LastAddr = End;
-            LastBlock = BlockUuid;
-          }
-        } else {
-          LOG_WARNING << "UUID " << boost::uuids::to_string(BlockUuid)
-                      << " in functionBlocks table references non-existent "
-                      << "block.\n";
-        }
+      BlockToFunction[BlockUuid] = Function.first;
+      auto BlockRange = getUUIDAddrRange(BlockUuid);
+      if (!BlockRange) {
+        LOG_WARNING << "UUID " << boost::uuids::to_string(BlockUuid)
+                    << " in functionBlocks table references non-existent "
+                    << "block or a block without address.\n";
+        continue;
+      }
+      const auto& [Beg, End] = *BlockRange;
+      if (Beg < FirstAddr) {
+        FirstAddr = Beg;
+        FirstBlock = BlockUuid;
+      }
+      if (End > LastAddr) {
+        LastAddr = End;
+        LastBlock = BlockUuid;
       }
     }
+    FunctionFirstBlocks.insert(FirstBlock);
     FunctionLastBlocks.insert(LastBlock);
   }
 }
@@ -676,7 +672,8 @@ void PrettyPrinterBase::printPrototype(std::ostream& os,
     return;
   }
   auto Addr = *block.getAddress() + offset.Displacement;
-  if (FunctionEntrySymbols.find(Addr) != FunctionEntrySymbols.end()) {
+  if (FunctionFirstBlocks.count(block.getUUID()) > 0 &&
+      offset.Displacement == 0) {
     type_printer.printPrototype(Addr, os, syntax.comment()) << std::endl;
   }
 }
@@ -935,7 +932,9 @@ void PrettyPrinterBase::printBlockImpl(std::ostream& os, BlockType& block) {
   }
   // Print function ends if applicable
   if (isFunctionLastBlock(block.getUUID())) {
-    const gtirb::Symbol* FunctionSymbol = getContainerFunctionSymbol(addr);
+    const gtirb::Symbol* FunctionSymbol =
+        getContainerFunctionSymbol(block.getUUID());
+    // A function could have no name associated to it.
     if (FunctionSymbol) {
       printFunctionEnd(os, *FunctionSymbol);
       if (auto Aliases = FunctionAliases.find(FunctionSymbol);
@@ -1289,27 +1288,15 @@ void PrettyPrinterBase::printSymbolicExpression(std::ostream& os,
 }
 
 const gtirb::Symbol*
-PrettyPrinterBase::getContainerFunctionSymbol(gtirb::Addr x) const {
-  auto it = FunctionEntrySymbols.upper_bound(x);
-  if (it == FunctionEntrySymbols.begin())
-    return nullptr;
-  it--;
-  const std::optional<const gtirb::Section*> FunctionSection =
-      getContainerSection(*it->second->getAddress());
-  if (FunctionSection) {
-    std::optional<gtirb::Addr> SectionBegin = (*FunctionSection)->getAddress();
-    std::optional<uint64_t> SectionSize = (*FunctionSection)->getSize();
-    if (SectionBegin && SectionSize) {
-      gtirb::Addr SectionEnd = (*SectionBegin) + (*SectionSize);
-      if (x >= SectionEnd) {
-        // The addr x is in a different section than the function - this block
-        // shouldn't belong to the function.
-        return nullptr;
-      }
+PrettyPrinterBase::getContainerFunctionSymbol(const gtirb::UUID& Uuid) const {
+  if (auto FunctionEntry = BlockToFunction.find(Uuid);
+      FunctionEntry != BlockToFunction.end()) {
+    if (auto FunctionNameEntry = FunctionToSymbols.find(FunctionEntry->second);
+        FunctionNameEntry != FunctionToSymbols.end()) {
+      return FunctionNameEntry->second;
     }
   }
-
-  return it->second;
+  return nullptr;
 }
 
 bool PrettyPrinterBase::isFunctionSkipped(
@@ -1366,8 +1353,15 @@ bool PrettyPrinterBase::shouldSkip(const PrintingPolicy& Policy,
       return false;
     }
   } else if (auto Addr = Symbol.getAddress()) {
-    auto FunctionSymbol = getContainerFunctionSymbol(*Addr);
-    return FunctionSymbol && isFunctionSkipped(Policy, *FunctionSymbol);
+    // If a symbol has no referent but has an address, we check for the first
+    // block at that address.
+    auto BlocksAtSymbolAddr = module.findBlocksAt(*Addr);
+    if (BlocksAtSymbolAddr.begin() != BlocksAtSymbolAddr.end()) {
+      auto FunctionSymbol =
+          getContainerFunctionSymbol(BlocksAtSymbolAddr.begin()->getUUID());
+      return FunctionSymbol && isFunctionSkipped(Policy, *FunctionSymbol);
+    }
+    return false;
   } else {
     return false;
   }
@@ -1384,7 +1378,7 @@ bool PrettyPrinterBase::shouldSkip(const PrintingPolicy& Policy,
     return true;
   }
 
-  auto FunctionSymbol = getContainerFunctionSymbol(*block.getAddress());
+  auto FunctionSymbol = getContainerFunctionSymbol(block.getUUID());
   return FunctionSymbol && isFunctionSkipped(Policy, *FunctionSymbol);
 }
 
@@ -1399,7 +1393,7 @@ bool PrettyPrinterBase::shouldSkip(const PrintingPolicy& Policy,
     return true;
   }
 
-  auto FunctionSymbol = getContainerFunctionSymbol(*block.getAddress());
+  auto FunctionSymbol = getContainerFunctionSymbol(block.getUUID());
   return FunctionSymbol && isFunctionSkipped(Policy, *FunctionSymbol);
 }
 
