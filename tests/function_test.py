@@ -10,6 +10,7 @@ from gtirb_helpers import (
     add_function,
 )
 from pprinter_helpers import run_asm_pprinter, PPrinterTest, asm_lines
+import uuid
 
 
 class FunctionTests(PPrinterTest):
@@ -95,3 +96,41 @@ class FunctionTests(PPrinterTest):
         self.assertNotContains(
             asm_lines(asm), [".size foo_false_alias, . - foo_false_alias"]
         )
+
+    def test_anonymous_function(self):
+        """
+        Check that a function without name does not cause problems
+        and it is not skipped.
+        """
+        ir, m = create_test_module(
+            file_format=gtirb.Module.FileFormat.ELF,
+            isa=gtirb.Module.ISA.X64,
+            binary_type=["DYN"],
+        )
+        _, _ = add_section(m, ".dynamic")
+        _, bi = add_text_section(m)
+
+        # Create normal function
+        code_block = add_code_block(bi, b"\xC3")
+        add_function(m, "foo", code_block)
+
+        # Create anonymous function
+        code_block2 = add_code_block(bi, b"\xCC")
+        func_uuid = uuid.uuid4()
+        m.aux_data["functionEntries"].data[func_uuid] = [code_block2]
+        m.aux_data["functionBlocks"].data[func_uuid] = [code_block2]
+
+        # Create normal function
+        code_block3 = add_code_block(bi, b"\xC3")
+        add_function(m, "foo3", code_block3)
+
+        asm = run_asm_pprinter(ir)
+        # there is a block outside the function
+        self.assertContains(
+            asm_lines(asm), ["foo:", "retq", ".size foo, . - foo", "int $3"]
+        )
+
+        asm = run_asm_pprinter(ir, ["--skip-function", "foo", "foo3"])
+        # even if we skip foo and foo3, there code in between is left
+        self.assertNotContains(asm_lines(asm), ["retq"])
+        self.assertContains(asm_lines(asm), ["int $3"])
