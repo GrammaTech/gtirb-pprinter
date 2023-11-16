@@ -296,12 +296,18 @@ void ElfPrettyPrinter::printSymbolType(
   }
 }
 
+void ElfPrettyPrinter::printSymbolSize(
+    std::ostream& OS, std::string& Name,
+    const aux_data::ElfSymbolInfo& SymbolInfo) {
+  printDataSymbolSize(OS, Name, SymbolInfo);
+}
+
 void ElfPrettyPrinter::printDataSymbolSize(
-    std::ostream& os, std::string& Name,
+    std::ostream& OS, std::string& Name,
     const aux_data::ElfSymbolInfo& SymbolInfo) {
   auto Size = SymbolInfo.Size;
   if (Size != 0) {
-    os << elfSyntax.symSize() << ' ' << Name << ", " << Size << "\n";
+    OS << elfSyntax.symSize() << ' ' << Name << ", " << Size << "\n";
   }
 }
 
