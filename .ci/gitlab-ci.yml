@@ -127,7 +127,7 @@ build-conan-linux-gcc9:
     # Run the tests
     - cmd.exe /C "activate_run.bat && gtirb-pprinter --version && C:\\VS\\VC\\Auxiliary\\Build\\vcvarsall.bat ${ARCH} && ctest -V"
 
-.conan-windows-package-template: &conan-windows-package-template
+.windows-zip-package-template: &windows-zip-package-template
   stage: build-packages
   tags: [ddisasm-windows]
   artifacts:
@@ -226,12 +226,12 @@ conan-windows-release-test:
     ARCH: x64
   <<: *conan-windows-test-template
 
-conan-windows-release-package:
+windows-zip-release-package:
   needs: [conan-windows-release-build]
   variables:
     BUILD_TYPE: Release
   dependencies: [conan-windows-release-build]
-  <<: *conan-windows-package-template
+  <<: *windows-zip-package-template
 
 conan-windows-release-publish:
   needs: [conan-windows-release-build]
@@ -676,14 +676,14 @@ internal-focal-stable:
   trigger:
     project: rewriting/utility/package-uploader
     strategy: depend
-  needs: [conan-windows-release-package]
+  needs: [windows-zip-release-package]
 
 windows-upload-public:
   <<: *windows-upload
   rules:
     *publish-rules
   variables:
-    JOB_NAME: conan-windows-release-package
+    JOB_NAME: windows-zip-release-package
     FILESERVER: public
     FILESERVER_SUBDIR_NAME: windows-release
 
@@ -692,7 +692,7 @@ windows-upload-internal:
   rules:
     *publish-rules
   variables:
-    JOB_NAME: conan-windows-release-package
+    JOB_NAME: windows-zip-release-package
     FILESERVER: internal
     FILESERVER_SUBDIR_NAME: windows-release
 
