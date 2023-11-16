@@ -25,6 +25,13 @@ stages:
   - deploy-to-apt
   - upload
 
+.publish-rules: &publish-rules
+  - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  - if: '$CI_COMMIT_REF_NAME =~ /^release-.*/'
+  - if: $CI_COMMIT_BRANCH
+    when: manual
+    allow_failure: true
+
 check-format:
   stage: check-format
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/ubuntu20
@@ -70,20 +77,21 @@ check-format:
     - !reference [.setup-conan-linux]
     - pip3 install --upgrade pip
     - pip3 install -r tests/requirements.txt $EXTRA_INDEX_URL
-    - PYTHONPATH="$(pwd):$PYTHONPATH" python3 .ci/build.py
+    - PYTHONPATH="$(pwd):$PYTHONPATH" python3 .ci/run_conan.py build
 
 build-conan-linux-gcc9:
   image: conanio/gcc9
   <<: *linux-conan
 
-.conan-windows: &conan-windows
-  stage: deploy
+.conan-windows-build-template: &conan-windows-build-template
+  stage: build
   needs: [check-format]
   tags: [ddisasm-windows]
   artifacts:
-    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
     paths:
-      - gtirb-pprinter*.zip
+      - conan_home.tar.gz
+    # Set a short expiry time - only needed until it is published by a later job.
+    expire_in: 8 hours
   script:
     # Setting CI_PROJECT_DIR to $(pwd) because CI doesn't properly set CI_PROJECT_DIR with VirtualBox runners.
     - export CI_PROJECT_DIR=$(pwd)
@@ -92,15 +100,51 @@ build-conan-linux-gcc9:
     - python -m pip install --upgrade conan==$CONAN_VERSION pip
     - python -m pip install -r tests/requirements.txt $EXTRA_INDEX_URL
     - export PYTHONPATH=`cygpath -w $(pwd)`
+    # Build conan packages in a known location
+    - export CONAN_USER_HOME=$(cygpath -w C:\\)
     # Setup Remote and Authenticate
     - conan remote add gitlab ${CI_API_V4_URL}/packages/conan
     - conan user ci_user -r gitlab -p
     # Build
-    - python .ci/build.py -s build_type=$BUILD_TYPE
+    - python .ci/run_conan.py build -o run_tests=False -s build_type=$BUILD_TYPE
+    - tar -C $(cygpath -u C:\\) -cvzf conan_home.tar.gz .conan
+
+.conan-windows-test-template: &conan-windows-test-template
+  stage: test-and-tag
+  tags: [ddisasm-windows]
+  script:
+    - tar -xf conan_home.tar.gz -C $(cygpath -u C:\\)
+    # Install packages needed for the tests
+    - python -m pip install -r tests/requirements.txt --extra-index-url=$EXTRA_INDEX_URL --pre
+    - export PYTHONPATH="$PYTHONPATH;$(cygpath -w $(pwd))"
+    - export CONAN_USER_HOME=$(cygpath -w C:\\)
+    - export CONAN_REF=$(python -c 'print(__import__("conanfile").Properties().conan_recipe, end="")')
+    # Change directory to the conan build directory
+    - cd $(cygpath -u C:\\)
+    - cd $(find .conan -type d -path '*data/gtirb-pprinter/dev/rewriting+gtirb-pprinter/*/build/*' -print -quit)
+    # Create virtualrunenv script (activate_run.bat)
+    - conan install ${CONAN_REF} -g virtualrunenv
+    # Run the tests
+    - cmd.exe /C "activate_run.bat && gtirb-pprinter --version && C:\\VS\\VC\\Auxiliary\\Build\\vcvarsall.bat ${ARCH} && ctest -V"
+
+.conan-windows-package-template: &conan-windows-package-template
+  stage: build-packages
+  tags: [ddisasm-windows]
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
+    paths:
+      - gtirb-pprinter*.zip
+  script:
+    # Initialize
+    - tar -xf conan_home.tar.gz -C $(cygpath -u C:\\)
+    # Setting CI_PROJECT_DIR to the PWD because GitLab Runner sets a relative path for CI_PROJECT_DIR with VirtualBox runners.
+    - export CI_PROJECT_DIR=$(pwd)
+    - export CONAN_USER_HOME=$(cygpath -w C:\\)
+    - export PYTHONPATH=`cygpath -w $(pwd)`
+    # Prep
+    - python -m pip install --upgrade conan==$CONAN_VERSION pip
     # Install
-      # Python print() on Windows returns CRLF and will cause issues in CI - use "print('string', end='')" when outputting from python.
-    - export CONAN_RECIPE=`python -c "import conanfile; print(conanfile.Properties().conan_recipe, end='')"`
-    - conan install $CONAN_RECIPE -g deploy --install-folder="./conan-packages" -s build_type=$BUILD_TYPE
+    - python .ci/run_conan.py install --install-folder=./conan-packages
     # Merge Package Files
     - export CONAN_PACKAGES="${CI_PROJECT_DIR}/conan-packages/*"
     - export WINDOWS_PACKAGE_NAME=`conan inspect . --raw name`
@@ -150,17 +194,60 @@ build-conan-linux-gcc9:
       )
     - zip -r $WINDOWS_DEVELOPEMENT_PACKAGE_ARCHIVE ${WINDOWS_DEVELOPEMENT_PACKAGE_MANIFEST[@]}
 
-conan-windows-debug:
-  variables:
-    BUILD_TYPE: 'Debug'
-    CONAN_PASSWORD: $CI_JOB_TOKEN
-  <<: *conan-windows
+.conan-windows-publish-template: &conan-windows-publish-template
+  stage: deploy
+  tags: [ddisasm-windows]
+  rules:
+    *publish-rules
+  script:
+    - export CONAN_USER_HOME=$(cygpath -w C:\\)
+    - pip3 install --upgrade conan~=$CONAN_VERSION
+    - tar -xf conan_home.tar.gz -C $(cygpath -u C:\\)
+    - export PYTHONPATH="$PYTHONPATH;$(cygpath -w $(pwd))"
+    - conan user ci_user -r gitlab -p
+    - python .ci/run_conan.py upload
 
-conan-windows-release:
+conan-windows-release-build:
   variables:
     BUILD_TYPE: 'Release'
     CONAN_PASSWORD: $CI_JOB_TOKEN
-  <<: *conan-windows
+  <<: *conan-windows-build-template
+
+conan-windows-debug-build:
+  variables:
+    BUILD_TYPE: 'Debug'
+    CONAN_PASSWORD: $CI_JOB_TOKEN
+  <<: *conan-windows-build-template
+
+conan-windows-release-test:
+  needs: [conan-windows-release-build]
+  dependencies: [conan-windows-release-build]
+  variables:
+    ARCH: x64
+  <<: *conan-windows-test-template
+
+conan-windows-release-package:
+  needs: [conan-windows-release-build]
+  variables:
+    BUILD_TYPE: Release
+  dependencies: [conan-windows-release-build]
+  <<: *conan-windows-package-template
+
+conan-windows-release-publish:
+  needs: [conan-windows-release-build]
+  variables:
+    BUILD_TYPE: Release
+    CONAN_PASSWORD: $CI_JOB_TOKEN
+  dependencies: [conan-windows-release-build]
+  <<: *conan-windows-publish-template
+
+conan-windows-debug-publish:
+  needs: [conan-windows-debug-build]
+  variables:
+    BUILD_TYPE: Debug
+    CONAN_PASSWORD: $CI_JOB_TOKEN
+  dependencies: [conan-windows-debug-build]
+  <<: *conan-windows-publish-template
 
 .setup-apt: &setup-apt
   - DIST_NAME="$(lsb_release -sc)"
@@ -547,7 +634,7 @@ debian-installer-ubuntu20:
 public-focal-unstable:
   <<: *apt-upload
   rules:
-    - if: '$CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
   variables:
     JOB_NAME: debian-installer-ubuntu20
     APT_REPO: public
@@ -567,7 +654,7 @@ public-focal-stable:
 internal-focal-unstable:
   <<: *apt-upload
   rules:
-    - if: '$CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
   variables:
     JOB_NAME: debian-installer-ubuntu20
     APT_REPO: internal
@@ -589,25 +676,23 @@ internal-focal-stable:
   trigger:
     project: rewriting/utility/package-uploader
     strategy: depend
-  needs: [conan-windows-release]
+  needs: [conan-windows-release-package]
 
 windows-upload-public:
   <<: *windows-upload
   rules:
-    - if: '$CI_COMMIT_REF_NAME =~ /^release-.*/'
-    - if: '$CI_COMMIT_REF_NAME == "master"'
+    *publish-rules
   variables:
-    JOB_NAME: conan-windows-release
+    JOB_NAME: conan-windows-release-package
     FILESERVER: public
     FILESERVER_SUBDIR_NAME: windows-release
 
 windows-upload-internal:
   <<: *windows-upload
   rules:
-    - if: '$CI_COMMIT_REF_NAME =~ /^release-.*/'
-    - if: '$CI_COMMIT_REF_NAME == "master"'
+    *publish-rules
   variables:
-    JOB_NAME: conan-windows-release
+    JOB_NAME: conan-windows-release-package
     FILESERVER: internal
     FILESERVER_SUBDIR_NAME: windows-release
 
@@ -623,8 +708,7 @@ python-manylinux-2010-release:
     # Set a short expiry time - only needed until it is published by a later job.
     expire_in: 8 hours
   rules:
-    - if: '$CI_COMMIT_REF_NAME =~ /^release-.*/'
-    - if: '$CI_COMMIT_REF_NAME == "master"'
+    *publish-rules
   script:
     - !reference [.setup-conan-linux]
     - RELEASE_VERSION=$([[ $CI_COMMIT_REF_NAME =~ ^release-.* ]] && echo "ON" || echo "OFF")
@@ -641,8 +725,7 @@ python-manylinux-2010-test:
   needs:
     - python-manylinux-2010-release
   rules:
-    - if: '$CI_COMMIT_REF_NAME =~ /^release-.*/'
-    - if: '$CI_COMMIT_REF_NAME == "master"'
+    *publish-rules
   script:
     - pip3 install _build/wheelhouse/gtirb*.whl --extra-index-url=$EXTRA_INDEX_URL
     - gtirb-pprinter --version
@@ -653,8 +736,7 @@ python-manylinux-2010-publish-internal:
   needs:
     - python-manylinux-2010-release
   rules:
-    - if: '$CI_COMMIT_REF_NAME =~ /^release-.*/'
-    - if: '$CI_COMMIT_REF_NAME == "master"'
+    *publish-rules
   script:
     - cd _build/wheelhouse/
     - pip3 install twine wheel setuptools --upgrade
