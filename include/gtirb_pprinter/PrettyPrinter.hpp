@@ -463,6 +463,12 @@ protected:
   gtirb::Context& context;
   const gtirb::Module& module;
 
+  [[deprecated]] std::optional<std::string>
+  getContainerFunctionName(gtirb::Addr Addr) const;
+  [[deprecated]] virtual std::string getFunctionName(gtirb::Addr x) const;
+  [[deprecated]] bool isFunctionEntry(gtirb::Addr Addr) const;
+  [[deprecated]] bool isFunctionLastBlock(gtirb::Addr Addr) const;
+
   /** Get the symbol of the function that contains the block.
    * This could return `nullptr` if the block does not belong to any function
    * or if the function does not have any symbol associated to it.*/
@@ -523,6 +529,9 @@ private:
   void computeAmbiguousSymbols();
 
 protected:
+  [[deprecated]] std::set<gtirb::Addr> functionEntry;
+  [[deprecated]] std::set<gtirb::Addr> functionLastBlock;
+
   /** Mapping from function UUIDs to the symbols that define the function
    * name.*/
   std::map<gtirb::UUID, const gtirb::Symbol*> FunctionToSymbols;

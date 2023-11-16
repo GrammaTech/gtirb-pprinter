@@ -294,6 +294,14 @@ void PrettyPrinterFactory::deregisterNamedPolicy(const std::string& Name) {
   NamedPolicies.erase(Name);
 }
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#elif defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
+#endif                          // __GNUC__
+
 PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
                                      const gtirb::Module& module_,
                                      const Syntax& syntax_,
@@ -348,7 +356,8 @@ void PrettyPrinterBase::computeFunctionInformation() {
     if (Function.second.size() == 0) {
       continue;
     }
-    gtirb::Addr FirstAddr{std::numeric_limits<uint64_t>::max()}, LastAddr{0};
+    gtirb::Addr FirstAddr{std::numeric_limits<uint64_t>::max()}, LastBlockAddr,
+        LastAddr{0};
     gtirb::UUID FirstBlock, LastBlock;
     for (auto& BlockUuid : Function.second) {
       BlockToFunction[BlockUuid] = Function.first;
@@ -366,13 +375,24 @@ void PrettyPrinterBase::computeFunctionInformation() {
       }
       if (End > LastAddr) {
         LastAddr = End;
+        LastBlockAddr = Beg;
         LastBlock = BlockUuid;
       }
     }
     FunctionFirstBlocks.insert(FirstBlock);
     FunctionLastBlocks.insert(LastBlock);
+
+    // These are deprecated
+    functionEntry.insert(FirstAddr);
+    functionLastBlock.insert(LastBlockAddr);
   }
 }
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#elif defined(_MSC_VER)
+#pragma warning(pop)
+#endif // __GNUC__
 
 void PrettyPrinterBase::computeAmbiguousSymbols() {
   // Collect all ambiguous symbols in the module and give them
@@ -406,6 +426,28 @@ void PrettyPrinterBase::computeAmbiguousSymbols() {
     }
   }
 }
+
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#elif defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
+#endif                          // __GNUC__
+
+bool PrettyPrinterBase::isFunctionEntry(gtirb::Addr x) const {
+  return functionEntry.count(x) > 0;
+}
+
+bool PrettyPrinterBase::isFunctionLastBlock(gtirb::Addr x) const {
+  return functionLastBlock.count(x) > 0;
+}
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#elif defined(_MSC_VER)
+#pragma warning(pop)
+#endif // __GNUC__
 
 bool PrettyPrinterBase::isFunctionLastBlock(
     const gtirb::UUID& BlockUuid) const {
@@ -536,6 +578,38 @@ void PrettyPrinterBase::printBar(std::ostream& os, bool heavy) {
     os << syntax.comment() << "-----------------------------------\n";
   }
 }
+
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#elif defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
+#endif                          // __GNUC__
+
+std::string PrettyPrinterBase::getFunctionName(gtirb::Addr x) const {
+  // Is this address an entry point to a function with a symbol?
+  if (isFunctionEntry(x)) {
+    const auto symbols = module.findSymbols(x);
+    if (symbols.empty()) {
+      // This is a function entry with no associated symbol?
+      std::stringstream name;
+      name << "unknown_function_" << std::hex << static_cast<uint64_t>(x);
+      return name.str();
+    } else {
+      const gtirb::Symbol& s = symbols.front();
+      return s.getName();
+    }
+  }
+  // This doesn't seem to be a function.
+  return std::string{};
+}
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#elif defined(_MSC_VER)
+#pragma warning(pop)
+#endif // __GNUC__
 
 bool PrettyPrinterBase::printSymbolReference(std::ostream& os,
                                              const gtirb::Symbol* symbol) {
@@ -1286,6 +1360,44 @@ void PrettyPrinterBase::printSymbolicExpression(std::ostream& os,
 
   printSymExprSuffix(os, sexpr->Attributes, IsNotBranch);
 }
+
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#elif defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
+#endif                          // __GNUC__
+
+std::optional<std::string>
+PrettyPrinterBase::getContainerFunctionName(gtirb::Addr x) const {
+  auto it = functionEntry.upper_bound(x);
+  if (it == functionEntry.begin())
+    return std::nullopt;
+  it--;
+  const std::optional<const gtirb::Section*> FunctionSection =
+      getContainerSection(*it);
+  if (FunctionSection) {
+    std::optional<gtirb::Addr> SectionBegin = (*FunctionSection)->getAddress();
+    std::optional<uint64_t> SectionSize = (*FunctionSection)->getSize();
+    if (SectionBegin && SectionSize) {
+      gtirb::Addr SectionEnd = (*SectionBegin) + (*SectionSize);
+      if (x >= SectionEnd) {
+        // The addr x is in a different section than the function - this block
+        // shouldn't belong to the function.
+        return std::nullopt;
+      }
+    }
+  }
+
+  return this->getFunctionName(*it);
+}
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#elif defined(_MSC_VER)
+#pragma warning(pop)
+#endif // __GNUC__
 
 const gtirb::Symbol*
 PrettyPrinterBase::getContainerFunctionSymbol(const gtirb::UUID& Uuid) const {
