@@ -469,17 +469,8 @@ protected:
   [[deprecated]] virtual std::string getFunctionName(gtirb::Addr x) const;
   [[deprecated("Use attribute FunctionFirstBlocks instead.")]] bool
   isFunctionEntry(gtirb::Addr Addr) const;
-  [[deprecated("Use isFunctionLastBlock instead.")]] bool
+  [[deprecated("Use attibute FunctionLastBlocks instead.")]] bool
   isFunctionLastBlock(gtirb::Addr Addr) const;
-
-  /** Get the symbol of the function that contains the block.
-   * This could return `nullptr` if the block does not belong to any function
-   * or if the function does not have any symbol associated to it.*/
-  const gtirb::Symbol*
-  getContainerFunctionSymbol(const gtirb::UUID& Uuid) const;
-  /** Check if the given DataBlock or CodeBlock UUID corresponds to the last
-   * block of a function.*/
-  bool isFunctionLastBlock(const gtirb::UUID& Uuid) const;
 
   virtual std::string getSymbolName(const gtirb::Symbol& symbol) const;
   virtual std::optional<std::string>
@@ -495,10 +486,6 @@ protected:
 
   std::optional<uint64_t> getAlignment(gtirb::Addr Addr) const;
 
-  // A function is skipped if its name or any of its aliases are
-  // in the function skip policy.
-  bool isFunctionSkipped(const PrintingPolicy& Policy,
-                         const gtirb::Symbol& FunctionSymbol) const;
   bool shouldSkip(const PrintingPolicy& Policy,
                   const gtirb::Section& section) const;
   bool shouldSkip(const PrintingPolicy& Policy,
@@ -531,23 +518,35 @@ private:
   /** Populate AmbiguousSymbols */
   void computeAmbiguousSymbols();
 
-protected:
-  [[deprecated("Use FunctionFirstBlocks instead.")]] std::set<gtirb::Addr>
-      functionEntry;
-  [[deprecated("Use FunctionLastBlocks instead.")]] std::set<gtirb::Addr>
-      functionLastBlock;
+  /** Get the symbol of the function that contains the block.
+   * This could return `nullptr` if the block does not belong to any function
+   * or if the function does not have any symbol associated to it.*/
+  const gtirb::Symbol*
+  getContainerFunctionSymbol(const gtirb::UUID& Uuid) const;
+
+  // A function is skipped if its name or any of its aliases are
+  // in the function skip policy.
+  bool isFunctionSkipped(const PrintingPolicy& Policy,
+                         const gtirb::Symbol& FunctionSymbol) const;
 
   /** Mapping from function UUIDs to the symbols that define the function
    * name.*/
   std::map<gtirb::UUID, const gtirb::Symbol*> FunctionToSymbols;
-  /** The set of all symbols associated to a function.*/
-  std::set<const gtirb::Symbol*> FunctionSymbols;
   /** Mapping from Block UUIDs to Function UUIDs.*/
   std::map<gtirb::UUID, gtirb::UUID> BlockToFunction;
   /** Set of blocks that are the first in each function.*/
   std::set<gtirb::UUID> FunctionFirstBlocks;
   /** Set of block UUIDS that are the last in each function.*/
   std::set<gtirb::UUID> FunctionLastBlocks;
+
+protected:
+  [[deprecated("Use FunctionFirstBlocks instead.")]] std::set<gtirb::Addr>
+      functionEntry;
+  [[deprecated("Use FunctionLastBlocks instead.")]] std::set<gtirb::Addr>
+      functionLastBlock;
+
+  /** The set of all symbols associated to a function.*/
+  std::set<const gtirb::Symbol*> FunctionSymbols;
   /** Mapping from function names to aliases. These are computed depending on
    * the file format.*/
   std::map<const gtirb::Symbol*, std::set<const gtirb::Symbol*>>
