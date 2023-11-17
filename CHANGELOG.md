@@ -12,6 +12,7 @@
     directives for `FUNC` and `GNU_IFUNC` symbols in ELF binaries associated to functions.
     If the `functionNames` auxdata is not present, no `.size` directives for functions will be printed.
   * Print `.size` directives for `TLS` symbols in ELF binaries.
+  * Deprecate several PrettyPrinter methods that map addresses to functions directly.
   * Requires gtirb >=1.12.1
   * Set entrypoint in ELF files to `_start` symbol even if the symbol is not
     `GLOBAL`. Fixes segfaults in rewritten binaries with non-global `_start`

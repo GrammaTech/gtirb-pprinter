@@ -582,8 +582,7 @@ void PrettyPrinterBase::printBar(std::ostream& os, bool heavy) {
   }
 }
 
-[[deprecated]] std::string
-PrettyPrinterBase::getFunctionName(gtirb::Addr Addr) const {
+std::string PrettyPrinterBase::getFunctionName(gtirb::Addr Addr) const {
 
   for (auto& Block : module.findBlocksAt(Addr)) {
     if (FunctionFirstBlocks.count(Block.getUUID()) > 0) {
