@@ -7,6 +7,11 @@
     same IR whenever possible
   * Use `elfStackExec` and `elfStackSize` auxdata to generate appropriate linker flags.
   * Requires gtirb >=1.12.1
+  * Set entrypoint in ELF files to `_start` symbol even if the symbol is not
+    `GLOBAL`. Fixes segfaults in rewritten binaries with non-global `_start`
+    symbols.
+  * Fix segfault if `elfDynamicInit` or `elfDynamicFini` auxdata do not refer
+    to a `CodeBlock`.
 
 # 2.0.0
   * Remove unnecessary --isa,-I option.
