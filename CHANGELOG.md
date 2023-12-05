@@ -6,19 +6,20 @@
   * Binaries printed from a multi-module IR are linked against other binaries from the
     same IR whenever possible
   * Use `elfStackExec` and `elfStackSize` auxdata to generate appropriate linker flags.
-  * Use function boundaries and the `functionNames` auxdata to print `PROC` and `ENDP` directives in PE binaries.
-    If the `functionNames` auxdata is not present, no `PROC` and `ENDP` directives will be printed.
-  * Use function boundaries and the `functionNames` auxdata to print `.size`
-    directives for `FUNC` and `GNU_IFUNC` symbols in ELF binaries associated to functions.
-    If the `functionNames` auxdata is not present, no `.size` directives for functions will be printed.
-  * Print `.size` directives for `TLS` symbols in ELF binaries.
-  * Deprecate several PrettyPrinter methods that map addresses to functions directly.
   * Requires gtirb >=1.12.1
   * Set entrypoint in ELF files to `_start` symbol even if the symbol is not
     `GLOBAL`. Fixes segfaults in rewritten binaries with non-global `_start`
     symbols.
   * Fix segfault if `elfDynamicInit` or `elfDynamicFini` auxdata do not refer
     to a `CodeBlock`.
+  * Use function boundaries and the `functionNames` auxdata to print `PROC` and `ENDP` directives in PE binaries.
+    If the `functionNames` auxdata is not present, no `PROC` and `ENDP` directives will be printed.
+  * Use function boundaries and the `functionNames` auxdata to print `.size`
+    directives for `FUNC` and `GNU_IFUNC` symbols in ELF binaries associated to functions.
+    If the `functionNames` auxdata is not present, no `.size` directives for functions will be printed.
+  * Print `.size` directives for `TLS` symbols in ELF binaries.
+  * Deprecate the `PrettyPrinterBase` methods: `getContainerFunctionName`, `getFunctionName`, `isFunctionEntry`, and `isFunctionLastBlock`; and
+    the attributes: `functionEntry`, and `functionLastBlock`.
 
 # 2.0.0
   * Remove unnecessary --isa,-I option.
