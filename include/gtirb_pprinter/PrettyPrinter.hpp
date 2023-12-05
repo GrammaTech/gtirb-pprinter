@@ -469,7 +469,7 @@ protected:
   [[deprecated]] virtual std::string getFunctionName(gtirb::Addr x) const;
   [[deprecated("Use attribute FunctionFirstBlocks instead.")]] bool
   isFunctionEntry(gtirb::Addr Addr) const;
-  [[deprecated("Use attibute FunctionLastBlocks instead.")]] bool
+  [[deprecated("Use attribute FunctionLastBlocks instead.")]] bool
   isFunctionLastBlock(gtirb::Addr Addr) const;
 
   virtual std::string getSymbolName(const gtirb::Symbol& symbol) const;
