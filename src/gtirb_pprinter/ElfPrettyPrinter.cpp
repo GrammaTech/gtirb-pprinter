@@ -268,7 +268,7 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
     }
     printSymbolType(os, Name, *SymbolInfo);
     if (SymbolInfo->Type == "OBJECT" || SymbolInfo->Type == "TLS") {
-      printDataSymbolSize(os, Name, *SymbolInfo);
+      printSymbolSize(os, Name, *SymbolInfo);
     }
     printBar(os, false);
   }
@@ -297,12 +297,6 @@ void ElfPrettyPrinter::printSymbolType(
 }
 
 void ElfPrettyPrinter::printSymbolSize(
-    std::ostream& OS, std::string& Name,
-    const aux_data::ElfSymbolInfo& SymbolInfo) {
-  printDataSymbolSize(OS, Name, SymbolInfo);
-}
-
-void ElfPrettyPrinter::printDataSymbolSize(
     std::ostream& OS, std::string& Name,
     const aux_data::ElfSymbolInfo& SymbolInfo) {
   auto Size = SymbolInfo.Size;

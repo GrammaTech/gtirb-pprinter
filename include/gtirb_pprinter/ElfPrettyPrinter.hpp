@@ -149,13 +149,9 @@ protected:
   void printSymbolType(std::ostream& os, std::string& Name,
                        const aux_data::ElfSymbolInfo& SymbolInfo);
 
-  [[deprecated("Use printDataSymbolSize instead.")]] void
-  printSymbolSize(std::ostream& os, std::string& Name,
-                  const aux_data::ElfSymbolInfo& SymbolInfo);
-
   /** Print .size directives for OBJECT and TLS symbols. */
-  void printDataSymbolSize(std::ostream& os, std::string& Name,
-                           const aux_data::ElfSymbolInfo& SymbolInfo);
+  void printSymbolSize(std::ostream& os, std::string& Name,
+                       const aux_data::ElfSymbolInfo& SymbolInfo);
 
   void printString(std::ostream& Stream, const gtirb::DataBlock& Block,
                    uint64_t Offset, bool NullTerminated = true) override;
