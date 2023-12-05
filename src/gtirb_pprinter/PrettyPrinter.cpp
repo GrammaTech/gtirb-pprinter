@@ -29,6 +29,17 @@
 #include <utility>
 #include <variant>
 
+#ifdef __GNUC__
+#define __BEGIN_DEPRECATED_DECL__()                                            \
+  _Pragma("GCC diagnostic push")                                               \
+      _Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
+#define __END_DEPRECATED_DECL__() _Pragma("GCC diagnostic pop")
+#elif defined(_MSC_VER)
+#define __BEGIN_DEPRECATED_DECL__()                                            \
+  _Pragma("warning(push)") _Pragma("warning(disable : 4996)") // deprecated
+#define __END_DEPRECATED_DECL__() _Pragma("warning(pop)")
+#endif
+
 template <class T> T* nodeFromUUID(gtirb::Context& C, gtirb::UUID id) {
   return dyn_cast_or_null<T>(gtirb::Node::getByUUID(C, id));
 }
@@ -294,13 +305,7 @@ void PrettyPrinterFactory::deregisterNamedPolicy(const std::string& Name) {
   NamedPolicies.erase(Name);
 }
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#elif defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4996) // deprecated
-#endif                          // __GNUC__
+__BEGIN_DEPRECATED_DECL__()
 
 PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
                                      const gtirb::Module& module_,
@@ -315,11 +320,7 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
 
 PrettyPrinterBase::~PrettyPrinterBase() { cs_close(&this->csHandle); }
 
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#elif defined(_MSC_VER)
-#pragma warning(pop)
-#endif // __GNUC__
+__END_DEPRECATED_DECL__()
 
 void PrettyPrinterBase::computeFunctionInformation() {
   auto FunctionNameMap = aux_data::getFunctionNames(module);
@@ -387,22 +388,12 @@ void PrettyPrinterBase::computeFunctionInformation() {
     FunctionFirstBlocks.insert(FirstBlock);
     FunctionLastBlocks.insert(LastBlock);
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#elif defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4996) // deprecated
-#endif                          // __GNUC__
+    __BEGIN_DEPRECATED_DECL__()
     // These are deprecated
     functionEntry.insert(FirstAddr);
     functionLastBlock.insert(LastBlockAddr);
 
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#elif defined(_MSC_VER)
-#pragma warning(pop)
-#endif // __GNUC__
+    __END_DEPRECATED_DECL__()
   }
 }
 
