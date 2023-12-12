@@ -759,7 +759,7 @@ python-manylinux-2010-publish-internal:
         python3 delete_remote_packages.py $GL_PKG_API_TOKEN gtirb_pprinter-*.whl;
       fi
     - twine check gtirb_pprinter-*.whl
-    - twine upload --verbose --repository repypi gtirb_pprinter-*.whl
+    - twine upload --verbose --repository repypi gtirb_pprinter-*.whl --skip-existing
 
 python-manylinux-2010-publish-external:
   stage: deploy
@@ -772,6 +772,6 @@ python-manylinux-2010-publish-external:
     - VERSION=$(python3 -c "import gtirb_pprinter; print(gtirb_pprinter.__version__)")
     # Do not publish .dev versions on the public pypi
     - if [[ "$VERSION" =~ \.dev[[:digit:]]*.*$ ]]; then exit 1; fi
-    - python3 -m twine upload --verbose gtirb_pprinter-*.whl -u __token__ -p $PYPI_API_KEY
+    - python3 -m twine upload --verbose gtirb_pprinter-*.whl -u __token__ -p $PYPI_API_KEY --skip-existing
   rules:
     - if: '$CI_COMMIT_REF_NAME =~ /^release-.*/'
