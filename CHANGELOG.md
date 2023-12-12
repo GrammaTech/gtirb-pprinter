@@ -1,4 +1,4 @@
-# 2.0.1 (Unreleased)
+# 2.1.0
   * `--asm` option now prints the assembly for each module of an IR separately
   * `--version-script` now prints a separate version script for each module
     of an IR
@@ -6,7 +6,7 @@
   * Binaries printed from a multi-module IR are linked against other binaries from the
     same IR whenever possible
   * Use `elfStackExec` and `elfStackSize` auxdata to generate appropriate linker flags.
-  * Requires gtirb >=1.12.1
+  * Requires gtirb >=2.0.0
   * Set entrypoint in ELF files to `_start` symbol even if the symbol is not
     `GLOBAL`. Fixes segfaults in rewritten binaries with non-global `_start`
     symbols.
