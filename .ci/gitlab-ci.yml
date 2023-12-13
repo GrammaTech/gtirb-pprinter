@@ -7,6 +7,7 @@ variables:
   # The following two variables are used by the package uploader.
   PROJECT_ID: $CI_PROJECT_ID
   PIPELINE_ID: $CI_PIPELINE_ID
+  CONAN_PASSWORD: $CI_JOB_TOKEN
   XFORM_BINARIES: "bin/gtirb-pprinter bin/gtirb-layout lib/libgtirb_pprinter.so lib/libgtirb_layout.so"
 
 default:
@@ -77,8 +78,6 @@ check-format:
       - .conan
     # Set a short expiry time - only needed until it is published by a later job.
     expire_in: 8 hours
-  variables:
-    CONAN_PASSWORD: $CI_JOB_TOKEN
   script:
     - !reference [.setup-conan-linux]
     - pip3 install --upgrade pip
@@ -232,13 +231,11 @@ conan-linux-gcc9-publish:
 conan-windows-release-build:
   variables:
     BUILD_TYPE: 'Release'
-    CONAN_PASSWORD: $CI_JOB_TOKEN
   <<: *conan-windows-build-template
 
 conan-windows-debug-build:
   variables:
     BUILD_TYPE: 'Debug'
-    CONAN_PASSWORD: $CI_JOB_TOKEN
   <<: *conan-windows-build-template
 
 conan-windows-release-test:
@@ -259,7 +256,6 @@ conan-windows-release-publish:
   needs: [conan-windows-release-build]
   variables:
     BUILD_TYPE: Release
-    CONAN_PASSWORD: $CI_JOB_TOKEN
   dependencies: [conan-windows-release-build]
   <<: *conan-windows-publish-template
 
@@ -267,7 +263,6 @@ conan-windows-debug-publish:
   needs: [conan-windows-debug-build]
   variables:
     BUILD_TYPE: Debug
-    CONAN_PASSWORD: $CI_JOB_TOKEN
   dependencies: [conan-windows-debug-build]
   <<: *conan-windows-publish-template
 
@@ -723,8 +718,6 @@ python-manylinux-2010-release:
   stage: build
   needs: [check-format]
   image: $DOCKER_REGISTRY/rewriting/gtirb-pprinter/manylinux2010_x86_64
-  variables:
-    CONAN_PASSWORD: $CI_JOB_TOKEN
   artifacts:
     paths:
       - _build/wheelhouse/*.whl
