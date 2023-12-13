@@ -62,6 +62,7 @@ check-format:
       ) && exit 1)
 
 .setup-conan-linux:
+  - export CONAN_USER_HOME=$(pwd)
   - pip3 install --upgrade conan~=$CONAN_VERSION
   - conan profile new default --detect
   - conan profile update settings.compiler.libcxx=libstdc++11 default
@@ -93,6 +94,7 @@ conan-linux-gcc9-build:
   rules:
     *publish-rules
   script:
+    - export CONAN_USER_HOME=$(pwd)
     - pip3 install --upgrade conan~=$CONAN_VERSION
     - PYTHONPATH="$(pwd):$PYTHONPATH" python3 .ci/run_conan.py upload
 
