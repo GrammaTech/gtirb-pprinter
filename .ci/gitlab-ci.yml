@@ -78,6 +78,7 @@ check-format:
     - pip3 install --upgrade pip
     - pip3 install -r tests/requirements.txt $EXTRA_INDEX_URL
     - PYTHONPATH="$(pwd):$PYTHONPATH" python3 .ci/run_conan.py build
+    - PYTHONPATH="$(pwd):$PYTHONPATH" python3 .ci/run_conan.py upload
 
 build-conan-linux-gcc9:
   image: conanio/gcc9
