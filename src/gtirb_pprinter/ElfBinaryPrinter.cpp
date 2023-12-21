@@ -14,11 +14,14 @@
 //===----------------------------------------------------------------------===//
 #include "ElfBinaryPrinter.hpp"
 
+#include "Arm64PrettyPrinter.hpp"
+#include "ArmPrettyPrinter.hpp"
 #include "AuxDataSchema.hpp"
 #include "AuxDataUtils.hpp"
 #include "ElfPrettyPrinter.hpp"
 #include "ElfVersionScriptPrinter.hpp"
 #include "FileUtils.hpp"
+#include "Mips32PrettyPrinter.hpp"
 #include "driver/Logger.h"
 #include <boost/filesystem.hpp>
 #include <fstream>
@@ -70,8 +73,27 @@ bool isBlackListed(std::string sym) {
   return false;
 }
 
+/**
+Get an appropriate syntax for an architecture
+*/
+static std::unique_ptr<gtirb_pprint::ElfSyntax>
+getISASyntax(const gtirb::ISA ISA) {
+  switch (ISA) {
+  case gtirb::ISA::ARM64:
+    return std::make_unique<gtirb_pprint::Arm64Syntax>();
+  case gtirb::ISA::ARM:
+    return std::make_unique<gtirb_pprint::ArmSyntax>();
+  case gtirb::ISA::MIPS32:
+    return std::make_unique<gtirb_pprint::Mips32Syntax>();
+  case gtirb::ISA::X64:
+  case gtirb::ISA::IA32:
+  default:
+    return std::make_unique<gtirb_pprint::ElfSyntax>();
+  }
+}
+
 bool ElfBinaryPrinter::generateDummySO(
-    const gtirb::Module& module, const std::string& LibDir,
+    const gtirb::Module& Module, const std::string& LibDir,
     const std::string& Lib, const std::vector<SymbolGroup>& SymGroups) const {
 
   // Assume that lib is a filename w/ no path prefix
@@ -84,6 +106,9 @@ bool ElfBinaryPrinter::generateDummySO(
   {
     std::ofstream AsmFile(AsmFilePath.string());
     AsmFile << "# Generated dummy file for .so undefined symbols\n";
+
+    std::unique_ptr<gtirb_pprint::ElfSyntax> Syntax =
+        getISASyntax(Module.getISA());
 
     std::map<std::string, int> VersionedSymNameCounts;
     for (auto& SymGroup : SymGroups) {
@@ -119,11 +144,11 @@ bool ElfBinaryPrinter::generateDummySO(
 
         std::string SymType = SymInfo->Type;
         if (SymType == "FUNC" || SymType == "GNU_IFUNC") {
-          AsmFile << ".text\n";
+          AsmFile << Syntax->text() << "\n";
         } else if (SymType == "TLS") {
           AsmFile << ".section .tdata, \"waT\"\n";
         } else {
-          AsmFile << ".data\n";
+          AsmFile << Syntax->data() << "\n";
         }
 
         if (!Printer.getIgnoreSymbolVersions()) {
@@ -141,24 +166,24 @@ bool ElfBinaryPrinter::generateDummySO(
               Name = UniqueNameBuilder.str();
             }
 
-            AsmFile << ".symver " << Name << "," << OriginalName << *Version
-                    << '\n';
+            AsmFile << Syntax->symVer() << " " << Name << "," << OriginalName
+                    << *Version << '\n';
             EmittedSymvers = true;
           }
         }
 
-        // TODO: Make use of syntax content in ElfPrettyPrinter?
         std::string Binding;
         if (SymInfo->Binding == "WEAK") {
-          Binding = ".weak";
+          Binding = Syntax->weak();
         } else {
-          Binding = ".globl";
+          Binding = Syntax->global();
         }
 
         AsmFile << Binding << " " << Name << "\n";
 
         if ((SymType == "OBJECT" || SymType == "TLS") && SymInfo->Size != 0) {
-          AsmFile << ".size " << Name << ", " << SymInfo->Size << "\n";
+          AsmFile << Syntax->symSize() << " " << Name << ", " << SymInfo->Size
+                  << "\n";
         }
 
         static const std::unordered_map<std::string, std::string>
@@ -174,7 +199,8 @@ bool ElfBinaryPrinter::generateDummySO(
           return false;
         } else {
           const auto& TypeName = TypeNameIt->second;
-          AsmFile << ".type " << Name << ", @" << TypeName << "\n";
+          AsmFile << Syntax->type() << ' ' << Name << ", "
+                  << Syntax->attributePrefix() << TypeName << "\n";
         }
 
         AsmFile << Name << ":\n";
@@ -203,7 +229,7 @@ bool ElfBinaryPrinter::generateDummySO(
   if (EmittedSymvers) {
     if (!Printer.getIgnoreSymbolVersions()) {
       // A version script is only needed if we define versioned symbols.
-      if (gtirb_pprint::printVersionScript(module, VersionScript)) {
+      if (gtirb_pprint::printVersionScript(Module, VersionScript)) {
         Args.push_back("-Wl,--version-script=" + VersionScript.fileName());
       }
     }
