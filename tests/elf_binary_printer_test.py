@@ -649,3 +649,57 @@ class ElfBinaryPrinterTests(unittest.TestCase):
         for stack_size, stack_exec in subtests:
             with self.subTest(stack_size=stack_size, stack_exec=stack_exec):
                 self.subtest_elf_stack_properties(stack_size, stack_exec)
+
+    def test_dummyso_arm(self):
+        """
+        Test printing a simple ARM GTIRB with --dummy-so.
+        """
+        ir, module = gth.create_test_module(
+            gtirb.Module.FileFormat.ELF,
+            gtirb.Module.ISA.ARM,
+            ["DYN", "PIE"],
+        )
+        text_section, text_bi = gth.add_text_section(module)
+
+        gth.add_section(module, ".dynamic")
+
+        proxy_a = gth.add_proxy_block(module)
+        symbol_a = gth.add_symbol(module, "a", proxy_a)
+        se_a = gtirb.SymAddrConst(
+            0, symbol_a, {gtirb.SymbolicExpression.Attribute.PLT}
+        )
+
+        cb = gth.add_code_block(
+            text_bi,
+            b"\x00\x00\x00\xeb"  # bl  a@plt
+            b"\x00\x00\xa0\xe3"  # mov r0, #0
+            b"\x01\x70\xa0\xe3"  # mov r7, #1
+            b"\x00\x00\x00\xef",  # svc 0
+            {0: se_a},
+        )
+        symbol_start = gth.add_symbol(module, "_start", cb)
+
+        module.aux_data["libraries"].data.extend(["libmya.so"])
+
+        module.aux_data["elfSymbolInfo"].data[symbol_start.uuid] = (
+            0,
+            "FUNC",
+            "GLOBAL",
+            "DEFAULT",
+            0,
+        )
+        module.aux_data["elfSymbolInfo"].data[symbol_a.uuid] = (
+            0,
+            "FUNC",
+            "GLOBAL",
+            "DEFAULT",
+            0,
+        )
+
+        with self.binary_print(
+            ir, "--dummy-so", "yes", "--use-gcc", "arm-linux-gnueabihf-gcc"
+        ) as result:
+            self.assert_readelf_syms(
+                result.path,
+                ("FUNC", "GLOBAL", "DEFAULT", "a"),
+            )
