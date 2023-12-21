@@ -135,7 +135,7 @@ check-format:
     - PYTHONPATH="$(pwd):$PYTHONPATH" python3 .ci/run_conan.py build
 
 conan-linux-gcc9-build:
-  image: conanio/gcc9
+  image: ${CI_REGISTRY_IMAGE}/ubuntu20:$IMAGE_TAG
   <<: *conan-linux-build-template
 
 .conan-linux-publish-template: &conan-linux-publish-template
@@ -148,7 +148,7 @@ conan-linux-gcc9-build:
     - PYTHONPATH="$(pwd):$PYTHONPATH" python3 .ci/run_conan.py upload
 
 conan-linux-gcc9-publish:
-  image: conanio/gcc9
+  image: ${CI_REGISTRY_IMAGE}/ubuntu20:$IMAGE_TAG
   needs:
     - conan-linux-gcc9-build
   dependencies: [conan-linux-gcc9-build]
