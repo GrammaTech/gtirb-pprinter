@@ -425,7 +425,8 @@ build-static:
 static-drivers:
   stage: build
   image: ${CI_REGISTRY_IMAGE}/static:$IMAGE_TAG
-  needs: []
+  needs:
+    - build-ci-image-static
   artifacts:
     name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME"
     paths:
