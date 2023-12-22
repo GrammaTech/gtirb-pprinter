@@ -32,6 +32,17 @@
 
 namespace gtirb_bprint {
 
+/**
+Add build arguments to support additional architectures
+*/
+static void addArchBuildArgs(const gtirb::Module& Module,
+                             std::vector<std::string>& Args) {
+  // add -m32 for x86 binaries
+  if (Module.getISA() == gtirb::ISA::IA32) {
+    Args.push_back("-m32");
+  }
+}
+
 bool ElfBinaryPrinter::isInfixLibraryName(const std::string& library) const {
   std::regex libsoRegex("^lib(.*)\\.so.*");
   std::smatch m;
@@ -224,6 +235,7 @@ bool ElfBinaryPrinter::generateDummySO(
   Args.push_back("-nostartfiles");
   Args.push_back("-nodefaultlibs");
   Args.push_back(AsmFilePath.string());
+  addArchBuildArgs(module, Args);
 
   TempFile VersionScript(".map");
   if (EmittedSymvers) {
@@ -587,10 +599,7 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
     }
   }
 
-  // add -m32 for x86 binaries
-  if (module.getISA() == gtirb::ISA::IA32) {
-    args.push_back("-m32");
-  }
+  addArchBuildArgs(module, args);
 
   // Add stack properties linker flags
   if (auto StackSize = module.getAuxData<gtirb::schema::ElfStackSize>()) {
