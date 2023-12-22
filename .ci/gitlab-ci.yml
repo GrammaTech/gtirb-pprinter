@@ -325,15 +325,21 @@ conan-windows-debug-publish:
 
 .install-deps: &install-deps
   # Install capstone and gtirb.
-  - apt-get install -y libgtirb-dev${GTIRB_VERSION:+-$GTIRB_VERSION} libcapstone-dev${CAPSTONE_VERSION:+-$CAPSTONE_VERSION}
+  - CAPSTONE_VERSION_SUFFIX=$([[ $CAPSTONE_VERSION == "" ]] && echo "" || echo "=$CAPSTONE_VERSION")
+  - GTIRB_VERSION_SUFFIX=$([[ $GTIRB_VERSION == "" ]] && echo "" || echo "=$GTIRB_VERSION")
+  - >-
+    apt-get install -y
+    libcapstone-dev${CAPSTONE_VERSION_SUFFIX}
+    libgtirb-dev${GTIRB_VERSION_SUFFIX}
 
 .install-capstone:
   - DIST_NAME="$(lsb_release -sc)"
   - wget -O - https://download.grammatech.com/gtirb/files/apt-repo/conf/apt.gpg.key | apt-key add -
   - COMPONENT=$([[ $CI_COMMIT_REF_NAME =~ ^release-.* ]] && echo "stable" || echo "unstable")
   - echo "deb https://download.grammatech.com/gtirb/files/apt-repo $DIST_NAME $COMPONENT" | tee -a /etc/apt/sources.list
+  - CAPSTONE_VERSION_SUFFIX=$([[ $CAPSTONE_VERSION == "" ]] && echo "" || echo "=$CAPSTONE_VERSION")
   - apt-get update -y
-  - apt-get install -y libcapstone-dev${CAPSTONE_VERSION:+-$CAPSTONE_VERSION}
+  - apt-get install -y libcapstone-dev${CAPSTONE_VERSION_SUFFIX}
 
 .build-template: &build
   stage: build
@@ -553,16 +559,14 @@ test-make-install:
   script:
     - !reference [.setup-apt]
     - !reference [.install-deps]
-    - "CAPSTONE_PKG_VERSION=$(dpkg -s libcapstone-dev${CAPSTONE_VERSION:+-$CAPSTONE_VERSION} | awk '/Version:/ { print $2 }')"
+    - "CAPSTONE_PKG_VERSION=$(dpkg -s libcapstone-dev | awk '/Version:/ { print $2 }')"
     - echo $CAPSTONE_PKG_VERSION
     - cd build
-    - CPACK_GTIRB_PPRINTER_STABLE_PKG_NAME=OFF
-    - '[[ ! $CI_COMMIT_REF_NAME =~ ^release-.* ]] || CPACK_GTIRB_PPRINTER_STABLE_PKG_NAME=ON'
-    - cpack -G "DEB" -D CPACK_GTIRB_PPRINTER_STABLE_PKG_NAME=$CPACK_GTIRB_PPRINTER_STABLE_PKG_NAME -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PPRINTER_PACKAGE=deb-lib
-    - cpack -G "DEB" -D CPACK_GTIRB_PPRINTER_STABLE_PKG_NAME=$CPACK_GTIRB_PPRINTER_STABLE_PKG_NAME -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PPRINTER_PACKAGE=deb-lib-dbg
-    - cpack -G "DEB" -D CPACK_GTIRB_PPRINTER_STABLE_PKG_NAME=$CPACK_GTIRB_PPRINTER_STABLE_PKG_NAME -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PPRINTER_PACKAGE=deb-dev
-    - cpack -G "DEB" -D CPACK_GTIRB_PPRINTER_STABLE_PKG_NAME=$CPACK_GTIRB_PPRINTER_STABLE_PKG_NAME -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PPRINTER_PACKAGE=deb-driver
-    - cpack -G "DEB" -D CPACK_GTIRB_PPRINTER_STABLE_PKG_NAME=$CPACK_GTIRB_PPRINTER_STABLE_PKG_NAME -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PPRINTER_PACKAGE=deb-driver-dbg
+    - cpack -G "DEB" -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PPRINTER_PACKAGE=deb-lib
+    - cpack -G "DEB" -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PPRINTER_PACKAGE=deb-lib-dbg
+    - cpack -G "DEB" -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PPRINTER_PACKAGE=deb-dev
+    - cpack -G "DEB" -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PPRINTER_PACKAGE=deb-driver
+    - cpack -G "DEB" -D CPACK_CAPSTONE_PKG_VERSION=$CAPSTONE_PKG_VERSION -D CPACK_GTIRB_PPRINTER_PACKAGE=deb-driver-dbg
 
 build-ubuntu20-packages:
   image: ${CI_REGISTRY_IMAGE}/ubuntu20:$IMAGE_TAG
@@ -582,7 +586,8 @@ build-ubuntu20-packages:
     - cp build/*.deb apt-repo
     - pushd apt-repo
     - !reference [.setup-apt]
-    - apt-get download $(apt-rdepends libgtirb-dev${GTIRB_VERSION:+-$GTIRB_VERSION} | grep -v "^ " | grep -E "gtirb")
+    - GTIRB_VERSION_SUFFIX=$([[ $GTIRB_VERSION == "" ]] && echo "" || echo "=$GTIRB_VERSION")
+    - apt-get download $(apt-rdepends libgtirb-dev${GTIRB_VERSION_SUFFIX} | grep -v "^ " | grep -E "gtirb")
     - dpkg-scanpackages . /dev/null > Packages
 
 .test-ubuntu-libgtirb-pprinter-dev: &test-ubuntu-libgtirb-pprinter-dev
