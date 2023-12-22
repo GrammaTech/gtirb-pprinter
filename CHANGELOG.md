@@ -2,6 +2,9 @@
   * Fix dummy-so generation to use correct syntax for ARM with `--dummy-so=yes`
   * Work around ml.exe bug that could result in missing exports in x86-32 PEs.
   * Generate `-m32` when generating dummy-so libraries for x86-32
+  * Add fixup to strip `_copy` suffix appended by ddisasm from `__x86.get_pc_thunk.*` symbols.
+  * Generate `-l:ld-linux*` arguments according to `libraries` auxdata
+  * Always use `-nodefaultlibs`, regardless of printing policy.
 
 # 2.1.0
   * `--asm` option now prints the assembly for each module of an IR separately

@@ -651,3 +651,110 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
                 result.path,
                 ("FUNC", "GLOBAL", "DEFAULT", "a"),
             )
+
+    def subtest_dummyso_x86_32(self, legacy: bool):
+        """
+        Test printing a simple x86-32 GTIRB with --dummy-so.
+
+        If `legacy` is enabled, the `__x86.get_pc_thunk.bx` symbol is
+        constructed as if ddisasm considered it to be `abi_intrinsic`.
+        """
+        ir, module = gth.create_test_module(
+            gtirb.Module.FileFormat.ELF,
+            gtirb.Module.ISA.IA32,
+            ["DYN", "PIE"],
+        )
+        text_section, text_bi = gth.add_text_section(module)
+
+        gth.add_section(module, ".dynamic")
+
+        thunk_cb = gth.add_code_block(
+            text_bi, b"\x8b\x1c\x24" b"\xc3"  # mov EBX, DWORD PTR [ESP]  # ret
+        )
+
+        thunk_name = "__x86.get_pc_thunk.bx"
+        if legacy:
+            symbol_get_pc_thunk = gth.add_symbol(
+                module, thunk_name + "_copy", thunk_cb
+            )
+            proxy_thunk = gth.add_proxy_block(module)
+            symbol_thunk_proxy = gth.add_symbol(
+                module, thunk_name, proxy_thunk
+            )
+            module.aux_data["symbolForwarding"].data[
+                symbol_get_pc_thunk.uuid
+            ] = symbol_thunk_proxy
+        else:
+            symbol_get_pc_thunk = gth.add_symbol(module, thunk_name, thunk_cb)
+        se_get_pc_thunk = gtirb.SymAddrConst(0, symbol_get_pc_thunk)
+
+        proxy_a = gth.add_proxy_block(module)
+        symbol_a = gth.add_symbol(module, "a", proxy_a)
+        se_a = gtirb.SymAddrConst(
+            0, symbol_a, {gtirb.SymbolicExpression.Attribute.PLT}
+        )
+
+        cb = gth.add_code_block(
+            text_bi,
+            b"\xe8\x00\x00\x00\x00"  # calll  __x86.get_pc_thunk.bx
+            b"\xe8\x00\x00\x00\x00"  # calll  a@plt
+            b"\xb8\x01\x00\x00\x00"  # movl   $1,%eax
+            b"\x31\xdb"  # xor    $ebx,%ebx
+            b"\xcd\x80",  # int    $0x80
+            {1: se_get_pc_thunk, 5: se_a},
+        )
+        symbol_start = gth.add_symbol(module, "_start", cb)
+
+        module.aux_data["libraries"].data.extend(["libmya.so"])
+
+        module.aux_data["elfSymbolInfo"].data[symbol_start.uuid] = (
+            0,
+            "FUNC",
+            "GLOBAL",
+            "DEFAULT",
+            0,
+        )
+        module.aux_data["elfSymbolInfo"].data[symbol_a.uuid] = (
+            0,
+            "FUNC",
+            "GLOBAL",
+            "DEFAULT",
+            0,
+        )
+        module.aux_data["elfSymbolInfo"].data[symbol_get_pc_thunk.uuid] = (
+            0,
+            "FUNC",
+            "GLOBAL",
+            "HIDDEN",
+            0,
+        )
+
+        # Configure _start as un-exported to prevent the binary-printer from
+        # generating --export-dynamic, which results in unexpected symbol
+        # binding/visibility for __x86.get_pc_thunk.bx. See gtirb-pprinter#227
+        module.aux_data["elfSymbolTabIdxInfo"].data[symbol_start.uuid] = [
+            (".symtab", 0)
+        ]
+
+        with self.binary_print(ir, "--dummy-so", "yes") as result:
+            readelf_dynsyms = self.readelf(result.path, "--dyn-syms").stdout
+            readelf_symbols = self.readelf(result.path, "--symbols").stdout
+
+            self.assert_readelf_syms(
+                readelf_dynsyms,
+                ("FUNC", "GLOBAL", "DEFAULT", "a"),
+            )
+
+            self.assertNotIn("__x86.get_pc_thunk.bx", readelf_dynsyms)
+            self.assert_readelf_syms(
+                readelf_symbols,
+                ("FUNC", "GLOBAL", "HIDDEN", "__x86.get_pc_thunk.bx"),
+            )
+
+    def test_dummyso_x86_32(self):
+        """
+        Set up subtests for x86-32 GTIRB with --dummy-so.
+        """
+        for legacy in (True, False):
+            with self.subTest(legacy=legacy):
+                self.subtest_dummyso_x86_32(legacy)

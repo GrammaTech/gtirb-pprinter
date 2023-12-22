@@ -558,19 +558,23 @@ ElfPrettyPrinterFactory::ElfPrettyPrinterFactory() {
       ".got.plt",      ".rela.dyn", ".rela.plt"};
   completeSkipSections.insert(PLTSections.begin(), PLTSections.end());
 
-  registerNamedPolicy("complete",
-                      PrintingPolicy{
-                          /// Functions to avoid printing.
-                          {},
-                          /// Symbols to avoid printing.
-                          {},
-                          /// Sections to avoid printing.
-                          completeSkipSections,
-                          /// Sections with possible data object exclusion.
-                          {},
-                          /// Extra compiler arguments.
-                          {"-nostartfiles"},
-                      });
+  registerNamedPolicy(
+      "complete",
+      PrintingPolicy{
+          /// Functions to avoid printing.
+          {},
+          /// Symbols to avoid printing.
+          {},
+          /// Sections to avoid printing.
+          completeSkipSections,
+          /// Sections with possible data object exclusion.
+          {},
+          /// Extra compiler arguments.
+          // Disable startup files. Functions from startup files should be
+          // reprinted and assembled from the GTIRB, and will not be
+          // re-linked.
+          {"-nostartfiles"},
+      });
 }
 
 } // namespace gtirb_pprint

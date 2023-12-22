@@ -16,6 +16,7 @@
 #include "Fixup.hpp"
 #include "AuxDataUtils.hpp"
 #include "PrettyPrinter.hpp"
+#include "driver/Logger.h"
 #include <gtirb/gtirb.hpp>
 
 namespace gtirb_pprint {
@@ -30,6 +31,10 @@ void applyFixups(gtirb::Context& Context, gtirb::Module& Module,
     fixupELFSymbols(Context, Module);
     if (Printer.getDynMode(Module) == DYN_MODE_SHARED) {
       fixupSharedObject(Context, Module);
+    }
+
+    if (Module.getISA() == gtirb::ISA::IA32) {
+      fixupGetPcThunkNames(Context, Module);
     }
   }
 }
@@ -257,5 +262,55 @@ void fixupPESymbols(gtirb::Context& Context, gtirb::Module& Module) {
     }
   }
 };
+
+void fixupGetPcThunkNames(gtirb::Context& Context, gtirb::Module& Module) {
+  const std::vector<std::string> ThunkSymbols = {
+      "__x86.get_pc_thunk.ax", "__x86.get_pc_thunk.bp", "__x86.get_pc_thunk.bx",
+      "__x86.get_pc_thunk.cx", "__x86.get_pc_thunk.di", "__x86.get_pc_thunk.dx",
+      "__x86.get_pc_thunk.si", "_GLOBAL_OFFSET_TABLE_"};
+
+  std::map<gtirb::UUID, gtirb::UUID>* Forwarding =
+      Module.getAuxData<gtirb::schema::SymbolForwarding>();
+  if (!Forwarding) {
+    // Only find forwarded symbols - without the table, none are forwarded.
+    return;
+  }
+
+  int RenamedSymbolCount = 0;
+  for (const auto& Name : ThunkSymbols) {
+    for (auto& Symbol : Module.findSymbols(Name + "_copy")) {
+
+      auto It = Forwarding->find(Symbol.getUUID());
+      if (It == Forwarding->end()) {
+        // ddisasm forwards the renamed symbol to a new symbol of the orginal
+        // name. If it's not in the forwarding table, this isn't what we are
+        // looking for.
+        continue;
+      }
+
+      // Delete the synthetic symbol.
+      Module.removeSymbol(
+          gtirb_pprint::getByUUID<gtirb::Symbol>(Context, It->second));
+
+      // Delete the symbol forwarding entry.
+      Forwarding->erase(It);
+
+      // Restore the name of the original symbol.
+      Symbol.setName(Name);
+
+      RenamedSymbolCount++;
+    }
+  }
+
+  if (RenamedSymbolCount) {
+    LOG_WARNING << "Removed \"_copy\" suffix from " << std::dec
+                << RenamedSymbolCount << " x86.get_pc_thunk.* symbols.\n"
+                << "\"_copy\" was appended to these symbols in ddisasm 1.8.0 "
+                   "and older.\n"
+                << "This behavior is deprecated.\n"
+                << "Upgrade to a newer ddisasm and recreate this GTIRB to "
+                   "resolve this warning.\n";
+  }
+}
 
 } // namespace gtirb_pprint
