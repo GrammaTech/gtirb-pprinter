@@ -13,7 +13,10 @@ import gtirb_test_helpers as gth
 import dummyso
 import hello_world
 
-from pprinter_helpers import pprinter_binary
+from pprinter_helpers import (
+    pprinter_binary,
+    run_asm_pprinter_with_version_script,
+)
 
 
 @dataclass
@@ -273,6 +276,57 @@ class ElfBinaryPrinterTests(unittest.TestCase):
         with self.binary_print(ir, "--dummy-so", "yes"):
             # Just verify binary_print succeeded.
             pass
+
+    def test_dummyso_version_script(self):
+        """
+        Test printing version script
+        """
+        ir, module = self.build_basic_ir()
+
+        proxy_foo = gth.add_proxy_block(module)
+        symbol_foo = gth.add_symbol(module, "foo", proxy_foo)
+        module.aux_data["elfSymbolInfo"].data[symbol_foo.uuid] = (
+            0,
+            "FUNC",
+            "GLOBAL",
+            "DEFAULT",
+            0,
+        )
+        proxy_bar = gth.add_proxy_block(module)
+        symbol_bar = gth.add_symbol(module, "bar", proxy_bar)
+        module.aux_data["elfSymbolInfo"].data[symbol_bar.uuid] = (
+            0,
+            "FUNC",
+            "LOCAL",
+            "DEFAULT",
+            0,
+        )
+        module.aux_data["elfSymbolVersions"] = gtirb.AuxData(
+            type_name=(
+                "tuple<mapping<uint16_t,tuple<sequence<string>,uint16_t>>,"
+                "mapping<string,mapping<uint16_t,string>>,"
+                "mapping<UUID,tuple<uint16_t,bool>>>"
+            ),
+            data=(
+                # ElfSymVerDefs
+                {1: (["LIBA_1.0"], 0), 2: (["LIBA_2.0"], 0)},
+                # ElfSymVerNeeded
+                {"libmya.so": {1: "LIBA_1.0", 2: "LIBA_2.0"}},
+                # ElfSymbolVersionsEntries
+                {
+                    symbol_foo.uuid: (1, False),
+                    symbol_bar.uuid: (2, False),
+                },
+            ),
+        )
+
+        vs = run_asm_pprinter_with_version_script(ir)
+
+        pattern1 = r"LIBA_1.0\s+{\s+global:\s+foo;\s+local:\s+\*;\s+};"
+        self.assert_regex_match(vs, pattern1)
+        pattern2 = r"LIBA_2.0\s+{\s+local:\s+\*;\s+};"
+        self.assert_regex_match(vs, pattern2)
+        self.assertTrue("bar" not in vs)
 
     def test_use_gcc(self):
         """

@@ -35,6 +35,48 @@ bool printVersionScript(const gtirb::Module& Module,
                 << "is not ELF; cannot generate symbol versions.\n";
     return false;
   }
+
+  // Collect versioned symbols with the binding info
+  std::unordered_map<std::string,
+                     std::map<std::string, std::set<const gtirb::Symbol*>>>
+      VerToAttributeToSyms;
+  for (const gtirb::Symbol& Symbol : Module.symbols()) {
+    if (auto SymbolInfo = aux_data::getElfSymbolInfo(Symbol)) {
+      auto Version = aux_data::getSymbolVersionString(Symbol);
+      if (!Version) {
+        continue;
+      }
+      std::string VerStr = *Version;
+      if (VerStr.substr(0, 2) == "@@") {
+        VerStr = VerStr.substr(2);
+      } else if (VerStr.substr(0, 1) == "@") {
+        VerStr = VerStr.substr(1);
+      }
+
+      std::map<std::string, std::set<const gtirb::Symbol*>> AttrToSyms;
+      auto It = VerToAttributeToSyms.find(VerStr);
+      if (It != VerToAttributeToSyms.end()) {
+        AttrToSyms = It->second;
+      }
+
+      std::set<const gtirb::Symbol*> S;
+      std::string Attribute;
+      if (SymbolInfo->Binding != "LOCAL") {
+        Attribute = "global";
+      } else {
+        Attribute = "local";
+      }
+
+      auto It2 = AttrToSyms.find(Attribute);
+      if (It2 != AttrToSyms.end())
+        S = It2->second;
+
+      S.insert(&Symbol);
+      AttrToSyms[Attribute] = S;
+      VerToAttributeToSyms[VerStr] = AttrToSyms;
+    }
+  }
+
   auto SymbolVersions = aux_data::getSymbolVersions(Module);
   if (!SymbolVersions) {
     LOG_INFO << "Module: " << Module.getBinaryPath()
@@ -55,7 +97,22 @@ bool printVersionScript(const gtirb::Module& Module,
     }
     const std::string& MainVersion = *VerNames.begin();
     auto Predecessors = ++VerNames.begin();
-    VersionScript << MainVersion << " {\n \n}";
+
+    VersionScript << MainVersion << " {\n";
+    const auto& It = VerToAttributeToSyms.find(MainVersion);
+    if (It != VerToAttributeToSyms.end()) {
+      for (auto& [Attribute, Syms] : It->second) {
+        if (Attribute != "local") {
+          VersionScript << "  " << Attribute << ":\n";
+          for (const auto* Symbol : Syms) {
+            VersionScript << "    " << Symbol->getName() << ";\n";
+          }
+        }
+      }
+    }
+    VersionScript << "\n  local:\n    *;\n";
+    VersionScript << "}";
+
     Defined.insert(MainVersion);
     bool First = true;
     for (; Predecessors != VerNames.end(); Predecessors++) {
