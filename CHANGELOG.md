@@ -1,4 +1,8 @@
-# 2.1.1 (Unreleased)
+# 2.2.0 (Unreleased)
+
+  * Stop generating debian metapackages and packages with the version attached
+    to the package name. Updates in the apt-repository now support multiple
+    package versions and upgrading `gtirb-pprinter` with `apt-get upgrade`.
   * Fix dummy-so generation to use correct syntax for ARM with `--dummy-so=yes`
   * Work around ml.exe bug that could result in missing exports in x86-32 PEs.
   * Generate `-m32` when generating dummy-so libraries and object files for x86-32
