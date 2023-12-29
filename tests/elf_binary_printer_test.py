@@ -652,7 +652,7 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
                 ("FUNC", "GLOBAL", "DEFAULT", "a"),
             )
 
-    def subtest_dummyso_x86_32(self, legacy: bool):
+    def subtest_dummyso_x86_32(self, legacy: bool, obj: bool):
         """
         Test printing a simple x86-32 GTIRB with --dummy-so.
 
@@ -736,14 +736,19 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
             (".symtab", 0)
         ]
 
-        with self.binary_print(ir, "--dummy-so", "yes") as result:
+        extra_args = []
+        if obj:
+            extra_args.append("--object")
+
+        with self.binary_print(ir, "--dummy-so", "yes", *extra_args) as result:
             readelf_dynsyms = self.readelf(result.path, "--dyn-syms").stdout
             readelf_symbols = self.readelf(result.path, "--symbols").stdout
 
-            self.assert_readelf_syms(
-                readelf_dynsyms,
-                ("FUNC", "GLOBAL", "DEFAULT", "a"),
-            )
+            if not obj:
+                self.assert_readelf_syms(
+                    readelf_dynsyms,
+                    ("FUNC", "GLOBAL", "DEFAULT", "a"),
+                )
 
             self.assertNotIn("__x86.get_pc_thunk.bx", readelf_dynsyms)
             self.assert_readelf_syms(
@@ -755,6 +760,13 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
         """
         Set up subtests for x86-32 GTIRB with --dummy-so.
         """
-        for legacy in (True, False):
-            with self.subTest(legacy=legacy):
-                self.subtest_dummyso_x86_32(legacy)
+        cases = (
+            # legacy, object
+            (True, False),
+            (False, False),
+            (False, True),
+        )
+
+        for legacy, obj in cases:
+            with self.subTest(legacy=legacy, obj=obj):
+                self.subtest_dummyso_x86_32(legacy, obj)

@@ -629,6 +629,8 @@ int ElfBinaryPrinter::assemble(const std::string& outputFilename,
   args.insert(args.end(), ExtraCompileArgs.begin(), ExtraCompileArgs.end());
   args.push_back(tempFile.fileName());
 
+  addArchBuildArgs(mod, args);
+
   if (std::optional<int> ret = execute(compiler, args)) {
     if (*ret) {
       std::cerr << "ERROR: assembler returned: " << *ret << "\n";
