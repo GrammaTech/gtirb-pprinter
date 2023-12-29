@@ -325,21 +325,18 @@ conan-windows-debug-publish:
 
 .install-deps: &install-deps
   # Install capstone and gtirb.
-  - CAPSTONE_VERSION_SUFFIX=$([[ $CAPSTONE_VERSION == "" ]] && echo "" || echo "=$CAPSTONE_VERSION")
-  - GTIRB_VERSION_SUFFIX=$([[ $GTIRB_VERSION == "" ]] && echo "" || echo "=$GTIRB_VERSION")
   - >-
     apt-get install -y
-    libcapstone-dev${CAPSTONE_VERSION_SUFFIX}
-    libgtirb-dev${GTIRB_VERSION_SUFFIX}
+    libcapstone-dev${CAPSTONE_VERSION:+=$CAPSTONE_VERSION}
+    libgtirb-dev${GTIRB_VERSION:+=$GTIRB_VERSION}
 
 .install-capstone:
   - DIST_NAME="$(lsb_release -sc)"
   - wget -O - https://download.grammatech.com/gtirb/files/apt-repo/conf/apt.gpg.key | apt-key add -
   - COMPONENT=$([[ $CI_COMMIT_REF_NAME =~ ^release-.* ]] && echo "stable" || echo "unstable")
   - echo "deb https://download.grammatech.com/gtirb/files/apt-repo $DIST_NAME $COMPONENT" | tee -a /etc/apt/sources.list
-  - CAPSTONE_VERSION_SUFFIX=$([[ $CAPSTONE_VERSION == "" ]] && echo "" || echo "=$CAPSTONE_VERSION")
   - apt-get update -y
-  - apt-get install -y libcapstone-dev${CAPSTONE_VERSION_SUFFIX}
+  - apt-get install -y libcapstone-dev${CAPSTONE_VERSION:+=$CAPSTONE_VERSION}
 
 .build-template: &build
   stage: build
@@ -586,8 +583,7 @@ build-ubuntu20-packages:
     - cp build/*.deb apt-repo
     - pushd apt-repo
     - !reference [.setup-apt]
-    - GTIRB_VERSION_SUFFIX=$([[ $GTIRB_VERSION == "" ]] && echo "" || echo "=$GTIRB_VERSION")
-    - apt-get download $(apt-rdepends libgtirb-dev${GTIRB_VERSION_SUFFIX} | grep -v "^ " | grep -E "gtirb")
+    - apt-get download $(apt-rdepends libgtirb-dev${GTIRB_VERSION:+=$GTIRB_VERSION} | grep -v "^ " | grep -E "gtirb")
     - dpkg-scanpackages . /dev/null > Packages
 
 .test-ubuntu-libgtirb-pprinter-dev: &test-ubuntu-libgtirb-pprinter-dev
