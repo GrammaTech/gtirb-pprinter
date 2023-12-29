@@ -130,12 +130,13 @@ check-format:
     expire_in: 8 hours
   script:
     - !reference [.setup-conan-linux]
+    - sudo apt-get -y update && sudo apt-get -y install gcc-arm-linux-gnueabihf  # needed for tests
     - pip3 install --upgrade pip
     - pip3 install -r tests/requirements.txt $EXTRA_INDEX_URL
     - PYTHONPATH="$(pwd):$PYTHONPATH" python3 .ci/run_conan.py build
 
 conan-linux-gcc9-build:
-  image: ${CI_REGISTRY_IMAGE}/ubuntu20:$IMAGE_TAG
+  image: conanio/gcc9
   <<: *conan-linux-build-template
 
 .conan-linux-publish-template: &conan-linux-publish-template
@@ -148,7 +149,7 @@ conan-linux-gcc9-build:
     - PYTHONPATH="$(pwd):$PYTHONPATH" python3 .ci/run_conan.py upload
 
 conan-linux-gcc9-publish:
-  image: ${CI_REGISTRY_IMAGE}/ubuntu20:$IMAGE_TAG
+  image: conanio/gcc9
   needs:
     - conan-linux-gcc9-build
   dependencies: [conan-linux-gcc9-build]
