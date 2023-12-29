@@ -5,6 +5,7 @@
   * Add fixup to strip `_copy` suffix appended by ddisasm from `__x86.get_pc_thunk.*` symbols.
   * Generate `-l:ld-linux*` arguments according to `libraries` auxdata
   * Always use `-nodefaultlibs`, regardless of printing policy.
+  * Blacklist `_GLOBAL_OFFSET_TABLE_` symbol from dummy-so libraries.
 
 # 2.1.0
   * `--asm` option now prints the assembly for each module of an IR separately

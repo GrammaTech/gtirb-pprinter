@@ -65,6 +65,7 @@ ElfBinaryPrinter::findLibrary(const std::string& library,
 // by ddisasm.
 bool isBlackListed(std::string sym) {
   static std::vector<std::string> blackList = {"",
+                                               "_GLOBAL_OFFSET_TABLE_",
                                                "__rela_iplt_start",
                                                "__rela_iplt_end",
                                                "__gmon_start__",

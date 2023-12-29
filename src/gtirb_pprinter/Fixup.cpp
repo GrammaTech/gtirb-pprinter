@@ -267,7 +267,7 @@ void fixupGetPcThunkNames(gtirb::Context& Context, gtirb::Module& Module) {
   const std::vector<std::string> ThunkSymbols = {
       "__x86.get_pc_thunk.ax", "__x86.get_pc_thunk.bp", "__x86.get_pc_thunk.bx",
       "__x86.get_pc_thunk.cx", "__x86.get_pc_thunk.di", "__x86.get_pc_thunk.dx",
-      "__x86.get_pc_thunk.si", "_GLOBAL_OFFSET_TABLE_"};
+      "__x86.get_pc_thunk.si"};
 
   std::map<gtirb::UUID, gtirb::UUID>* Forwarding =
       Module.getAuxData<gtirb::schema::SymbolForwarding>();
