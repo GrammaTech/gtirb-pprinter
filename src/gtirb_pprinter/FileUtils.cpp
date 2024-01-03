@@ -66,10 +66,7 @@ TempFile::TempFile(TempFile&& Other)
 }
 
 TempFile::~TempFile() {
-  if (isOpen()) {
-    LOG_WARNING << "Removing open temporary file: " << Name << "\n";
-    close();
-  }
+  assert(!isOpen() && "Temporary file not closed");
   if (!Empty && !Name.empty()) {
     boost::system::error_code ErrorCode;
     fs::remove(Name, ErrorCode);
