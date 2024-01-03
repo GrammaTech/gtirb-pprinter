@@ -622,8 +622,12 @@ int ElfBinaryPrinter::assemble(const std::string& outputFilename,
     std::cerr << "ERROR: Could not write assembly into a temporary file.\n";
     return -1;
   }
-  TempFile tempOutput;
-  std::vector<std::string> args{{"-o", tempOutput.fileName(), "-c"}};
+  TempDir tempOutputDir;
+  boost::filesystem::path outputPath(outputFilename);
+  boost::filesystem::path tmpOutputPath(tempOutputDir.dirName());
+  tmpOutputPath /= outputPath.filename();
+
+  std::vector<std::string> args{{"-o", tmpOutputPath.string(), "-c"}};
   args.insert(args.end(), ExtraCompileArgs.begin(), ExtraCompileArgs.end());
   args.push_back(tempFile.fileName());
 
@@ -631,7 +635,7 @@ int ElfBinaryPrinter::assemble(const std::string& outputFilename,
     if (*ret) {
       std::cerr << "ERROR: assembler returned: " << *ret << "\n";
     } else {
-      copyFile(tempOutput.fileName(), outputFilename);
+      copyFile(tmpOutputPath.string(), outputFilename);
     }
     return *ret;
   }
@@ -746,22 +750,22 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
           "fini")) {
     libArgs.push_back(*Arg);
   }
-  TempFile tempOutput(std::string(""));
+  TempDir tempOutputDir;
+  boost::filesystem::path tmpOutputPath(tempOutputDir.dirName());
+  tmpOutputPath /= outputPath.filename();
   if (std::optional<int> ret =
-          execute(compiler, buildCompilerArgs(tempOutput.fileName(), Files, ctx,
-                                              module, libArgs))) {
+          execute(compiler, buildCompilerArgs(tmpOutputPath.string(), Files,
+                                              ctx, module, libArgs))) {
     if (*ret) {
       LOG_ERROR << "assembler returned: " << *ret << "\n";
     } else {
-      copyFile(tempOutput.fileName(), outputFilename);
+      copyFile(tmpOutputPath.string(), outputFilename);
     }
-    tempOutput.close();
     return *ret;
   }
 
   LOG_ERROR << "could not find the assembler '" << compiler
             << "' on the PATH.\n";
-  tempOutput.close();
   return -1;
 }
 
