@@ -3,8 +3,8 @@
   * Work around ml.exe bug that could result in missing exports in x86-32 PEs.
   * Generate `-m32` when generating dummy-so libraries and object files for x86-32
   * Add fixup to strip `_copy` suffix appended by ddisasm from `__x86.get_pc_thunk.*` symbols.
-  * Generate `-l:ld-linux*` arguments according to `libraries` auxdata
-  * Always use `-nodefaultlibs`, regardless of printing policy.
+  * Suppress `__x86.get_pc_thunk.*` symbols in dynamic mode.
+  * Use `-nodefaultlibs` with the `complete` printing policy
   * Blacklist `_GLOBAL_OFFSET_TABLE_` symbol from dummy-so libraries.
 
 # 2.1.0

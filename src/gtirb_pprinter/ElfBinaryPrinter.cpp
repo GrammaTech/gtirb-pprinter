@@ -59,6 +59,11 @@ ElfBinaryPrinter::findLibrary(const std::string& library,
   return std::nullopt;
 }
 
+bool isBlackListedLib(std::string Library) {
+  std::string Prefix = "ld-linux";
+  return (Library.substr(0, Prefix.length()) == Prefix);
+}
+
 // These are symbols that otherwise pass our screen for undefined
 // symbols but don't appear to need external linkage when rebuilding
 // the binary. Some, for example __rela_iplt_start, are introduced
@@ -372,6 +377,9 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
     Libs.push_back(Library);
   }
 
+  // Build with -nodefaultlibs to ensure we only link the generated dummy-so
+  // libraries.
+  LibArgs.push_back("-nodefaultlibs");
   for (const auto& RPath : LibraryPaths) {
     LibArgs.push_back("-Wl,-rpath," + RPath);
   }
@@ -486,6 +494,10 @@ void ElfBinaryPrinter::addOrigLibraryArgs(const gtirb::Module& module,
 
   // add needed libraries
   for (const auto& Library : aux_data::getLibraries(module)) {
+    // if they're a blacklisted name, skip them
+    if (isBlackListedLib(Library)) {
+      continue;
+    }
     // if they match the lib*.so.* pattern we let the compiler look for them
     if (isInfixLibraryName(Library)) {
       args.push_back("-l:" + Library);
@@ -695,16 +707,6 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
   std::optional<TempDir> dummySoDir;
   std::vector<std::string> libArgs;
   boost::filesystem::path outputPath(outputFilename);
-
-  // Do not use default libs. We explicitly add all libraries to the command
-  // line. This also disables static libgcc.a; functions from it should not
-  // need to be re-linked because they should be printed as part of the
-  // assembly.
-  // With --policy=dynamic, there's a possibility the startup code that is
-  // re-linked may require a function from libgcc.a that was not originally
-  // linked (if our environment is different than the original) or whose
-  // symbol was stripped. This is a shortcoming of the dynamic policy.
-  libArgs.push_back("-nodefaultlibs");
 
   if (useDummySO) {
     // Create the temporary directory for storing the synthetic libraries.

@@ -524,7 +524,11 @@ ElfPrettyPrinterFactory::ElfPrettyPrinterFactory() {
           /// Functions to avoid printing.
           {"call_weak_fn", "deregister_tm_clones", "_dl_relocate_static_pie",
            "__do_global_dtors_aux", "frame_dummy", "_start",
-           "register_tm_clones", "__libc_csu_fini", "__libc_csu_init"},
+           "register_tm_clones", "__libc_csu_fini", "__libc_csu_init",
+           "__x86.get_pc_thunk.ax", "__x86.get_pc_thunk.bp",
+           "__x86.get_pc_thunk.bx", "__x86.get_pc_thunk.cx",
+           "__x86.get_pc_thunk.di", "__x86.get_pc_thunk.dx",
+           "__x86.get_pc_thunk.si"},
 
           /// Symbols to avoid printing.
           {"__bss_start", "__data_start", "__dso_handle", "_fp_hw",
@@ -573,7 +577,11 @@ ElfPrettyPrinterFactory::ElfPrettyPrinterFactory() {
           // Disable startup files. Functions from startup files should be
           // reprinted and assembled from the GTIRB, and will not be
           // re-linked.
-          {"-nostartfiles"},
+          // Do not use default libs. We explicitly add all libraries to the
+          // command line. This also disables static libgcc.a; functions from
+          // it should not need to be re-linked because they should be printed
+          // as part of the assembly.
+          {"-nostartfiles", "-nodefaultlibs"},
       });
 }
 
