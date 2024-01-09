@@ -59,7 +59,7 @@ ElfBinaryPrinter::findLibrary(const std::string& library,
   return std::nullopt;
 }
 
-bool isBlackListedLib(std::string Library) {
+bool isLd(std::string Library) {
   std::string Prefix = "ld-linux";
   return (Library.substr(0, Prefix.length()) == Prefix);
 }
@@ -492,14 +492,21 @@ void ElfBinaryPrinter::addOrigLibraryArgs(const gtirb::Module& module,
   allBinaryPaths.insert(allBinaryPaths.end(), BinaryLibraryPaths.begin(),
                         BinaryLibraryPaths.end());
 
+  const auto& Policy = Printer.getPolicy(module);
   // add needed libraries
   for (const auto& Library : aux_data::getLibraries(module)) {
-    // if they're a blacklisted name, skip them
-    if (isBlackListedLib(Library)) {
-      continue;
+    // if they're a blacklisted name, skip them, unless -nodefaultlibs is passed
+    if (isLd(Library)) {
+      if (Policy.compilerArguments.count("-nodefaultlibs") == 0) {
+        continue;
+      } else {
+        // ld does not match isInfixLibraryName, but we let the compiler find
+        // it.
+        args.push_back("-l:" + Library);
+      }
     }
     // if they match the lib*.so.* pattern we let the compiler look for them
-    if (isInfixLibraryName(Library)) {
+    else if (isInfixLibraryName(Library)) {
       args.push_back("-l:" + Library);
     } else {
       // otherwise we try to find them here

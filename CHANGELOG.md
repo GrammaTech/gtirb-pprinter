@@ -6,6 +6,7 @@
   * Suppress `__x86.get_pc_thunk.*` symbols in dynamic mode.
   * Use `-nodefaultlibs` with the `complete` printing policy
   * Blacklist `_GLOBAL_OFFSET_TABLE_` symbol from dummy-so libraries.
+  * Explicitly link `ld-linux*.so` if `-nodefaultlibs` is enabled.
 
 # 2.1.0
   * `--asm` option now prints the assembly for each module of an IR separately
