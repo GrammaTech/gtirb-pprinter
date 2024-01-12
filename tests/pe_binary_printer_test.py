@@ -299,9 +299,9 @@ class WindowsBinaryPrinterTests_NoMock(PPrinterTest):
     def test_windows_pe_resource_data(self):
         # checks that the IR gets turned into a binary
         ir = self.make_pe_resource_data()
-        output = run_binary_pprinter_mock_out(ir, []).stdout.decode(
-            sys.stdout.encoding
-        )
+        output = run_binary_pprinter_mock_out(
+            ir, [], check_output=True
+        ).stdout.decode(sys.stdout.encoding)
         self.assertTrue(output)
 
     @unittest.skipUnless(can_mock_binaries(), "cannot mock binaries")

@@ -514,7 +514,7 @@ PeLink peLink() {
 // Locate MSVC `ml' or `uasm' MASM assembler.
 PeAssemble peAssemble() {
   // Prefer MSVC assembler.
-  fs::path Path = bp::search_path("cl");
+  fs::path Path = bp::search_path("ml.exe");
   if (!Path.empty()) {
     return msvcAssemble;
   }
@@ -531,7 +531,7 @@ PeAssemble peAssemble() {
 // Locate "assemble and link" tools.
 PeAssembleLink peAssembleLink() {
   // Prefer single, compound MSVC command.
-  fs::path Path = bp::search_path("cl");
+  fs::path Path = bp::search_path("ml.exe");
   if (!Path.empty()) {
     return msvcAssembleLink;
   }
