@@ -4,8 +4,11 @@ Utilities for testing gtirb-pprinter.
 
 import concurrent.futures
 import contextlib
+import dataclasses
 import os
 import os.path
+from pathlib import Path
+import re
 import socket
 import sys
 import subprocess
@@ -296,3 +299,51 @@ class PPrinterTest(unittest.TestCase):
             else:
                 msg = default_message
             self.fail(msg)
+
+    def assertRegexMatch(self, text: str, pattern: str) -> re.Match:
+        """
+        Like unittest's assertRegex, but also return the match object on
+        success.
+
+        assertRegex provides a nice output on failure, but doesn't return the
+        match object, so we assert, and then search.
+        """
+        compiled = re.compile(pattern)
+        self.assertRegex(text, compiled)
+        return re.search(compiled, text)
+
+
+@dataclasses.dataclass
+class BinaryPrintResult:
+    """Result of a executing binary print command"""
+
+    path: Path
+    completed_process: subprocess.CompletedProcess
+
+
+class BinaryPPrinterTest(PPrinterTest):
+    @contextlib.contextmanager
+    def binary_print(self, ir: gtirb.IR, *extra_args) -> BinaryPrintResult:
+        """
+        Run binary printer and provide a path to the compiled binary
+        """
+        with tempfile.TemporaryDirectory() as testdir:
+            testdir = Path(testdir)
+            gtirb_path = testdir / "test.gtirb"
+            exe_path = testdir / "test_rewritten"
+            ir.save_protobuf(str(gtirb_path))
+
+            args = [
+                pprinter_binary(),
+                "--ir",
+                gtirb_path,
+                "--binary",
+                exe_path,
+                *extra_args,
+            ]
+
+            completed_process = subprocess.run(
+                args, check=True, capture_output=True, text=True
+            )
+            self.assertTrue(exe_path.exists())
+            yield BinaryPrintResult(exe_path, completed_process)

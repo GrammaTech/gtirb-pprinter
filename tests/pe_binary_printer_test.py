@@ -1,8 +1,12 @@
-import unittest
-import sys
-import gtirb
 import os
+import platform
+from pathlib import Path
+import subprocess
+import sys
+import unittest
 import uuid
+
+import gtirb
 
 from gtirb_helpers import (
     add_byte_block,
@@ -14,6 +18,7 @@ from gtirb_helpers import (
 )
 from pprinter_helpers import (
     PPrinterTest,
+    BinaryPPrinterTest,
     can_mock_binaries,
     interesting_lines,
     run_binary_pprinter_mock,
@@ -28,37 +33,29 @@ FAKEBIN_LLVM = os.path.join(TEST_DIR, "fakebin_llvm")
 
 @unittest.skipUnless(can_mock_binaries(), "cannot mock binaries")
 class WindowsBinaryPrinterTests(PPrinterTest):
-    def test_windows_subsystem_gui(self):
-        # This tests the changes in MR 346.
-        ir, m = create_test_module(
-            file_format=gtirb.Module.FileFormat.PE,
-            isa=gtirb.Module.ISA.X64,
-            binary_type=["EXEC", "EXE", "WINDOWS_GUI"],
-        )
-        _, bi = add_text_section(m)
-        block = add_code_block(bi, b"\xC3")
-        m.entry_point = block
+    def test_windows_subsystem(self):
+        """
+        Test that the binary-printer generates the correct "/SUBSYSTEM" flag
+        """
+        cases = [
+            ("WINDOWS_GUI", "/SUBSYSTEM:windows"),
+            ("WINDOWS_CUI", "/SUBSYSTEM:console"),
+        ]
+        for subsystem_type, subsystem_arg in cases:
+            with self.subTest(subsystem=subsystem_type):
+                ir, m = create_test_module(
+                    file_format=gtirb.Module.FileFormat.PE,
+                    isa=gtirb.Module.ISA.X64,
+                    binary_type=["EXEC", "EXE", subsystem_type],
+                )
+                _, bi = add_text_section(m)
+                block = add_code_block(bi, b"\xC3")
+                m.entry_point = block
 
-        tools = list(run_binary_pprinter_mock(ir))
-        self.assertEqual(len(tools), 1)
-        self.assertEqual(tools[0].name, "ml64.exe")
-        self.assertIn("/SUBSYSTEM:windows", tools[0].args)
-
-    def test_windows_subsystem_console(self):
-        # This tests the changes in MR 346.
-        ir, m = create_test_module(
-            file_format=gtirb.Module.FileFormat.PE,
-            isa=gtirb.Module.ISA.X64,
-            binary_type=["EXEC", "EXE", "WINDOWS_CUI"],
-        )
-        _, bi = add_text_section(m)
-        block = add_code_block(bi, b"\xC3")
-        m.entry_point = block
-
-        tools = list(run_binary_pprinter_mock(ir))
-        self.assertEqual(len(tools), 1)
-        self.assertEqual(tools[0].name, "ml64.exe")
-        self.assertIn("/SUBSYSTEM:console", tools[0].args)
+                tools = list(run_binary_pprinter_mock(ir))
+                self.assertEqual(len(tools), 1)
+                self.assertEqual(tools[0].name, "ml64.exe")
+                self.assertIn(subsystem_arg, tools[0].args)
 
     def test_windows_dll(self):
         ir, m = create_test_module(
@@ -75,6 +72,9 @@ class WindowsBinaryPrinterTests(PPrinterTest):
         self.assertIn("/DLL", tools[0].args)
 
     def test_windows_defs(self):
+        """
+        Test that the PE binary-printer uses lib.exe to generate import libs
+        """
         ir, m = create_test_module(
             file_format=gtirb.Module.FileFormat.PE,
             isa=gtirb.Module.ISA.X64,
@@ -132,7 +132,7 @@ class WindowsBinaryPrinterTests(PPrinterTest):
             )
 
 
-class WindowsBinaryPrinterTests_NoMock(PPrinterTest):
+class WindowsBinaryPrinterTests_NoMock(BinaryPPrinterTest):
     def test_windows_includelib(self):
         ir, m = create_test_module(
             file_format=gtirb.Module.FileFormat.PE,
@@ -314,3 +314,48 @@ class WindowsBinaryPrinterTests_NoMock(PPrinterTest):
                 has_resource_file = True
 
         self.assertTrue(has_resource_file, "did not produce resource file")
+
+    def dumpbin(self, path: Path, *args) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            ["DUMPBIN", *args, path],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+    @unittest.skipUnless(platform.system() == "Windows", "Windows-only")
+    def test_windows_decorated_exports(self):
+        """
+        Test that the binary-printer successfully exports symbols
+        """
+        ir, m = create_test_module(
+            file_format=gtirb.Module.FileFormat.PE,
+            isa=gtirb.Module.ISA.X64,
+            binary_type=["EXEC", "DLL", "WINDOWS_CUI"],
+        )
+
+        _, bi = add_text_section(m)
+
+        exported_blocks = [
+            ("Baz", gtirb.CodeBlock),
+            ("_Baz", gtirb.CodeBlock),
+            ("__Baz", gtirb.CodeBlock),
+            ("___Baz", gtirb.CodeBlock),
+            ("baz_count", gtirb.DataBlock),
+            ("_baz_count", gtirb.DataBlock),
+            ("__baz_count", gtirb.DataBlock),
+            ("___baz_count", gtirb.DataBlock),
+        ]
+
+        for ordinal, (name, block_type) in enumerate(exported_blocks, start=1):
+            block = add_byte_block(bi, block_type, b"\xC3")
+            symbol = add_symbol(m, name, block)
+            m.aux_data["peExportEntries"].data.append((0, ordinal, name))
+            m.aux_data["peExportedSymbols"].data.append(symbol.uuid)
+
+        with self.binary_print(ir) as result:
+            exports = self.dumpbin(result.path, "/EXPORTS").stdout
+            for ordinal, (name, _) in enumerate(exported_blocks, start=1):
+                self.assertRegex(
+                    exports, rf"{ordinal}\s+\d+\s+[0-9a-f]+\s+{name}"
+                )

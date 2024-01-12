@@ -22,6 +22,7 @@ def build_gtirb():
         gtirb.Module.FileFormat.ELF,
         gtirb.Module.ISA.X64,
     )
+    gth.add_section(module, ".dynamic")
     (text_section, text_bi) = gth.add_text_section(module)
     proxy_a = gth.add_proxy_block(module)
     symbol_a = gth.add_symbol(module, "a", proxy_a)
@@ -104,6 +105,7 @@ def build_copy_relocated_gtirb() -> gtirb.IR:
         gtirb.Module.FileFormat.ELF,
         gtirb.Module.ISA.X64,
     )
+    gth.add_section(module, ".dynamic")
     (text_section, text_bi) = gth.add_text_section(module)
 
     _, data = gth.add_data_section(module)
@@ -183,6 +185,7 @@ def build_tls_gtirb() -> gtirb.IR:
         gtirb.Module.FileFormat.ELF,
         gtirb.Module.ISA.X64,
     )
+    gth.add_section(module, ".dynamic")
     (text_section, text_bi) = gth.add_text_section(module)
 
     _, got = gth.add_section(module, ".got")
@@ -275,7 +278,7 @@ def build_plt_sec_gtirb() -> gtirb.IR:
         gtirb.Module.FileFormat.ELF,
         gtirb.Module.ISA.X64,
     )
-
+    gth.add_section(module, ".dynamic")
     plt_section, plt = gth.add_section(module, ".plt.sec")
 
     plt_code_block_a = gth.add_code_block(plt, b"\x00\x00\x00\x00")
@@ -359,6 +362,7 @@ def build_versioned_syms_gtirb() -> gtirb.IR:
         gtirb.Module.FileFormat.ELF,
         gtirb.Module.ISA.X64,
     )
+    gth.add_section(module, ".dynamic")
     (text_section, text_bi) = gth.add_text_section(module)
 
     proxy_a = gth.add_proxy_block(module)

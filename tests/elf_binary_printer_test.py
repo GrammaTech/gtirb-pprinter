@@ -1,10 +1,6 @@
-import contextlib
-from dataclasses import dataclass
 import os
 from pathlib import Path
-import re
 import subprocess
-import tempfile
 import typing
 import unittest
 
@@ -13,47 +9,11 @@ import gtirb_test_helpers as gth
 import dummyso
 import hello_world
 
-from pprinter_helpers import pprinter_binary
-
-
-@dataclass
-class BinaryPrintResult:
-    """Result of a executing binary print command"""
-
-    path: Path
-    completed_process: subprocess.CompletedProcess
+from pprinter_helpers import BinaryPPrinterTest
 
 
 @unittest.skipUnless(os.name == "posix", "only runs on Linux")
-class ElfBinaryPrinterTests(unittest.TestCase):
-    @contextlib.contextmanager
-    def binary_print(self, ir: gtirb.IR, *extra_args) -> BinaryPrintResult:
-        """
-        Run binary printer and provide a path to the compiled binary
-        """
-        with tempfile.TemporaryDirectory() as testdir:
-            testdir = Path(testdir)
-            gtirb_path = testdir / "test.gtirb"
-            exe_path = testdir / "test_rewritten"
-            ir.save_protobuf(str(gtirb_path))
-
-            args = [
-                pprinter_binary(),
-                "--ir",
-                gtirb_path,
-                "--binary",
-                exe_path,
-                "--policy",
-                "complete",
-                *extra_args,
-            ]
-
-            completed_process = subprocess.run(
-                args, check=True, capture_output=True, text=True
-            )
-            self.assertTrue(exe_path.exists())
-            yield BinaryPrintResult(exe_path, completed_process)
-
+class ElfBinaryPrinterTests(BinaryPPrinterTest):
     def readelf(self, path: Path, *args) -> subprocess.CompletedProcess:
         return subprocess.run(
             ["readelf", path, *args],
@@ -61,18 +21,6 @@ class ElfBinaryPrinterTests(unittest.TestCase):
             capture_output=True,
             text=True,
         )
-
-    def assert_regex_match(self, text: str, pattern: str) -> re.Match:
-        """
-        Like unittest's assertRegex, but also return the match object on
-        success.
-
-        assertRegex provides a nice output on failure, but doesn't return the
-        match object, so we assert, and then search.
-        """
-        compiled = re.compile(pattern)
-        self.assertRegex(text, compiled)
-        return re.search(compiled, text)
 
     def assert_readelf_syms(
         self,
@@ -91,7 +39,7 @@ class ElfBinaryPrinterTests(unittest.TestCase):
 
         template = r"([0-9a-f]+)\s+\d+\s+{}\s+{}\s+{}\s+(UND|\d+)\s+{}"
         return [
-            self.assert_regex_match(readelf, template.format(*s)).group(1)
+            self.assertRegexMatch(readelf, template.format(*s)).group(1)
             for s in syms
         ]
 
@@ -492,7 +440,7 @@ class ElfBinaryPrinterTests(unittest.TestCase):
         for (sym, tag) in ((sym_init, "INIT"), (sym_fini, "FINI")):
             # Find the tag
             pattern = r"0x[0-9a-f]+\s+\(" + tag + r"\)\s+(0x[0-9a-f]+)"
-            dt_match = self.assert_regex_match(readelf.stdout, pattern)
+            dt_match = self.assertRegexMatch(readelf.stdout, pattern)
 
             if sym_name:
                 # Find the symbol
@@ -626,7 +574,7 @@ class ElfBinaryPrinterTests(unittest.TestCase):
 
         with self.binary_print(ir) as result:
             segments = self.readelf(result.path, "--segments", "--wide")
-            match = self.assert_regex_match(
+            match = self.assertRegexMatch(
                 segments.stdout,
                 # Type,Offset,VirtAddr,PhysAddr,FileSize,MemSize,Flg,Align
                 r"GNU_STACK\s+(?:0x0+\s+){4}(0x[\da-f]+)\s+(R?W?E?)\s+"
