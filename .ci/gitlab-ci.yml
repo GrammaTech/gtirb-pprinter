@@ -463,11 +463,12 @@ static-drivers:
       alias: gtirb-server
   allow_failure: true
   script:
+    - curl http://gtirb-server:8000 --silent --retry 30 --retry-connrefused --retry-delay 1 -o /dev/null
     - for binary in $XFORM_BINARIES ; do
         binary="build/$binary" ;
-        curl -F transform=ddisasm -F binary=@$binary --output $binary.gtirb http://gtirb-server/simple ;
-        curl -F transform=stack-stamp -F gtirb=@$binary.gtirb --output $binary.stack-stamp.gtirb http://gtirb-server/simple ;
-        curl -F transform=shuffle -F gtirb=@$binary.stack-stamp.gtirb --output $binary.stack-stamp.shuffle.gtirb http://gtirb-server/simple ;
+        curl -F transform=ddisasm -F binary=@$binary --output $binary.gtirb http://gtirb-server:8000/simple ;
+        curl -F transform=stack-stamp -F gtirb=@$binary.gtirb --output $binary.stack-stamp.gtirb http://gtirb-server:8000/simple ;
+        curl -F transform=shuffle -F gtirb=@$binary.stack-stamp.gtirb --output $binary.stack-stamp.shuffle.gtirb http://gtirb-server:8000/simple ;
         ./build/bin/gtirb-pprinter --ir $binary.stack-stamp.shuffle.gtirb --binary $binary.stack-stamp.shuffle -c "-L$(pwd)/build/lib" ;
       done
     - for binary in $XFORM_BINARIES ; do
