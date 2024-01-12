@@ -1,5 +1,6 @@
 # 2.1.1 (Unreleased)
   * Fix dummy-so generation to use correct syntax for ARM with `--dummy-so=yes`
+  * Work around ml.exe bug that could result in missing exports in x86-32 PEs.
 
 # 2.1.0
   * `--asm` option now prints the assembly for each module of an IR separately

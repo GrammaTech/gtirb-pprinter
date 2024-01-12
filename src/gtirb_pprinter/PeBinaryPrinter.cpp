@@ -52,7 +52,7 @@ struct PeLinkOptions {
 
   const std::vector<TempFile>& Compilands;
   const std::vector<std::string>& Resources;
-  const std::optional<std::string>& ExportDef;
+  const std::optional<std::string>& ExportsFile;
 
   const std::optional<std::string>& EntryPoint;
   const std::optional<std::string>& Subsystem;
@@ -210,9 +210,9 @@ CommandList msvcLink(const PeLinkOptions& Options) {
       "/OUT:" + Options.OutputFile,
   };
 
-  // Add exports DEF file.
-  if (Options.ExportDef) {
-    Args.push_back("/DEF:" + *Options.ExportDef);
+  // Add exports file.
+  if (Options.ExportsFile) {
+    Args.push_back(*Options.ExportsFile);
   }
 
   // Add PE entry point.
@@ -277,9 +277,9 @@ CommandList msvcAssembleLink(const PeLinkOptions& Options) {
   // Disable the banner for the linker.
   Args.push_back("/nologo");
 
-  // Add exports DEF file.
-  if (Options.ExportDef) {
-    Args.push_back("/DEF:" + *Options.ExportDef);
+  // Add exports file.
+  if (Options.ExportsFile) {
+    Args.push_back(*Options.ExportsFile);
   }
 
   // Add RES resource files.
@@ -349,9 +349,9 @@ CommandList llvmLink(const PeLinkOptions& Options) {
       "/out:" + Options.OutputFile,
   };
 
-  // Add exports DEF file.
-  if (Options.ExportDef) {
-    Args.push_back("/def:" + *Options.ExportDef);
+  // Add exports file.
+  if (Options.ExportsFile) {
+    Args.push_back(*Options.ExportsFile);
   }
 
   // Add PE entry point.
@@ -689,6 +689,21 @@ int PeBinaryPrinter::link(const std::string& OutputFile,
   // Build the list of commands.
   CommandList Commands;
 
+  std::optional<std::string> ExportsFile;
+  if (ExportDef) {
+    // Generate .exp file for this module from the .def file
+    // This generates a .lib file as well, but we can't disable it.
+    // We specify the location for the .lib file, and .exp is written to the
+    // same place with the extension changed.
+    TempFile LibFile(".lib");
+    LibFile.close();
+    ExportsFile =
+        fs::path(LibFile.fileName()).replace_extension(".exp").string();
+    CommandList ExpLibCommand =
+        libCommands({*ExportDef, LibFile.fileName(), Machine});
+    appendCommands(Commands, ExpLibCommand);
+  }
+
   // Add commands to generate .LIB files from import .DEF files.
   for (auto& [Import, Temp] : ImportDefs) {
     std::string Def = Temp->fileName();
@@ -703,7 +718,7 @@ int PeBinaryPrinter::link(const std::string& OutputFile,
   tempOutput.close();
   // Add assemble-link commands.
   CommandList LinkCommands = linkCommands(
-      {tempOutput.fileName(), Compilands, Resources, ExportDef, EntryPoint,
+      {tempOutput.fileName(), Compilands, Resources, ExportsFile, EntryPoint,
        Subsystem, Machine, Dll, ExtraCompileArgs, LibraryPaths});
   appendCommands(Commands, LinkCommands);
   // Execute the assemble-link command list.
