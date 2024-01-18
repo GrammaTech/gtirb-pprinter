@@ -323,14 +323,13 @@ class WindowsBinaryPrinterTests_NoMock(BinaryPPrinterTest):
             text=True,
         )
 
-    @unittest.skipUnless(platform.system() == "Windows", "Windows-only")
-    def test_windows_decorated_exports(self):
+    def subtest_windows_decorated_exports(self, arch: gtirb.Module.ISA):
         """
         Test that the binary-printer successfully exports symbols
         """
         ir, m = create_test_module(
             file_format=gtirb.Module.FileFormat.PE,
-            isa=gtirb.Module.ISA.X64,
+            isa=arch,
             binary_type=["EXEC", "DLL", "WINDOWS_CUI"],
         )
 
@@ -359,3 +358,16 @@ class WindowsBinaryPrinterTests_NoMock(BinaryPPrinterTest):
                 self.assertRegex(
                     exports, rf"{ordinal}\s+\d+\s+[0-9a-f]+\s+{name}"
                 )
+
+    @unittest.skipUnless(platform.system() == "Windows", "Windows-only")
+    def test_windows_decorated_exports(self):
+        """
+        Test that the binary-printer successfully exports symbols on each arch
+        """
+        cases = (
+            gtirb.Module.ISA.X64,
+            gtirb.Module.ISA.IA32,
+        )
+        for arch in cases:
+            with self.subTest(arch=arch):
+                self.subtest_windows_decorated_exports(arch)
