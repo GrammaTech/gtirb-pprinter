@@ -75,9 +75,9 @@ using PeAssembleLink = std::function<CommandList(const PeLinkOptions&)>;
 
 // Tool lookup helpers.
 PeLib peLib();
-PeAssemble peAssemble();
+PeAssemble peAssemble(const PeAssembleOptions& Options);
 PeLink peLink();
-PeAssembleLink peAssembleLink();
+PeAssembleLink peAssembleLink(const PeLinkOptions& Options);
 
 // Locate a PE library utility and build a command list.
 CommandList libCommands(const PeLibOptions& Options) {
@@ -87,13 +87,13 @@ CommandList libCommands(const PeLibOptions& Options) {
 
 // Locate an assembler and construct the "assemble only" command list.
 CommandList assembleCommands(const PeAssembleOptions& Options) {
-  PeAssemble Assemble = peAssemble();
+  PeAssemble Assemble = peAssemble(Options);
   return Assemble(Options);
 }
 
 // Locate an assembler and construct the "assemble and link" command list.
 CommandList linkCommands(const PeLinkOptions& Options) {
-  PeAssembleLink AssembleLink = peAssembleLink();
+  PeAssembleLink AssembleLink = peAssembleLink(Options);
   return AssembleLink(Options);
 }
 
@@ -512,9 +512,11 @@ PeLink peLink() {
 }
 
 // Locate MSVC `ml' or `uasm' MASM assembler.
-PeAssemble peAssemble() {
+PeAssemble peAssemble(const PeAssembleOptions& Options) {
   // Prefer MSVC assembler.
-  fs::path Path = bp::search_path("ml.exe");
+  const std::string& Assembler =
+      Options.Machine == "X64" ? "ml64.exe" : "ml.exe";
+  fs::path Path = bp::search_path(Assembler);
   if (!Path.empty()) {
     return msvcAssemble;
   }
@@ -529,9 +531,11 @@ PeAssemble peAssemble() {
 }
 
 // Locate "assemble and link" tools.
-PeAssembleLink peAssembleLink() {
+PeAssembleLink peAssembleLink(const PeLinkOptions& Options) {
   // Prefer single, compound MSVC command.
-  fs::path Path = bp::search_path("ml.exe");
+  const std::string& Assembler =
+      Options.Machine == "X64" ? "ml64.exe" : "ml.exe";
+  fs::path Path = bp::search_path(Assembler);
   if (!Path.empty()) {
     return msvcAssembleLink;
   }
