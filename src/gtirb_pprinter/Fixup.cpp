@@ -282,7 +282,7 @@ void fixupGetPcThunkNames(gtirb::Context& Context, gtirb::Module& Module) {
 
       auto It = Forwarding->find(Symbol.getUUID());
       if (It == Forwarding->end()) {
-        // ddisasm forwards the renamed symbol to a new symbol of the orginal
+        // ddisasm forwards the renamed symbol to a new symbol of the original
         // name. If it's not in the forwarding table, this isn't what we are
         // looking for.
         continue;

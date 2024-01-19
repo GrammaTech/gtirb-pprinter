@@ -658,6 +658,9 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
 
         If `legacy` is enabled, the `__x86.get_pc_thunk.bx` symbol is
         constructed as if ddisasm considered it to be `abi_intrinsic`.
+
+        If `obj` is enabled, `--object` is passed to the binary printer to
+        test printing object files.
         """
         ir, module = gth.create_test_module(
             gtirb.Module.FileFormat.ELF,
@@ -765,6 +768,7 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
             (True, False),
             (False, False),
             (False, True),
+            (True, True),
         )
 
         for legacy, obj in cases:

@@ -23,6 +23,7 @@ class TestDynamicLinking(PPrinterTest):
         _, bi = add_text_section(m)
         main = add_code_block(bi, b"\xC3")
         add_function(m, "main", main)
+        m.aux_data["libraries"].data.append("ld-linux-x86-64.so.2")
 
         cases = [
             ("complete", True),
@@ -31,7 +32,6 @@ class TestDynamicLinking(PPrinterTest):
 
         for policy, use_ld in cases:
             with self.subTest(policy=policy):
-                m.aux_data["libraries"].data.append("ld-linux-x86-64.so.2")
                 output = run_binary_pprinter_mock_out(
                     ir, ["--policy", policy], check_output=True
                 ).stdout.decode(sys.stdout.encoding)
