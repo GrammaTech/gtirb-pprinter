@@ -25,6 +25,8 @@ from pprinter_helpers import (
     run_asm_pprinter,
     asm_lines,
     run_binary_pprinter_mock_out,
+    vs_arch,
+    vsenv_run,
 )
 
 TEST_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -315,9 +317,12 @@ class WindowsBinaryPrinterTests_NoMock(BinaryPPrinterTest):
 
         self.assertTrue(has_resource_file, "did not produce resource file")
 
-    def dumpbin(self, path: Path, *args) -> subprocess.CompletedProcess:
-        return subprocess.run(
+    def dumpbin(
+        self, path: Path, arch: str, *args
+    ) -> subprocess.CompletedProcess:
+        return vsenv_run(
             ["DUMPBIN", *args, path],
+            arch,
             check=True,
             capture_output=True,
             text=True,
@@ -353,7 +358,7 @@ class WindowsBinaryPrinterTests_NoMock(BinaryPPrinterTest):
             m.aux_data["peExportedSymbols"].data.append(symbol.uuid)
 
         with self.binary_print(ir) as result:
-            exports = self.dumpbin(result.path, "/EXPORTS").stdout
+            exports = self.dumpbin(result.path, vs_arch(ir), "/EXPORTS").stdout
             for ordinal, (name, _) in enumerate(exported_blocks, start=1):
                 self.assertRegex(
                     exports, rf"{ordinal}\s+\d+\s+[0-9a-f]+\s+{name}"

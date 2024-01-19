@@ -197,7 +197,7 @@ conan-linux-gcc9-publish:
     # Create virtualrunenv script (activate_run.bat)
     - conan install ${CONAN_REF} -g virtualrunenv
     # Run the tests
-    - cmd.exe /C "activate_run.bat && gtirb-pprinter --version && C:\\VS\\VC\\Auxiliary\\Build\\vcvarsall.bat ${ARCH} && ctest -V"
+    - cmd.exe /C "activate_run.bat && gtirb-pprinter --version && ctest -V"
 
 .windows-zip-package-template: &windows-zip-package-template
   stage: build-packages
@@ -292,8 +292,6 @@ conan-windows-debug-build:
 conan-windows-release-test:
   needs: [conan-windows-release-build]
   dependencies: [conan-windows-release-build]
-  variables:
-    ARCH: x64
   <<: *conan-windows-test-template
 
 windows-zip-release-package:

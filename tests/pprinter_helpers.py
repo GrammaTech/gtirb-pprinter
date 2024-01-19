@@ -7,6 +7,7 @@ import contextlib
 import dataclasses
 import os
 import os.path
+import platform
 from pathlib import Path
 import re
 import socket
@@ -313,6 +314,40 @@ class PPrinterTest(unittest.TestCase):
         return re.search(compiled, text)
 
 
+def vs_arch(ir: gtirb.IR) -> str:
+    """
+    Get the appropriate vcvarsall.bat arch string for an IR
+    """
+    isa = ir.modules[0].isa
+
+    if isa == gtirb.Module.ISA.X64:
+        return "x64"
+    elif isa == gtirb.Module.ISA.IA32:
+        return "x86"
+    else:
+        raise Exception(f"ISA not supported for vcvarsall.bat: {isa}")
+
+
+def vsenv_run(cmd, arch: str, *args, **kwargs) -> subprocess.CompletedProcess:
+    """
+    Run a command in with the Visual Studio environment enabled
+
+    :param cmd: Command to pass to subprocess.run()
+    :param arch: argument for vcvarsall.bat, see MSVC help (link below)
+
+    Remaining args/kwargs are passed through to subprocess.run
+
+    See MSVC docs for details on vcvarsall.bat:
+    https://learn.microsoft.com/en-us/cpp/build/building-on-the-command-line?view=msvc-170
+    """
+    if not isinstance(cmd, str):
+        cmd = " ".join(str(a) for a in cmd)
+
+    cmd = f"C:\\VS\\VC\\Auxiliary\\Build\\vcvarsall.bat {arch} && {cmd}"
+    kwargs["shell"] = True
+    return subprocess.run(cmd, *args, **kwargs)
+
+
 @dataclasses.dataclass
 class BinaryPrintResult:
     """Result of a executing binary print command"""
@@ -342,8 +377,17 @@ class BinaryPPrinterTest(PPrinterTest):
                 *extra_args,
             ]
 
-            completed_process = subprocess.run(
-                args, check=True, capture_output=True, text=True
+            run_kw = dict(
+                capture_output=True,
+                text=True,
+                check=True,
             )
+            if platform.system() == "Windows":
+                # On Windows, we need to run the binary printer in the correct
+                # Visual Studio environment, depending on the target arch.
+                completed_process = vsenv_run(args, vs_arch(ir), **run_kw)
+            else:
+                completed_process = subprocess.run(args, **run_kw)
+
             self.assertTrue(exe_path.exists())
             yield BinaryPrintResult(exe_path, completed_process)
