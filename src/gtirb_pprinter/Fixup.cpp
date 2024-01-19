@@ -278,9 +278,15 @@ void fixupGetPcThunkNames(gtirb::Context& Context, gtirb::Module& Module) {
 
   int RenamedSymbolCount = 0;
   for (const auto& Name : ThunkSymbols) {
+    // Collect symbols of interest in a list, so we're not working with a live
+    // iterator of the symbol set when we try to modify/remove symbols.
+    std::list<gtirb::Symbol*> CopySymbols;
     for (auto& Symbol : Module.findSymbols(Name + "_copy")) {
+      CopySymbols.push_back(&Symbol);
+    }
 
-      auto It = Forwarding->find(Symbol.getUUID());
+    for (gtirb::Symbol* Symbol : CopySymbols) {
+      auto It = Forwarding->find(Symbol->getUUID());
       if (It == Forwarding->end()) {
         // ddisasm forwards the renamed symbol to a new symbol of the original
         // name. If it's not in the forwarding table, this isn't what we are
@@ -296,7 +302,7 @@ void fixupGetPcThunkNames(gtirb::Context& Context, gtirb::Module& Module) {
       Forwarding->erase(It);
 
       // Restore the name of the original symbol.
-      Symbol.setName(Name);
+      Symbol->setName(Name);
 
       RenamedSymbolCount++;
     }
