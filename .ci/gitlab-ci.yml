@@ -597,7 +597,7 @@ build-ubuntu20-packages:
     - *setup-apt
   script:
     - echo -e "\ndeb [trusted=yes] file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
-    - 'TEST_PKG_NAME=$(dpkg --info apt-repo/libgtirb-pprinter-dev*.deb | sed -n "s/Package: //p")'
+    - 'TEST_PKG_NAME=$(dpkg --info apt-repo/libgtirb-pprinter-dev_*.deb | sed -n "s/Package: //p")'
     - apt-get update -y && apt-get install -y --allow-unauthenticated $TEST_PKG_NAME
     - g++ .ci/test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs -lgtirb -lgtirb_layout
     - pip3 install --upgrade pip
@@ -612,7 +612,7 @@ build-ubuntu20-packages:
     - *setup-apt
   script:
     - echo -e "\ndeb [trusted=yes] file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
-    - 'TEST_PKG_NAME=$(dpkg --info apt-repo/gtirb-pprinter*.deb | sed -n "s/Package: //p")'
+    - 'TEST_PKG_NAME=$(dpkg --info apt-repo/gtirb-pprinter_*.deb | sed -n "s/Package: //p")'
     - apt-get update -y && apt-get install -y --allow-unauthenticated $TEST_PKG_NAME
     # just checking that gtirb-pprint and gtirb-layout are on $PATH
     - '[ -f  /usr/bin/gtirb-pprinter ]'
@@ -645,7 +645,7 @@ build-ubuntu20-packages:
     - *setup-apt
   script:
     - echo -e "\ndeb [trusted=yes] file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
-    - 'TEST_PKG_NAME=$(dpkg --info apt-repo/libgtirb-pprinter*.deb | sed -n "s/Package: //p")'
+    - 'TEST_PKG_NAME=$(dpkg --info apt-repo/libgtirb-pprinter_*.deb | sed -n "s/Package: //p")'
     - apt-get update -y && apt-get install -y --allow-unauthenticated $TEST_PKG_NAME
     - ./test-install hello.gtirb
 
