@@ -13,7 +13,7 @@ set(CPACK_GTIRB_DEB_VERSION
 
 if("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "deb-lib")
   set(CPACK_DEBIAN_PACKAGE_NAME "libgtirb-pprinter")
-  set(CPACK_PACKAGE_FILE_NAME "libgtirb-pprinter")
+  set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
   set(CPACK_COMPONENTS_ALL ${LIB_COMPONENTS})
   if("${CPACK_DEBIAN_PACKAGE_RELEASE}" STREQUAL "focal")
     set(CPACK_DEBIAN_PACKAGE_DEPENDS
@@ -25,13 +25,13 @@ if("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "deb-lib")
   endif()
 elseif("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "deb-lib-dbg")
   set(CPACK_DEBIAN_PACKAGE_NAME "libgtirb-pprinter-dbg")
-  set(CPACK_PACKAGE_FILE_NAME "libgtirb-pprinter-dbg")
+  set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
   set(CPACK_COMPONENTS_ALL pprinter-debug-file layout-debug-file)
   set(CPACK_DEBIAN_PACKAGE_DEPENDS
       "libgtirb-pprinter (=${CPACK_GTIRB_PPRINTER_DEB_VERSION})")
 elseif("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "deb-dev")
   set(CPACK_DEBIAN_PACKAGE_NAME "libgtirb-pprinter-dev")
-  set(CPACK_PACKAGE_FILE_NAME "libgtirb-pprinter-dev")
+  set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
   set(CPACK_COMPONENTS_ALL ${DEV_COMPONENTS})
   if("${CPACK_DEBIAN_PACKAGE_RELEASE}" STREQUAL "focal")
     set(CPACK_DEBIAN_PACKAGE_DEPENDS
@@ -44,7 +44,7 @@ elseif("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "deb-dev")
 
 elseif("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "deb-driver")
   set(CPACK_DEBIAN_PACKAGE_NAME "gtirb-pprinter")
-  set(CPACK_PACKAGE_FILE_NAME "gtirb-pprinter")
+  set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
   set(CPACK_COMPONENTS_ALL ${DRIVER_COMPONENTS})
   if("${CPACK_DEBIAN_PACKAGE_RELEASE}" STREQUAL "focal")
     set(CPACK_DEBIAN_PACKAGE_DEPENDS
@@ -56,7 +56,7 @@ elseif("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "deb-driver")
   endif()
 elseif("${CPACK_GTIRB_PPRINTER_PACKAGE}" STREQUAL "deb-driver-dbg")
   set(CPACK_DEBIAN_PACKAGE_NAME "gtirb-pprinter-dbg")
-  set(CPACK_PACKAGE_FILE_NAME "gtirb-pprinter-dbg")
+  set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
   set(CPACK_COMPONENTS_ALL pprinter-driver-debug-file layout-driver-debug-file)
   set(CPACK_DEBIAN_PACKAGE_DEPENDS
       "gtirb-pprinter (=${CPACK_GTIRB_PPRINTER_DEB_VERSION})")
