@@ -464,7 +464,7 @@ static-drivers:
       alias: gtirb-server
   allow_failure: true
   script:
-    - curl http://gtirb-server:8000 --silent --retry 30 --retry-connrefused --retry-delay 1 -o /dev/null
+    - curl http://gtirb-server:8000 --retry 30 --retry-connrefused --retry-delay 1
     - for binary in $XFORM_BINARIES ; do
         binary="build/$binary" ;
         curl -F transform=ddisasm -F binary=@$binary --output $binary.gtirb http://gtirb-server:8000/simple ;
