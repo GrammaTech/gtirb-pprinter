@@ -584,6 +584,7 @@ build-ubuntu20-packages:
     - pushd apt-repo
     - !reference [.setup-apt]
     - apt-get download $(apt-rdepends libgtirb-dev${GTIRB_VERSION:+=$GTIRB_VERSION} | grep -v "^ " | grep -E "gtirb")
+    - apt-get download libcapstone-dev${CAPSTONE_VERSION:+=$CAPSTONE_VERSION}
     - dpkg-scanpackages . /dev/null > Packages
 
 .test-ubuntu-libgtirb-pprinter-dev: &test-ubuntu-libgtirb-pprinter-dev
@@ -593,8 +594,6 @@ build-ubuntu20-packages:
     paths:
       - test-install
       - hello.gtirb
-  before_script:
-    - *setup-apt
   script:
     - echo -e "\ndeb [trusted=yes] file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - 'TEST_PKG_NAME=$(dpkg --info apt-repo/libgtirb-pprinter-dev_*.deb | sed -n "s/Package: //p")'
@@ -607,9 +606,6 @@ build-ubuntu20-packages:
 
 .test-ubuntu-gtirb-pprinter: &test-ubuntu-gtirb-pprinter
   stage: test-packages1
-  before_script:
-    - apt-get -y update && apt-get -y install lsb-release wget gnupg2
-    - *setup-apt
   script:
     - echo -e "\ndeb [trusted=yes] file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - 'TEST_PKG_NAME=$(dpkg --info apt-repo/gtirb-pprinter_*.deb | sed -n "s/Package: //p")'
@@ -620,8 +616,6 @@ build-ubuntu20-packages:
 
 .test-ubuntu-libgtirb-pprinter-dbg: &test-ubuntu-libgtirb-pprinter-dbg
   stage: test-packages1
-  before_script:
-    - *setup-apt
   script:
     - echo -e "\ndeb [trusted=yes] file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - 'TEST_PKG_NAME=$(dpkg --info apt-repo/libgtirb-pprinter-dbg_*.deb | sed -n "s/Package: //p")'
@@ -630,8 +624,6 @@ build-ubuntu20-packages:
 
 .test-ubuntu-gtirb-pprinter-dbg: &test-ubuntu-gtirb-pprinter-dbg
   stage: test-packages1
-  before_script:
-    - *setup-apt
   script:
     - echo -e "\ndeb [trusted=yes] file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - 'TEST_PKG_NAME=$(dpkg --info apt-repo/gtirb-pprinter-dbg_*.deb | sed -n "s/Package: //p")'
@@ -640,9 +632,6 @@ build-ubuntu20-packages:
 
 .test-ubuntu-libgtirb-pprinter: &test-ubuntu-libgtirb-pprinter
   stage: test-packages2
-  before_script:
-    - apt-get -y update && apt-get -y install lsb-release wget gnupg2
-    - *setup-apt
   script:
     - echo -e "\ndeb [trusted=yes] file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - 'TEST_PKG_NAME=$(dpkg --info apt-repo/libgtirb-pprinter_*.deb | sed -n "s/Package: //p")'
@@ -677,7 +666,7 @@ test-ubuntu20-gtirb-pprinter-dbg:
   <<: *test-ubuntu-gtirb-pprinter-dbg
 
 test-ubuntu20-libgtirb-pprinter:
-  image: ubuntu:20.04
+  image: ${CI_REGISTRY_IMAGE}/ubuntu20:$IMAGE_TAG
   needs: ['setup-ubuntu20-repo', 'test-ubuntu20-libgtirb-pprinter-dev']
   <<: *test-ubuntu-libgtirb-pprinter
 
