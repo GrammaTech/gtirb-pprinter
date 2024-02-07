@@ -656,17 +656,17 @@ test-ubuntu20-gtirb-pprinter:
   <<: *test-ubuntu-gtirb-pprinter
 
 test-ubuntu20-libgtirb-pprinter-dbg:
-  image: ${CI_REGISTRY_IMAGE}/ubuntu20:$IMAGE_TAG
+  image: ubuntu:20.04
   needs: ['setup-ubuntu20-repo']
   <<: *test-ubuntu-libgtirb-pprinter-dbg
 
 test-ubuntu20-gtirb-pprinter-dbg:
-  image: ${CI_REGISTRY_IMAGE}/ubuntu20:$IMAGE_TAG
+  image: ubuntu:20.04
   needs: ['setup-ubuntu20-repo']
   <<: *test-ubuntu-gtirb-pprinter-dbg
 
 test-ubuntu20-libgtirb-pprinter:
-  image: ${CI_REGISTRY_IMAGE}/ubuntu20:$IMAGE_TAG
+  image: ubuntu:20.04
   needs: ['setup-ubuntu20-repo', 'test-ubuntu20-libgtirb-pprinter-dev']
   <<: *test-ubuntu-libgtirb-pprinter
 
