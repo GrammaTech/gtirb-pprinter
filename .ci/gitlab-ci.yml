@@ -583,8 +583,10 @@ build-ubuntu20-packages:
     - cp build/*.deb apt-repo
     - pushd apt-repo
     - !reference [.setup-apt]
-    - apt-get download $(apt-rdepends libgtirb-dev${GTIRB_VERSION:+=$GTIRB_VERSION} | grep -v "^ " | grep -E "gtirb")
-    - apt-get download libcapstone-dev${CAPSTONE_VERSION:+=$CAPSTONE_VERSION}
+    - >-
+      apt-get download
+      $(apt-rdepends libgtirb-dev${GTIRB_VERSION:+=$GTIRB_VERSION} | grep -v "^ " | grep -E "gtirb")
+      libcapstone-dev${CAPSTONE_VERSION:+=$CAPSTONE_VERSION}
     - dpkg-scanpackages . /dev/null > Packages
 
 .test-ubuntu-libgtirb-pprinter-dev: &test-ubuntu-libgtirb-pprinter-dev
