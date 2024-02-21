@@ -1,4 +1,4 @@
-//===- ElfVersionScriptPrinter.hpp ------------------------------*- C++ -*-===//
+//===- ElfLinkerScriptPrinter.hpp ------------------------------*- C++ -*-===//
 //
 //  Copyright (C) 2022 GrammaTech, Inc.
 //
@@ -12,8 +12,8 @@
 //  endorsement should be inferred.
 //
 //===----------------------------------------------------------------------===//
-#ifndef GTIRB_PP_ELFVERSIONSCRIPT_PRINTER_H
-#define GTIRB_PP_ELFVERSIONSCRIPT_PRINTER_H
+#ifndef GTIRB_PP_ELFLINKERSCRIPT_PRINTER_H
+#define GTIRB_PP_ELFLINKERSCRIPT_PRINTER_H
 
 #include <fstream>
 #include <gtirb/gtirb.hpp>
@@ -22,11 +22,10 @@
 
 namespace gtirb_pprint {
 
-/// \brief print ELF version scripts from GTIRB representations.
+/// \brief print ELF linker scripts from GTIRB representations.
 DEBLOAT_PRETTYPRINTER_EXPORT_API bool
-printVersionScript(const gtirb::Context& Context, const gtirb::Module& Module,
-                   std::ofstream& VersionScript);
+printLinkerScript(const gtirb::Module& Module, std::ofstream& LinkerScript);
 
 } // namespace gtirb_pprint
 
-#endif /* GTIRB_PP_ELFVERSIONSCRIPT_PRINTER_H */
+#endif /* GTIRB_PP_ELFLINKERSCRIPT_PRINTER_H */

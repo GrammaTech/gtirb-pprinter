@@ -522,7 +522,7 @@ int main(int argc, char** argv) {
         fs::create_directories(MP.VersionScriptName->parent_path());
       }
       std::ofstream VersionStream(MP.VersionScriptName->generic_string());
-      gtirb_pprint::printVersionScript(*MP.Module, VersionStream);
+      gtirb_pprint::printVersionScript(ctx, *MP.Module, VersionStream);
     }
 
     // Write ASM to a file.

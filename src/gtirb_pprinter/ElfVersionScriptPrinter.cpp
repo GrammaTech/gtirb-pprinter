@@ -17,11 +17,13 @@
 #include "AuxDataSchema.hpp"
 #include "AuxDataUtils.hpp"
 #include "FileUtils.hpp"
+#include "PrettyPrinter.hpp"
 #include "driver/Logger.h"
 
 namespace gtirb_pprint {
 
-bool printVersionScript(const gtirb::Module& Module,
+bool printVersionScript(const gtirb::Context& Context,
+                        const gtirb::Module& Module,
                         std::ofstream& VersionScript) {
   LOG_INFO << "Preparing linker version script...\n";
   if (!VersionScript.is_open()) {
@@ -36,47 +38,6 @@ bool printVersionScript(const gtirb::Module& Module,
     return false;
   }
 
-  // Collect versioned symbols with the binding info
-  std::unordered_map<std::string,
-                     std::map<std::string, std::set<const gtirb::Symbol*>>>
-      VerToAttributeToSyms;
-  for (const gtirb::Symbol& Symbol : Module.symbols()) {
-    if (auto SymbolInfo = aux_data::getElfSymbolInfo(Symbol)) {
-      auto Version = aux_data::getSymbolVersionString(Symbol);
-      if (!Version) {
-        continue;
-      }
-      std::string VerStr = *Version;
-      if (VerStr.substr(0, 2) == "@@") {
-        VerStr = VerStr.substr(2);
-      } else if (VerStr.substr(0, 1) == "@") {
-        VerStr = VerStr.substr(1);
-      }
-
-      std::map<std::string, std::set<const gtirb::Symbol*>> AttrToSyms;
-      auto It = VerToAttributeToSyms.find(VerStr);
-      if (It != VerToAttributeToSyms.end()) {
-        AttrToSyms = It->second;
-      }
-
-      std::set<const gtirb::Symbol*> S;
-      std::string Attribute;
-      if (SymbolInfo->Binding != "LOCAL") {
-        Attribute = "global";
-      } else {
-        Attribute = "local";
-      }
-
-      auto It2 = AttrToSyms.find(Attribute);
-      if (It2 != AttrToSyms.end())
-        S = It2->second;
-
-      S.insert(&Symbol);
-      AttrToSyms[Attribute] = S;
-      VerToAttributeToSyms[VerStr] = AttrToSyms;
-    }
-  }
-
   auto SymbolVersions = aux_data::getSymbolVersions(Module);
   if (!SymbolVersions) {
     LOG_INFO << "Module: " << Module.getBinaryPath()
@@ -84,6 +45,28 @@ bool printVersionScript(const gtirb::Module& Module,
     return true;
   }
   auto& [SymVerDefs, SymVersNeeded, SymVerEntries] = *SymbolVersions;
+
+  // Collect versioned symbols with the binding info
+  std::unordered_map<std::string, std::vector<const gtirb::Symbol*>>
+      VerIdToExportedSymbols;
+  for (auto const& Entry : SymVerEntries) {
+    const auto* Symbol = nodeFromUUID<gtirb::Symbol>(Context, Entry.first);
+    if (auto SymbolInfo = aux_data::getElfSymbolInfo(*Symbol)) {
+      if (SymbolInfo->Binding != "LOCAL") {
+        auto VerStr0 = aux_data::getSymbolVersionString(*Symbol);
+        if (VerStr0) {
+          std::string VerStr = VerStr0.value();
+          // Trim @ or @@ off
+          if (VerStr.substr(0, 2) == "@@") {
+            VerStr = VerStr.substr(2);
+          } else if (VerStr.substr(0, 1) == "@") {
+            VerStr = VerStr.substr(1);
+          }
+          VerIdToExportedSymbols[VerStr].push_back(Symbol);
+        }
+      }
+    }
+  }
 
   for (auto& [VerId, VerDef] : SymVerDefs) {
     auto& VerNames = std::get<0>(VerDef);
@@ -99,16 +82,13 @@ bool printVersionScript(const gtirb::Module& Module,
     auto Predecessors = ++VerNames.begin();
 
     VersionScript << MainVersion << " {\n";
-    const auto& It = VerToAttributeToSyms.find(MainVersion);
-    if (It != VerToAttributeToSyms.end()) {
-      for (auto& [Attribute, Syms] : It->second) {
-        if (Attribute != "local") {
-          VersionScript << "  " << Attribute << ":\n";
-          for (const auto* Symbol : Syms) {
-            VersionScript << "    " << Symbol->getName() << ";\n";
-          }
-        }
-      }
+    std::vector<const gtirb::Symbol*> ExportedSymbols =
+        VerIdToExportedSymbols[MainVersion];
+    if (ExportedSymbols.size() > 0) {
+      VersionScript << "  global:\n";
+    }
+    for (const gtirb::Symbol* Sym : ExportedSymbols) {
+      VersionScript << "    " << Sym->getName() << ";\n";
     }
     VersionScript << "\n  local:\n    *;\n";
     VersionScript << "}";
