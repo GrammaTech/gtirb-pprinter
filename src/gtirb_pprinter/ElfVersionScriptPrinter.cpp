@@ -47,23 +47,14 @@ bool printVersionScript(const gtirb::Context& Context,
   auto& [SymVerDefs, SymVersNeeded, SymVerEntries] = *SymbolVersions;
 
   // Collect versioned symbols with the binding info
-  std::unordered_map<std::string, std::vector<const gtirb::Symbol*>>
+  std::unordered_map<gtirb::provisional_schema::SymbolVersionId,
+                     std::vector<const gtirb::Symbol*>>
       VerIdToExportedSymbols;
   for (auto const& Entry : SymVerEntries) {
     const auto* Symbol = nodeFromUUID<gtirb::Symbol>(Context, Entry.first);
     if (auto SymbolInfo = aux_data::getElfSymbolInfo(*Symbol)) {
       if (SymbolInfo->Binding != "LOCAL") {
-        auto VerStr0 = aux_data::getSymbolVersionString(*Symbol);
-        if (VerStr0) {
-          std::string VerStr = VerStr0.value();
-          // Trim @ or @@ off
-          if (VerStr.substr(0, 2) == "@@") {
-            VerStr = VerStr.substr(2);
-          } else if (VerStr.substr(0, 1) == "@") {
-            VerStr = VerStr.substr(1);
-          }
-          VerIdToExportedSymbols[VerStr].push_back(Symbol);
-        }
+        VerIdToExportedSymbols[std::get<0>(Entry.second)].push_back(Symbol);
       }
     }
   }
@@ -83,7 +74,7 @@ bool printVersionScript(const gtirb::Context& Context,
 
     VersionScript << MainVersion << " {\n";
     std::vector<const gtirb::Symbol*> ExportedSymbols =
-        VerIdToExportedSymbols[MainVersion];
+        VerIdToExportedSymbols[VerId];
     if (ExportedSymbols.size() > 0) {
       VersionScript << "  global:\n";
     }
