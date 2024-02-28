@@ -1,4 +1,5 @@
 # 2.1.1 (Unreleased)
+  * Populate non-local symbols under `global:` and add `local: *;` for local symbols in version-script
 
 # 2.1.0
   * `--asm` option now prints the assembly for each module of an IR separately
