@@ -50,8 +50,7 @@ Mips32PrettyPrinterFactory::Mips32PrettyPrinterFactory() {
   DynamicPolicy.skipSymbols.insert(
       {"_DYNAMIC", "data_start",
        // Include symbols in sections to avoid printing for sectionless binaries
-       "_ITM_deregisterTMCloneTable", "_ITM_registerTMCloneTable",
-       "_Jv_RegisterClasses", "__gmon_start__"});
+       "_Jv_RegisterClasses"});
   DynamicPolicy.skipSections.insert(
       {".MIPS.stubs", ".ctors", ".dtors", ".interp", ".rld_map", ".sdata"});
 
