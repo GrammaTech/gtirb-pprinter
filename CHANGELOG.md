@@ -11,6 +11,7 @@
   * Use `-nodefaultlibs` with the `complete` printing policy
   * Blacklist `_GLOBAL_OFFSET_TABLE_` symbol from dummy-so libraries.
   * Explicitly link `ld-linux*.so` if `-nodefaultlibs` is enabled.
+  * Support GOT, PAGE and GOT, OFST symbolic expression attributes for split .got loads on MIPS.
 
 # 2.1.0
   * `--asm` option now prints the assembly for each module of an IR separately
