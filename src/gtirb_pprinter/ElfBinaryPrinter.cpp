@@ -105,7 +105,7 @@ getISASyntax(const gtirb::ISA ISA) {
 }
 
 bool ElfBinaryPrinter::generateDummySO(
-    const gtirb::Context& Context, const gtirb::Module& module,
+    const gtirb::Context& Context, const gtirb::Module& Module,
     const std::string& LibDir, const std::string& Lib,
     const std::vector<SymbolGroup>& SymGroups) const {
 
@@ -243,7 +243,7 @@ bool ElfBinaryPrinter::generateDummySO(
   if (EmittedSymvers) {
     if (!Printer.getIgnoreSymbolVersions()) {
       // A version script is only needed if we define versioned symbols.
-      if (gtirb_pprint::printVersionScript(Context, module, VersionScript)) {
+      if (gtirb_pprint::printVersionScript(Context, Module, VersionScript)) {
         Args.push_back("-Wl,--version-script=" + VersionScript.fileName());
       }
     }
