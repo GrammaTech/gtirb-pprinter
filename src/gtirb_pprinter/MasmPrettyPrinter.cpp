@@ -140,9 +140,21 @@ std::string
 MasmPrettyPrinter::getSymbolName(const gtirb::Symbol& Symbol) const {
 
   std::string Name = PrettyPrinterBase::getSymbolName(Symbol);
-  // In case of IA32, this is not completely understood why, but
-  // link.exe (msvc) mangles differently.
-  // We'll apply this heuristic until it's fully understood.
+  // In case of IA32, the MSVC compiler decorates symbols according to the
+  // source language and calling convention. C++ names are mangled and begin
+  // with `?`. MSVC generates C-language object files that contain decorated
+  // symbols; we rename symbols in the assembly listing to emulate this
+  // behavior.
+  // To export symbols, we generate a `.def` file, generate an exports file
+  // (.exp) from that file, and pass it to the linker. Empirically, using
+  // undecorated names in the `.def` file results in an exports file with
+  // names decorated with a prefixed underscore. If the symbols haven't been
+  // decorated in the assembly, the linker fails to find the symbols with an
+  // "unresolved external symbol" error.
+  // We assume any symbol that does not begin with `?` is `__cdecl` and
+  // prefix an underscore to ensure we can link correctly.
+  // See https://learn.microsoft.com/en-us/cpp/build/reference/decorated-names
+  // for more details.
   if (module.getISA() == gtirb::ISA::IA32 && Name[0] != '?') {
     bool Imported = Imports.count(Symbol.getUUID()) > 0;
     bool Exported = Exports.count(Symbol.getUUID()) > 0;

@@ -14,8 +14,8 @@ from gtirb_helpers import (
 
 class TestDynamicLinking(PPrinterTest):
     def test_ldlinux_dep(self):
-        # Check that a binary with a known dependence on ld-linux.so does
-        # not try to explicity link with it, as the link should be implicit.
+        # Check that a binary with a known dependence on ld-linux.so
+        # explicitly links it only when passing -nodefaultlibs
         ir, m = create_test_module(
             gtirb.Module.FileFormat.ELF, gtirb.Module.ISA.X64, ["DYN"]
         )
@@ -23,11 +23,24 @@ class TestDynamicLinking(PPrinterTest):
         _, bi = add_text_section(m)
         main = add_code_block(bi, b"\xC3")
         add_function(m, "main", main)
-
         m.aux_data["libraries"].data.append("ld-linux-x86-64.so.2")
-        output = run_binary_pprinter_mock_out(
-            ir, [], check_output=True
-        ).stdout.decode(sys.stdout.encoding)
 
-        self.assertIn("Compiler arguments:", output)
-        self.assertNotIn("ld-linux", output)
+        cases = [
+            ("complete", True),
+            ("dynamic", False),
+        ]
+
+        for policy, use_ld in cases:
+            with self.subTest(policy=policy):
+                output = run_binary_pprinter_mock_out(
+                    ir, ["--policy", policy], check_output=True
+                ).stdout.decode(sys.stdout.encoding)
+
+                self.assertIn("Compiler arguments:", output)
+
+                if use_ld:
+                    self.assertIn("-nodefaultlibs", output)
+                    self.assertIn("ld-linux", output)
+                else:
+                    self.assertNotIn("-nodefaultlibs", output)
+                    self.assertNotIn("ld-linux", output)

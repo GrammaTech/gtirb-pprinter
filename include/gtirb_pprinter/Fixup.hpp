@@ -57,6 +57,16 @@ void fixupPESymbols(gtirb::Context& Ctx, gtirb::Module& Mod);
 /// - DT_INIT and DT_FINI functions
 void fixupELFSymbols(gtirb::Context& Ctx, gtirb::Module& Mod);
 
+/// Remove "_copy" suffix from "__x86.get_pc_thunk.*" symbols.
+///
+/// ddisasm<=1.8.0 appended "_copy" to the names of __x86.get_pc_thunk.*
+/// symbols and forwarded them to a symbol of the original name.
+///
+/// gtirb-pprinter>=2.1.1 expects these to exist in the IR if they were in
+/// the original binary. This fixup maintains compatibility with earlier GTIRB
+/// files where these symbols were renamed.
+void fixupGetPcThunkNames(gtirb::Context& Ctx, gtirb::Module& Mod);
+
 } // namespace gtirb_pprint
 
 #endif

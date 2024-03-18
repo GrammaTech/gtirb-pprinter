@@ -1,4 +1,16 @@
-# 2.1.1 (Unreleased)
+# 2.2.0 (Unreleased)
+
+  * Stop generating debian metapackages and packages with the version attached
+    to the package name. Updates in the apt-repository now support multiple
+    package versions and upgrading `gtirb-pprinter` with `apt-get upgrade`.
+  * Fix dummy-so generation to use correct syntax for ARM with `--dummy-so=yes`
+  * Work around ml.exe bug that could result in missing exports in x86-32 PEs.
+  * Generate `-m32` when generating dummy-so libraries and object files for x86-32
+  * Add fixup to strip `_copy` suffix appended by ddisasm from `__x86.get_pc_thunk.*` symbols.
+  * Suppress `__x86.get_pc_thunk.*` symbols in dynamic mode.
+  * Use `-nodefaultlibs` with the `complete` printing policy
+  * Blacklist `_GLOBAL_OFFSET_TABLE_` symbol from dummy-so libraries.
+  * Explicitly link `ld-linux*.so` if `-nodefaultlibs` is enabled.
   * Populate non-local symbols under `global:` and add `local: *;` for local symbols in version-script
 
 # 2.1.0

@@ -39,7 +39,7 @@ class Properties:
     name = "gtirb-pprinter"
     version = get_version()
     rel_url = "rewriting/gtirb-pprinter"
-    exports_sources = "*"
+    exports_sources = "*", "!.conan/*"
 
     @property
     def description(self):

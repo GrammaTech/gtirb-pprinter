@@ -1,10 +1,6 @@
-import contextlib
-from dataclasses import dataclass
 import os
 from pathlib import Path
-import re
 import subprocess
-import tempfile
 import typing
 import unittest
 
@@ -14,49 +10,13 @@ import dummyso
 import hello_world
 
 from pprinter_helpers import (
-    pprinter_binary,
+    BinaryPPrinterTest,
     run_asm_pprinter_with_version_script,
 )
 
 
-@dataclass
-class BinaryPrintResult:
-    """Result of a executing binary print command"""
-
-    path: Path
-    completed_process: subprocess.CompletedProcess
-
-
 @unittest.skipUnless(os.name == "posix", "only runs on Linux")
-class ElfBinaryPrinterTests(unittest.TestCase):
-    @contextlib.contextmanager
-    def binary_print(self, ir: gtirb.IR, *extra_args) -> BinaryPrintResult:
-        """
-        Run binary printer and provide a path to the compiled binary
-        """
-        with tempfile.TemporaryDirectory() as testdir:
-            testdir = Path(testdir)
-            gtirb_path = testdir / "test.gtirb"
-            exe_path = testdir / "test_rewritten"
-            ir.save_protobuf(str(gtirb_path))
-
-            args = [
-                pprinter_binary(),
-                "--ir",
-                gtirb_path,
-                "--binary",
-                exe_path,
-                "--policy",
-                "complete",
-                *extra_args,
-            ]
-
-            completed_process = subprocess.run(
-                args, check=True, capture_output=True, text=True
-            )
-            self.assertTrue(exe_path.exists())
-            yield BinaryPrintResult(exe_path, completed_process)
-
+class ElfBinaryPrinterTests(BinaryPPrinterTest):
     def readelf(self, path: Path, *args) -> subprocess.CompletedProcess:
         return subprocess.run(
             ["readelf", path, *args],
@@ -64,18 +24,6 @@ class ElfBinaryPrinterTests(unittest.TestCase):
             capture_output=True,
             text=True,
         )
-
-    def assert_regex_match(self, text: str, pattern: str) -> re.Match:
-        """
-        Like unittest's assertRegex, but also return the match object on
-        success.
-
-        assertRegex provides a nice output on failure, but doesn't return the
-        match object, so we assert, and then search.
-        """
-        compiled = re.compile(pattern)
-        self.assertRegex(text, compiled)
-        return re.search(compiled, text)
 
     def assert_readelf_syms(
         self,
@@ -94,7 +42,7 @@ class ElfBinaryPrinterTests(unittest.TestCase):
 
         template = r"([0-9a-f]+)\s+\d+\s+{}\s+{}\s+{}\s+(UND|\d+)\s+{}"
         return [
-            self.assert_regex_match(readelf, template.format(*s)).group(1)
+            self.assertRegexMatch(readelf, template.format(*s)).group(1)
             for s in syms
         ]
 
@@ -546,7 +494,7 @@ class ElfBinaryPrinterTests(unittest.TestCase):
         for (sym, tag) in ((sym_init, "INIT"), (sym_fini, "FINI")):
             # Find the tag
             pattern = r"0x[0-9a-f]+\s+\(" + tag + r"\)\s+(0x[0-9a-f]+)"
-            dt_match = self.assert_regex_match(readelf.stdout, pattern)
+            dt_match = self.assertRegexMatch(readelf.stdout, pattern)
 
             if sym_name:
                 # Find the symbol
@@ -680,7 +628,7 @@ class ElfBinaryPrinterTests(unittest.TestCase):
 
         with self.binary_print(ir) as result:
             segments = self.readelf(result.path, "--segments", "--wide")
-            match = self.assert_regex_match(
+            match = self.assertRegexMatch(
                 segments.stdout,
                 # Type,Offset,VirtAddr,PhysAddr,FileSize,MemSize,Flg,Align
                 r"GNU_STACK\s+(?:0x0+\s+){4}(0x[\da-f]+)\s+(R?W?E?)\s+"
@@ -703,3 +651,180 @@ class ElfBinaryPrinterTests(unittest.TestCase):
         for stack_size, stack_exec in subtests:
             with self.subTest(stack_size=stack_size, stack_exec=stack_exec):
                 self.subtest_elf_stack_properties(stack_size, stack_exec)
+
+    def test_dummyso_arm(self):
+        """
+        Test printing a simple ARM GTIRB with --dummy-so.
+        """
+        ir, module = gth.create_test_module(
+            gtirb.Module.FileFormat.ELF,
+            gtirb.Module.ISA.ARM,
+            ["DYN", "PIE"],
+        )
+        text_section, text_bi = gth.add_text_section(module)
+
+        gth.add_section(module, ".dynamic")
+
+        proxy_a = gth.add_proxy_block(module)
+        symbol_a = gth.add_symbol(module, "a", proxy_a)
+        se_a = gtirb.SymAddrConst(
+            0, symbol_a, {gtirb.SymbolicExpression.Attribute.PLT}
+        )
+
+        cb = gth.add_code_block(
+            text_bi,
+            b"\x00\x00\x00\xeb"  # bl  a@plt
+            b"\x00\x00\xa0\xe3"  # mov r0, #0
+            b"\x01\x70\xa0\xe3"  # mov r7, #1
+            b"\x00\x00\x00\xef",  # svc 0
+            {0: se_a},
+        )
+        symbol_start = gth.add_symbol(module, "_start", cb)
+
+        module.aux_data["libraries"].data.extend(["libmya.so"])
+
+        module.aux_data["elfSymbolInfo"].data[symbol_start.uuid] = (
+            0,
+            "FUNC",
+            "GLOBAL",
+            "DEFAULT",
+            0,
+        )
+        module.aux_data["elfSymbolInfo"].data[symbol_a.uuid] = (
+            0,
+            "FUNC",
+            "GLOBAL",
+            "DEFAULT",
+            0,
+        )
+
+        with self.binary_print(
+            ir, "--dummy-so", "yes", "--use-gcc", "arm-linux-gnueabihf-gcc"
+        ) as result:
+            self.assert_readelf_syms(
+                result.path,
+                ("FUNC", "GLOBAL", "DEFAULT", "a"),
+            )
+
+    def subtest_dummyso_x86_32(self, legacy: bool, obj: bool):
+        """
+        Test printing a simple x86-32 GTIRB with --dummy-so.
+
+        If `legacy` is enabled, the `__x86.get_pc_thunk.bx` symbol is
+        constructed as if ddisasm considered it to be `abi_intrinsic`.
+
+        If `obj` is enabled, `--object` is passed to the binary printer to
+        test printing object files.
+        """
+        ir, module = gth.create_test_module(
+            gtirb.Module.FileFormat.ELF,
+            gtirb.Module.ISA.IA32,
+            ["DYN", "PIE"],
+        )
+        text_section, text_bi = gth.add_text_section(module)
+
+        gth.add_section(module, ".dynamic")
+
+        thunk_cb = gth.add_code_block(
+            text_bi, b"\x8b\x1c\x24" b"\xc3"  # mov EBX, DWORD PTR [ESP]  # ret
+        )
+
+        thunk_name = "__x86.get_pc_thunk.bx"
+        if legacy:
+            symbol_get_pc_thunk = gth.add_symbol(
+                module, thunk_name + "_copy", thunk_cb
+            )
+            proxy_thunk = gth.add_proxy_block(module)
+            symbol_thunk_proxy = gth.add_symbol(
+                module, thunk_name, proxy_thunk
+            )
+            module.aux_data["symbolForwarding"].data[
+                symbol_get_pc_thunk.uuid
+            ] = symbol_thunk_proxy
+        else:
+            symbol_get_pc_thunk = gth.add_symbol(module, thunk_name, thunk_cb)
+        se_get_pc_thunk = gtirb.SymAddrConst(0, symbol_get_pc_thunk)
+
+        proxy_a = gth.add_proxy_block(module)
+        symbol_a = gth.add_symbol(module, "a", proxy_a)
+        se_a = gtirb.SymAddrConst(
+            0, symbol_a, {gtirb.SymbolicExpression.Attribute.PLT}
+        )
+
+        cb = gth.add_code_block(
+            text_bi,
+            b"\xe8\x00\x00\x00\x00"  # calll  __x86.get_pc_thunk.bx
+            b"\xe8\x00\x00\x00\x00"  # calll  a@plt
+            b"\xb8\x01\x00\x00\x00"  # movl   $1,%eax
+            b"\x31\xdb"  # xor    $ebx,%ebx
+            b"\xcd\x80",  # int    $0x80
+            {1: se_get_pc_thunk, 5: se_a},
+        )
+        symbol_start = gth.add_symbol(module, "_start", cb)
+
+        module.aux_data["libraries"].data.extend(["libmya.so"])
+
+        module.aux_data["elfSymbolInfo"].data[symbol_start.uuid] = (
+            0,
+            "FUNC",
+            "GLOBAL",
+            "DEFAULT",
+            0,
+        )
+        module.aux_data["elfSymbolInfo"].data[symbol_a.uuid] = (
+            0,
+            "FUNC",
+            "GLOBAL",
+            "DEFAULT",
+            0,
+        )
+        module.aux_data["elfSymbolInfo"].data[symbol_get_pc_thunk.uuid] = (
+            0,
+            "FUNC",
+            "GLOBAL",
+            "HIDDEN",
+            0,
+        )
+
+        # Configure _start as un-exported to prevent the binary-printer from
+        # generating --export-dynamic, which results in unexpected symbol
+        # binding/visibility for __x86.get_pc_thunk.bx. See gtirb-pprinter#227
+        module.aux_data["elfSymbolTabIdxInfo"].data[symbol_start.uuid] = [
+            (".symtab", 0)
+        ]
+
+        extra_args = []
+        if obj:
+            extra_args.append("--object")
+
+        with self.binary_print(ir, "--dummy-so", "yes", *extra_args) as result:
+            readelf_dynsyms = self.readelf(result.path, "--dyn-syms").stdout
+            readelf_symbols = self.readelf(result.path, "--symbols").stdout
+
+            if not obj:
+                self.assert_readelf_syms(
+                    readelf_dynsyms,
+                    ("FUNC", "GLOBAL", "DEFAULT", "a"),
+                )
+
+            self.assertNotIn("__x86.get_pc_thunk.bx", readelf_dynsyms)
+            self.assert_readelf_syms(
+                readelf_symbols,
+                ("FUNC", "GLOBAL", "HIDDEN", "__x86.get_pc_thunk.bx"),
+            )
+
+    def test_dummyso_x86_32(self):
+        """
+        Set up subtests for x86-32 GTIRB with --dummy-so.
+        """
+        cases = (
+            # legacy, object
+            (True, False),
+            (False, False),
+            (False, True),
+            (True, True),
+        )
+
+        for legacy, obj in cases:
+            with self.subTest(legacy=legacy, obj=obj):
+                self.subtest_dummyso_x86_32(legacy, obj)

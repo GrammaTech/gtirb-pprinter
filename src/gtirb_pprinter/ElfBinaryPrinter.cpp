@@ -14,11 +14,14 @@
 //===----------------------------------------------------------------------===//
 #include "ElfBinaryPrinter.hpp"
 
+#include "Arm64PrettyPrinter.hpp"
+#include "ArmPrettyPrinter.hpp"
 #include "AuxDataSchema.hpp"
 #include "AuxDataUtils.hpp"
 #include "ElfPrettyPrinter.hpp"
 #include "ElfVersionScriptPrinter.hpp"
 #include "FileUtils.hpp"
+#include "Mips32PrettyPrinter.hpp"
 #include "driver/Logger.h"
 #include <boost/filesystem.hpp>
 #include <fstream>
@@ -28,6 +31,17 @@
 #include <vector>
 
 namespace gtirb_bprint {
+
+/**
+Add build arguments to support additional architectures
+*/
+static void addArchBuildArgs(const gtirb::Module& Module,
+                             std::vector<std::string>& Args) {
+  // add -m32 for x86 binaries
+  if (Module.getISA() == gtirb::ISA::IA32) {
+    Args.push_back("-m32");
+  }
+}
 
 bool ElfBinaryPrinter::isInfixLibraryName(const std::string& library) const {
   std::regex libsoRegex("^lib(.*)\\.so.*");
@@ -45,7 +59,7 @@ ElfBinaryPrinter::findLibrary(const std::string& library,
   return std::nullopt;
 }
 
-bool isBlackListedLib(std::string Library) {
+bool isLd(std::string Library) {
   std::string Prefix = "ld-linux";
   return (Library.substr(0, Prefix.length()) == Prefix);
 }
@@ -56,6 +70,7 @@ bool isBlackListedLib(std::string Library) {
 // by ddisasm.
 bool isBlackListed(std::string sym) {
   static std::vector<std::string> blackList = {"",
+                                               "_GLOBAL_OFFSET_TABLE_",
                                                "__rela_iplt_start",
                                                "__rela_iplt_end",
                                                "__gmon_start__",
@@ -68,6 +83,25 @@ bool isBlackListed(std::string sym) {
     }
   }
   return false;
+}
+
+/**
+Get an appropriate syntax for an architecture
+*/
+static std::unique_ptr<gtirb_pprint::ElfSyntax>
+getISASyntax(const gtirb::ISA ISA) {
+  switch (ISA) {
+  case gtirb::ISA::ARM64:
+    return std::make_unique<gtirb_pprint::Arm64Syntax>();
+  case gtirb::ISA::ARM:
+    return std::make_unique<gtirb_pprint::ArmSyntax>();
+  case gtirb::ISA::MIPS32:
+    return std::make_unique<gtirb_pprint::Mips32Syntax>();
+  case gtirb::ISA::X64:
+  case gtirb::ISA::IA32:
+  default:
+    return std::make_unique<gtirb_pprint::ElfSyntax>();
+  }
 }
 
 bool ElfBinaryPrinter::generateDummySO(
@@ -85,6 +119,9 @@ bool ElfBinaryPrinter::generateDummySO(
   {
     std::ofstream AsmFile(AsmFilePath.string());
     AsmFile << "# Generated dummy file for .so undefined symbols\n";
+
+    std::unique_ptr<gtirb_pprint::ElfSyntax> Syntax =
+        getISASyntax(Module.getISA());
 
     std::map<std::string, int> VersionedSymNameCounts;
     for (auto& SymGroup : SymGroups) {
@@ -120,11 +157,11 @@ bool ElfBinaryPrinter::generateDummySO(
 
         std::string SymType = SymInfo->Type;
         if (SymType == "FUNC" || SymType == "GNU_IFUNC") {
-          AsmFile << ".text\n";
+          AsmFile << Syntax->text() << "\n";
         } else if (SymType == "TLS") {
           AsmFile << ".section .tdata, \"waT\"\n";
         } else {
-          AsmFile << ".data\n";
+          AsmFile << Syntax->data() << "\n";
         }
 
         if (!Printer.getIgnoreSymbolVersions()) {
@@ -142,24 +179,24 @@ bool ElfBinaryPrinter::generateDummySO(
               Name = UniqueNameBuilder.str();
             }
 
-            AsmFile << ".symver " << Name << "," << OriginalName << *Version
-                    << '\n';
+            AsmFile << Syntax->symVer() << " " << Name << "," << OriginalName
+                    << *Version << '\n';
             EmittedSymvers = true;
           }
         }
 
-        // TODO: Make use of syntax content in ElfPrettyPrinter?
         std::string Binding;
         if (SymInfo->Binding == "WEAK") {
-          Binding = ".weak";
+          Binding = Syntax->weak();
         } else {
-          Binding = ".globl";
+          Binding = Syntax->global();
         }
 
         AsmFile << Binding << " " << Name << "\n";
 
         if ((SymType == "OBJECT" || SymType == "TLS") && SymInfo->Size != 0) {
-          AsmFile << ".size " << Name << ", " << SymInfo->Size << "\n";
+          AsmFile << Syntax->symSize() << " " << Name << ", " << SymInfo->Size
+                  << "\n";
         }
 
         static const std::unordered_map<std::string, std::string>
@@ -175,7 +212,8 @@ bool ElfBinaryPrinter::generateDummySO(
           return false;
         } else {
           const auto& TypeName = TypeNameIt->second;
-          AsmFile << ".type " << Name << ", @" << TypeName << "\n";
+          AsmFile << Syntax->type() << ' ' << Name << ", "
+                  << Syntax->attributePrefix() << TypeName << "\n";
         }
 
         AsmFile << Name << ":\n";
@@ -199,6 +237,7 @@ bool ElfBinaryPrinter::generateDummySO(
   Args.push_back("-nostartfiles");
   Args.push_back("-nodefaultlibs");
   Args.push_back(AsmFilePath.string());
+  addArchBuildArgs(Module, Args);
 
   TempFile VersionScript(".map");
   if (EmittedSymvers) {
@@ -454,14 +493,21 @@ void ElfBinaryPrinter::addOrigLibraryArgs(const gtirb::Module& module,
   allBinaryPaths.insert(allBinaryPaths.end(), BinaryLibraryPaths.begin(),
                         BinaryLibraryPaths.end());
 
+  const auto& Policy = Printer.getPolicy(module);
   // add needed libraries
   for (const auto& Library : aux_data::getLibraries(module)) {
-    // if they're a blacklisted name, skip them
-    if (isBlackListedLib(Library)) {
-      continue;
+    // if they're a blacklisted name, skip them, unless -nodefaultlibs is passed
+    if (isLd(Library)) {
+      if (Policy.compilerArguments.count("-nodefaultlibs") == 0) {
+        continue;
+      } else {
+        // ld does not match isInfixLibraryName, but we let the compiler find
+        // it.
+        args.push_back("-l:" + Library);
+      }
     }
     // if they match the lib*.so.* pattern we let the compiler look for them
-    if (isInfixLibraryName(Library)) {
+    else if (isInfixLibraryName(Library)) {
       args.push_back("-l:" + Library);
     } else {
       // otherwise we try to find them here
@@ -562,10 +608,7 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
     }
   }
 
-  // add -m32 for x86 binaries
-  if (module.getISA() == gtirb::ISA::IA32) {
-    args.push_back("-m32");
-  }
+  addArchBuildArgs(module, args);
 
   // Add stack properties linker flags
   if (auto StackSize = module.getAuxData<gtirb::schema::ElfStackSize>()) {
@@ -597,16 +640,22 @@ int ElfBinaryPrinter::assemble(const std::string& outputFilename,
     std::cerr << "ERROR: Could not write assembly into a temporary file.\n";
     return -1;
   }
-  TempFile tempOutput;
-  std::vector<std::string> args{{"-o", tempOutput.fileName(), "-c"}};
+  TempDir tempOutputDir;
+  boost::filesystem::path outputPath(outputFilename);
+  boost::filesystem::path tmpOutputPath(tempOutputDir.dirName());
+  tmpOutputPath /= outputPath.filename();
+
+  std::vector<std::string> args{{"-o", tmpOutputPath.string(), "-c"}};
   args.insert(args.end(), ExtraCompileArgs.begin(), ExtraCompileArgs.end());
   args.push_back(tempFile.fileName());
+
+  addArchBuildArgs(mod, args);
 
   if (std::optional<int> ret = execute(compiler, args)) {
     if (*ret) {
       std::cerr << "ERROR: assembler returned: " << *ret << "\n";
     } else {
-      copyFile(tempOutput.fileName(), outputFilename);
+      copyFile(tmpOutputPath.string(), outputFilename);
     }
     return *ret;
   }
@@ -721,22 +770,22 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
           "fini")) {
     libArgs.push_back(*Arg);
   }
-  TempFile tempOutput(std::string(""));
+  TempDir tempOutputDir;
+  boost::filesystem::path tmpOutputPath(tempOutputDir.dirName());
+  tmpOutputPath /= outputPath.filename();
   if (std::optional<int> ret =
-          execute(compiler, buildCompilerArgs(tempOutput.fileName(), Files, ctx,
-                                              module, libArgs))) {
+          execute(compiler, buildCompilerArgs(tmpOutputPath.string(), Files,
+                                              ctx, module, libArgs))) {
     if (*ret) {
       LOG_ERROR << "assembler returned: " << *ret << "\n";
     } else {
-      copyFile(tempOutput.fileName(), outputFilename);
+      copyFile(tmpOutputPath.string(), outputFilename);
     }
-    tempOutput.close();
     return *ret;
   }
 
   LOG_ERROR << "could not find the assembler '" << compiler
             << "' on the PATH.\n";
-  tempOutput.close();
   return -1;
 }
 
