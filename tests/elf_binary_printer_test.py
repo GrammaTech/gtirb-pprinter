@@ -271,9 +271,9 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
         vs = run_asm_pprinter_with_version_script(ir)
 
         pattern1 = r"LIBA_1.0\s+{\s+global:\s+foo;\s+local:\s+\*;\s+};"
-        self.assert_regex_match(vs, pattern1)
+        self.assertRegexMatch(vs, pattern1)
         pattern2 = r"LIBA_2.0\s+{\s+local:\s+\*;\s+};"
-        self.assert_regex_match(vs, pattern2)
+        self.assertRegexMatch(vs, pattern2)
         self.assertTrue("bar" not in vs)
 
     def test_use_gcc(self):
