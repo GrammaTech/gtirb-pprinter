@@ -200,6 +200,11 @@ SymbolVersionInfo getSymbolVersionInfo(const gtirb::Symbol& Sym) {
   return UndefinedSymbolVersion();
 }
 
+bool isBaseVersion(uint64_t Flags) {
+  const uint16_t VER_FLG_BASE = 0x1;
+  return ((Flags & VER_FLG_BASE) == VER_FLG_BASE);
+}
+
 std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym) {
   auto VersionInfo = getSymbolVersionInfo(Sym);
   return std::visit(
@@ -207,6 +212,13 @@ std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym) {
         using T = std::decay_t<decltype(Arg)>;
         if constexpr (std::is_same_v<T, InternalSymbolVersion> ||
                       std::is_same_v<T, ExternalSymbolVersion>) {
+          if constexpr (std::is_same_v<T, InternalSymbolVersion>) {
+            // Ignore the base version, it just contains the name of the
+            // module, not an actual symbol version.
+            if (isBaseVersion(Arg.Flags)) {
+              return std::nullopt;
+            }
+          }
           return Arg.VersionSuffix;
         } else {
           return std::nullopt;

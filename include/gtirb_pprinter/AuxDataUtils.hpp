@@ -235,6 +235,8 @@ hasVersionedSymDefs(const gtirb::Module& Module);
 const gtirb::provisional_schema::ElfSymbolVersions::Type*
 getSymbolVersions(const gtirb::Module& M);
 
+bool isBaseVersion(uint64_t Flags);
+
 std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym);
 
 /**

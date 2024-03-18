@@ -49,8 +49,7 @@ bool printVersionScript(const gtirb::Module& Module,
 
     // Ignore the base version, it just contains the name
     // of the module, not an actual symbol version.
-    const uint16_t VER_FLG_BASE = 0x1;
-    if ((VerDefFlags & VER_FLG_BASE) == VER_FLG_BASE) {
+    if (aux_data::isBaseVersion(VerDefFlags)) {
       continue;
     }
     const std::string& MainVersion = *VerNames.begin();

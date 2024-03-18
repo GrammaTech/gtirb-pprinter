@@ -9,7 +9,7 @@ import gtirb_test_helpers as gth
 import dummyso
 import hello_world
 
-from pprinter_helpers import BinaryPPrinterTest
+from pprinter_helpers import BinaryPPrinterTest, run_asm_pprinter
 
 
 @unittest.skipUnless(os.name == "posix", "only runs on Linux")
@@ -53,9 +53,13 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
         for lib in libs:
             self.assertIn(lib, ldd.stdout)
 
-    def build_basic_ir(self) -> typing.Tuple[gtirb.IR, gtirb.Module]:
+    def build_basic_ir(
+        self,
+    ) -> typing.Tuple[gtirb.IR, gtirb.Module, gtirb.ByteInterval]:
         """
         Build a generic IR with a _start procedure.
+
+        :returns (ir, module, text-byte-interval)
         """
         ir, module = gth.create_test_module(
             gtirb.Module.FileFormat.ELF,
@@ -83,7 +87,7 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
             "DEFAULT",
             0,
         )
-        return ir, module
+        return ir, module, text_bi
 
     def test_dummyso(self):
         """
@@ -217,10 +221,66 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
         """
         Test printing a GTIRB that has no libraries with --dummy-so=yes
         """
-        ir, _ = self.build_basic_ir()
+        ir, _, _ = self.build_basic_ir()
+
         with self.binary_print(ir, "--dummy-so", "yes"):
             # Just verify binary_print succeeded.
             pass
+
+    def test_base_version(self):
+        """
+        Make sure that base version is not printed out
+        """
+        ir, module, bi = self.build_basic_ir()
+
+        foo_block = gth.add_code_block(bi, b"\xC3")
+        foo_uuid = gth.add_function(module, "foo", foo_block)
+
+        # Get the foo function symbol
+        symbol_foo = module.aux_data["functionNames"].data[foo_uuid]
+
+        # Create another symbol pointing to the same block
+        symbol_foo2 = gth.add_symbol(module, "foo", foo_block)
+        module.aux_data["elfSymbolInfo"].data[symbol_foo2.uuid] = (
+            0,
+            "FUNC",
+            "GLOBAL",
+            "DEFAULT",
+            0,
+        )
+        module.aux_data["elfSymbolVersions"] = gtirb.AuxData(
+            type_name=(
+                "tuple<mapping<uint16_t,tuple<sequence<string>,uint16_t>>,"
+                "mapping<string,mapping<uint16_t,string>>,"
+                "mapping<UUID,tuple<uint16_t,bool>>>"
+            ),
+            data=(
+                # ElfSymVerDefs
+                {
+                    1: (["LIBA_1.0"], 0),
+                    # Flags=1: base version
+                    2: (["libmya.so"], 1),
+                },
+                # ElfSymVerNeeded
+                {"libmya.so": {1: "LIBA_1.0"}},
+                # ElfSymbolVersionsEntries
+                {
+                    symbol_foo.uuid: (1, False),
+                    # symbol_foo2 gets the base version
+                    symbol_foo2.uuid: (2, False),
+                },
+            ),
+        )
+
+        asm = run_asm_pprinter(ir)
+
+        self.assertRegexMatch(asm, r"foo@@LIBA_1.0")
+        # The base version should not pr
+        self.assertNotRegex(
+            asm,
+            r"foo@@libmya.so",
+            msg="The base version 'libmya.so' should not be printed out",
+        )
 
     def test_use_gcc(self):
         """
@@ -563,7 +623,7 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
         """
         Test generating `-Wl,-z,stack-size` and `-z,-execstack`
         """
-        ir, module = self.build_basic_ir()
+        ir, module, _ = self.build_basic_ir()
 
         module.aux_data["elfStackSize"] = gtirb.AuxData(
             type_name="uint64_t", data=stack_size
