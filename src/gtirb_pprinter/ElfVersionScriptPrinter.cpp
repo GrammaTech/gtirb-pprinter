@@ -17,11 +17,13 @@
 #include "AuxDataSchema.hpp"
 #include "AuxDataUtils.hpp"
 #include "FileUtils.hpp"
+#include "PrettyPrinter.hpp"
 #include "driver/Logger.h"
 
 namespace gtirb_pprint {
 
-bool printVersionScript(const gtirb::Module& Module,
+bool printVersionScript(const gtirb::Context& Context,
+                        const gtirb::Module& Module,
                         std::ofstream& VersionScript) {
   LOG_INFO << "Preparing linker version script...\n";
   if (!VersionScript.is_open()) {
@@ -35,6 +37,7 @@ bool printVersionScript(const gtirb::Module& Module,
                 << "is not ELF; cannot generate symbol versions.\n";
     return false;
   }
+
   auto SymbolVersions = aux_data::getSymbolVersions(Module);
   if (!SymbolVersions) {
     LOG_INFO << "Module: " << Module.getBinaryPath()
@@ -42,6 +45,19 @@ bool printVersionScript(const gtirb::Module& Module,
     return true;
   }
   auto& [SymVerDefs, SymVersNeeded, SymVerEntries] = *SymbolVersions;
+
+  // Collect versioned symbols with the binding info
+  std::unordered_map<gtirb::provisional_schema::SymbolVersionId,
+                     std::vector<const gtirb::Symbol*>>
+      VerIdToExportedSymbols;
+  for (auto const& Entry : SymVerEntries) {
+    const auto* Symbol = nodeFromUUID<gtirb::Symbol>(Context, Entry.first);
+    if (auto SymbolInfo = aux_data::getElfSymbolInfo(*Symbol)) {
+      if (SymbolInfo->Binding != "LOCAL") {
+        VerIdToExportedSymbols[std::get<0>(Entry.second)].push_back(Symbol);
+      }
+    }
+  }
 
   for (auto& [VerId, VerDef] : SymVerDefs) {
     auto& VerNames = std::get<0>(VerDef);
@@ -54,7 +70,19 @@ bool printVersionScript(const gtirb::Module& Module,
     }
     const std::string& MainVersion = *VerNames.begin();
     auto Predecessors = ++VerNames.begin();
-    VersionScript << MainVersion << " {\n \n}";
+
+    VersionScript << MainVersion << " {\n";
+    std::vector<const gtirb::Symbol*> ExportedSymbols =
+        VerIdToExportedSymbols[VerId];
+    if (ExportedSymbols.size() > 0) {
+      VersionScript << "  global:\n";
+    }
+    for (const gtirb::Symbol* Sym : ExportedSymbols) {
+      VersionScript << "    " << Sym->getName() << ";\n";
+    }
+    VersionScript << "\n  local:\n    *;\n";
+    VersionScript << "}";
+
     Defined.insert(MainVersion);
     bool First = true;
     for (; Predecessors != VerNames.end(); Predecessors++) {

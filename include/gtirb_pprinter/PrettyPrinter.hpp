@@ -56,6 +56,11 @@ template <class T> T* nodeFromUUID(gtirb::Context& C, gtirb::UUID id) {
   return dyn_cast_or_null<T>(gtirb::Node::getByUUID(C, id));
 }
 
+template <class T>
+const T* nodeFromUUID(const gtirb::Context& C, gtirb::UUID id) {
+  return dyn_cast_or_null<T>(gtirb::Node::getByUUID(C, id));
+}
+
 /// Whether a pretty printer should include debugging messages in it output.
 enum ListingMode {
   ListingAssembler, // The output is intended for consumption by an assembler

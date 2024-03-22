@@ -40,7 +40,7 @@
 #define __END_DEPRECATED_DECL__() _Pragma("warning(pop)")
 #endif
 
-template <class T> T* nodeFromUUID(gtirb::Context& C, gtirb::UUID id) {
+template <class T> T* nodeFromUUID(const gtirb::Context& C, gtirb::UUID id) {
   return dyn_cast_or_null<T>(gtirb::Node::getByUUID(C, id));
 }
 

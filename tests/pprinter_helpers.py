@@ -156,6 +156,41 @@ def run_asm_pprinter_with_output(
             return f.read(), proc.stdout.decode("ascii")
 
 
+def run_asm_pprinter_with_version_script(
+    ir: gtirb.IR, args: Iterable[str] = ()
+) -> str:
+    """
+    Runs the pretty-printer to generate a version script
+    :param ir: The IR object to print.
+    :param args: Any additional arguments for the pretty printer.
+    :returns: The contents of the generated version script
+    """
+    with temp_directory() as tmpdir:
+        gtirb_path = os.path.join(tmpdir, "test.gtirb")
+        ir.save_protobuf(gtirb_path)
+
+        asm_path = os.path.join(tmpdir, "test.asm")
+        vs_path = os.path.join(tmpdir, "test.map")
+        subprocess.run(
+            (
+                pprinter_binary(),
+                gtirb_path,
+                "--asm",
+                asm_path,
+                "--version-script",
+                vs_path,
+                *args,
+            ),
+            check=False,
+            cwd=tmpdir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+
+        with open(vs_path, "r") as f:
+            return f.read()
+
+
 def run_binary_pprinter_mock_out(
     ir: gtirb.IR,
     args: Iterable[str],
