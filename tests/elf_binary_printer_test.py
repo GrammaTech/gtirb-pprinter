@@ -305,7 +305,10 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
 
         vs = run_asm_pprinter_with_version_script(ir)
 
-        pattern1 = r"LIBA_1.0\s+{\s+global:\s+foo;\s+baz;\s+local:\s+\*;\s+};"
+        pattern1 = (
+            r"LIBA_1.0\s+{\s+global:\s+baz;\s+foo;\s+local:\s+\*;\s+};|"
+            r"LIBA_1.0\s+{\s+global:\s+foo;\s+baz;\s+local:\s+\*;\s+};"
+        )
         self.assertRegexMatch(vs, pattern1)
         pattern2 = r"LIBA_2.0\s+{\s+local:\s+\*;\s+};"
         self.assertRegexMatch(vs, pattern2)
