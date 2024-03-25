@@ -181,6 +181,10 @@ enum DynMode {
   DYN_MODE_NONE,
 };
 
+struct CmpSymPtr {
+  bool operator()(const gtirb::Symbol* A, const gtirb::Symbol* B) const;
+};
+
 /// The primary interface for pretty-printing GTIRB objects. The typical flow
 /// is to create a PrettyPrinter, configure it (e.g., set the output syntax,
 /// enable/disable debugging messages, etc.), then print one or more IR objects.
@@ -318,7 +322,8 @@ private:
 class DEBLOAT_PRETTYPRINTER_EXPORT_API PrettyPrinterBase {
 public:
   PrettyPrinterBase(gtirb::Context& context, const gtirb::Module& module,
-                    const Syntax& syntax, const PrintingPolicy& policy);
+                    const Syntax& syntax, const PrintingPolicy& policy,
+                    bool computeAmbigs = true);
   virtual ~PrettyPrinterBase();
 
   virtual std::ostream& print(std::ostream& out);
@@ -482,6 +487,9 @@ protected:
   getForwardedSymbolName(const gtirb::Symbol* symbol) const;
   virtual gtirb::Symbol* getForwardedSymbol(const gtirb::Symbol* Sym) const;
 
+  virtual const gtirb::Symbol*
+  getBestSymbol(const std::set<const gtirb::Symbol*, CmpSymPtr>& Symbols) const;
+
   // Currently, this only works for symbolic expressions in data blocks.
   // For the symbolic expressions that are part of code blocks, Capstone
   // always provides the information using the instruction context, so
@@ -499,6 +507,9 @@ protected:
                   const gtirb::CodeBlock& block) const;
   bool shouldSkip(const PrintingPolicy& Policy,
                   const gtirb::DataBlock& block) const;
+
+  /** Populate AmbiguousSymbols */
+  void computeAmbiguousSymbols();
 
 private:
   gtirb::Addr programCounter;
@@ -520,8 +531,6 @@ private:
 
   /** Populate Function-related fields.*/
   void computeFunctionInformation();
-  /** Populate AmbiguousSymbols */
-  void computeAmbiguousSymbols();
 
   /** Get the symbol of the function that contains the block.
    * This could return `nullptr` if the block does not belong to any function

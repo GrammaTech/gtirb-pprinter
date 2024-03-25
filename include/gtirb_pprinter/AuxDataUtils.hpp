@@ -237,6 +237,8 @@ getSymbolVersions(const gtirb::Module& M);
 
 bool isBaseVersion(uint64_t Flags);
 
+bool hasBaseVersion(const gtirb::Symbol& Sym);
+
 std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym);
 
 /**
@@ -259,7 +261,8 @@ struct UndefinedSymbolVersion {};
 Returned by getSymbolVersionInfo for external symbols
 */
 struct ExternalSymbolVersion {
-  std::string VersionSuffix;
+  std::string Connector;
+  std::string VersionStr;
   std::string Library;
 };
 
@@ -267,7 +270,8 @@ struct ExternalSymbolVersion {
 Returned by getSymbolVersionInfo for internal symbols
 */
 struct InternalSymbolVersion {
-  std::string VersionSuffix;
+  std::string Connector;
+  std::string VersionStr;
   uint16_t Flags;
 };
 

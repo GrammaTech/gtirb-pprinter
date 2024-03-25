@@ -185,7 +185,7 @@ SymbolVersionInfo getSymbolVersionInfo(const gtirb::Symbol& Sym) {
   if (VersionDef != SymVerDefs.end()) {
     std::string Connector = Hidden ? "@" : "@@";
     auto& [VersionStrs, Flags] = VersionDef->second;
-    InternalSymbolVersion Info = {Connector + *VersionStrs.begin(), Flags};
+    InternalSymbolVersion Info = {Connector, *VersionStrs.begin(), Flags};
     return Info;
   }
 
@@ -193,7 +193,7 @@ SymbolVersionInfo getSymbolVersionInfo(const gtirb::Symbol& Sym) {
     auto VersionReq = SymVerMap.find(VersionId);
     if (VersionReq != SymVerMap.end()) {
       std::string Connector = "@";
-      ExternalSymbolVersion Info = {Connector + VersionReq->second, Library};
+      ExternalSymbolVersion Info = {Connector, VersionReq->second, Library};
       return Info;
     }
   }
@@ -205,6 +205,21 @@ bool isBaseVersion(uint64_t Flags) {
   return ((Flags & VER_FLG_BASE) == VER_FLG_BASE);
 }
 
+bool hasBaseVersion(const gtirb::Symbol& Sym) {
+  auto VersionInfo = getSymbolVersionInfo(Sym);
+  return std::visit(
+      [](auto& Arg) -> bool {
+        using T = std::decay_t<decltype(Arg)>;
+        if constexpr (std::is_same_v<T, InternalSymbolVersion>) {
+          if (isBaseVersion(Arg.Flags)) {
+            return true;
+          }
+        }
+        return false;
+      },
+      VersionInfo);
+}
+
 std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym) {
   auto VersionInfo = getSymbolVersionInfo(Sym);
   return std::visit(
@@ -213,13 +228,14 @@ std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym) {
         if constexpr (std::is_same_v<T, InternalSymbolVersion> ||
                       std::is_same_v<T, ExternalSymbolVersion>) {
           if constexpr (std::is_same_v<T, InternalSymbolVersion>) {
-            // Ignore the base version, it just contains the name of the
+            // In case of base version, it just contains the name of the
             // module, not an actual symbol version.
+            // In such case, only print out the connector.
             if (isBaseVersion(Arg.Flags)) {
-              return std::nullopt;
+              return Arg.Connector;
             }
           }
-          return Arg.VersionSuffix;
+          return Arg.Connector + Arg.VersionStr;
         } else {
           return std::nullopt;
         }

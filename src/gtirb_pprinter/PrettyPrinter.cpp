@@ -310,12 +310,15 @@ __BEGIN_DEPRECATED_DECL__()
 PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
                                      const gtirb::Module& module_,
                                      const Syntax& syntax_,
-                                     const PrintingPolicy& policy_)
+                                     const PrintingPolicy& policy_,
+                                     bool computeAmbigs)
     : syntax(syntax_), policy(policy_), LstMode(policy.LstMode),
       context(context_), module(module_),
       PreferredEOLCommentPos(64), type_printer{module_, context_} {
   computeFunctionInformation();
-  computeAmbiguousSymbols();
+  if (computeAmbigs) {
+    computeAmbiguousSymbols();
+  }
 }
 
 PrettyPrinterBase::~PrettyPrinterBase() { cs_close(&this->csHandle); }
@@ -408,9 +411,17 @@ void PrettyPrinterBase::computeAmbiguousSymbols() {
   }
   for (auto& [Name, Group] : SymbolsByNameAddr) {
     if (Group.size() > 1) {
+      std::set<const gtirb::Symbol*, CmpSymPtr> Symbols;
+      for (auto& [Addr, Sym] : Group) {
+        Symbols.insert(Sym);
+      }
+      const gtirb::Symbol* SymbolToKeepOrigName = getBestSymbol(Symbols);
       int Index = 0;
       gtirb::Addr PrevAddress{0};
       for (auto& [Addr, Sym] : Group) {
+        if (Sym == SymbolToKeepOrigName) {
+          continue;
+        }
         std::stringstream NewName;
         NewName << Name << "_disambig_" << Addr;
         if (Addr != PrevAddress) {
@@ -1600,6 +1611,19 @@ PrettyPrinterBase::getForwardedSymbol(const gtirb::Symbol* Symbol) const {
   return nullptr;
 }
 
+const gtirb::Symbol* PrettyPrinterBase::getBestSymbol(
+    const std::set<const gtirb::Symbol*, CmpSymPtr>& Symbols) const {
+  // Given a set of gtirb::Symbol* that has the same name associated with
+  // the same address, pick the best one.
+  // Note that this function is used in computeAmbiguousSymbols where ambiguous
+  // symbols are renamed except the best one.
+  // By default, pick the first one in the set. Override it if needed.
+  if (Symbols.size() > 0) {
+    return *(Symbols.begin());
+  }
+  return nullptr;
+}
+
 void PrettyPrinterBase::printSection(std::ostream& os,
                                      const gtirb::Section& section) {
   if (shouldSkip(policy, section)) {
@@ -1714,6 +1738,43 @@ DynMode PrettyPrinter::getDynMode(const gtirb::Module& Module) const {
     return DYN_MODE_PIE;
   } else {
     return DYN_MODE_NONE;
+  }
+}
+
+// This is to have a deterministic order in a set of gtirb::Symbol*:
+// std::set<const gtirb::Symbol*, CmpSymPtr>
+bool CmpSymPtr::operator()(const gtirb::Symbol* A,
+                           const gtirb::Symbol* B) const {
+  auto A_addr = A->getAddress();
+  auto B_addr = B->getAddress();
+  if (!A_addr && B_addr) {
+    return true;
+  } else if (A_addr && !B_addr) {
+    return false;
+  } else {
+    if ((!A_addr && !B_addr) || (A_addr.value() == B_addr.value())) {
+      auto A_name = A->getName();
+      auto B_name = B->getName();
+      if (A_name == B_name) {
+        auto A_kind = A->getKind();
+        auto B_kind = B->getKind();
+        if (A_kind == B_kind) {
+          auto A_module = A->getModule();
+          auto B_module = B->getModule();
+          if (A_module == B_module) {
+            return A < B;
+          } else {
+            return A_module->getName() < B_module->getName();
+          }
+        } else {
+          return A_kind < B_kind;
+        }
+      } else {
+        return A_name < B_name;
+      }
+    } else {
+      return A_addr.value() < B_addr.value();
+    }
   }
 }
 
