@@ -46,15 +46,18 @@ bool printVersionScript(const gtirb::Context& Context,
   }
   auto& [SymVerDefs, SymVersNeeded, SymVerEntries] = *SymbolVersions;
 
-  // Collect versioned symbols with the binding info
-  std::unordered_map<gtirb::provisional_schema::SymbolVersionId,
-                     std::vector<const gtirb::Symbol*>>
-      VerIdToExportedSymbols;
+  // Collect non-LOCAL versioned symbols
+  std::unordered_map<std::string, std::vector<const gtirb::Symbol*>>
+      VerStrToExportedSymbols;
   for (auto const& Entry : SymVerEntries) {
     const auto* Symbol = nodeFromUUID<gtirb::Symbol>(Context, Entry.first);
     if (auto SymbolInfo = aux_data::getElfSymbolInfo(*Symbol)) {
       if (SymbolInfo->Binding != "LOCAL") {
-        VerIdToExportedSymbols[std::get<0>(Entry.second)].push_back(Symbol);
+        bool WithConnector = false;
+        auto VerStr = aux_data::getSymbolVersionString(*Symbol, WithConnector);
+        if (VerStr) {
+          VerStrToExportedSymbols[VerStr.value()].push_back(Symbol);
+        }
       }
     }
   }
@@ -74,7 +77,8 @@ bool printVersionScript(const gtirb::Context& Context,
 
     VersionScript << MainVersion << " {\n";
     std::vector<const gtirb::Symbol*> ExportedSymbols =
-        VerIdToExportedSymbols[VerId];
+        VerStrToExportedSymbols[MainVersion];
+
     if (ExportedSymbols.size() > 0) {
       VersionScript << "  global:\n";
     }
@@ -94,10 +98,22 @@ bool printVersionScript(const gtirb::Context& Context,
     }
     VersionScript << ";\n\n";
   }
+
   for (auto& [LibName, Versions] : SymVersNeeded) {
     for (auto& [VerId, VerName] : Versions) {
       if (Defined.find(VerName) == Defined.end()) {
-        VersionScript << VerName << " {\n \n};\n";
+        std::vector<const gtirb::Symbol*> ExportedSymbols =
+            VerStrToExportedSymbols[VerName];
+
+        VersionScript << VerName << " {\n";
+        if (ExportedSymbols.size() > 0) {
+          VersionScript << "  global:\n";
+        }
+        for (const gtirb::Symbol* Sym : ExportedSymbols) {
+          VersionScript << "    " << Sym->getName() << ";\n";
+        }
+        VersionScript << "\n  local:\n    *;\n";
+        VersionScript << "};\n";
         Defined.insert(VerName);
       }
     }

@@ -56,9 +56,13 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
         for lib in libs:
             self.assertIn(lib, ldd.stdout)
 
-    def build_basic_ir(self) -> typing.Tuple[gtirb.IR, gtirb.Module]:
+    def build_basic_ir(
+        self,
+    ) -> typing.Tuple[gtirb.IR, gtirb.Module, gtirb.ByteInterval]:
         """
         Build a generic IR with a _start procedure.
+
+        :returns (ir, module, text-byte-interval)
         """
         ir, module = gth.create_test_module(
             gtirb.Module.FileFormat.ELF,
@@ -86,7 +90,7 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
             "DEFAULT",
             0,
         )
-        return ir, module
+        return ir, module, text_bi
 
     def test_dummyso(self):
         """
@@ -220,7 +224,7 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
         """
         Test printing a GTIRB that has no libraries with --dummy-so=yes
         """
-        ir, _ = self.build_basic_ir()
+        ir, _, _ = self.build_basic_ir()
         with self.binary_print(ir, "--dummy-so", "yes"):
             # Just verify binary_print succeeded.
             pass
@@ -229,10 +233,10 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
         """
         Test printing version script
         """
-        ir, module = self.build_basic_ir()
+        ir, module, text_bi = self.build_basic_ir()
 
-        proxy_foo = gth.add_proxy_block(module)
-        symbol_foo = gth.add_symbol(module, "foo", proxy_foo)
+        foo_block = gth.add_code_block(text_bi, b"\xC3")
+        symbol_foo = gth.add_symbol(module, "foo", foo_block)
         module.aux_data["elfSymbolInfo"].data[symbol_foo.uuid] = (
             0,
             "FUNC",
@@ -240,12 +244,30 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
             "DEFAULT",
             0,
         )
-        proxy_bar = gth.add_proxy_block(module)
-        symbol_bar = gth.add_symbol(module, "bar", proxy_bar)
+        bar_block = gth.add_code_block(text_bi, b"\xC3")
+        symbol_bar = gth.add_symbol(module, "bar", bar_block)
         module.aux_data["elfSymbolInfo"].data[symbol_bar.uuid] = (
             0,
             "FUNC",
             "LOCAL",
+            "DEFAULT",
+            0,
+        )
+        proxy_baz = gth.add_proxy_block(module)
+        symbol_baz = gth.add_symbol(module, "baz", proxy_baz)
+        module.aux_data["elfSymbolInfo"].data[symbol_baz.uuid] = (
+            0,
+            "OBJECT",
+            "GLOBAL",
+            "DEFAULT",
+            0,
+        )
+        proxy_bao = gth.add_proxy_block(module)
+        symbol_bao = gth.add_symbol(module, "bao", proxy_bao)
+        module.aux_data["elfSymbolInfo"].data[symbol_bao.uuid] = (
+            0,
+            "OBJECT",
+            "GLOBAL",
             "DEFAULT",
             0,
         )
@@ -259,22 +281,37 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
                 # ElfSymVerDefs
                 {1: (["LIBA_1.0"], 0), 2: (["LIBA_2.0"], 0)},
                 # ElfSymVerNeeded
-                {"libmya.so": {1: "LIBA_1.0", 2: "LIBA_2.0"}},
+                {
+                    "libmya.so": {
+                        1: "LIBA_1.0",
+                        2: "LIBA_2.0",
+                        3: "LIBA_1.0",
+                        4: "LIBA_PRIVATE",
+                    }
+                },
                 # ElfSymbolVersionsEntries
+                # NOTE: VerId 1 and 3 share the same name `LIBA_1.0`, and
+                # VerId 3 and 4 are not in ElfSymVerDefs.
+                # `baz` must be printed as global next to `foo` in `LIBA_1.0`.
+                # And `bao` must be printed as global in `LIBA_PRIVATE`.
                 {
                     symbol_foo.uuid: (1, False),
                     symbol_bar.uuid: (2, False),
+                    symbol_baz.uuid: (3, False),
+                    symbol_bao.uuid: (4, False),
                 },
             ),
         )
 
         vs = run_asm_pprinter_with_version_script(ir)
 
-        pattern1 = r"LIBA_1.0\s+{\s+global:\s+foo;\s+local:\s+\*;\s+};"
+        pattern1 = r"LIBA_1.0\s+{\s+global:\s+foo;\s+baz;\s+local:\s+\*;\s+};"
         self.assertRegexMatch(vs, pattern1)
         pattern2 = r"LIBA_2.0\s+{\s+local:\s+\*;\s+};"
         self.assertRegexMatch(vs, pattern2)
         self.assertTrue("bar" not in vs)
+        pattern3 = r"LIBA_PRIVATE\s+{\s+global:\s+bao;\s+local:\s+\*;\s+};"
+        self.assertRegexMatch(vs, pattern3)
 
     def test_use_gcc(self):
         """
@@ -617,7 +654,7 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
         """
         Test generating `-Wl,-z,stack-size` and `-z,-execstack`
         """
-        ir, module = self.build_basic_ir()
+        ir, module, _ = self.build_basic_ir()
 
         module.aux_data["elfStackSize"] = gtirb.AuxData(
             type_name="uint64_t", data=stack_size

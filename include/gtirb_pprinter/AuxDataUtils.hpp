@@ -235,7 +235,8 @@ hasVersionedSymDefs(const gtirb::Module& Module);
 const gtirb::provisional_schema::ElfSymbolVersions::Type*
 getSymbolVersions(const gtirb::Module& M);
 
-std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym);
+std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym,
+                                                  bool WithConnector = true);
 
 /**
 Returned by getSymbolVersionInfo if the GTIRB has no elfSymbolVersion auxdata
@@ -257,7 +258,8 @@ struct UndefinedSymbolVersion {};
 Returned by getSymbolVersionInfo for external symbols
 */
 struct ExternalSymbolVersion {
-  std::string VersionSuffix;
+  std::string Connector;
+  std::string VersionStr;
   std::string Library;
 };
 
@@ -265,7 +267,8 @@ struct ExternalSymbolVersion {
 Returned by getSymbolVersionInfo for internal symbols
 */
 struct InternalSymbolVersion {
-  std::string VersionSuffix;
+  std::string Connector;
+  std::string VersionStr;
   uint16_t Flags;
 };
 
