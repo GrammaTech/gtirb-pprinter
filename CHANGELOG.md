@@ -13,6 +13,8 @@
   * Explicitly link `ld-linux*.so` if `-nodefaultlibs` is enabled.
   * Support GOT, PAGE and GOT, OFST symbolic expression attributes for split .got loads on MIPS.
   * Populate non-local symbols under `global:` and add `local: *;` for local symbols in version-script
+  * For ambiguous symbols, choose one symbol to keep original symbol name.
+  * For symbols with base version, only print out the connector and do not print out the base version in .symver directives.
 
 # 2.1.0
   * `--asm` option now prints the assembly for each module of an IR separately
