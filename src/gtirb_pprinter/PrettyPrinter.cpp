@@ -1761,7 +1761,12 @@ bool CmpSymPtr::operator()(const gtirb::Symbol* A,
         if (A_kind == B_kind) {
           auto A_module = A->getModule();
           auto B_module = B->getModule();
-          if (A_module == B_module) {
+          if (!A_module && B_module) {
+            return true;
+          } else if (A_module && !B_module) {
+            return false;
+          } else if ((!A_module && !B_module) || (A_module == B_module)) {
+            // Use the pointer addresses if nothing's left to compare.
             return A < B;
           } else {
             return A_module->getName() < B_module->getName();

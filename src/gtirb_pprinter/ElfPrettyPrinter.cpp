@@ -510,7 +510,7 @@ const gtirb::Symbol* ElfPrettyPrinter::getBestSymbol(
   std::set<const gtirb::Symbol*, CmpSymPtr> Globals;
   for (auto& Symbol : Symbols) {
     auto Info = aux_data::getElfSymbolInfo(*Symbol);
-    if (Info->Binding == "LOCAL" || Info->Visibility != "DEFAULT") {
+    if (!Info || Info->Binding == "LOCAL" || Info->Visibility != "DEFAULT") {
       continue;
     }
     if (aux_data::hasBaseVersion(*Symbol)) {
