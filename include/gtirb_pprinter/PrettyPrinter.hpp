@@ -322,8 +322,7 @@ private:
 class DEBLOAT_PRETTYPRINTER_EXPORT_API PrettyPrinterBase {
 public:
   PrettyPrinterBase(gtirb::Context& context, const gtirb::Module& module,
-                    const Syntax& syntax, const PrintingPolicy& policy,
-                    bool computeAmbigs = true);
+                    const Syntax& syntax, const PrintingPolicy& policy);
   virtual ~PrettyPrinterBase();
 
   virtual std::ostream& print(std::ostream& out);
@@ -508,9 +507,6 @@ protected:
   bool shouldSkip(const PrintingPolicy& Policy,
                   const gtirb::DataBlock& block) const;
 
-  /** Populate AmbiguousSymbols */
-  void computeAmbiguousSymbols();
-
 private:
   gtirb::Addr programCounter;
 
@@ -531,6 +527,8 @@ private:
 
   /** Populate Function-related fields.*/
   void computeFunctionInformation();
+  /** Populate AmbiguousSymbols */
+  void computeAmbiguousSymbols();
 
   /** Get the symbol of the function that contains the block.
    * This could return `nullptr` if the block does not belong to any function

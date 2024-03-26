@@ -310,15 +310,11 @@ __BEGIN_DEPRECATED_DECL__()
 PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
                                      const gtirb::Module& module_,
                                      const Syntax& syntax_,
-                                     const PrintingPolicy& policy_,
-                                     bool computeAmbigs)
+                                     const PrintingPolicy& policy_)
     : syntax(syntax_), policy(policy_), LstMode(policy.LstMode),
       context(context_), module(module_),
       PreferredEOLCommentPos(64), type_printer{module_, context_} {
   computeFunctionInformation();
-  if (computeAmbigs) {
-    computeAmbiguousSymbols();
-  }
 }
 
 PrettyPrinterBase::~PrettyPrinterBase() { cs_close(&this->csHandle); }
@@ -488,6 +484,8 @@ void PrettyPrinterBase::printIntegralSymbols(std::ostream& os) {
 }
 
 std::ostream& PrettyPrinterBase::print(std::ostream& os) {
+  computeAmbiguousSymbols();
+
   printHeader(os);
 
   // print every section

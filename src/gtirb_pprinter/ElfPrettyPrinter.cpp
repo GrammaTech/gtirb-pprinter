@@ -90,10 +90,9 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
                                    const gtirb::Module& module_,
                                    const ElfSyntax& syntax_,
                                    const PrintingPolicy& policy_)
-    : PrettyPrinterBase(context_, module_, syntax_, policy_, false),
+    : PrettyPrinterBase(context_, module_, syntax_, policy_),
       elfSyntax(syntax_) {
 
-  computeAmbiguousSymbols();
   skipVersionSymbols();
   computeFunctionAliases();
 }
