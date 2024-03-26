@@ -30,7 +30,6 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
         self,
         readelf: typing.Union[str, Path],
         *syms: typing.List[typing.Tuple[str, str, str, str]],
-        exact: bool = False,
     ) -> typing.List[int]:
         """
         Assert that a symbol is present in the given readelf output, and return
@@ -38,16 +37,11 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
 
         The first argument can either be a Path (in which readelf --dyn-syms is
         run on it) or an existing readelf output string.
-
-        :param exact: if True, the symbol must exactly match.
         """
         if isinstance(readelf, Path):
             readelf = self.readelf(readelf, "--dyn-syms").stdout
 
-        if exact:
-            pattern = r"([0-9a-f]+)\s+\d+\s+{}\s+{}\s+{}\s+(UND|\d+)\s+{}\s*\n"
-        else:
-            pattern = r"([0-9a-f]+)\s+\d+\s+{}\s+{}\s+{}\s+(UND|\d+)\s+{}"
+        pattern = r"([0-9a-f]+)\s+\d+\s+{}\s+{}\s+{}\s+(UND|\d+)\s+{}\s+"
         return [
             self.assertRegexMatch(readelf, pattern.format(*s)).group(1)
             for s in syms
@@ -191,7 +185,8 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
 
             # Ensure the TLS symbol is linked
             self.assert_readelf_syms(
-                result.path, ("TLS", "GLOBAL", "DEFAULT", "__lib_value")
+                result.path,
+                ("TLS", "GLOBAL", "DEFAULT", "__lib_value@LIBVALUE_1.0"),
             )
 
     def test_dummyso_versioned_syms(self):
@@ -358,7 +353,6 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
         self.assert_readelf_syms(
             readelf.stdout,
             ("FUNC", "GLOBAL", "DEFAULT", "foo"),
-            exact=True,
         )
 
     def test_use_gcc(self):
