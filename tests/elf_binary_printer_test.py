@@ -310,6 +310,20 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
             "DEFAULT",
             0,
         )
+
+        bar_block = gth.add_code_block(bi, b"\xC3")
+        bar_uuid = gth.add_function(module, "bar", bar_block)
+
+        # Get the bar function symbol
+        symbol_bar = module.aux_data["functionNames"].data[bar_uuid]
+        module.aux_data["elfSymbolInfo"].data[symbol_bar.uuid] = (
+            0,
+            "FUNC",
+            "GLOBAL",
+            "DEFAULT",
+            0,
+        )
+
         module.aux_data["elfSymbolVersions"] = gtirb.AuxData(
             type_name=(
                 "tuple<mapping<uint16_t,tuple<sequence<string>,uint16_t>>,"
@@ -328,8 +342,10 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
                 # ElfSymbolVersionsEntries
                 {
                     symbol_foo.uuid: (1, True),
-                    # symbol_foo2 gets the base version
+                    # symbol_foo2 gets the base version: @: hidden=True
                     symbol_foo2.uuid: (2, True),
+                    # symbol_bar gets the base version: @@: hidden=False
+                    symbol_bar.uuid: (2, False),
                 },
             ),
         )
@@ -344,6 +360,11 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
             r"\.symver\s*.*,foo@libmya.so",
             msg="The base version 'libmya.so' should not be printed out",
         )
+        self.assertNotRegex(
+            asm,
+            r"\.symver\s*.*,bar@@libmya.so|\.symver\s*.*,bar@@@libmya.so",
+            msg="The base version 'libmya.so' should not be printed out",
+        )
 
         # Build binary
         with self.binary_print(ir, "--shared") as result:
@@ -353,6 +374,12 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
         self.assert_readelf_syms(
             readelf.stdout,
             ("FUNC", "GLOBAL", "DEFAULT", "foo"),
+        )
+
+        # The unversioned symbol `bar` should exist.
+        self.assert_readelf_syms(
+            readelf.stdout,
+            ("FUNC", "GLOBAL", "DEFAULT", "bar"),
         )
 
     def test_use_gcc(self):
