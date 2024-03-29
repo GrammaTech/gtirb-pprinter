@@ -56,8 +56,7 @@ private:
   - Symbols in the same SymbolGroup have inconsistent sizes
   - The compiler returned an error when building the dummy .so
   */
-  bool generateDummySO(const gtirb::Context& Context,
-                       const gtirb::Module& module, const std::string& libDir,
+  bool generateDummySO(const gtirb::Module& module, const std::string& libDir,
                        const std::string& lib,
                        const std::vector<SymbolGroup>& syms) const;
 
