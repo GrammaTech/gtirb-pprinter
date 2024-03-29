@@ -253,24 +253,6 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
             "DEFAULT",
             0,
         )
-        proxy_baz = gth.add_proxy_block(module)
-        symbol_baz = gth.add_symbol(module, "baz", proxy_baz)
-        module.aux_data["elfSymbolInfo"].data[symbol_baz.uuid] = (
-            0,
-            "OBJECT",
-            "GLOBAL",
-            "DEFAULT",
-            0,
-        )
-        proxy_bao = gth.add_proxy_block(module)
-        symbol_bao = gth.add_symbol(module, "bao", proxy_bao)
-        module.aux_data["elfSymbolInfo"].data[symbol_bao.uuid] = (
-            0,
-            "OBJECT",
-            "GLOBAL",
-            "DEFAULT",
-            0,
-        )
         module.aux_data["elfSymbolVersions"] = gtirb.AuxData(
             type_name=(
                 "tuple<mapping<uint16_t,tuple<sequence<string>,uint16_t>>,"
@@ -285,20 +267,13 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
                     "libmya.so": {
                         1: "LIBA_1.0",
                         2: "LIBA_2.0",
-                        3: "LIBA_1.0",
-                        4: "LIBA_PRIVATE",
                     }
                 },
                 # ElfSymbolVersionsEntries
-                # NOTE: VerId 1 and 3 share the same name `LIBA_1.0`, and
-                # VerId 3 and 4 are not in ElfSymVerDefs.
-                # `baz` must be printed as global next to `foo` in `LIBA_1.0`.
-                # And `bao` must be printed as global in `LIBA_PRIVATE`.
+                # NOTE: foo is global and bar is local.
                 {
                     symbol_foo.uuid: (1, False),
                     symbol_bar.uuid: (2, False),
-                    symbol_baz.uuid: (3, False),
-                    symbol_bao.uuid: (4, False),
                 },
             ),
         )
@@ -306,16 +281,11 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
         vs = run_asm_pprinter_with_version_script(ir)
         print(vs)
 
-        pattern1 = (
-            r"LIBA_1.0\s+{\s+global:\s+baz;\s+foo;\s+local:\s+\*;\s+};|"
-            r"LIBA_1.0\s+{\s+global:\s+foo;\s+baz;\s+local:\s+\*;\s+};"
-        )
+        pattern1 = r"LIBA_1.0\s+{\s+global:\s+foo;\s+local:\s+\*;\s+};"
         self.assertRegexMatch(vs, pattern1)
         pattern2 = r"LIBA_2.0\s+{\s+local:\s+\*;\s+};"
         self.assertRegexMatch(vs, pattern2)
         self.assertTrue("bar" not in vs)
-        pattern3 = r"LIBA_PRIVATE\s+{\s+global:\s+bao;\s+local:\s+\*;\s+};"
-        self.assertRegexMatch(vs, pattern3)
 
         with self.binary_print(ir, "--dummy-so", "yes", "--shared"):
             # Just verify binary_print succeeded.

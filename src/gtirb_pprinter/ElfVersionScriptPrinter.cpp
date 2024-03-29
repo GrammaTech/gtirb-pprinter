@@ -24,21 +24,23 @@ namespace gtirb_pprint {
 
 void printVersionBlock(const std::string& VerName,
                        const std::vector<const gtirb::Symbol*>& GlobalSymbols,
-                       std::ofstream& VersionScript) {
+                       std::ofstream& VersionScript, bool ListSymbols) {
   VersionScript << VerName << " {\n";
-  if (GlobalSymbols.size() > 0) {
-    VersionScript << "  global:\n";
+  if (ListSymbols) {
+    if (GlobalSymbols.size() > 0) {
+      VersionScript << "  global:\n";
+    }
+    for (const gtirb::Symbol* Sym : GlobalSymbols) {
+      VersionScript << "    " << Sym->getName() << ";\n";
+    }
+    VersionScript << "\n  local:\n    *;\n";
   }
-  for (const gtirb::Symbol* Sym : GlobalSymbols) {
-    VersionScript << "    " << Sym->getName() << ";\n";
-  }
-  VersionScript << "\n  local:\n    *;\n";
   VersionScript << "}";
 }
 
 bool printVersionScript(const gtirb::Context& Context,
                         const gtirb::Module& Module,
-                        std::ofstream& VersionScript) {
+                        std::ofstream& VersionScript, bool ListSymbols) {
   LOG_INFO << "Preparing linker version script...\n";
   if (!VersionScript.is_open()) {
     LOG_ERROR << "Unable to open version script file \n";
@@ -61,16 +63,15 @@ bool printVersionScript(const gtirb::Context& Context,
   auto& [SymVerDefs, SymVersNeeded, SymVerEntries] = *SymbolVersions;
 
   // Collect non-LOCAL versioned symbols
-  std::unordered_map<std::string, std::vector<const gtirb::Symbol*>>
-      VerStrToGlobalSymbols;
-  for (auto const& Entry : SymVerEntries) {
-    const auto* Symbol = nodeFromUUID<gtirb::Symbol>(Context, Entry.first);
-    if (auto SymbolInfo = aux_data::getElfSymbolInfo(*Symbol)) {
-      if (SymbolInfo->Binding != "LOCAL") {
-        bool WithConnector = false;
-        auto VerStr = aux_data::getSymbolVersionString(*Symbol, WithConnector);
-        if (VerStr) {
-          VerStrToGlobalSymbols[VerStr.value()].push_back(Symbol);
+  std::unordered_map<gtirb::provisional_schema::SymbolVersionId,
+                     std::vector<const gtirb::Symbol*>>
+      VerIdToGlobalSymbols;
+  if (ListSymbols) {
+    for (auto const& Entry : SymVerEntries) {
+      const auto* Symbol = nodeFromUUID<gtirb::Symbol>(Context, Entry.first);
+      if (auto SymbolInfo = aux_data::getElfSymbolInfo(*Symbol)) {
+        if (SymbolInfo->Binding != "LOCAL") {
+          VerIdToGlobalSymbols[std::get<0>(Entry.second)].push_back(Symbol);
         }
       }
     }
@@ -90,9 +91,9 @@ bool printVersionScript(const gtirb::Context& Context,
     auto Predecessors = ++VerNames.begin();
 
     std::vector<const gtirb::Symbol*> GlobalSymbols =
-        VerStrToGlobalSymbols[MainVersion];
+        VerIdToGlobalSymbols[VerId];
 
-    printVersionBlock(MainVersion, GlobalSymbols, VersionScript);
+    printVersionBlock(MainVersion, GlobalSymbols, VersionScript, ListSymbols);
     Defined.insert(MainVersion);
 
     bool First = true;
@@ -109,9 +110,9 @@ bool printVersionScript(const gtirb::Context& Context,
     for (auto& [VerId, VerName] : Versions) {
       if (Defined.find(VerName) == Defined.end()) {
         std::vector<const gtirb::Symbol*> GlobalSymbols =
-            VerStrToGlobalSymbols[VerName];
+            VerIdToGlobalSymbols[VerId];
 
-        printVersionBlock(VerName, GlobalSymbols, VersionScript);
+        printVersionBlock(VerName, GlobalSymbols, VersionScript, ListSymbols);
         VersionScript << ";\n\n";
         Defined.insert(VerName);
       }

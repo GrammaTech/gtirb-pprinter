@@ -25,7 +25,7 @@ namespace gtirb_pprint {
 /// \brief print ELF version scripts from GTIRB representations.
 DEBLOAT_PRETTYPRINTER_EXPORT_API bool
 printVersionScript(const gtirb::Context& Context, const gtirb::Module& Module,
-                   std::ofstream& VersionScript);
+                   std::ofstream& VersionScript, bool ListSymbols = true);
 
 } // namespace gtirb_pprint
 

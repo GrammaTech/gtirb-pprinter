@@ -243,7 +243,8 @@ bool ElfBinaryPrinter::generateDummySO(
   if (EmittedSymvers) {
     if (!Printer.getIgnoreSymbolVersions()) {
       // A version script is only needed if we define versioned symbols.
-      if (gtirb_pprint::printVersionScript(Context, Module, VersionScript)) {
+      if (gtirb_pprint::printVersionScript(Context, Module, VersionScript,
+                                           false)) {
         Args.push_back("-Wl,--version-script=" + VersionScript.fileName());
       }
     }
