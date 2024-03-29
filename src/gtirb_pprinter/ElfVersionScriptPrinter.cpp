@@ -33,7 +33,7 @@ void printVersionBlock(const std::string& VerName,
     VersionScript << "    " << Sym->getName() << ";\n";
   }
   VersionScript << "\n  local:\n    *;\n";
-  VersionScript << "};\n";
+  VersionScript << "}";
 }
 
 bool printVersionScript(const gtirb::Context& Context,
@@ -112,6 +112,7 @@ bool printVersionScript(const gtirb::Context& Context,
             VerStrToGlobalSymbols[VerName];
 
         printVersionBlock(VerName, GlobalSymbols, VersionScript);
+        VersionScript << ";\n\n";
         Defined.insert(VerName);
       }
     }

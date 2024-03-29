@@ -304,6 +304,7 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
         )
 
         vs = run_asm_pprinter_with_version_script(ir)
+        print(vs)
 
         pattern1 = (
             r"LIBA_1.0\s+{\s+global:\s+baz;\s+foo;\s+local:\s+\*;\s+};|"
@@ -315,6 +316,10 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
         self.assertTrue("bar" not in vs)
         pattern3 = r"LIBA_PRIVATE\s+{\s+global:\s+bao;\s+local:\s+\*;\s+};"
         self.assertRegexMatch(vs, pattern3)
+
+        with self.binary_print(ir, "--dummy-so", "yes", "--shared"):
+            # Just verify binary_print succeeded.
+            pass
 
     def test_use_gcc(self):
         """
