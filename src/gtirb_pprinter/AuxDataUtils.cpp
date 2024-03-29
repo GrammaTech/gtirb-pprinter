@@ -185,7 +185,7 @@ SymbolVersionInfo getSymbolVersionInfo(const gtirb::Symbol& Sym) {
   if (VersionDef != SymVerDefs.end()) {
     std::string Connector = Hidden ? "@" : "@@";
     auto& [VersionStrs, Flags] = VersionDef->second;
-    InternalSymbolVersion Info = {Connector, *VersionStrs.begin(), Flags};
+    InternalSymbolVersion Info = {Connector + *VersionStrs.begin(), Flags};
     return Info;
   }
 
@@ -193,26 +193,21 @@ SymbolVersionInfo getSymbolVersionInfo(const gtirb::Symbol& Sym) {
     auto VersionReq = SymVerMap.find(VersionId);
     if (VersionReq != SymVerMap.end()) {
       std::string Connector = "@";
-      ExternalSymbolVersion Info = {Connector, VersionReq->second, Library};
+      ExternalSymbolVersion Info = {Connector + VersionReq->second, Library};
       return Info;
     }
   }
   return UndefinedSymbolVersion();
 }
 
-std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym,
-                                                  bool WithConnector) {
+std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym) {
   auto VersionInfo = getSymbolVersionInfo(Sym);
   return std::visit(
-      [WithConnector](auto& Arg) -> std::optional<std::string> {
+      [](auto& Arg) -> std::optional<std::string> {
         using T = std::decay_t<decltype(Arg)>;
         if constexpr (std::is_same_v<T, InternalSymbolVersion> ||
                       std::is_same_v<T, ExternalSymbolVersion>) {
-          if (WithConnector) {
-            return Arg.Connector + Arg.VersionStr;
-          } else {
-            return Arg.VersionStr;
-          }
+          return Arg.VersionSuffix;
         } else {
           return std::nullopt;
         }
