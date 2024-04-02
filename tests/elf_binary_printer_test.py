@@ -253,6 +253,15 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
             "DEFAULT",
             0,
         )
+        proxy_baz = gth.add_proxy_block(module)
+        symbol_baz = gth.add_symbol(module, "baz", proxy_baz)
+        module.aux_data["elfSymbolInfo"].data[symbol_baz.uuid] = (
+            0,
+            "OBJECT",
+            "GLOBAL",
+            "DEFAULT",
+            0,
+        )
         module.aux_data["elfSymbolVersions"] = gtirb.AuxData(
             type_name=(
                 "tuple<mapping<uint16_t,tuple<sequence<string>,uint16_t>>,"
@@ -265,23 +274,30 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
                 # ElfSymVerNeeded
                 {
                     "libmya.so": {
-                        1: "LIBA_1.0",
-                        2: "LIBA_2.0",
+                        3: "LIBA_1.0",
+                        4: "LIBA_2.0",
                     }
                 },
                 # ElfSymbolVersionsEntries
-                # NOTE: foo is global and bar is local.
                 {
+                    # foo: global
                     symbol_foo.uuid: (1, False),
+                    # bar: local
                     symbol_bar.uuid: (2, False),
+                    # baz: external
+                    symbol_baz.uuid: (3, False),
                 },
             ),
         )
 
         vs = run_asm_pprinter_with_version_script(ir)
 
+        # Version LIBA_1 should not include the external symbol baz
         pattern1 = r"LIBA_1.0\s+{\s+global:\s+foo;\s+local:\s+\*;\s+};"
         self.assertRegexMatch(vs, pattern1)
+        self.assertTrue("baz" not in vs)
+
+        # Version LIBA_2 should not print out the local symbol bar
         pattern2 = r"LIBA_2.0\s+{\s+local:\s+\*;\s+};"
         self.assertRegexMatch(vs, pattern2)
         self.assertTrue("bar" not in vs)
