@@ -12,7 +12,11 @@
   * Blacklist `_GLOBAL_OFFSET_TABLE_` symbol from dummy-so libraries.
   * Explicitly link `ld-linux*.so` if `-nodefaultlibs` is enabled.
   * Support GOT, PAGE and GOT, OFST symbolic expression attributes for split .got loads on MIPS.
-  * Populate non-local symbols under `global:` and add `local: *;` for local symbols in version-script
+  * Populate non-local symbols under `global:` and add `local: *;` for local
+    symbols in version-script: version-script for main module should not
+    include SymVersNeeded; SymVersNeeded should be included only in the
+    version-script for dummy-so, which is handled in the newly added function
+    `printVersionScriptForDummySo`.
 
 # 2.1.0
   * `--asm` option now prints the assembly for each module of an IR separately
