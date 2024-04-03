@@ -105,9 +105,8 @@ getISASyntax(const gtirb::ISA ISA) {
 }
 
 bool ElfBinaryPrinter::generateDummySO(
-    const gtirb::Context& Context, const gtirb::Module& Module,
-    const std::string& LibDir, const std::string& Lib,
-    const std::vector<SymbolGroup>& SymGroups) const {
+    const gtirb::Module& Module, const std::string& LibDir,
+    const std::string& Lib, const std::vector<SymbolGroup>& SymGroups) const {
 
   // Assume that lib is a filename w/ no path prefix
   assert(!boost::filesystem::path(Lib).has_parent_path());
@@ -243,7 +242,7 @@ bool ElfBinaryPrinter::generateDummySO(
   if (EmittedSymvers) {
     if (!Printer.getIgnoreSymbolVersions()) {
       // A version script is only needed if we define versioned symbols.
-      if (gtirb_pprint::printVersionScript(Context, Module, VersionScript)) {
+      if (gtirb_pprint::printVersionScriptForDummySo(Module, VersionScript)) {
         Args.push_back("-Wl,--version-script=" + VersionScript.fileName());
       }
     }
@@ -472,7 +471,7 @@ bool ElfBinaryPrinter::prepareDummySOLibs(
 
   // Generate the .so files
   for (const auto& Lib : Libs) {
-    if (!generateDummySO(Context, Module, LibDir, Lib, AllocatedSymbols[Lib])) {
+    if (!generateDummySO(Module, LibDir, Lib, AllocatedSymbols[Lib])) {
       LOG_ERROR << "Failed generating dummy .so for " << Lib << "\n";
       return false;
     }

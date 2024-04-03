@@ -27,6 +27,11 @@ DEBLOAT_PRETTYPRINTER_EXPORT_API bool
 printVersionScript(const gtirb::Context& Context, const gtirb::Module& Module,
                    std::ofstream& VersionScript);
 
+/// \brief print ELF version scripts for dummy-so from GTIRB representations.
+DEBLOAT_PRETTYPRINTER_EXPORT_API bool
+printVersionScriptForDummySo(const gtirb::Module& Module,
+                             std::ofstream& VersionScript);
+
 } // namespace gtirb_pprint
 
 #endif /* GTIRB_PP_ELFVERSIONSCRIPT_PRINTER_H */

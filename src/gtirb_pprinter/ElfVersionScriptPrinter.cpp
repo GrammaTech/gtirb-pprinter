@@ -30,7 +30,6 @@ bool printVersionScript(const gtirb::Context& Context,
     LOG_ERROR << "Unable to open version script file \n";
     return false;
   }
-  std::unordered_set<std::string> Defined;
 
   if (Module.getFileFormat() != gtirb::FileFormat::ELF) {
     LOG_WARNING << "Module: " << Module.getBinaryPath()
@@ -46,15 +45,15 @@ bool printVersionScript(const gtirb::Context& Context,
   }
   auto& [SymVerDefs, SymVersNeeded, SymVerEntries] = *SymbolVersions;
 
-  // Collect versioned symbols with the binding info
+  // Collect non-LOCAL versioned symbols
   std::unordered_map<gtirb::provisional_schema::SymbolVersionId,
                      std::vector<const gtirb::Symbol*>>
-      VerIdToExportedSymbols;
+      VerIdToGlobalSymbols;
   for (auto const& Entry : SymVerEntries) {
     const auto* Symbol = nodeFromUUID<gtirb::Symbol>(Context, Entry.first);
     if (auto SymbolInfo = aux_data::getElfSymbolInfo(*Symbol)) {
       if (SymbolInfo->Binding != "LOCAL") {
-        VerIdToExportedSymbols[std::get<0>(Entry.second)].push_back(Symbol);
+        VerIdToGlobalSymbols[std::get<0>(Entry.second)].push_back(Symbol);
       }
     }
   }
@@ -71,19 +70,19 @@ bool printVersionScript(const gtirb::Context& Context,
     const std::string& MainVersion = *VerNames.begin();
     auto Predecessors = ++VerNames.begin();
 
+    std::vector<const gtirb::Symbol*> GlobalSymbols =
+        VerIdToGlobalSymbols[VerId];
+
     VersionScript << MainVersion << " {\n";
-    std::vector<const gtirb::Symbol*> ExportedSymbols =
-        VerIdToExportedSymbols[VerId];
-    if (ExportedSymbols.size() > 0) {
+    if (GlobalSymbols.size() > 0) {
       VersionScript << "  global:\n";
     }
-    for (const gtirb::Symbol* Sym : ExportedSymbols) {
+    for (const gtirb::Symbol* Sym : GlobalSymbols) {
       VersionScript << "    " << Sym->getName() << ";\n";
     }
     VersionScript << "\n  local:\n    *;\n";
     VersionScript << "}";
 
-    Defined.insert(MainVersion);
     bool First = true;
     for (; Predecessors != VerNames.end(); Predecessors++) {
       if (!First) {
@@ -93,6 +92,34 @@ bool printVersionScript(const gtirb::Context& Context,
     }
     VersionScript << ";\n\n";
   }
+
+  return VersionScript.tellp() > 0;
+}
+
+bool printVersionScriptForDummySo(const gtirb::Module& Module,
+                                  std::ofstream& VersionScript) {
+
+  LOG_INFO << "Preparing linker version script for dummy_so...\n";
+  if (!VersionScript.is_open()) {
+    LOG_ERROR << "Unable to open version script file for dummy_so\n";
+    return false;
+  }
+
+  if (Module.getFileFormat() != gtirb::FileFormat::ELF) {
+    LOG_WARNING << "Module: " << Module.getBinaryPath()
+                << "is not ELF; cannot generate symbol versions.\n";
+    return false;
+  }
+
+  auto SymbolVersions = aux_data::getSymbolVersions(Module);
+  if (!SymbolVersions) {
+    LOG_INFO << "Module: " << Module.getBinaryPath()
+             << "contains no symbol versions\n";
+    return true;
+  }
+  auto& [SymVerDefs, SymVersNeeded, SymVerEntries] = *SymbolVersions;
+
+  std::unordered_set<std::string> Defined;
   for (auto& [LibName, Versions] : SymVersNeeded) {
     for (auto& [VerId, VerName] : Versions) {
       if (Defined.find(VerName) == Defined.end()) {
@@ -101,7 +128,6 @@ bool printVersionScript(const gtirb::Context& Context,
       }
     }
   }
-
   return VersionScript.tellp() > 0;
 }
 
