@@ -682,6 +682,23 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
             with self.subTest(stack_size=stack_size, stack_exec=stack_exec):
                 self.subtest_elf_stack_properties(stack_size, stack_exec)
 
+    def test_elf_soname_property(self):
+        """
+        Test generating `-Wl,-soname`
+        """
+        ir, module, _ = self.build_basic_ir()
+
+        module.aux_data["elfSoname"] = gtirb.AuxData(
+            type_name="string", data="mylib.so"
+        )
+
+        with self.binary_print(ir, "-S") as result:
+            readelf = self.readelf(result.path, "-d")
+            self.assertRegexMatch(
+                readelf.stdout,
+                r"\(SONAME\)\s+Library soname:\s+\[mylib\.so\]\s+",
+            )
+
     def test_dummyso_arm(self):
         """
         Test printing a simple ARM GTIRB with --dummy-so.
