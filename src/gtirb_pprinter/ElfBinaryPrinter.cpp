@@ -609,7 +609,7 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
 
   addArchBuildArgs(module, args);
 
-  // Add soname likner flag if applicable
+  // Add soname linker flag if applicable
   if (auto Soname = module.getAuxData<gtirb::schema::ElfSoname>()) {
     args.push_back("-Wl,-soname=" + *Soname);
   }
