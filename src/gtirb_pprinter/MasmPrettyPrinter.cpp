@@ -177,7 +177,7 @@ void MasmPrettyPrinter::printExterns(std::ostream& os) {
   }
 
   for (auto& Forward : Forwarding) {
-    if (const auto* Symbol = dyn_cast_or_null<gtirb::Symbol>(
+    if (const auto* Symbol = gtirb::dyn_cast_or_null<gtirb::Symbol>(
             gtirb::Node::getByUUID(context, Forward.second))) {
       std::string Name = getSymbolName(*Symbol);
       Externs.insert(Name);
