@@ -46,7 +46,7 @@ void Arm64PrettyPrinter::buildSymGotRefTable(void) {
         if (auto Found = aux_data::getForwardedSymbol(SymAddr->Sym)) {
           // the SymExpr will reference the got entry itself, so we need to
           // look up the forwarded symbol.
-          auto ForwardedSymbol = dyn_cast_or_null<gtirb::Symbol>(
+          auto ForwardedSymbol = gtirb::dyn_cast_or_null<gtirb::Symbol>(
               gtirb::Node::getByUUID(context, *Found));
           if (ForwardedSymbol) {
             LocalGotSyms.insert(ForwardedSymbol->getUUID());

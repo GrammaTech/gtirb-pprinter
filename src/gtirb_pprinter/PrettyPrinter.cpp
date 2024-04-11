@@ -41,7 +41,7 @@
 #endif
 
 template <class T> T* nodeFromUUID(const gtirb::Context& C, gtirb::UUID id) {
-  return dyn_cast_or_null<T>(gtirb::Node::getByUUID(C, id));
+  return gtirb::dyn_cast_or_null<T>(gtirb::Node::getByUUID(C, id));
 }
 
 static std::map<gtirb_pprint::TargetTy,
@@ -1415,11 +1415,11 @@ bool PrettyPrinterBase::shouldSkip(const PrintingPolicy& Policy,
 
   if (Symbol.hasReferent()) {
     const auto* Referent = Symbol.getReferent<gtirb::Node>();
-    if (auto* CB = dyn_cast<gtirb::CodeBlock>(Referent)) {
+    if (auto* CB = gtirb::dyn_cast<gtirb::CodeBlock>(Referent)) {
       return shouldSkip(Policy, *CB);
-    } else if (auto* DB = dyn_cast<gtirb::DataBlock>(Referent)) {
+    } else if (auto* DB = gtirb::dyn_cast<gtirb::DataBlock>(Referent)) {
       return shouldSkip(Policy, *DB);
-    } else if (isa<gtirb::ProxyBlock>(Referent)) {
+    } else if (gtirb::isa<gtirb::ProxyBlock>(Referent)) {
       return false;
     } else {
       assert(!"non block in symbol referent!");
@@ -1632,9 +1632,9 @@ void PrettyPrinterBase::printSection(std::ostream& os,
   printSectionHeader(os, section);
 
   for (const auto& Block : section.blocks()) {
-    if (auto* CB = dyn_cast<gtirb::CodeBlock>(&Block)) {
+    if (auto* CB = gtirb::dyn_cast<gtirb::CodeBlock>(&Block)) {
       printBlock(os, *CB);
-    } else if (auto* DB = dyn_cast<gtirb::DataBlock>(&Block)) {
+    } else if (auto* DB = gtirb::dyn_cast<gtirb::DataBlock>(&Block)) {
       printBlock(os, *DB);
     } else {
       assert(!"non block in block iterator!");

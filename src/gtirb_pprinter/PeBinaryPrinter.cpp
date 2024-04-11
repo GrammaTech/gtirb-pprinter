@@ -886,7 +886,7 @@ bool PeBinaryPrinter::prepareResources(
     Stream.write(reinterpret_cast<const char*>(Header.data()), Header.size());
 
     const gtirb::ByteInterval* ByteInterval =
-        dyn_cast_or_null<gtirb::ByteInterval>(
+        gtirb::dyn_cast_or_null<gtirb::ByteInterval>(
             gtirb::Node::getByUUID(Context, Offset.ElementId));
 
     if (ByteInterval) {
