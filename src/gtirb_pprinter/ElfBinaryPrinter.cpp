@@ -534,10 +534,8 @@ void ElfBinaryPrinter::addOrigLibraryArgs(const gtirb::Module& module,
 }
 
 static std::vector<std::string>
-collectGlobalVisibleSymsExported(gtirb::Context& Ctx, gtirb::Module& Module,
-                                 bool& AllExported) {
+collectGlobalVisibleSymsExported(gtirb::Context& Ctx, gtirb::Module& Module) {
   std::vector<std::string> ExportedSymbols;
-  AllExported = true;
 
   auto SymbolTabIdxInfo = aux_data::getElfSymbolTabIdxInfo(Module);
   for (auto& [SymUUID, Tables] : SymbolTabIdxInfo) {
@@ -555,16 +553,10 @@ collectGlobalVisibleSymsExported(gtirb::Context& Ctx, gtirb::Module& Module,
     }
 
     if (Symbol->getReferent<gtirb::ProxyBlock>() == nullptr) {
-      bool SymIsExported = false;
       for (auto& [TableName, Idx] : Tables) {
         if (TableName == ".dynsym") {
-          SymIsExported = true;
           ExportedSymbols.push_back(Symbol->getName());
         }
-      }
-
-      if (!SymIsExported && AllExported) {
-        AllExported = false;
       }
     }
   }
@@ -756,16 +748,11 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
   TempFile DynamicList(".dynamic_list.txt");
   gtirb_pprint::DynMode DM = Printer.getDynMode(module);
   if (DM != gtirb_pprint::DYN_MODE_SHARED) {
-    // Append -Wl,--export-dynamic if all symbols are exported;
-    // can occur for both DYN and EXEC.
-    // If some symbols are exported, but not all, build a dynamic list
-    // file and pass with `--dynamic-list`.
-    bool AllExported = true;
+    // Collect all global, visiable, exported symbols to create a
+    // dynamic-list file, and pass with `--dynamic-list`.
     std::vector<std::string> ExportedSyms =
-        collectGlobalVisibleSymsExported(ctx, module, AllExported);
-    if (AllExported) {
-      libArgs.push_back("-Wl,--export-dynamic");
-    } else if (!ExportedSyms.empty()) {
+        collectGlobalVisibleSymsExported(ctx, module);
+    if (!ExportedSyms.empty()) {
       std::ofstream& DynamicListStream = DynamicList;
       DynamicListStream << "{\n";
       for (auto SymName : ExportedSyms) {

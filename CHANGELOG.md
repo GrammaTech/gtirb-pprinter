@@ -20,7 +20,7 @@
     needed symbol versions.
   * Add `-Wl,-soname` argument for `elfSoname` aux-data
   * Requires gtirb >=2.1.0
-  * Add generation for `--dynamic-list` in binary printer
+  * Remove generation for `--export-dynamic`, and instead, add generation for `--dynamic-list` in binary printer
 
 # 2.1.0
   * `--asm` option now prints the assembly for each module of an IR separately

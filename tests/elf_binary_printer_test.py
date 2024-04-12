@@ -529,7 +529,7 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
             if sym_name:
                 # Find the symbol
                 sym_addr = self.assert_readelf_syms(
-                    readelf.stdout, ("FUNC", "LOCAL", "DEFAULT", sym)
+                    readelf.stdout, ("FUNC", "GLOBAL", "HIDDEN", sym)
                 )[0]
 
                 # The symbol and the DT entry should have the same address
@@ -553,13 +553,10 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
             with self.subTest(subtest=subtest):
                 self.subtest_dynamic_entries(*subtest)
 
-    def subtest_export_dynamic(self, global_not_in_dynsym: bool):
+    def test_export_dynamic(self):
         """
-        Test that we pass -Wl,--export-dynamic when all
-        global visible symbols are in .dynsym.
-        Also, when not all global visible symbols are in .dynsym,
-        test that we generate a dynamic-list file, and pass
-        -Wl,--dynamic-list with it.
+        Test that we pass -Wl,--dynamic-list for any global/visible/exported
+        symbols.
         """
 
         ir, module = gth.create_test_module(
@@ -622,34 +619,28 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
                 (".symtab", index)
             ]
 
-        if global_not_in_dynsym:
-            block = gth.add_code_block(section_bi, code_bytes, {})
+        # Add a global visible non exported symbol
+        block = gth.add_code_block(section_bi, code_bytes, {})
 
-            symbol = gth.add_symbol(module, "f6_symbol", block)
-            module.aux_data["elfSymbolInfo"].data[symbol.uuid] = (
-                0,
-                "FUNC",
-                "GLOBAL",
-                "DEFAULT",
-                0,
-            )
-            module.aux_data["elfSymbolTabIdxInfo"].data[symbol.uuid] = [
-                (".symtab", 5)
-            ]
+        symbol = gth.add_symbol(module, "f6_symbol", block)
+        module.aux_data["elfSymbolInfo"].data[symbol.uuid] = (
+            0,
+            "FUNC",
+            "GLOBAL",
+            "DEFAULT",
+            0,
+        )
+        module.aux_data["elfSymbolTabIdxInfo"].data[symbol.uuid] = [
+            (".symtab", 5)
+        ]
 
         module.aux_data["libraries"].data.extend(["libc.so"])
 
         # Build binary
         with self.binary_print(ir) as result:
-            print(result.completed_process.stdout)
-            if global_not_in_dynsym:
-                self.assertIn(
-                    "-Wl,--dynamic-list=", result.completed_process.stdout
-                )
-            else:
-                self.assertIn(
-                    "-Wl,--export-dynamic", result.completed_process.stdout
-                )
+            self.assertIn(
+                "-Wl,--dynamic-list=", result.completed_process.stdout
+            )
             dynsym = self.readelf(result.path, "--dyn-syms")
             symtab = self.readelf(result.path, "--syms")
 
@@ -663,27 +654,12 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
             # The hidden global are not exported
             self.assertNotIn("f4_symbol", dynsym.stdout)
             self.assertNotIn("f5_symbol", dynsym.stdout)
-            if not global_not_in_dynsym:
-                # The hidden global have been transformed to local
-                self.assert_readelf_syms(
-                    symtab.stdout,
-                    ("FUNC", "LOCAL", "DEFAULT", "f4_symbol"),
-                    ("FUNC", "LOCAL", "DEFAULT", "f5_symbol"),
-                )
-
-    def test_export_dynamic(self):
-        """
-        Set up subtests for export-dynamic and dynamic-list
-        """
-        subtests = (
-            # global_not_in_dynsym?
-            (True),
-            (False),
-        )
-
-        for global_not_in_dynsym in subtests:
-            with self.subTest(global_not_in_dynsym=global_not_in_dynsym):
-                self.subtest_export_dynamic(global_not_in_dynsym)
+            # The hidden global symbols remain as the same in .symtab.
+            self.assert_readelf_syms(
+                symtab.stdout,
+                ("FUNC", "GLOBAL", "HIDDEN", "f4_symbol"),
+                ("FUNC", "GLOBAL", "HIDDEN", "f5_symbol"),
+            )
 
     def subtest_elf_stack_properties(self, stack_size: int, stack_exec: bool):
         """
