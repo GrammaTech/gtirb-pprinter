@@ -533,8 +533,12 @@ void ElfBinaryPrinter::addOrigLibraryArgs(const gtirb::Module& module,
   }
 }
 
-static bool allGlobalVisibleSymsExported(gtirb::Context& Ctx,
-                                         gtirb::Module& Module) {
+static std::vector<std::string>
+collectGlobalVisibleSymsExported(gtirb::Context& Ctx, gtirb::Module& Module,
+                                 bool& AllExported) {
+  std::vector<std::string> ExportedSymbols;
+  AllExported = true;
+
   auto SymbolTabIdxInfo = aux_data::getElfSymbolTabIdxInfo(Module);
   for (auto& [SymUUID, Tables] : SymbolTabIdxInfo) {
     auto Symbol = gtirb_pprint::nodeFromUUID<gtirb::Symbol>(Ctx, SymUUID);
@@ -550,21 +554,22 @@ static bool allGlobalVisibleSymsExported(gtirb::Context& Ctx,
       continue;
     }
 
-    if (Symbol->getReferent<gtirb::CodeBlock>() != nullptr) {
+    if (Symbol->getReferent<gtirb::ProxyBlock>() == nullptr) {
       bool SymIsExported = false;
       for (auto& [TableName, Idx] : Tables) {
         if (TableName == ".dynsym") {
           SymIsExported = true;
-          break;
+          ExportedSymbols.push_back(Symbol->getName());
         }
       }
 
-      if (!SymIsExported) {
-        return false;
+      if (!SymIsExported && AllExported) {
+        AllExported = false;
       }
     }
   }
-  return true;
+
+  return ExportedSymbols;
 }
 
 std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
@@ -599,11 +604,24 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
   }
 
   if (DM != gtirb_pprint::DYN_MODE_SHARED) {
-    // append -Wl,--export-dynamic if needed; can occur for both DYN and EXEC.
-    // TODO: if some symbols are exported, but not all, build a dynamic list
+    // Append -Wl,--export-dynamic if all symbols are exported;
+    // can occur for both DYN and EXEC.
+    // If some symbols are exported, but not all, build a dynamic list
     // file and pass with `--dynamic-list`.
-    if (allGlobalVisibleSymsExported(context, module)) {
+    bool AllExported = true;
+    std::vector<std::string> ExportedSyms =
+        collectGlobalVisibleSymsExported(context, module, AllExported);
+    if (AllExported) {
       args.push_back("-Wl,--export-dynamic");
+    } else if (!ExportedSyms.empty()) {
+      TempFile DynamicList(".dynamic_list.txt");
+      std::ofstream& DynamicListStream = DynamicList;
+      DynamicListStream << "{\n";
+      for (auto SymName : ExportedSyms) {
+        DynamicListStream << "  " << SymName << ";" << std::endl;
+      }
+      DynamicListStream << "};\n";
+      args.push_back("-Wl,--dynamic-list=" + DynamicList.fileName());
     }
   }
 
