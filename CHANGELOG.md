@@ -18,6 +18,8 @@
     definitions (not its needed symbols).
   * Create a different version script for dummy-so dependencies using the
     needed symbol versions.
+  * Add `-Wl,-soname` argument for `elfSoname` aux-data
+  * Requires gtirb >=2.1.0
   * For ambiguous symbols, choose one symbol to keep original symbol name.
   * For symbols with base version, only print out the connector and do not
     print out the base version in .symver directives.

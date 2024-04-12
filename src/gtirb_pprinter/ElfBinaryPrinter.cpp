@@ -609,6 +609,11 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
 
   addArchBuildArgs(module, args);
 
+  // Add soname linker flag if applicable
+  if (auto Soname = module.getAuxData<gtirb::schema::ElfSoname>()) {
+    args.push_back("-Wl,-soname=" + *Soname);
+  }
+
   // Add stack properties linker flags
   if (auto StackSize = module.getAuxData<gtirb::schema::ElfStackSize>()) {
     args.push_back("-Wl,-z,stack-size=" + std::to_string(*StackSize));
