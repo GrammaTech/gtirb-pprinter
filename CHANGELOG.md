@@ -20,6 +20,7 @@
     needed symbol versions.
   * Add `-Wl,-soname` argument for `elfSoname` aux-data
   * Requires gtirb >=2.1.0
+  * Remove generation for `--export-dynamic`, and instead, add generation for `--dynamic-list` in binary printer
   * For ambiguous symbols, choose one symbol to keep original symbol name.
   * For symbols with base version, only print out the connector and do not
     print out the base version in .symver directives.

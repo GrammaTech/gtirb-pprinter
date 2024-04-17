@@ -533,8 +533,10 @@ void ElfBinaryPrinter::addOrigLibraryArgs(const gtirb::Module& module,
   }
 }
 
-static bool allGlobalVisibleSymsExported(gtirb::Context& Ctx,
-                                         gtirb::Module& Module) {
+static std::vector<std::string>
+collectGlobalVisibleSymsExported(gtirb::Context& Ctx, gtirb::Module& Module) {
+  std::vector<std::string> ExportedSymbols;
+
   auto SymbolTabIdxInfo = aux_data::getElfSymbolTabIdxInfo(Module);
   for (auto& [SymUUID, Tables] : SymbolTabIdxInfo) {
     auto Symbol = gtirb_pprint::nodeFromUUID<gtirb::Symbol>(Ctx, SymUUID);
@@ -550,27 +552,21 @@ static bool allGlobalVisibleSymsExported(gtirb::Context& Ctx,
       continue;
     }
 
-    if (Symbol->getReferent<gtirb::CodeBlock>() != nullptr) {
-      bool SymIsExported = false;
+    if (Symbol->getReferent<gtirb::ProxyBlock>() == nullptr) {
       for (auto& [TableName, Idx] : Tables) {
         if (TableName == ".dynsym") {
-          SymIsExported = true;
-          break;
+          ExportedSymbols.push_back(Symbol->getName());
         }
-      }
-
-      if (!SymIsExported) {
-        return false;
       }
     }
   }
-  return true;
+
+  return ExportedSymbols;
 }
 
 std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
     std::string outputFilename, const std::vector<TempFile>& asmPaths,
-    gtirb::Context& context, gtirb::Module& module,
-    const std::vector<std::string>& libArgs) const {
+    gtirb::Module& module, const std::vector<std::string>& libArgs) const {
   std::vector<std::string> args;
   // Start constructing the compile arguments, of the form
   // -o <output_filename> fileAXADA.s
@@ -596,15 +592,6 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
     break;
   default:
     assert(!"Unknown binary type!");
-  }
-
-  if (DM != gtirb_pprint::DYN_MODE_SHARED) {
-    // append -Wl,--export-dynamic if needed; can occur for both DYN and EXEC.
-    // TODO: if some symbols are exported, but not all, build a dynamic list
-    // file and pass with `--dynamic-list`.
-    if (allGlobalVisibleSymsExported(context, module)) {
-      args.push_back("-Wl,--export-dynamic");
-    }
   }
 
   addArchBuildArgs(module, args);
@@ -757,6 +744,26 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
     }
   }
   VersionScript.close();
+
+  TempFile DynamicList(".dynamic_list.txt");
+  gtirb_pprint::DynMode DM = Printer.getDynMode(module);
+  if (DM != gtirb_pprint::DYN_MODE_SHARED) {
+    // Collect all global, visiable, exported symbols to create a
+    // dynamic-list file, and pass with `--dynamic-list`.
+    std::vector<std::string> ExportedSyms =
+        collectGlobalVisibleSymsExported(ctx, module);
+    if (!ExportedSyms.empty()) {
+      std::ofstream& DynamicListStream = DynamicList;
+      DynamicListStream << "{\n";
+      for (auto SymName : ExportedSyms) {
+        DynamicListStream << "  " << SymName << ";" << std::endl;
+      }
+      DynamicListStream << "};\n";
+      libArgs.push_back("-Wl,--dynamic-list=" + DynamicList.fileName());
+    }
+  }
+  DynamicList.close();
+
   std::vector<TempFile> Files;
   Files.emplace_back(std::move(tempFile));
 
@@ -779,7 +786,7 @@ int ElfBinaryPrinter::link(const std::string& outputFilename,
   tmpOutputPath /= outputPath.filename();
   if (std::optional<int> ret =
           execute(compiler, buildCompilerArgs(tmpOutputPath.string(), Files,
-                                              ctx, module, libArgs))) {
+                                              module, libArgs))) {
     if (*ret) {
       LOG_ERROR << "assembler returned: " << *ret << "\n";
     } else {

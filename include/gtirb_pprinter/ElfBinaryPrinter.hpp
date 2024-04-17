@@ -83,8 +83,7 @@ private:
                           const std::string& location) const;
   std::vector<std::string>
   buildCompilerArgs(std::string outputFilename,
-                    const std::vector<TempFile>& asmPath,
-                    gtirb::Context& context, gtirb::Module& module,
+                    const std::vector<TempFile>& asmPath, gtirb::Module& module,
                     const std::vector<std::string>& libArgs) const;
 
 public:
