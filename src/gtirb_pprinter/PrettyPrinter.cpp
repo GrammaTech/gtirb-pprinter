@@ -1745,40 +1745,14 @@ bool CmpSymPtr::operator()(const gtirb::Symbol* A,
                            const gtirb::Symbol* B) const {
   auto A_addr = A->getAddress();
   auto B_addr = B->getAddress();
-  if (!A_addr && B_addr) {
-    return true;
-  } else if (A_addr && !B_addr) {
-    return false;
-  } else {
-    if ((!A_addr && !B_addr) || (A_addr.value() == B_addr.value())) {
-      auto A_name = A->getName();
-      auto B_name = B->getName();
-      if (A_name == B_name) {
-        auto A_kind = A->getKind();
-        auto B_kind = B->getKind();
-        if (A_kind == B_kind) {
-          auto A_module = A->getModule();
-          auto B_module = B->getModule();
-          if (!A_module && B_module) {
-            return true;
-          } else if (A_module && !B_module) {
-            return false;
-          } else if ((!A_module && !B_module) || (A_module == B_module)) {
-            // Use the pointer addresses if nothing's left to compare.
-            return A < B;
-          } else {
-            return A_module->getName() < B_module->getName();
-          }
-        } else {
-          return A_kind < B_kind;
-        }
-      } else {
-        return A_name < B_name;
-      }
-    } else {
-      return A_addr.value() < B_addr.value();
-    }
-  }
+  auto A_name = A->getName();
+  auto B_name = B->getName();
+  auto A_kind = A->getKind();
+  auto B_kind = B->getKind();
+  auto A_module = A->getModule();
+  auto B_module = B->getModule();
+  return (std::tie(A_addr, A_name, A_kind, A_module, A) <
+          std::tie(B_addr, B_name, B_kind, B_module, B));
 }
 
 } // namespace gtirb_pprint

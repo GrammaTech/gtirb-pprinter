@@ -261,8 +261,7 @@ struct UndefinedSymbolVersion {};
 Returned by getSymbolVersionInfo for external symbols
 */
 struct ExternalSymbolVersion {
-  std::string Connector;
-  std::string VersionStr;
+  std::string VersionSuffix;
   std::string Library;
 };
 
@@ -270,8 +269,7 @@ struct ExternalSymbolVersion {
 Returned by getSymbolVersionInfo for internal symbols
 */
 struct InternalSymbolVersion {
-  std::string Connector;
-  std::string VersionStr;
+  std::string VersionSuffix;
   uint16_t Flags;
 };
 

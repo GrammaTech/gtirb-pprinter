@@ -185,7 +185,9 @@ SymbolVersionInfo getSymbolVersionInfo(const gtirb::Symbol& Sym) {
   if (VersionDef != SymVerDefs.end()) {
     std::string Connector = Hidden ? "@" : "@@";
     auto& [VersionStrs, Flags] = VersionDef->second;
-    InternalSymbolVersion Info = {Connector, *VersionStrs.begin(), Flags};
+    std::string VerSuffix =
+        isBaseVersion(Flags) ? Connector : Connector + *VersionStrs.begin();
+    InternalSymbolVersion Info = {VerSuffix, Flags};
     return Info;
   }
 
@@ -193,7 +195,7 @@ SymbolVersionInfo getSymbolVersionInfo(const gtirb::Symbol& Sym) {
     auto VersionReq = SymVerMap.find(VersionId);
     if (VersionReq != SymVerMap.end()) {
       std::string Connector = "@";
-      ExternalSymbolVersion Info = {Connector, VersionReq->second, Library};
+      ExternalSymbolVersion Info = {Connector + VersionReq->second, Library};
       return Info;
     }
   }
@@ -232,10 +234,10 @@ std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym) {
             // module, not an actual symbol version.
             // In such case, only print out the connector.
             if (isBaseVersion(Arg.Flags)) {
-              return Arg.Connector;
+              return Arg.VersionSuffix;
             }
           }
-          return Arg.Connector + Arg.VersionStr;
+          return Arg.VersionSuffix;
         } else {
           return std::nullopt;
         }
