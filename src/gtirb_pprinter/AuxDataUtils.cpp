@@ -214,8 +214,9 @@ bool hasBaseVersion(const gtirb::Symbol& Sym) {
         using T = std::decay_t<decltype(Arg)>;
         if constexpr (std::is_same_v<T, InternalSymbolVersion>) {
           return isBaseVersion(Arg.Flags);
+        } else {
+          return false;
         }
-        return false;
       },
       VersionInfo);
 }
