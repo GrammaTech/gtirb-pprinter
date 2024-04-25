@@ -213,9 +213,7 @@ bool hasBaseVersion(const gtirb::Symbol& Sym) {
       [](auto& Arg) -> bool {
         using T = std::decay_t<decltype(Arg)>;
         if constexpr (std::is_same_v<T, InternalSymbolVersion>) {
-          if (isBaseVersion(Arg.Flags)) {
-            return true;
-          }
+          return isBaseVersion(Arg.Flags);
         }
         return false;
       },
@@ -229,14 +227,6 @@ std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym) {
         using T = std::decay_t<decltype(Arg)>;
         if constexpr (std::is_same_v<T, InternalSymbolVersion> ||
                       std::is_same_v<T, ExternalSymbolVersion>) {
-          if constexpr (std::is_same_v<T, InternalSymbolVersion>) {
-            // In case of base version, it just contains the name of the
-            // module, not an actual symbol version.
-            // In such case, only print out the connector.
-            if (isBaseVersion(Arg.Flags)) {
-              return Arg.VersionSuffix;
-            }
-          }
           return Arg.VersionSuffix;
         } else {
           return std::nullopt;
