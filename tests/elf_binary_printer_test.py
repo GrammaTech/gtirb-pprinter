@@ -529,7 +529,7 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
             if sym_name:
                 # Find the symbol
                 sym_addr = self.assert_readelf_syms(
-                    readelf.stdout, ("FUNC", "LOCAL", "DEFAULT", sym)
+                    readelf.stdout, ("FUNC", "GLOBAL", "HIDDEN", sym)
                 )[0]
 
                 # The symbol and the DT entry should have the same address
@@ -555,8 +555,8 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
 
     def test_export_dynamic(self):
         """
-        Test that we pass -Wl,--export-dynamic when all
-        global visible symbols are in .dynsym.
+        Test that we pass -Wl,--dynamic-list for any global/visible/exported
+        symbols.
         """
 
         ir, module = gth.create_test_module(
@@ -619,10 +619,28 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
                 (".symtab", index)
             ]
 
+        # Add a global visible non exported symbol
+        block = gth.add_code_block(section_bi, code_bytes, {})
+
+        symbol = gth.add_symbol(module, "f6_symbol", block)
+        module.aux_data["elfSymbolInfo"].data[symbol.uuid] = (
+            0,
+            "FUNC",
+            "GLOBAL",
+            "DEFAULT",
+            0,
+        )
+        module.aux_data["elfSymbolTabIdxInfo"].data[symbol.uuid] = [
+            (".symtab", 5)
+        ]
+
         module.aux_data["libraries"].data.extend(["libc.so"])
 
         # Build binary
         with self.binary_print(ir) as result:
+            self.assertIn(
+                "-Wl,--dynamic-list=", result.completed_process.stdout
+            )
             dynsym = self.readelf(result.path, "--dyn-syms")
             symtab = self.readelf(result.path, "--syms")
 
@@ -636,11 +654,11 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
             # The hidden global are not exported
             self.assertNotIn("f4_symbol", dynsym.stdout)
             self.assertNotIn("f5_symbol", dynsym.stdout)
-            # The hidden global have been transformed to local
+            # The hidden global symbols remain as the same in .symtab.
             self.assert_readelf_syms(
                 symtab.stdout,
-                ("FUNC", "LOCAL", "DEFAULT", "f4_symbol"),
-                ("FUNC", "LOCAL", "DEFAULT", "f5_symbol"),
+                ("FUNC", "GLOBAL", "HIDDEN", "f4_symbol"),
+                ("FUNC", "GLOBAL", "HIDDEN", "f5_symbol"),
             )
 
     def subtest_elf_stack_properties(self, stack_size: int, stack_exec: bool):
@@ -681,6 +699,23 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
         for stack_size, stack_exec in subtests:
             with self.subTest(stack_size=stack_size, stack_exec=stack_exec):
                 self.subtest_elf_stack_properties(stack_size, stack_exec)
+
+    def test_elf_soname_property(self):
+        """
+        Test generating `-Wl,-soname`
+        """
+        ir, module, _ = self.build_basic_ir()
+
+        module.aux_data["elfSoname"] = gtirb.AuxData(
+            type_name="string", data="mylib.so"
+        )
+
+        with self.binary_print(ir, "-S") as result:
+            readelf = self.readelf(result.path, "-d")
+            self.assertRegexMatch(
+                readelf.stdout,
+                r"\(SONAME\)\s+Library soname:\s+\[mylib\.so\]\s+",
+            )
 
     def test_dummyso_arm(self):
         """

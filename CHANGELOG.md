@@ -18,6 +18,9 @@
     definitions (not its needed symbols).
   * Create a different version script for dummy-so dependencies using the
     needed symbol versions.
+  * Add `-Wl,-soname` argument for `elfSoname` aux-data
+  * Requires gtirb >=2.1.0
+  * Remove generation for `--export-dynamic`, and instead, add generation for `--dynamic-list` in binary printer
 
 # 2.1.0
   * `--asm` option now prints the assembly for each module of an IR separately
