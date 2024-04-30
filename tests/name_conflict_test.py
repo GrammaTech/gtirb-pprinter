@@ -77,6 +77,8 @@ class NameConflictTest(unittest.TestCase):
         db = add_data_block(bi2, b"hello")
         add_symbol(m, "f1_disambig_0x1000_0", db)
         add_function(m, "f1", cb)
+        add_function(m, "f1", cb)
+        add_function(m, "f2", cb)
         add_function(m, "f2", cb)
         add_function(m, "f2", cb)
         add_function(m, "f1", cb2)
@@ -89,6 +91,8 @@ class NameConflictTest(unittest.TestCase):
         self.assertIn("f1_disambig_0x1000_1:", asm)
         self.assertIn("f1_disambig_0x1000_2:", asm)
         self.assertIn("f1_disambig_0x1001_0:", asm)
+        self.assertIn("f1:", asm)
 
         self.assertIn("f2_disambig_0x1000_0", asm)
         self.assertIn("f2_disambig_0x1000_1", asm)
+        self.assertIn("f2:", asm)

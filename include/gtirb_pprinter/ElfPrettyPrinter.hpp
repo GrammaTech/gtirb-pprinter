@@ -160,6 +160,9 @@ protected:
 
   std::optional<uint64_t> getAlignment(const gtirb::CodeBlock& Block) override;
 
+  const gtirb::Symbol* getBestSymbol(
+      const std::set<const gtirb::Symbol*, CmpSymPtr>& Symbols) const override;
+
 private:
   bool TlsGdSequence = false;
   void computeFunctionAliases();

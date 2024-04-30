@@ -11,6 +11,7 @@ import hello_world
 
 from pprinter_helpers import (
     BinaryPPrinterTest,
+    run_asm_pprinter,
     run_asm_pprinter_with_version_script,
 )
 
@@ -28,7 +29,7 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
     def assert_readelf_syms(
         self,
         readelf: typing.Union[str, Path],
-        *syms: typing.List[typing.Tuple[str, str, str, str]]
+        *syms: typing.List[typing.Tuple[str, str, str, str]],
     ) -> typing.List[int]:
         """
         Assert that a symbol is present in the given readelf output, and return
@@ -40,9 +41,9 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
         if isinstance(readelf, Path):
             readelf = self.readelf(readelf, "--dyn-syms").stdout
 
-        template = r"([0-9a-f]+)\s+\d+\s+{}\s+{}\s+{}\s+(UND|\d+)\s+{}"
+        pattern = r"([0-9a-f]+)\s+\d+\s+{}\s+{}\s+{}\s+(UND|\d+)\s+{}\s+"
         return [
-            self.assertRegexMatch(readelf, template.format(*s)).group(1)
+            self.assertRegexMatch(readelf, pattern.format(*s)).group(1)
             for s in syms
         ]
 
@@ -184,7 +185,8 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
 
             # Ensure the TLS symbol is linked
             self.assert_readelf_syms(
-                result.path, ("TLS", "GLOBAL", "DEFAULT", "__lib_value")
+                result.path,
+                ("TLS", "GLOBAL", "DEFAULT", "__lib_value@LIBVALUE_1.0"),
             )
 
     def test_dummyso_versioned_syms(self):
@@ -305,6 +307,105 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
         with self.binary_print(ir, "--dummy-so", "yes", "--shared"):
             # Just verify binary_print succeeded.
             pass
+
+    def test_base_version(self):
+        """
+        Make sure that base version is not printed out
+        """
+        ir, module, bi = self.build_basic_ir()
+
+        foo_block = gth.add_code_block(bi, b"\xC3")
+        foo_uuid = gth.add_function(module, "foo", foo_block)
+
+        # Get the foo function symbol
+        symbol_foo = module.aux_data["functionNames"].data[foo_uuid]
+        module.aux_data["elfSymbolInfo"].data[symbol_foo.uuid] = (
+            0,
+            "FUNC",
+            "GLOBAL",
+            "DEFAULT",
+            0,
+        )
+        # Create another symbol pointing to the same block
+        symbol_foo2 = gth.add_symbol(module, "foo", foo_block)
+        module.aux_data["elfSymbolInfo"].data[symbol_foo2.uuid] = (
+            0,
+            "FUNC",
+            "GLOBAL",
+            "DEFAULT",
+            0,
+        )
+
+        bar_block = gth.add_code_block(bi, b"\xC3")
+        bar_uuid = gth.add_function(module, "bar", bar_block)
+
+        # Get the bar function symbol
+        symbol_bar = module.aux_data["functionNames"].data[bar_uuid]
+        module.aux_data["elfSymbolInfo"].data[symbol_bar.uuid] = (
+            0,
+            "FUNC",
+            "GLOBAL",
+            "DEFAULT",
+            0,
+        )
+
+        module.aux_data["elfSymbolVersions"] = gtirb.AuxData(
+            type_name=(
+                "tuple<mapping<uint16_t,tuple<sequence<string>,uint16_t>>,"
+                "mapping<string,mapping<uint16_t,string>>,"
+                "mapping<UUID,tuple<uint16_t,bool>>>"
+            ),
+            data=(
+                # ElfSymVerDefs
+                {
+                    1: (["LIBA_1.0"], 0),
+                    # Flags=1: base version
+                    2: (["libmya.so"], 1),
+                },
+                # ElfSymVerNeeded
+                {"libmya.so": {1: "LIBA_1.0"}},
+                # ElfSymbolVersionsEntries
+                {
+                    symbol_foo.uuid: (1, True),
+                    # symbol_foo2 gets the base version: @: hidden=True
+                    symbol_foo2.uuid: (2, True),
+                    # symbol_bar gets the base version: @@: hidden=False
+                    symbol_bar.uuid: (2, False),
+                },
+            ),
+        )
+
+        asm = run_asm_pprinter(ir)
+        print(asm)
+
+        self.assertRegexMatch(asm, r"foo@LIBA_1.0")
+        # The base version should not be printed out.
+        self.assertNotRegex(
+            asm,
+            r"\.symver\s*.*,foo@libmya.so",
+            msg="The base version 'libmya.so' should not be printed out",
+        )
+        self.assertNotRegex(
+            asm,
+            r"\.symver\s*.*,bar@@libmya.so|\.symver\s*.*,bar@@@libmya.so",
+            msg="The base version 'libmya.so' should not be printed out",
+        )
+
+        # Build binary
+        with self.binary_print(ir, "--shared") as result:
+            readelf = self.readelf(result.path, "--syms", "--dynamic")
+
+        # The unversioned symbol `foo` should exist.
+        self.assert_readelf_syms(
+            readelf.stdout,
+            ("FUNC", "GLOBAL", "DEFAULT", "foo"),
+        )
+
+        # The unversioned symbol `bar` should exist.
+        self.assert_readelf_syms(
+            readelf.stdout,
+            ("FUNC", "GLOBAL", "DEFAULT", "bar"),
+        )
 
     def test_use_gcc(self):
         """

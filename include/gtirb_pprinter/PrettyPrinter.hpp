@@ -181,6 +181,10 @@ enum DynMode {
   DYN_MODE_NONE,
 };
 
+struct CmpSymPtr {
+  bool operator()(const gtirb::Symbol* A, const gtirb::Symbol* B) const;
+};
+
 /// The primary interface for pretty-printing GTIRB objects. The typical flow
 /// is to create a PrettyPrinter, configure it (e.g., set the output syntax,
 /// enable/disable debugging messages, etc.), then print one or more IR objects.
@@ -481,6 +485,9 @@ protected:
   virtual std::optional<std::string>
   getForwardedSymbolName(const gtirb::Symbol* symbol) const;
   virtual gtirb::Symbol* getForwardedSymbol(const gtirb::Symbol* Sym) const;
+
+  virtual const gtirb::Symbol*
+  getBestSymbol(const std::set<const gtirb::Symbol*, CmpSymPtr>& Symbols) const;
 
   // Currently, this only works for symbolic expressions in data blocks.
   // For the symbolic expressions that are part of code blocks, Capstone

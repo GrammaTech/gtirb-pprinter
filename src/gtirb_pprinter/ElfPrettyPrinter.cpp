@@ -501,6 +501,31 @@ ElfPrettyPrinter::getAlignment(const gtirb::CodeBlock& Block) {
   return std::nullopt;
 }
 
+const gtirb::Symbol* ElfPrettyPrinter::getBestSymbol(
+    const std::set<const gtirb::Symbol*, CmpSymPtr>& Symbols) const {
+  // Prioritize global/exported symbols over local symbols.
+  // If all the ambiguous symbols have versions,
+  // choose the one with the base version.
+  std::set<const gtirb::Symbol*, CmpSymPtr> Globals;
+  for (auto& Symbol : Symbols) {
+    auto Info = aux_data::getElfSymbolInfo(*Symbol);
+    if (!Info || Info->Binding == "LOCAL" || Info->Visibility != "DEFAULT") {
+      continue;
+    }
+    if (aux_data::hasBaseVersion(*Symbol)) {
+      Globals.clear();
+      Globals.insert(Symbol);
+      break;
+    }
+    Globals.insert(Symbol);
+  }
+  if (Globals.size() > 0) {
+    return *(Globals.begin());
+  } else {
+    return PrettyPrinterBase::getBestSymbol(Symbols);
+  }
+}
+
 bool ElfPrettyPrinterFactory::isStaticBinary(
     const gtirb::Module& Module) const {
   return Module.findSections(".dynamic").empty();
