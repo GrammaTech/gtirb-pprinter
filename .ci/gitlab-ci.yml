@@ -373,6 +373,7 @@ build-ubuntu20-gcc-gcov:
   stage: build
   variables:
     OS: 'ubuntu20'
+  coverage: '/^TOTAL.*\s+(\d+\%)$/'
   script:
     - !reference [.setup-apt]
     - !reference [.install-deps]
