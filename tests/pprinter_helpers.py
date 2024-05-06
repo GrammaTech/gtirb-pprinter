@@ -4,8 +4,12 @@ Utilities for testing gtirb-pprinter.
 
 import concurrent.futures
 import contextlib
+import dataclasses
 import os
 import os.path
+import platform
+from pathlib import Path
+import re
 import socket
 import sys
 import subprocess
@@ -118,11 +122,11 @@ def run_asm_pprinter(ir: gtirb.IR, args: Iterable[str] = ()) -> str:
     :param args: Any additional arguments for the pretty printer.
     :returns: The assembly string.
     """
-    asm, _ = run_asm_pprinter_with_outputput(ir, args)
+    asm, _ = run_asm_pprinter_with_output(ir, args)
     return asm
 
 
-def run_asm_pprinter_with_outputput(
+def run_asm_pprinter_with_output(
     ir: gtirb.IR, args: Iterable[str] = ()
 ) -> Tuple[str, str]:
     """
@@ -150,6 +154,41 @@ def run_asm_pprinter_with_outputput(
 
         with open(asm_path, "r") as f:
             return f.read(), proc.stdout.decode("ascii")
+
+
+def run_asm_pprinter_with_version_script(
+    ir: gtirb.IR, args: Iterable[str] = ()
+) -> str:
+    """
+    Runs the pretty-printer to generate a version script
+    :param ir: The IR object to print.
+    :param args: Any additional arguments for the pretty printer.
+    :returns: The contents of the generated version script
+    """
+    with temp_directory() as tmpdir:
+        gtirb_path = os.path.join(tmpdir, "test.gtirb")
+        ir.save_protobuf(gtirb_path)
+
+        asm_path = os.path.join(tmpdir, "test.asm")
+        vs_path = os.path.join(tmpdir, "test.map")
+        subprocess.run(
+            (
+                pprinter_binary(),
+                gtirb_path,
+                "--asm",
+                asm_path,
+                "--version-script",
+                vs_path,
+                *args,
+            ),
+            check=False,
+            cwd=tmpdir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+
+        with open(vs_path, "r") as f:
+            return f.read()
 
 
 def run_binary_pprinter_mock_out(
@@ -296,3 +335,94 @@ class PPrinterTest(unittest.TestCase):
             else:
                 msg = default_message
             self.fail(msg)
+
+    def assertRegexMatch(self, text: str, pattern: str) -> re.Match:
+        """
+        Like unittest's assertRegex, but also return the match object on
+        success.
+
+        assertRegex provides a nice output on failure, but doesn't return the
+        match object, so we assert, and then search.
+        """
+        compiled = re.compile(pattern)
+        self.assertRegex(text, compiled)
+        return re.search(compiled, text)
+
+
+def vs_arch(ir: gtirb.IR) -> str:
+    """
+    Get the appropriate vcvarsall.bat arch string for an IR
+    """
+    isa = ir.modules[0].isa
+
+    if isa == gtirb.Module.ISA.X64:
+        return "x64"
+    elif isa == gtirb.Module.ISA.IA32:
+        return "x86"
+    else:
+        raise Exception(f"ISA not supported for vcvarsall.bat: {isa}")
+
+
+def vsenv_run(cmd, arch: str, *args, **kwargs) -> subprocess.CompletedProcess:
+    """
+    Run a command in with the Visual Studio environment enabled
+
+    :param cmd: Command to pass to subprocess.run()
+    :param arch: argument for vcvarsall.bat, see MSVC help (link below)
+
+    Remaining args/kwargs are passed through to subprocess.run
+
+    See MSVC docs for details on vcvarsall.bat:
+    https://learn.microsoft.com/en-us/cpp/build/building-on-the-command-line?view=msvc-170
+    """
+    if not isinstance(cmd, str):
+        cmd = " ".join(str(a) for a in cmd)
+
+    cmd = f"C:\\VS\\VC\\Auxiliary\\Build\\vcvarsall.bat {arch} && {cmd}"
+    kwargs["shell"] = True
+    return subprocess.run(cmd, *args, **kwargs)
+
+
+@dataclasses.dataclass
+class BinaryPrintResult:
+    """Result of a executing binary print command"""
+
+    path: Path
+    completed_process: subprocess.CompletedProcess
+
+
+class BinaryPPrinterTest(PPrinterTest):
+    @contextlib.contextmanager
+    def binary_print(self, ir: gtirb.IR, *extra_args) -> BinaryPrintResult:
+        """
+        Run binary printer and provide a path to the compiled binary
+        """
+        with tempfile.TemporaryDirectory() as testdir:
+            testdir = Path(testdir)
+            gtirb_path = testdir / "test.gtirb"
+            exe_path = testdir / "test_rewritten"
+            ir.save_protobuf(str(gtirb_path))
+
+            args = [
+                pprinter_binary(),
+                "--ir",
+                gtirb_path,
+                "--binary",
+                exe_path,
+                *extra_args,
+            ]
+
+            run_kw = dict(
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            if platform.system() == "Windows":
+                # On Windows, we need to run the binary printer in the correct
+                # Visual Studio environment, depending on the target arch.
+                completed_process = vsenv_run(args, vs_arch(ir), **run_kw)
+            else:
+                completed_process = subprocess.run(args, **run_kw)
+
+            self.assertTrue(exe_path.exists())
+            yield BinaryPrintResult(exe_path, completed_process)

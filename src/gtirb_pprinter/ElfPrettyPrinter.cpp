@@ -94,6 +94,7 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
       elfSyntax(syntax_) {
 
   skipVersionSymbols();
+  computeFunctionAliases();
 }
 
 void ElfPrettyPrinter::skipVersionSymbols() {
@@ -111,6 +112,24 @@ void ElfPrettyPrinter::skipVersionSymbols() {
   for (auto& [Library, VersionMap] : SymVersNeeded) {
     for (auto& [VerId, VerName] : VersionMap) {
       policy.skipSymbols.insert(VerName);
+    }
+  }
+}
+
+void ElfPrettyPrinter::computeFunctionAliases() {
+  for (const auto* Symbol : FunctionSymbols) {
+    if (!Symbol->getAddress()) {
+      continue;
+    }
+    for (const auto& Alias : module.findSymbols(*Symbol->getAddress())) {
+      if (&Alias == Symbol) {
+        continue;
+      }
+      auto AliasSymInfo = aux_data::getElfSymbolInfo(Alias);
+      if (AliasSymInfo &&
+          (AliasSymInfo->Type == "FUNC" || AliasSymInfo->Type == "GNU_IFUNC")) {
+        FunctionAliases[Symbol].insert(&Alias);
+      }
     }
   }
 }
@@ -248,7 +267,7 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
       assert(!"unknown visibility in elfSymbolInfo!");
     }
     printSymbolType(os, Name, *SymbolInfo);
-    if (SymbolInfo->Type == "OBJECT") {
+    if (SymbolInfo->Type == "OBJECT" || SymbolInfo->Type == "TLS") {
       printSymbolSize(os, Name, *SymbolInfo);
     }
     printBar(os, false);
@@ -278,12 +297,19 @@ void ElfPrettyPrinter::printSymbolType(
 }
 
 void ElfPrettyPrinter::printSymbolSize(
-    std::ostream& os, std::string& Name,
+    std::ostream& OS, std::string& Name,
     const aux_data::ElfSymbolInfo& SymbolInfo) {
   auto Size = SymbolInfo.Size;
   if (Size != 0) {
-    os << ".size" << ' ' << Name << ", " << Size << "\n";
+    OS << elfSyntax.symSize() << ' ' << Name << ", " << Size << "\n";
   }
+}
+
+void ElfPrettyPrinter::printFunctionEnd(std::ostream& OS,
+                                        const gtirb::Symbol& FunctionSymbol) {
+  std::string FunctionName = getSymbolName(FunctionSymbol);
+  OS << elfSyntax.symSize() << ' ' << FunctionName << ", . - " << FunctionName
+     << "\n";
 }
 
 void ElfPrettyPrinter::printSymExprSuffix(std::ostream& OS,
@@ -347,10 +373,10 @@ void ElfPrettyPrinter::printSymbolDefinitionRelativeToPC(
   os << "\n";
 }
 
-const gtirb::Section* IsGlobalPLTSym(const gtirb::Symbol& Sym) {
+const gtirb::Section* IsExternalPLTSym(const gtirb::Symbol& Sym) {
   if (Sym.getAddress()) {
     if (auto Info = aux_data::getElfSymbolInfo(Sym)) {
-      if (Info->Binding == "GLOBAL") {
+      if (Info->Binding == "GLOBAL" || Info->Binding == "WEAK") {
         if (auto Block = Sym.getReferent<gtirb::CodeBlock>()) {
           if (auto ByteInterval = Block->getByteInterval()) {
             if (auto Section = ByteInterval->getSection()) {
@@ -372,7 +398,7 @@ void ElfPrettyPrinter::printIntegralSymbols(std::ostream& os) {
 
   // Print integral symbols attached to the PLT.
   for (const auto& sym : module.symbols_by_name()) {
-    auto Section = IsGlobalPLTSym(sym);
+    auto Section = IsExternalPLTSym(sym);
     if (Section && shouldSkip(policy, *Section)) {
       // Symbol is attached to the .plt, but it is skipped.
       // In such cases, we need to emit the symbol definition, ensuring
@@ -475,6 +501,31 @@ ElfPrettyPrinter::getAlignment(const gtirb::CodeBlock& Block) {
   return std::nullopt;
 }
 
+const gtirb::Symbol* ElfPrettyPrinter::getBestSymbol(
+    const std::set<const gtirb::Symbol*, CmpSymPtr>& Symbols) const {
+  // Prioritize global/exported symbols over local symbols.
+  // If all the ambiguous symbols have versions,
+  // choose the one with the base version.
+  std::set<const gtirb::Symbol*, CmpSymPtr> Globals;
+  for (auto& Symbol : Symbols) {
+    auto Info = aux_data::getElfSymbolInfo(*Symbol);
+    if (!Info || Info->Binding == "LOCAL" || Info->Visibility != "DEFAULT") {
+      continue;
+    }
+    if (aux_data::hasBaseVersion(*Symbol)) {
+      Globals.clear();
+      Globals.insert(Symbol);
+      break;
+    }
+    Globals.insert(Symbol);
+  }
+  if (Globals.size() > 0) {
+    return *(Globals.begin());
+  } else {
+    return PrettyPrinterBase::getBestSymbol(Symbols);
+  }
+}
+
 bool ElfPrettyPrinterFactory::isStaticBinary(
     const gtirb::Module& Module) const {
   return Module.findSections(".dynamic").empty();
@@ -498,7 +549,11 @@ ElfPrettyPrinterFactory::ElfPrettyPrinterFactory() {
           /// Functions to avoid printing.
           {"call_weak_fn", "deregister_tm_clones", "_dl_relocate_static_pie",
            "__do_global_dtors_aux", "frame_dummy", "_start",
-           "register_tm_clones", "__libc_csu_fini", "__libc_csu_init"},
+           "register_tm_clones", "__libc_csu_fini", "__libc_csu_init",
+           "__x86.get_pc_thunk.ax", "__x86.get_pc_thunk.bp",
+           "__x86.get_pc_thunk.bx", "__x86.get_pc_thunk.cx",
+           "__x86.get_pc_thunk.di", "__x86.get_pc_thunk.dx",
+           "__x86.get_pc_thunk.si"},
 
           /// Symbols to avoid printing.
           {"__bss_start", "__data_start", "__dso_handle", "_fp_hw",
@@ -532,19 +587,27 @@ ElfPrettyPrinterFactory::ElfPrettyPrinterFactory() {
       ".got.plt",      ".rela.dyn", ".rela.plt"};
   completeSkipSections.insert(PLTSections.begin(), PLTSections.end());
 
-  registerNamedPolicy("complete",
-                      PrintingPolicy{
-                          /// Functions to avoid printing.
-                          {},
-                          /// Symbols to avoid printing.
-                          {},
-                          /// Sections to avoid printing.
-                          completeSkipSections,
-                          /// Sections with possible data object exclusion.
-                          {},
-                          /// Extra compiler arguments.
-                          {"-nostartfiles"},
-                      });
+  registerNamedPolicy(
+      "complete",
+      PrintingPolicy{
+          /// Functions to avoid printing.
+          {},
+          /// Symbols to avoid printing.
+          {},
+          /// Sections to avoid printing.
+          completeSkipSections,
+          /// Sections with possible data object exclusion.
+          {},
+          /// Extra compiler arguments.
+          // Disable startup files. Functions from startup files should be
+          // reprinted and assembled from the GTIRB, and will not be
+          // re-linked.
+          // Do not use default libs. We explicitly add all libraries to the
+          // command line. This also disables static libgcc.a; functions from
+          // it should not need to be re-linked because they should be printed
+          // as part of the assembly.
+          {"-nostartfiles", "-nodefaultlibs"},
+      });
 }
 
 } // namespace gtirb_pprint

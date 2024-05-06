@@ -140,9 +140,21 @@ std::string
 MasmPrettyPrinter::getSymbolName(const gtirb::Symbol& Symbol) const {
 
   std::string Name = PrettyPrinterBase::getSymbolName(Symbol);
-  // In case of IA32, this is not completely understood why, but
-  // link.exe (msvc) mangles differently.
-  // We'll apply this heuristic until it's fully understood.
+  // In case of IA32, the MSVC compiler decorates symbols according to the
+  // source language and calling convention. C++ names are mangled and begin
+  // with `?`. MSVC generates C-language object files that contain decorated
+  // symbols; we rename symbols in the assembly listing to emulate this
+  // behavior.
+  // To export symbols, we generate a `.def` file, generate an exports file
+  // (.exp) from that file, and pass it to the linker. Empirically, using
+  // undecorated names in the `.def` file results in an exports file with
+  // names decorated with a prefixed underscore. If the symbols haven't been
+  // decorated in the assembly, the linker fails to find the symbols with an
+  // "unresolved external symbol" error.
+  // We assume any symbol that does not begin with `?` is `__cdecl` and
+  // prefix an underscore to ensure we can link correctly.
+  // See https://learn.microsoft.com/en-us/cpp/build/reference/decorated-names
+  // for more details.
   if (module.getISA() == gtirb::ISA::IA32 && Name[0] != '?') {
     bool Imported = Imports.count(Symbol.getUUID()) > 0;
     bool Exported = Exports.count(Symbol.getUUID()) > 0;
@@ -490,6 +502,9 @@ std::string MasmPrettyPrinter::getRegisterName(unsigned int Reg) const {
 void MasmPrettyPrinter::printSymbolDefinition(std::ostream& Stream,
                                               const gtirb::Symbol& Symbol) {
   std::string Name = getSymbolName(Symbol);
+  // In MASM procedures can be exported by declaring "PROC EXPORT"
+  // Non-procedures (data) need to be declared "PUBLIC" AND
+  // be specified in the .def file.
   bool Exported = Exports.count(Symbol.getUUID()) > 0;
   if (Symbol.getReferent<gtirb::DataBlock>()) {
     if (Exported) {
@@ -500,17 +515,29 @@ void MasmPrettyPrinter::printSymbolDefinition(std::ostream& Stream,
     const gtirb::CodeBlock* Block = Symbol.getReferent<gtirb::CodeBlock>();
     bool SafeSeh = aux_data::getPeSafeExceptionHandlers(module).count(
                        Block->getUUID()) > 0;
-    if (Exported) {
-      Stream << Name << ' ' << masmSyntax.proc() << " EXPORT\n"
-             << Name << ' ' << masmSyntax.endp() << '\n';
-    } else if (SafeSeh) {
-      Stream << Name << ' ' << masmSyntax.proc() << "\n"
-             << ".SAFESEH " << Name << "\n"
-             << Name << ' ' << masmSyntax.endp() << '\n';
+    bool FunctionSymbol = FunctionSymbols.count(&Symbol) > 0;
+    if (FunctionSymbol) {
+      Stream << Name << ' ' << masmSyntax.proc();
+      if (Exported) {
+        Stream << " EXPORT";
+      }
+      Stream << "\n";
+      if (SafeSeh) {
+        Stream << ".SAFESEH " << Name << "\n";
+      }
     } else {
-      Stream << Name << ":\n";
+      if (Exported) {
+        Stream << syntax.global() << ' ' << Name << '\n';
+      }
+      // double colon makes labels available outside procedures
+      Stream << Name << "::\n";
     }
   }
+}
+
+void MasmPrettyPrinter::printFunctionEnd(std::ostream& OS,
+                                         const gtirb::Symbol& FunctionSymbol) {
+  OS << getSymbolName(FunctionSymbol) << ' ' << masmSyntax.endp() << '\n';
 }
 
 void MasmPrettyPrinter::printSymbolDefinitionRelativeToPC(

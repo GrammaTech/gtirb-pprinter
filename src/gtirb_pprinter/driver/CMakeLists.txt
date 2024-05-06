@@ -1,6 +1,8 @@
 set(PRETTY_PRINTER gtirb-pprinter)
 
-add_executable(${PRETTY_PRINTER} Logger.h pretty_printer.cpp)
+add_executable(
+  ${PRETTY_PRINTER} Logger.h parser.hpp parser.cpp printing_paths.hpp
+                    printing_paths.cpp pretty_printer.cpp)
 
 set_target_properties(${PRETTY_PRINTER} PROPERTIES FOLDER "debloat")
 

@@ -1,7 +1,11 @@
 FROM docker.grammatech.com/rewriting/gtirb/static
 
-# (re-)install Boost
-RUN apt-get -y update && apt-get -y install libboost-system-dev libboost-filesystem-dev libboost-program-options-dev
+RUN apt-get -y update && \
+    apt-get -y install \
+        libboost-system-dev \
+        libboost-filesystem-dev \
+        libboost-program-options-dev \
+        gcc-arm-linux-gnueabihf
 
 # Install pip
 RUN apt-get -y update && apt-get -y install python3-pip

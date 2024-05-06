@@ -66,10 +66,7 @@ TempFile::TempFile(TempFile&& Other)
 }
 
 TempFile::~TempFile() {
-  if (isOpen()) {
-    LOG_WARNING << "Removing open temporary file: " << Name << "\n";
-    close();
-  }
+  assert(!isOpen() && "Temporary file not closed");
   if (!Empty && !Name.empty()) {
     boost::system::error_code ErrorCode;
     fs::remove(Name, ErrorCode);
@@ -132,4 +129,17 @@ std::optional<int> execute(const std::string& Tool,
   }
   return bp::system(Path, Args);
 }
+
+void copyFile(const std::string& src, const std::string& dest) {
+  fs::path DestPath(dest);
+  if (DestPath.has_parent_path()) {
+    boost::filesystem::create_directories(DestPath.parent_path());
+  }
+  LOG_INFO << "Saving file to " << dest << "\n";
+  fs::path SrcPath(src);
+  auto perms = fs::status(SrcPath).permissions();
+  fs::copy_file(src, dest, fs::copy_option::overwrite_if_exists);
+  fs::permissions(DestPath, perms);
+}
+
 } // namespace gtirb_bprint

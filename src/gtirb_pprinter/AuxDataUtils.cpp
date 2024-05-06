@@ -59,6 +59,10 @@ getFunctionBlocks(const gtirb::Module& Mod) {
   return util::getOrDefault<gtirb::schema::FunctionBlocks>(Mod);
 }
 
+std::map<gtirb::UUID, gtirb::UUID> getFunctionNames(const gtirb::Module& Mod) {
+  return util::getOrDefault<gtirb::schema::FunctionNames>(Mod);
+}
+
 std::optional<std::vector<CFIDirective>>
 getCFIDirectives(const gtirb::Offset& Offset, const gtirb::Module& Mod) {
   if (auto Lst = util::getByOffset<gtirb::schema::CfiDirectives>(Offset, Mod)) {
@@ -143,23 +147,20 @@ void setElfSymbolInfo(gtirb::Symbol& Sym, aux_data::ElfSymbolInfo& Info) {
   (*Table)[Sym.getUUID()] = Info.asAuxData();
 }
 
-bool hasVersionedSymDefs(const gtirb::IR& IR) {
-  for (const gtirb::Module& Module : IR.modules()) {
-    if (Module.getFileFormat() != gtirb::FileFormat::ELF) {
-      continue;
-    }
-
-    auto SymbolVersions = aux_data::getSymbolVersions(Module);
-    if (!SymbolVersions) {
-      continue;
-    }
-
-    auto& [SymVerDefs, SymVersNeeded, SymVerEntries] = *SymbolVersions;
-    if (SymVerDefs.size() > 0) {
-      return true;
-    }
+bool hasVersionedSymDefs(const gtirb::Module& Module) {
+  if (Module.getFileFormat() != gtirb::FileFormat::ELF) {
+    return false;
   }
 
+  auto SymbolVersions = aux_data::getSymbolVersions(Module);
+  if (!SymbolVersions) {
+    return false;
+  }
+
+  auto& [SymVerDefs, SymVersNeeded, SymVerEntries] = *SymbolVersions;
+  if (SymVerDefs.size() > 0) {
+    return true;
+  }
   return false;
 }
 
@@ -184,7 +185,9 @@ SymbolVersionInfo getSymbolVersionInfo(const gtirb::Symbol& Sym) {
   if (VersionDef != SymVerDefs.end()) {
     std::string Connector = Hidden ? "@" : "@@";
     auto& [VersionStrs, Flags] = VersionDef->second;
-    InternalSymbolVersion Info = {Connector + *VersionStrs.begin(), Flags};
+    std::string VerSuffix =
+        isBaseVersion(Flags) ? Connector : Connector + *VersionStrs.begin();
+    InternalSymbolVersion Info = {VerSuffix, Flags};
     return Info;
   }
 
@@ -197,6 +200,25 @@ SymbolVersionInfo getSymbolVersionInfo(const gtirb::Symbol& Sym) {
     }
   }
   return UndefinedSymbolVersion();
+}
+
+bool isBaseVersion(uint64_t Flags) {
+  const uint16_t VER_FLG_BASE = 0x1;
+  return ((Flags & VER_FLG_BASE) == VER_FLG_BASE);
+}
+
+bool hasBaseVersion(const gtirb::Symbol& Sym) {
+  auto VersionInfo = getSymbolVersionInfo(Sym);
+  return std::visit(
+      [](auto& Arg) -> bool {
+        using T = std::decay_t<decltype(Arg)>;
+        if constexpr (std::is_same_v<T, InternalSymbolVersion>) {
+          return isBaseVersion(Arg.Flags);
+        } else {
+          return false;
+        }
+      },
+      VersionInfo);
 }
 
 std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym) {

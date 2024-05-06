@@ -56,6 +56,11 @@ template <class T> T* nodeFromUUID(gtirb::Context& C, gtirb::UUID id) {
   return dyn_cast_or_null<T>(gtirb::Node::getByUUID(C, id));
 }
 
+template <class T>
+const T* nodeFromUUID(const gtirb::Context& C, gtirb::UUID id) {
+  return dyn_cast_or_null<T>(gtirb::Node::getByUUID(C, id));
+}
+
 /// Whether a pretty printer should include debugging messages in it output.
 enum ListingMode {
   ListingAssembler, // The output is intended for consumption by an assembler
@@ -174,6 +179,10 @@ enum DynMode {
   DYN_MODE_SHARED,
   DYN_MODE_PIE,
   DYN_MODE_NONE,
+};
+
+struct CmpSymPtr {
+  bool operator()(const gtirb::Symbol* A, const gtirb::Symbol* B) const;
 };
 
 /// The primary interface for pretty-printing GTIRB objects. The typical flow
@@ -347,6 +356,10 @@ protected:
                                   const gtirb::Section& section);
   virtual void printSectionFooterDirective(std::ostream& os,
                                            const gtirb::Section& section) = 0;
+
+  // Print the function ending of the function whose name is the given symbol.
+  virtual void printFunctionEnd(std::ostream& OS,
+                                const gtirb::Symbol& FunctionSymbol) = 0;
   virtual void printBlock(std::ostream& os, const gtirb::CodeBlock& block);
   virtual void printBlock(std::ostream& os, const gtirb::DataBlock& block);
   virtual void printBlockContents(std::ostream& os,
@@ -459,15 +472,22 @@ protected:
   gtirb::Context& context;
   const gtirb::Module& module;
 
-  std::optional<std::string> getContainerFunctionName(gtirb::Addr Addr) const;
-  virtual std::string getFunctionName(gtirb::Addr x) const;
+  [[deprecated(
+      "Use getContainerFunctionSymbol instead.")]] std::optional<std::string>
+  getContainerFunctionName(gtirb::Addr Addr) const;
+  [[deprecated]] virtual std::string getFunctionName(gtirb::Addr x) const;
+  [[deprecated("Use attribute FunctionFirstBlocks instead.")]] bool
+  isFunctionEntry(gtirb::Addr Addr) const;
+  [[deprecated("Use attribute FunctionLastBlocks instead.")]] bool
+  isFunctionLastBlock(gtirb::Addr Addr) const;
+
   virtual std::string getSymbolName(const gtirb::Symbol& symbol) const;
   virtual std::optional<std::string>
   getForwardedSymbolName(const gtirb::Symbol* symbol) const;
   virtual gtirb::Symbol* getForwardedSymbol(const gtirb::Symbol* Sym) const;
 
-  bool isFunctionEntry(gtirb::Addr Addr) const;
-  bool isFunctionLastBlock(gtirb::Addr Addr) const;
+  virtual const gtirb::Symbol*
+  getBestSymbol(const std::set<const gtirb::Symbol*, CmpSymPtr>& Symbols) const;
 
   // Currently, this only works for symbolic expressions in data blocks.
   // For the symbolic expressions that are part of code blocks, Capstone
@@ -505,9 +525,45 @@ private:
 
   static bool x86InstHasMoffsetEncoding(const cs_insn& inst);
 
+  /** Populate Function-related fields.*/
+  void computeFunctionInformation();
+  /** Populate AmbiguousSymbols */
+  void computeAmbiguousSymbols();
+
+  /** Get the symbol of the function that contains the block.
+   * This could return `nullptr` if the block does not belong to any function
+   * or if the function does not have any symbol associated to it.*/
+  const gtirb::Symbol*
+  getContainerFunctionSymbol(const gtirb::UUID& Uuid) const;
+
+  // A function is skipped if its name or any of its aliases are
+  // in the function skip policy.
+  bool isFunctionSkipped(const PrintingPolicy& Policy,
+                         const gtirb::Symbol& FunctionSymbol) const;
+
+  /** Mapping from function UUIDs to the symbols that define the function
+   * name.*/
+  std::map<gtirb::UUID, const gtirb::Symbol*> FunctionToSymbols;
+  /** Mapping from Block UUIDs to Function UUIDs.*/
+  std::map<gtirb::UUID, gtirb::UUID> BlockToFunction;
+  /** Set of blocks that are the first in each function.*/
+  std::set<gtirb::UUID> FunctionFirstBlocks;
+  /** Set of block UUIDS that are the last in each function.*/
+  std::set<gtirb::UUID> FunctionLastBlocks;
+
 protected:
-  std::set<gtirb::Addr> functionEntry;
-  std::set<gtirb::Addr> functionLastBlock;
+  [[deprecated("Use FunctionFirstBlocks instead.")]] std::set<gtirb::Addr>
+      functionEntry;
+  [[deprecated("Use FunctionLastBlocks instead.")]] std::set<gtirb::Addr>
+      functionLastBlock;
+
+  /** The set of all symbols associated to a function.*/
+  std::set<const gtirb::Symbol*> FunctionSymbols;
+  /** Mapping from function names to aliases. These are computed depending on
+   * the file format.*/
+  std::map<const gtirb::Symbol*, std::set<const gtirb::Symbol*>>
+      FunctionAliases;
+
   std::map<const gtirb::Symbol*, std::string> AmbiguousSymbols;
   std::string m_accum_comment;
   static std::string s_symaddr_0_warning(uint64_t symAddr);

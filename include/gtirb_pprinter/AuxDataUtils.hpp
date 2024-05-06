@@ -171,6 +171,9 @@ getFunctionEntries(const gtirb::Module& Mod);
 std::map<gtirb::UUID, std::set<gtirb::UUID>>
 getFunctionBlocks(const gtirb::Module& Mod);
 
+// Load all function name UUIDs from the `functionNames' AuxData table.
+std::map<gtirb::UUID, gtirb::UUID> getFunctionNames(const gtirb::Module& Mod);
+
 // Find the size of a symbolic expression by offset (`symbolicExpressionSizes').
 std::optional<uint64_t> getSymbolicExpressionSize(const gtirb::Offset& Offset,
                                                   const gtirb::Module& Mod);
@@ -192,6 +195,7 @@ DEBLOAT_PRETTYPRINTER_EXPORT_API
 std::vector<std::string> getLibraries(const gtirb::Module& Module);
 
 // Load all library path names from the `libraryPaths' AuxData table.
+DEBLOAT_PRETTYPRINTER_EXPORT_API
 std::vector<std::string> getLibraryPaths(const gtirb::Module& Module);
 
 // Load all binary type specifiers from the `binaryType' AuxData table.
@@ -224,11 +228,16 @@ gtirb::Symbol*
 findSymWithBinding(gtirb::Module::symbol_ref_range CandidateSymbols,
                    const std::string& Binding);
 
-// Determine if any versions symbols are defined in the IR.
-DEBLOAT_PRETTYPRINTER_EXPORT_API bool hasVersionedSymDefs(const gtirb::IR& IR);
+// Determine if any version symbols are defined in a module
+DEBLOAT_PRETTYPRINTER_EXPORT_API bool
+hasVersionedSymDefs(const gtirb::Module& Module);
 
 const gtirb::provisional_schema::ElfSymbolVersions::Type*
 getSymbolVersions(const gtirb::Module& M);
+
+bool isBaseVersion(uint64_t Flags);
+
+bool hasBaseVersion(const gtirb::Symbol& Sym);
 
 std::optional<std::string> getSymbolVersionString(const gtirb::Symbol& Sym);
 
@@ -320,7 +329,7 @@ const gtirb::CodeBlock* getCodeBlock(const gtirb::Context& Ctx,
   auto UUID = Mod.getAuxData<Schema>();
   if (UUID) {
     auto Nd = gtirb::Node::getByUUID(Ctx, *UUID);
-    if (const auto* CB = dyn_cast<gtirb::CodeBlock>(Nd)) {
+    if (const auto* CB = dyn_cast_or_null<gtirb::CodeBlock>(Nd)) {
       return CB;
     }
   }

@@ -792,21 +792,6 @@ void ArmPrettyPrinter::printOpIndirect(
   }
 }
 
-std::string ArmPrettyPrinter::getFunctionName(gtirb::Addr x) const {
-  if (isFunctionEntry(x)) {
-    for (auto& s : module.findSymbols(x)) {
-      if (AmbiguousSymbols.count(&s) > 0)
-        continue;
-      // local symbol
-      if (s.getName().find('.') == 0)
-        continue;
-      return s.getName();
-    }
-  }
-
-  return PrettyPrinterBase::getFunctionName(x);
-}
-
 bool ArmPrettyPrinter::printSymbolReference(std::ostream& OS,
                                             const gtirb::Symbol* Symbol) {
   if (Symbol->getName() == "_GLOBAL_OFFSET_TABLE_") {

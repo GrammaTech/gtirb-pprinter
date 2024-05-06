@@ -50,8 +50,7 @@ Mips32PrettyPrinterFactory::Mips32PrettyPrinterFactory() {
   DynamicPolicy.skipSymbols.insert(
       {"_DYNAMIC", "data_start",
        // Include symbols in sections to avoid printing for sectionless binaries
-       "_ITM_deregisterTMCloneTable", "_ITM_registerTMCloneTable",
-       "_Jv_RegisterClasses", "__gmon_start__"});
+       "_Jv_RegisterClasses"});
   DynamicPolicy.skipSections.insert(
       {".MIPS.stubs", ".ctors", ".dtors", ".interp", ".rld_map", ".sdata"});
 
@@ -233,20 +232,40 @@ void Mips32PrettyPrinter::printOperandList(std::ostream& os,
 void Mips32PrettyPrinter::printSymExprPrefix(
     std::ostream& OS, const gtirb::SymAttributeSet& Attrs,
     bool /*IsNotBranch*/) {
-  for (const auto& Attr : Attrs) {
-    switch (Attr) {
-    case gtirb::SymAttribute::LO: {
-      OS << "%lo(";
-    } break;
-    case gtirb::SymAttribute::HI: {
-      OS << "%hi(";
-    } break;
-    case gtirb::SymAttribute::GOT: {
+
+  gtirb::SymAttributeSet UnusedAttrs = Attrs;
+
+  if (Attrs.count(gtirb::SymAttribute::GOT)) {
+    UnusedAttrs.erase(gtirb::SymAttribute::GOT);
+    if (Attrs.count(gtirb::SymAttribute::PAGE)) {
+      UnusedAttrs.erase(gtirb::SymAttribute::PAGE);
+      OS << "%got_page(";
+    } else if (Attrs.count(gtirb::SymAttribute::OFST)) {
+      UnusedAttrs.erase(gtirb::SymAttribute::OFST);
+      OS << "%got_ofst(";
+    } else {
       OS << "%got(";
-    } break;
-    default:
-      assert(!"Unknown sym expr attribute encountered!");
     }
+  } else if (Attrs.count(gtirb::SymAttribute::LO)) {
+    UnusedAttrs.erase(gtirb::SymAttribute::LO);
+    OS << "%lo(";
+  } else if (Attrs.count(gtirb::SymAttribute::HI)) {
+    UnusedAttrs.erase(gtirb::SymAttribute::HI);
+    OS << "%hi(";
+  }
+
+  if (UnusedAttrs.size() > 0) {
+    std::ostringstream FmtAttrs;
+    for (const auto& Attr : UnusedAttrs) {
+      FmtAttrs << static_cast<uint16_t>(Attr);
+      FmtAttrs << ", ";
+    }
+    auto FmtStr = FmtAttrs.str();
+    // Remove trailing ", "
+    FmtStr = FmtStr.substr(0, FmtStr.size() - 2);
+    LOG_WARNING << "Ignoring symbolic expression attributes with no known MIPS "
+                   "representation: "
+                << FmtStr << "\n";
   }
 }
 
@@ -261,7 +280,7 @@ void Mips32PrettyPrinter::printSymExprSuffix(
       OS << ")";
     } break;
     default:
-      assert(!"Unknown sym expr attribute encountered!");
+      break;
     }
   }
 }

@@ -29,7 +29,18 @@
 #include <utility>
 #include <variant>
 
-template <class T> T* nodeFromUUID(gtirb::Context& C, gtirb::UUID id) {
+#ifdef __GNUC__
+#define __BEGIN_DEPRECATED_DECL__()                                            \
+  _Pragma("GCC diagnostic push")                                               \
+      _Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
+#define __END_DEPRECATED_DECL__() _Pragma("GCC diagnostic pop")
+#elif defined(_MSC_VER)
+#define __BEGIN_DEPRECATED_DECL__()                                            \
+  _Pragma("warning(push)") _Pragma("warning(disable : 4996)") // deprecated
+#define __END_DEPRECATED_DECL__() _Pragma("warning(pop)")
+#endif
+
+template <class T> T* nodeFromUUID(const gtirb::Context& C, gtirb::UUID id) {
   return dyn_cast_or_null<T>(gtirb::Node::getByUUID(C, id));
 }
 
@@ -237,30 +248,6 @@ PrettyPrinter::getPolicy(const gtirb::Module& Module) const {
                                  : *Factory.findNamedPolicy(PolicyName);
 }
 
-void PrintingPolicy::findAdditionalSkips(const gtirb::Module& Mod) {
-
-  // FIXME: Make getContainerFunctionName return multiple labels, remove this.
-  // Alias all labels at skipped function blocks; getContainerFunctionName gives
-  // only one label, which may not be in the list of skipped functions. Find the
-  // additional names and a separate pass from adding them to avoid updating the
-  // container while iterating over it.
-  std::vector<std::string> AdditionalSkips;
-  for (const std::string& Name : skipFunctions) {
-    for (const gtirb::Symbol& Symbol : Mod.findSymbols(Name)) {
-      if (const auto* Block = Symbol.getReferent<gtirb::CodeBlock>()) {
-        if (Block->getAddress()) {
-          for (const auto& Other : Mod.findSymbols(*Block->getAddress())) {
-            AdditionalSkips.emplace_back(Other.getName());
-          }
-        }
-      }
-    }
-  }
-  for (const std::string& Name : AdditionalSkips) {
-    skipFunctions.insert(Name);
-  }
-}
-
 int PrettyPrinter::print(std::ostream& Stream, gtirb::Context& Context,
                          const gtirb::Module& Module) const {
   // Find pretty printer factory.
@@ -274,7 +261,6 @@ int PrettyPrinter::print(std::ostream& Stream, gtirb::Context& Context,
   SymbolPolicy.apply(policy.skipSymbols);
   SectionPolicy.apply(policy.skipSections);
   ArraySectionPolicy.apply(policy.arraySections);
-  policy.findAdditionalSkips(Module);
 
   // Create the pretty printer and print the IR.
   if (aux_data::validateAuxData(Module, m_format)) {
@@ -319,6 +305,8 @@ void PrettyPrinterFactory::deregisterNamedPolicy(const std::string& Name) {
   NamedPolicies.erase(Name);
 }
 
+__BEGIN_DEPRECATED_DECL__()
+
 PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
                                      const gtirb::Module& module_,
                                      const Syntax& syntax_,
@@ -326,34 +314,89 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
     : syntax(syntax_), policy(policy_), LstMode(policy.LstMode),
       context(context_), module(module_),
       PreferredEOLCommentPos(64), type_printer{module_, context_} {
-  for (auto const& Function : aux_data::getFunctionEntries(module)) {
-    for (auto& EntryBlockUuid : Function.second) {
-      const auto* Block =
-          nodeFromUUID<gtirb::CodeBlock>(context, EntryBlockUuid);
-      if (Block)
-        functionEntry.insert(*Block->getAddress());
-      else
-        LOG_WARNING << "UUID " << boost::uuids::to_string(EntryBlockUuid)
-                    << " in functionEntries table references non-existent "
-                    << "block.\n";
+  computeFunctionInformation();
+}
+
+PrettyPrinterBase::~PrettyPrinterBase() { cs_close(&this->csHandle); }
+
+__END_DEPRECATED_DECL__()
+
+void PrettyPrinterBase::computeFunctionInformation() {
+  auto FunctionNameMap = aux_data::getFunctionNames(module);
+  // Compute function names
+  for (const auto& Pair : FunctionNameMap) {
+    const auto* Symbol = nodeFromUUID<gtirb::Symbol>(context, Pair.second);
+    if (Symbol) {
+      FunctionSymbols.insert(Symbol);
+      FunctionToSymbols[Pair.first] = Symbol;
+    } else {
+      LOG_ERROR << "Value entry UUID " << boost::uuids::to_string(Pair.second)
+                << " in the functionNames Auxdata is not a valid symbol\n";
     }
   }
 
+  // Compute the begin and end address of a block
+  auto getUUIDAddrRange = [&](gtirb::UUID Uuid) {
+    std::optional<gtirb::Addr> Addr;
+    uint64_t Size{0};
+    const auto* CodeBlock = nodeFromUUID<gtirb::CodeBlock>(context, Uuid);
+    if (CodeBlock) {
+      Addr = CodeBlock->getAddress();
+      Size = CodeBlock->getSize();
+    } else {
+      const auto* DataBlock = nodeFromUUID<gtirb::DataBlock>(context, Uuid);
+      if (DataBlock) {
+        Addr = DataBlock->getAddress();
+        Size = DataBlock->getSize();
+      }
+    }
+    std::optional<std::tuple<gtirb::Addr, gtirb::Addr>> AddrRange;
+    if (Addr) {
+      AddrRange = {*Addr, *Addr + Size};
+    }
+    return AddrRange;
+  };
+  // Compute function blocks, start, and ends
   for (auto const& Function : aux_data::getFunctionBlocks(module)) {
-    assert(Function.second.size() > 0);
-    gtirb::Addr LastAddr{0};
+    if (Function.second.size() == 0) {
+      continue;
+    }
+    gtirb::Addr FirstAddr{std::numeric_limits<uint64_t>::max()}, LastBlockAddr,
+        LastAddr{0};
+    gtirb::UUID FirstBlock, LastBlock;
     for (auto& BlockUuid : Function.second) {
-      const auto* Block = nodeFromUUID<gtirb::CodeBlock>(context, BlockUuid);
-      if (!Block)
+      BlockToFunction[BlockUuid] = Function.first;
+      auto BlockRange = getUUIDAddrRange(BlockUuid);
+      if (!BlockRange) {
         LOG_WARNING << "UUID " << boost::uuids::to_string(BlockUuid)
                     << " in functionBlocks table references non-existent "
-                    << "block.\n";
-      if (Block && Block->getAddress() > LastAddr)
-        LastAddr = *Block->getAddress();
+                    << "block or a block without address.\n";
+        continue;
+      }
+      const auto& [Beg, End] = *BlockRange;
+      if (Beg < FirstAddr) {
+        FirstAddr = Beg;
+        FirstBlock = BlockUuid;
+      }
+      if (End > LastAddr) {
+        LastAddr = End;
+        LastBlockAddr = Beg;
+        LastBlock = BlockUuid;
+      }
     }
-    functionLastBlock.insert(LastAddr);
-  }
+    FunctionFirstBlocks.insert(FirstBlock);
+    FunctionLastBlocks.insert(LastBlock);
 
+    __BEGIN_DEPRECATED_DECL__()
+    // These are deprecated
+    functionEntry.insert(FirstAddr);
+    functionLastBlock.insert(LastBlockAddr);
+
+    __END_DEPRECATED_DECL__()
+  }
+}
+
+void PrettyPrinterBase::computeAmbiguousSymbols() {
   // Collect all ambiguous symbols in the module and give them
   // unique names
   std::map<const std::string, std::multimap<gtirb::Addr, const gtirb::Symbol*>>
@@ -364,9 +407,17 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
   }
   for (auto& [Name, Group] : SymbolsByNameAddr) {
     if (Group.size() > 1) {
+      std::set<const gtirb::Symbol*, CmpSymPtr> Symbols;
+      for (auto& [Addr, Sym] : Group) {
+        Symbols.insert(Sym);
+      }
+      const gtirb::Symbol* SymbolToKeepOrigName = getBestSymbol(Symbols);
       int Index = 0;
       gtirb::Addr PrevAddress{0};
       for (auto& [Addr, Sym] : Group) {
+        if (Sym == SymbolToKeepOrigName) {
+          continue;
+        }
         std::stringstream NewName;
         NewName << Name << "_disambig_" << Addr;
         if (Addr != PrevAddress) {
@@ -386,14 +437,22 @@ PrettyPrinterBase::PrettyPrinterBase(gtirb::Context& context_,
   }
 }
 
-PrettyPrinterBase::~PrettyPrinterBase() { cs_close(&this->csHandle); }
-
-bool PrettyPrinterBase::isFunctionEntry(gtirb::Addr x) const {
-  return functionEntry.count(x) > 0;
+bool PrettyPrinterBase::isFunctionEntry(gtirb::Addr Addr) const {
+  for (auto& Block : module.findBlocksAt(Addr)) {
+    if (FunctionFirstBlocks.count(Block.getUUID()) > 0) {
+      return true;
+    }
+  }
+  return false;
 }
 
-bool PrettyPrinterBase::isFunctionLastBlock(gtirb::Addr x) const {
-  return functionLastBlock.count(x) > 0;
+bool PrettyPrinterBase::isFunctionLastBlock(gtirb::Addr Addr) const {
+  for (auto& Block : module.findBlocksAt(Addr)) {
+    if (FunctionLastBlocks.count(Block.getUUID()) > 0) {
+      return true;
+    }
+  }
+  return false;
 }
 
 const gtirb::SymAddrConst* PrettyPrinterBase::getSymbolicImmediate(
@@ -425,6 +484,8 @@ void PrettyPrinterBase::printIntegralSymbols(std::ostream& os) {
 }
 
 std::ostream& PrettyPrinterBase::print(std::ostream& os) {
+  computeAmbiguousSymbols();
+
   printHeader(os);
 
   // print every section
@@ -521,21 +582,20 @@ void PrettyPrinterBase::printBar(std::ostream& os, bool heavy) {
   }
 }
 
-std::string PrettyPrinterBase::getFunctionName(gtirb::Addr x) const {
-  // Is this address an entry point to a function with a symbol?
-  if (isFunctionEntry(x)) {
-    const auto symbols = module.findSymbols(x);
-    if (symbols.empty()) {
-      // This is a function entry with no associated symbol?
-      std::stringstream name;
-      name << "unknown_function_" << std::hex << static_cast<uint64_t>(x);
-      return name.str();
-    } else {
-      const gtirb::Symbol& s = symbols.front();
-      return s.getName();
+std::string PrettyPrinterBase::getFunctionName(gtirb::Addr Addr) const {
+
+  for (auto& Block : module.findBlocksAt(Addr)) {
+    if (FunctionFirstBlocks.count(Block.getUUID()) > 0) {
+      if (auto FunctionSymbol = getContainerFunctionSymbol(Block.getUUID());
+          FunctionSymbol) {
+        return FunctionSymbol->getName();
+      } else {
+        std::stringstream Name;
+        Name << "unknown_function_" << std::hex << static_cast<uint64_t>(Addr);
+        return Name.str();
+      }
     }
   }
-  // This doesn't seem to be a function.
   return std::string{};
 }
 
@@ -674,7 +734,8 @@ void PrettyPrinterBase::printPrototype(std::ostream& os,
     return;
   }
   auto Addr = *block.getAddress() + offset.Displacement;
-  if (isFunctionEntry(Addr)) {
+  if (FunctionFirstBlocks.count(block.getUUID()) > 0 &&
+      offset.Displacement == 0) {
     type_printer.printPrototype(Addr, os, syntax.comment()) << std::endl;
   }
 }
@@ -929,6 +990,21 @@ void PrettyPrinterBase::printBlockImpl(std::ostream& os, BlockType& block) {
   for (const auto& sym : module.findSymbols(block)) {
     if (sym.getAtEnd() && !shouldSkip(policy, sym)) {
       printSymbolDefinition(os, sym);
+    }
+  }
+  // Print function ends if applicable
+  if (FunctionLastBlocks.count(block.getUUID()) > 0) {
+    const gtirb::Symbol* FunctionSymbol =
+        getContainerFunctionSymbol(block.getUUID());
+    // A function could have no name associated to it.
+    if (FunctionSymbol) {
+      printFunctionEnd(os, *FunctionSymbol);
+      if (auto Aliases = FunctionAliases.find(FunctionSymbol);
+          Aliases != FunctionAliases.end()) {
+        for (const auto* Alias : Aliases->second) {
+          printFunctionEnd(os, *Alias);
+        }
+      }
     }
   }
 }
@@ -1274,27 +1350,43 @@ void PrettyPrinterBase::printSymbolicExpression(std::ostream& os,
 }
 
 std::optional<std::string>
-PrettyPrinterBase::getContainerFunctionName(gtirb::Addr x) const {
-  auto it = functionEntry.upper_bound(x);
-  if (it == functionEntry.begin())
-    return std::nullopt;
-  it--;
-  const std::optional<const gtirb::Section*> FunctionSection =
-      getContainerSection(*it);
-  if (FunctionSection) {
-    std::optional<gtirb::Addr> SectionBegin = (*FunctionSection)->getAddress();
-    std::optional<uint64_t> SectionSize = (*FunctionSection)->getSize();
-    if (SectionBegin && SectionSize) {
-      gtirb::Addr SectionEnd = (*SectionBegin) + (*SectionSize);
-      if (x >= SectionEnd) {
-        // The addr x is in a different section than the function - this block
-        // shouldn't belong to the function.
-        return std::nullopt;
-      }
+PrettyPrinterBase::getContainerFunctionName(gtirb::Addr Addr) const {
+  for (auto& Block : module.findBlocksOn(Addr)) {
+    auto FunctionSymbol = getContainerFunctionSymbol(Block.getUUID());
+    if (FunctionSymbol) {
+      return FunctionSymbol->getName();
     }
   }
+  return std::nullopt;
+}
 
-  return this->getFunctionName(*it);
+const gtirb::Symbol*
+PrettyPrinterBase::getContainerFunctionSymbol(const gtirb::UUID& Uuid) const {
+  if (auto FunctionEntry = BlockToFunction.find(Uuid);
+      FunctionEntry != BlockToFunction.end()) {
+    if (auto FunctionNameEntry = FunctionToSymbols.find(FunctionEntry->second);
+        FunctionNameEntry != FunctionToSymbols.end()) {
+      return FunctionNameEntry->second;
+    }
+  }
+  return nullptr;
+}
+
+bool PrettyPrinterBase::isFunctionSkipped(
+    const PrintingPolicy& Policy, const gtirb::Symbol& FunctionSymbol) const {
+  if (Policy.skipFunctions.count(FunctionSymbol.getName())) {
+    return true;
+  }
+  auto Aliases = FunctionAliases.find(&FunctionSymbol);
+  if (Aliases == FunctionAliases.end()) {
+    return false;
+  }
+  for (const auto* Alias : Aliases->second) {
+    if (Policy.skipFunctions.count(Alias->getName())) {
+      return true;
+    }
+  }
+  return false;
 }
 
 bool PrettyPrinterBase::shouldSkip(const PrintingPolicy& Policy,
@@ -1334,8 +1426,15 @@ bool PrettyPrinterBase::shouldSkip(const PrintingPolicy& Policy,
       return false;
     }
   } else if (auto Addr = Symbol.getAddress()) {
-    auto FunctionName = getContainerFunctionName(*Addr);
-    return FunctionName && Policy.skipFunctions.count(*FunctionName);
+    // If a symbol has no referent but has an address, we check for the first
+    // block at that address.
+    auto BlocksAtSymbolAddr = module.findBlocksAt(*Addr);
+    if (BlocksAtSymbolAddr.begin() != BlocksAtSymbolAddr.end()) {
+      auto FunctionSymbol =
+          getContainerFunctionSymbol(BlocksAtSymbolAddr.begin()->getUUID());
+      return FunctionSymbol && isFunctionSkipped(Policy, *FunctionSymbol);
+    }
+    return false;
   } else {
     return false;
   }
@@ -1352,8 +1451,8 @@ bool PrettyPrinterBase::shouldSkip(const PrintingPolicy& Policy,
     return true;
   }
 
-  auto FunctionName = getContainerFunctionName(*block.getAddress());
-  return FunctionName && Policy.skipFunctions.count(*FunctionName);
+  auto FunctionSymbol = getContainerFunctionSymbol(block.getUUID());
+  return FunctionSymbol && isFunctionSkipped(Policy, *FunctionSymbol);
 }
 
 bool PrettyPrinterBase::shouldSkip(const PrintingPolicy& Policy,
@@ -1367,8 +1466,8 @@ bool PrettyPrinterBase::shouldSkip(const PrintingPolicy& Policy,
     return true;
   }
 
-  auto FunctionName = getContainerFunctionName(*block.getAddress());
-  return FunctionName && Policy.skipFunctions.count(*FunctionName);
+  auto FunctionSymbol = getContainerFunctionSymbol(block.getUUID());
+  return FunctionSymbol && isFunctionSkipped(Policy, *FunctionSymbol);
 }
 
 const std::optional<const gtirb::Section*>
@@ -1510,6 +1609,19 @@ PrettyPrinterBase::getForwardedSymbol(const gtirb::Symbol* Symbol) const {
   return nullptr;
 }
 
+const gtirb::Symbol* PrettyPrinterBase::getBestSymbol(
+    const std::set<const gtirb::Symbol*, CmpSymPtr>& Symbols) const {
+  // Given a set of gtirb::Symbol* that has the same name associated with
+  // the same address, pick the best one.
+  // Note that this function is used in computeAmbiguousSymbols where ambiguous
+  // symbols are renamed except the best one.
+  // By default, pick the first one in the set. Override it if needed.
+  if (Symbols.size() > 0) {
+    return *(Symbols.begin());
+  }
+  return nullptr;
+}
+
 void PrettyPrinterBase::printSection(std::ostream& os,
                                      const gtirb::Section& section) {
   if (shouldSkip(policy, section)) {
@@ -1625,6 +1737,22 @@ DynMode PrettyPrinter::getDynMode(const gtirb::Module& Module) const {
   } else {
     return DYN_MODE_NONE;
   }
+}
+
+// This is to have a deterministic order in a set of gtirb::Symbol*:
+// std::set<const gtirb::Symbol*, CmpSymPtr>
+bool CmpSymPtr::operator()(const gtirb::Symbol* A,
+                           const gtirb::Symbol* B) const {
+  auto A_addr = A->getAddress();
+  auto B_addr = B->getAddress();
+  auto A_name = A->getName();
+  auto B_name = B->getName();
+  auto A_kind = A->getKind();
+  auto B_kind = B->getKind();
+  auto A_module = A->getModule();
+  auto B_module = B->getModule();
+  return (std::tie(A_addr, A_name, A_kind, A_module, A) <
+          std::tie(B_addr, B_name, B_kind, B_module, B));
 }
 
 } // namespace gtirb_pprint

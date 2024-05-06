@@ -30,6 +30,7 @@ void registerAuxDataTypes() {
   gtirb::AuxDataContainer::registerAuxDataType<Comments>();
   gtirb::AuxDataContainer::registerAuxDataType<FunctionEntries>();
   gtirb::AuxDataContainer::registerAuxDataType<FunctionBlocks>();
+  gtirb::AuxDataContainer::registerAuxDataType<FunctionNames>();
   gtirb::AuxDataContainer::registerAuxDataType<SymbolForwarding>();
   gtirb::AuxDataContainer::registerAuxDataType<Encodings>();
   gtirb::AuxDataContainer::registerAuxDataType<SectionProperties>();
@@ -51,6 +52,9 @@ void registerAuxDataTypes() {
   gtirb::AuxDataContainer::registerAuxDataType<ElfSymbolTabIdxInfo>();
   gtirb::AuxDataContainer::registerAuxDataType<ElfDynamicInit>();
   gtirb::AuxDataContainer::registerAuxDataType<ElfDynamicFini>();
+  gtirb::AuxDataContainer::registerAuxDataType<ElfStackExec>();
+  gtirb::AuxDataContainer::registerAuxDataType<ElfStackSize>();
+  gtirb::AuxDataContainer::registerAuxDataType<ElfSoname>();
 }
 
 void registerPrettyPrinters() {

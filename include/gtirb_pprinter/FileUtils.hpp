@@ -70,5 +70,8 @@ std::optional<std::string> resolveRegularFilePath(const std::string& path,
 std::optional<int> execute(const std::string& tool,
                            const std::vector<std::string>& args);
 
+// Helper function to copy files, creating parent directories as needed
+void copyFile(const std::string& src, const std::string& dest);
+
 } // namespace gtirb_bprint
 #endif /* GTIRB_FileUtils_H */

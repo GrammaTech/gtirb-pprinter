@@ -55,6 +55,7 @@ public:
   const std::string& uleb128() const { return ULEB128Directive; }
   const std::string& sleb128() const { return SLEB128Directive; }
   const std::string& symVer() const { return SymVerDirective; }
+  const std::string& symSize() const { return SymSizeDirective; }
 
 private:
   const std::string CommentStyle{"#"};
@@ -82,7 +83,7 @@ private:
   const std::string InternalDirective{".internal"};
   const std::string ULEB128Directive{".uleb128"};
   const std::string SLEB128Directive{".sleb128"};
-
+  const std::string SymSizeDirective{".size"};
   const std::string SymVerDirective{".symver"};
 
 protected:
@@ -115,6 +116,11 @@ protected:
   void printSectionFooterDirective(std::ostream& os,
                                    const gtirb::Section& addr) override;
 
+  /** Print the `.size FunctionSymbol, . - FunctionSymbol` label that defines
+   * the size of the function symbol. */
+  void printFunctionEnd(std::ostream& OS,
+                        const gtirb::Symbol& FunctionSymbol) override;
+
   void printByte(std::ostream& os, std::byte byte) override;
 
   void printSymExprSuffix(std::ostream& OS, const gtirb::SymAttributeSet& Attrs,
@@ -143,6 +149,7 @@ protected:
   void printSymbolType(std::ostream& os, std::string& Name,
                        const aux_data::ElfSymbolInfo& SymbolInfo);
 
+  /** Print .size directives for OBJECT and TLS symbols. */
   void printSymbolSize(std::ostream& os, std::string& Name,
                        const aux_data::ElfSymbolInfo& SymbolInfo);
 
@@ -153,8 +160,12 @@ protected:
 
   std::optional<uint64_t> getAlignment(const gtirb::CodeBlock& Block) override;
 
+  const gtirb::Symbol* getBestSymbol(
+      const std::set<const gtirb::Symbol*, CmpSymPtr>& Symbols) const override;
+
 private:
   bool TlsGdSequence = false;
+  void computeFunctionAliases();
 };
 
 class DEBLOAT_PRETTYPRINTER_EXPORT_API ElfPrettyPrinterFactory
@@ -177,7 +188,7 @@ in the ELF metadata. This seems to occur sometimes.
 If the given symbol is such a symbol, return the section that it belongs to.
 Otherwise, return null.
 */
-const gtirb::Section* IsGlobalPLTSym(const gtirb::Symbol& Sym);
+const gtirb::Section* IsExternalPLTSym(const gtirb::Symbol& Sym);
 
 } // namespace gtirb_pprint
 

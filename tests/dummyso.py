@@ -22,6 +22,7 @@ def build_gtirb():
         gtirb.Module.FileFormat.ELF,
         gtirb.Module.ISA.X64,
     )
+    gth.add_section(module, ".dynamic")
     (text_section, text_bi) = gth.add_text_section(module)
     proxy_a = gth.add_proxy_block(module)
     symbol_a = gth.add_symbol(module, "a", proxy_a)
@@ -104,6 +105,7 @@ def build_copy_relocated_gtirb() -> gtirb.IR:
         gtirb.Module.FileFormat.ELF,
         gtirb.Module.ISA.X64,
     )
+    gth.add_section(module, ".dynamic")
     (text_section, text_bi) = gth.add_text_section(module)
 
     _, data = gth.add_data_section(module)
@@ -183,6 +185,7 @@ def build_tls_gtirb() -> gtirb.IR:
         gtirb.Module.FileFormat.ELF,
         gtirb.Module.ISA.X64,
     )
+    gth.add_section(module, ".dynamic")
     (text_section, text_bi) = gth.add_text_section(module)
 
     _, got = gth.add_section(module, ".got")
@@ -275,12 +278,13 @@ def build_plt_sec_gtirb() -> gtirb.IR:
         gtirb.Module.FileFormat.ELF,
         gtirb.Module.ISA.X64,
     )
-
+    gth.add_section(module, ".dynamic")
     plt_section, plt = gth.add_section(module, ".plt.sec")
-    plt_code_block = gth.add_code_block(plt, b"\x00\x00\x00\x00")
 
-    symbol_a = gth.add_symbol(module, "a", plt_code_block)
-    symbol_a_plt = gth.add_symbol(module, "a_plt", plt_code_block)
+    plt_code_block_a = gth.add_code_block(plt, b"\x00\x00\x00\x00")
+
+    symbol_a = gth.add_symbol(module, "a", plt_code_block_a)
+    symbol_a_plt = gth.add_symbol(module, "a_plt", plt_code_block_a)
 
     se_a = gtirb.SymAddrConst(
         0, symbol_a_plt, {gtirb.SymbolicExpression.Attribute.PLT}
@@ -288,10 +292,22 @@ def build_plt_sec_gtirb() -> gtirb.IR:
 
     module.aux_data["symbolForwarding"].data[symbol_a_plt] = symbol_a
 
+    plt_code_block_b = gth.add_code_block(plt, b"\x00\x00\x00\x00")
+
+    symbol_b = gth.add_symbol(module, "b", plt_code_block_b)
+    symbol_b_plt = gth.add_symbol(module, "b_plt", plt_code_block_b)
+
+    se_b = gtirb.SymAddrConst(
+        0, symbol_b_plt, {gtirb.SymbolicExpression.Attribute.PLT}
+    )
+
+    module.aux_data["symbolForwarding"].data[symbol_b_plt] = symbol_b
+
     _, text_bi = gth.add_text_section(module)
 
     # For the following code:
     #    e8 00 00 00 00          callq  a@plt
+    #    e8 00 00 00 00          callq  b@plt
     #    48 31 c0                xor    %rax,%rax
     #    48 c7 c0 3c 00 00 00    mov    $0x3c,%rax
     #    48 31 ff                xor    %rdi,%rdi
@@ -299,15 +315,16 @@ def build_plt_sec_gtirb() -> gtirb.IR:
     cb = gth.add_code_block(
         text_bi,
         b"\xe8\x00\x00\x00\x00"
+        b"\xe8\x00\x00\x00\x00"
         b"\x48\x31\xc0"
         b"\x48\xc7\xc0\x3c\x00\x00\x00"
         b"\x48\x31\xff"
         b"\x0f\x05",
-        {1: se_a},
+        {1: se_a, 6: se_b},
     )
     symbol_start = gth.add_symbol(module, "_start", cb)
 
-    module.aux_data["libraries"].data.extend(["libmya.so"])
+    module.aux_data["libraries"].data.extend(["libmya.so", "libmyb.so"])
 
     module.aux_data["elfSymbolInfo"].data[symbol_start.uuid] = (
         0,
@@ -325,6 +342,14 @@ def build_plt_sec_gtirb() -> gtirb.IR:
         0,
     )
 
+    module.aux_data["elfSymbolInfo"].data[symbol_b.uuid] = (
+        0,
+        "FUNC",
+        "WEAK",
+        "DEFAULT",
+        0,
+    )
+
     return ir
 
 
@@ -337,6 +362,7 @@ def build_versioned_syms_gtirb() -> gtirb.IR:
         gtirb.Module.FileFormat.ELF,
         gtirb.Module.ISA.X64,
     )
+    gth.add_section(module, ".dynamic")
     (text_section, text_bi) = gth.add_text_section(module)
 
     proxy_a = gth.add_proxy_block(module)

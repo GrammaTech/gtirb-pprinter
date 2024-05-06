@@ -9,7 +9,7 @@ from gtirb_helpers import (
 from pprinter_helpers import (
     asm_lines,
     PPrinterTest,
-    run_asm_pprinter_with_outputput,
+    run_asm_pprinter_with_output,
 )
 
 
@@ -41,7 +41,7 @@ class TestMoffsetCompat(PPrinterTest):
         # mov dword ptr [hello], eax
         add_code_block(bi, b"\xA3\x00\x00\x00\x00", {1: hello_expr})
 
-        asm, output = run_asm_pprinter_with_outputput(ir)
+        asm, output = run_asm_pprinter_with_output(ir)
         self.assertNotIn(self.COMPAT_WARNING_MESSAGE, output)
         self.assertContains(
             asm_lines(asm),
@@ -75,7 +75,7 @@ class TestMoffsetCompat(PPrinterTest):
         # mov dword ptr [hello], eax
         add_code_block(bi, b"\xA3\x00\x00\x00\x00", {0: hello_expr})
 
-        asm, output = run_asm_pprinter_with_outputput(ir)
+        asm, output = run_asm_pprinter_with_output(ir)
         self.assertIn(self.COMPAT_WARNING_MESSAGE, output)
         self.assertEqual(output.count(self.COMPAT_WARNING_MESSAGE), 1)
         self.assertContains(
@@ -106,7 +106,7 @@ class TestMoffsetCompat(PPrinterTest):
             bi, b"\x48\xA3\x00\x00\x00\x00\x00\x00\x00\x00", {2: hello_expr}
         )
 
-        asm, output = run_asm_pprinter_with_outputput(ir)
+        asm, output = run_asm_pprinter_with_output(ir)
         self.assertNotIn(self.COMPAT_WARNING_MESSAGE, output)
         self.assertContains(
             asm_lines(asm),
@@ -132,7 +132,7 @@ class TestMoffsetCompat(PPrinterTest):
             bi, b"\x48\xA3\x00\x00\x00\x00\x00\x00\x00\x00", {0: hello_expr}
         )
 
-        asm, output = run_asm_pprinter_with_outputput(ir)
+        asm, output = run_asm_pprinter_with_output(ir)
         self.assertIn(self.COMPAT_WARNING_MESSAGE, output)
         self.assertEqual(output.count(self.COMPAT_WARNING_MESSAGE), 1)
         self.assertContains(
@@ -165,7 +165,7 @@ class TestMoffsetCompat(PPrinterTest):
             {2: hello_expr},
         )
 
-        asm, output = run_asm_pprinter_with_outputput(ir)
+        asm, output = run_asm_pprinter_with_output(ir)
         self.assertNotIn(self.COMPAT_WARNING_MESSAGE, output)
         self.assertContains(
             asm_lines(asm),

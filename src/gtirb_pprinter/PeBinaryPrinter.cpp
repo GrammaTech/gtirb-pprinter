@@ -52,7 +52,7 @@ struct PeLinkOptions {
 
   const std::vector<TempFile>& Compilands;
   const std::vector<std::string>& Resources;
-  const std::optional<std::string>& ExportDef;
+  const std::optional<std::string>& ExportsFile;
 
   const std::optional<std::string>& EntryPoint;
   const std::optional<std::string>& Subsystem;
@@ -75,9 +75,9 @@ using PeAssembleLink = std::function<CommandList(const PeLinkOptions&)>;
 
 // Tool lookup helpers.
 PeLib peLib();
-PeAssemble peAssemble();
+PeAssemble peAssemble(const PeAssembleOptions& Options);
 PeLink peLink();
-PeAssembleLink peAssembleLink();
+PeAssembleLink peAssembleLink(const PeLinkOptions& Options);
 
 // Locate a PE library utility and build a command list.
 CommandList libCommands(const PeLibOptions& Options) {
@@ -87,13 +87,13 @@ CommandList libCommands(const PeLibOptions& Options) {
 
 // Locate an assembler and construct the "assemble only" command list.
 CommandList assembleCommands(const PeAssembleOptions& Options) {
-  PeAssemble Assemble = peAssemble();
+  PeAssemble Assemble = peAssemble(Options);
   return Assemble(Options);
 }
 
 // Locate an assembler and construct the "assemble and link" command list.
 CommandList linkCommands(const PeLinkOptions& Options) {
-  PeAssembleLink AssembleLink = peAssembleLink();
+  PeAssembleLink AssembleLink = peAssembleLink(Options);
   return AssembleLink(Options);
 }
 
@@ -210,9 +210,9 @@ CommandList msvcLink(const PeLinkOptions& Options) {
       "/OUT:" + Options.OutputFile,
   };
 
-  // Add exports DEF file.
-  if (Options.ExportDef) {
-    Args.push_back("/DEF:" + *Options.ExportDef);
+  // Add exports file.
+  if (Options.ExportsFile) {
+    Args.push_back(*Options.ExportsFile);
   }
 
   // Add PE entry point.
@@ -277,9 +277,9 @@ CommandList msvcAssembleLink(const PeLinkOptions& Options) {
   // Disable the banner for the linker.
   Args.push_back("/nologo");
 
-  // Add exports DEF file.
-  if (Options.ExportDef) {
-    Args.push_back("/DEF:" + *Options.ExportDef);
+  // Add exports file.
+  if (Options.ExportsFile) {
+    Args.push_back(*Options.ExportsFile);
   }
 
   // Add RES resource files.
@@ -349,9 +349,9 @@ CommandList llvmLink(const PeLinkOptions& Options) {
       "/out:" + Options.OutputFile,
   };
 
-  // Add exports DEF file.
-  if (Options.ExportDef) {
-    Args.push_back("/def:" + *Options.ExportDef);
+  // Add exports file.
+  if (Options.ExportsFile) {
+    Args.push_back(*Options.ExportsFile);
   }
 
   // Add PE entry point.
@@ -512,9 +512,11 @@ PeLink peLink() {
 }
 
 // Locate MSVC `ml' or `uasm' MASM assembler.
-PeAssemble peAssemble() {
+PeAssemble peAssemble(const PeAssembleOptions& Options) {
   // Prefer MSVC assembler.
-  fs::path Path = bp::search_path("cl");
+  const std::string& Assembler =
+      Options.Machine == "X64" ? "ml64.exe" : "ml.exe";
+  fs::path Path = bp::search_path(Assembler);
   if (!Path.empty()) {
     return msvcAssemble;
   }
@@ -529,9 +531,11 @@ PeAssemble peAssemble() {
 }
 
 // Locate "assemble and link" tools.
-PeAssembleLink peAssembleLink() {
+PeAssembleLink peAssembleLink(const PeLinkOptions& Options) {
   // Prefer single, compound MSVC command.
-  fs::path Path = bp::search_path("cl");
+  const std::string& Assembler =
+      Options.Machine == "X64" ? "ml64.exe" : "ml.exe";
+  fs::path Path = bp::search_path(Assembler);
   if (!Path.empty()) {
     return msvcAssembleLink;
   }
@@ -627,9 +631,15 @@ int PeBinaryPrinter::assemble(const std::string& Path, gtirb::Context& Context,
 
   // Find the target platform.
   std::optional<std::string> Machine = getPeMachine(Module);
-
-  return executeCommands(assembleCommands(
-      {Asm.fileName(), Path, Machine, ExtraCompileArgs, LibraryPaths}));
+  TempFile tempOutput(".bin");
+  tempOutput.close();
+  auto retc = executeCommands(
+      assembleCommands({Asm.fileName(), tempOutput.fileName(), Machine,
+                        ExtraCompileArgs, LibraryPaths}));
+  if (retc == 0) {
+    copyFile(tempOutput.fileName(), Path);
+  }
+  return retc;
 }
 
 int PeBinaryPrinter::link(const std::string& OutputFile,
@@ -679,6 +689,21 @@ int PeBinaryPrinter::link(const std::string& OutputFile,
   // Build the list of commands.
   CommandList Commands;
 
+  std::optional<std::string> ExportsFile;
+  if (ExportDef) {
+    // Generate .exp file for this module from the .def file
+    // This generates a .lib file as well, but we can't disable it.
+    // We specify the location for the .lib file, and .exp is written to the
+    // same place with the extension changed.
+    TempFile LibFile(".lib");
+    LibFile.close();
+    ExportsFile =
+        fs::path(LibFile.fileName()).replace_extension(".exp").string();
+    CommandList ExpLibCommand =
+        libCommands({*ExportDef, LibFile.fileName(), Machine});
+    appendCommands(Commands, ExpLibCommand);
+  }
+
   // Add commands to generate .LIB files from import .DEF files.
   for (auto& [Import, Temp] : ImportDefs) {
     std::string Def = Temp->fileName();
@@ -689,14 +714,19 @@ int PeBinaryPrinter::link(const std::string& OutputFile,
   }
   std::vector<TempFile> Compilands;
   Compilands.emplace_back(std::move(Compiland));
+  TempFile tempOutput(".bin");
+  tempOutput.close();
   // Add assemble-link commands.
-  CommandList LinkCommands =
-      linkCommands({OutputFile, Compilands, Resources, ExportDef, EntryPoint,
-                    Subsystem, Machine, Dll, ExtraCompileArgs, LibraryPaths});
+  CommandList LinkCommands = linkCommands(
+      {tempOutput.fileName(), Compilands, Resources, ExportsFile, EntryPoint,
+       Subsystem, Machine, Dll, ExtraCompileArgs, LibraryPaths});
   appendCommands(Commands, LinkCommands);
-
   // Execute the assemble-link command list.
-  return executeCommands(Commands);
+  auto retc = executeCommands(Commands);
+  if (retc == 0) {
+    copyFile(tempOutput.fileName(), OutputFile);
+  }
+  return retc;
 }
 
 int PeBinaryPrinter::libs(const gtirb::Module& Module) const {

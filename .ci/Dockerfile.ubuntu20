@@ -5,12 +5,13 @@ FROM $BASE_IMAGE
 RUN pip3 install "virtualenv<20.0.0"
 RUN pip3 install pre-commit
 
-# Install clang-format
-RUN apt-get -y install apt-rdepends clang-format unzip \
-    libboost-filesystem-dev libboost-filesystem1.71.0 \
-    libboost-system-dev libboost-system1.71.0 \
-    libboost-program-options-dev libboost-program-options1.71.0 \
-    gcovr
+RUN apt-get -y update && \
+    apt-get -y install \
+        apt-rdepends clang-format unzip \
+        libboost-filesystem-dev libboost-filesystem1.71.0 \
+        libboost-system-dev libboost-system1.71.0 \
+        libboost-program-options-dev libboost-program-options1.71.0 \
+        gcovr gcc-arm-linux-gnueabihf
 
 # Run pre-commit once so the hooks are installed
 COPY . /gt/gtirb-pprinter

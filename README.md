@@ -98,22 +98,6 @@ linker. An example is shown:
 gtirb-pprinter hello.gtirb --binary hello --dummy-so=yes
 ```
 
-If the binary requires verisoned symbols (which is likely if it uses a recent
-version of glibc), some further arguments may be necessary. Your system's
-startfiles may differ from the startfiles that the binary was originally built
-with, causing symbol version incompatibilities when gtirb-pprinter removes
-startup code and your compiler replaces it with its own. To best work around
-this, add the following arguments:
-
-```sh
-gtirb-pprinter hello.gtirb --binary hello --dummy-so=yes --keep-all-functions -c -nostartfiles
-```
-
-These ensure that startup code (such as functions like `_start` or
-`__libc_csu_init`) present in the GTIRB is used as-is, instead of replacing
-them with startup code provided by your compiler, preserving the same symbol
-versions that the binary originally used.
-
 ## AuxData Used by the Pretty Printer
 
 Generating assembly depends on a number of additional pieces of information
@@ -141,3 +125,5 @@ In order to generate new binaries, gtirb-binary-printer also uses the following 
 |------------------|----------------------------------|----------------------------------------------------------------------------------|
 | libraries        | `std::vector<std::string>`       | Names of the libraries that are needed.                                          |
 | libraryPaths     | `std::vector<std::string>`       | Paths contained in the rpath of the binary                                       |
+| elfStackExec     | `bool` |  Stack executable flag specified by PT_GNU_STACK segment in ELF files. Binary-printed with `-Wl,-z,stack,[no]execstack` |
+| elfStackSize     | `uint64_t` | Stack size specified by PT_GNU_STACK segment in ELF files. Binary-printed with `-Wl,-z,stack-size=value`. |
