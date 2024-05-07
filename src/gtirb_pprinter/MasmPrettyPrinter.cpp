@@ -479,6 +479,13 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
     }
   }
 
+  // Remove REPZ from REPZ RET because Masm fails with
+  // "error A2044:invalid character in file"
+  if (inst.id == X86_INS_RET && Detail.prefix[0] == X86_PREFIX_REPE) {
+    Detail.prefix[0] = 0;
+    strcpy(inst.mnemonic, "ret");
+  }
+
   x86FixupInstruction(inst);
 }
 
