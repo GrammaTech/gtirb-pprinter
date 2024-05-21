@@ -24,6 +24,8 @@
   * For ambiguous symbols, choose one symbol to keep original symbol name.
   * For symbols with base version, only print out the connector and do not
     print out the base version in .symver directives.
+  * Update capstone version from 4.0.1 to 5.0.1
+  * Add a fixup for `repz ret` for Masm
 
 # 2.1.0
   * `--asm` option now prints the assembly for each module of an IR separately
