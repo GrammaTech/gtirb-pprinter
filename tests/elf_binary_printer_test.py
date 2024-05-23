@@ -295,12 +295,12 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
         vs = run_asm_pprinter_with_version_script(ir)
 
         # Version LIBA_1 should not include the external symbol baz
-        pattern1 = r"LIBA_1.0\s+{\s+global:\s+foo;\s+local:\s+\*;\s+};"
+        pattern1 = r"LIBA_1.0\s+{\s+global:\s+foo;\s+};"
         self.assertRegexMatch(vs, pattern1)
         self.assertTrue("baz" not in vs)
 
         # Version LIBA_2 should not print out the local symbol bar
-        pattern2 = r"LIBA_2.0\s+{\s+local:\s+\*;\s+};"
+        pattern2 = r"LIBA_2.0\s+{\s+};"
         self.assertRegexMatch(vs, pattern2)
         self.assertTrue("bar" not in vs)
 
