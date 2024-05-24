@@ -246,6 +246,17 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
             "DEFAULT",
             0,
         )
+        foo_no_ver_block = gth.add_code_block(text_bi, b"\xC3")
+        symbol_foo_no_ver = gth.add_symbol(
+            module, "foo_no_ver", foo_no_ver_block
+        )
+        module.aux_data["elfSymbolInfo"].data[symbol_foo_no_ver.uuid] = (
+            0,
+            "FUNC",
+            "GLOBAL",
+            "DEFAULT",
+            0,
+        )
         bar_block = gth.add_code_block(text_bi, b"\xC3")
         symbol_bar = gth.add_symbol(module, "bar", bar_block)
         module.aux_data["elfSymbolInfo"].data[symbol_bar.uuid] = (
@@ -304,9 +315,14 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
         self.assertRegexMatch(vs, pattern2)
         self.assertTrue("bar" not in vs)
 
-        with self.binary_print(ir, "--dummy-so", "yes", "--shared"):
-            # Just verify binary_print succeeded.
-            pass
+        with self.binary_print(ir, "--dummy-so", "yes", "--shared") as result:
+            readelf = self.readelf(result.path, "--syms", "--dynamic")
+
+        # The unversioned symbol `foo_no_ver` should exist.
+        self.assert_readelf_syms(
+            readelf.stdout,
+            ("FUNC", "GLOBAL", "DEFAULT", "foo_no_ver"),
+        )
 
     def test_base_version(self):
         """
