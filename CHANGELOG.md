@@ -25,7 +25,8 @@
   * For symbols with base version, only print out the connector and do not
     print out the base version in .symver directives.
   * Update capstone version from 4.0.1 to 5.0.1
-  * Add a fixup for `repz ret` for Masm
+  * Add a fixup for `repz ret` for MASM pprinter
+  * Fix a bug where FADD operands could be misplaced for MASM pprinter
 
 # 2.1.0
   * `--asm` option now prints the assembly for each module of an IR separately

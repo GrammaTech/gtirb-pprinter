@@ -376,3 +376,85 @@ class WindowsBinaryPrinterTests_NoMock(BinaryPPrinterTest):
         for arch in cases:
             with self.subTest(arch=arch):
                 self.subtest_windows_decorated_exports(arch)
+
+    def test_float_arith_fixup(self):
+        """
+        Test that the binary-printer successfully fixes up floating-point
+        instructions with implicit register: ST(0).
+        """
+        ir, m = create_test_module(
+            file_format=gtirb.Module.FileFormat.PE,
+            isa=gtirb.Module.ISA.X64,
+            binary_type=["EXEC", "EXE", "WINDOWS_CUI"],
+        )
+        _, bi = add_text_section(m)
+        # dc c1: fadd ST(1),ST(0): capstone provides both operands
+        # d8 c1: fadd ST(0),ST(1): capstone only provides ST(1);
+        #        The first operand ST(0) is implicit.
+        # de c1: faddp ST(1),ST(0): capstone only provides ST(1);
+        #        The second operand ST(0) is implicit.
+        code = b"\xDC\xC1\xD8\xC1\xDE\xC1"
+        # dc c9: fmul ST(1),ST(0): capstone provides both operands
+        # d8 c9: fmul ST(0),ST(1): capstone only provides ST(1);
+        #        The first operand ST(0) is implicit.
+        # de c9: fmulp ST(1),ST(0): capstone only provides ST(1);
+        #        The second operand ST(0) is implicit.
+        code += b"\xDC\xC9\xD8\xC9\xDE\xC9"
+
+        # dc e9: fsub ST(1),ST(0): capstone provides both operands
+        # d8 e1: fsub ST(0),ST(1): capstone provides one operand: ST(1);
+        #        The first operand ST(0) is implicit.
+        # d8 e9: fsubr ST(0),ST(1): capstone provides one operand: ST(1);
+        #        The first operand ST(0) is implicit.
+        # dc e1: fsubr ST(1),ST(0): capstone provides both operands
+        # de e9: fsubp ST(1),ST(0): capstone provides one operand: ST(1);
+        #        The second operand ST(0) is implicit.
+        # de e1: fsubrp ST(1),ST(0): capstone provides one operand: ST(1);
+        #        The second operand ST(0) is implicit.
+        code += b"\xDC\xE9\xD8\xE1\xD8\xE9\xDC\xE1\xDE\xE9\xDE\xE1"
+
+        # dc f9: fdiv ST(1),ST(0): capstone provides both operands
+        # d8 f1: fdiv ST(0),ST(1): capstone provides one operand: ST(1);
+        #        The first operand ST(0) is implicit.
+        # d8 f9: fdivr ST(0),ST(1): capstone provides one operand: ST(1);
+        #        The first operand ST(0) is implicit.
+        # dc f1: fdivr ST(1),ST(0): capstone provides both operands
+        # de f9: fdivp ST(1),ST(0): capstone provides one operand: ST(1);
+        #        The second operand ST(0) is implicit.
+        # de f1: fdivrp ST(1),ST(0): capstone provides one operand: ST(1);
+        #        The second operand ST(0) is implicit.
+        code += b"\xDC\xF9\xD8\xF1\xD8\xF9\xDC\xF1\xDE\xF9\xDE\xF1"
+
+        block = add_code_block(bi, code)
+
+        asm = run_asm_pprinter(ir)
+
+        print(asm)
+
+        self.assertContains(asm_lines(asm), ["fadd ST(1),ST(0)"])
+        self.assertContains(asm_lines(asm), ["fadd ST(0),ST(1)"])
+        self.assertContains(asm_lines(asm), ["faddp ST(1),ST(0)"])
+        self.assertNotContains(asm_lines(asm), ["faddp ST(0),ST(1)"])
+
+        self.assertContains(asm_lines(asm), ["fmul ST(1),ST(0)"])
+        self.assertContains(asm_lines(asm), ["fmul ST(0),ST(1)"])
+        self.assertContains(asm_lines(asm), ["fmulp ST(1),ST(0)"])
+        self.assertNotContains(asm_lines(asm), ["fmulp ST(0),ST(1)"])
+
+        self.assertContains(asm_lines(asm), ["fsub ST(1),ST(0)"])
+        self.assertContains(asm_lines(asm), ["fsub ST(0),ST(1)"])
+        self.assertContains(asm_lines(asm), ["fsubr ST(0),ST(1)"])
+        self.assertContains(asm_lines(asm), ["fsubr ST(1),ST(0)"])
+        self.assertContains(asm_lines(asm), ["fsubp ST(1),ST(0)"])
+        self.assertContains(asm_lines(asm), ["fsubrp ST(1),ST(0)"])
+        self.assertNotContains(asm_lines(asm), ["fsubp ST(0),ST(1)"])
+        self.assertNotContains(asm_lines(asm), ["fsubrp ST(0),ST(1)"])
+
+        self.assertContains(asm_lines(asm), ["fdiv ST(1),ST(0)"])
+        self.assertContains(asm_lines(asm), ["fdiv ST(0),ST(1)"])
+        self.assertContains(asm_lines(asm), ["fdivr ST(0),ST(1)"])
+        self.assertContains(asm_lines(asm), ["fdivr ST(1),ST(0)"])
+        self.assertContains(asm_lines(asm), ["fdivp ST(1),ST(0)"])
+        self.assertContains(asm_lines(asm), ["fdivrp ST(1),ST(0)"])
+        self.assertNotContains(asm_lines(asm), ["fdivp ST(0),ST(1)"])
+        self.assertNotContains(asm_lines(asm), ["fdivrp ST(0),ST(1)"])

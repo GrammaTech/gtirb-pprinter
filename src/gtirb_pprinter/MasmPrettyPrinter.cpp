@@ -368,17 +368,33 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
     }
   }
 
+  // NOTE: Capstone does not have X86_INS_FADDP.
+  // To distinguish FADDP from FADD, use the opcode byte.
+  auto isFADDP = [](cs_insn& ins) -> bool {
+      if (ins.id == X86_INS_FADD) {
+        if (ins.size > 1) {
+          return (ins.bytes[0] == 0xDE);
+        }
+      }
+      return false;
+  };
+
   // TODO: These next two fixups of one-operand floating-point instructions need
   // much more consideration.
 
   //  Floating point one-operand operations with an implicit FIRST operand.
   //   e.g  fmul st(1)  needs to be  fmul st(0),st(1)
   switch (inst.id) {
+  case X86_INS_FADD:
   case X86_INS_FDIV:
   case X86_INS_FDIVR:
   case X86_INS_FSUB:
+  case X86_INS_FSUBR:
   case X86_INS_FMUL:
     if (Detail.op_count == 1) {
+      if (isFADDP(inst))
+          break;
+
       cs_x86_op& Op = Detail.operands[0];
       if (Op.type == X86_OP_REG) {
         Detail.operands[1] = Detail.operands[0];
@@ -389,16 +405,18 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
   }
 
   // Floating point one-operand operations with an implicit SECOND operand.
-  //   e.g  faddp st(2)  needs to be  faddp st(2),st(0)
+  //   e.g  fmulp st(2)  needs to be  fmulp st(2),st(0)
   switch (inst.id) {
-  case X86_INS_FADD:
+  case X86_INS_FADD: // FADDP
   case X86_INS_FMULP:
   case X86_INS_FDIVP:
-  case X86_INS_FSUBR:
   case X86_INS_FSUBP:
   case X86_INS_FSUBRP:
   case X86_INS_FDIVRP:
     if (Detail.op_count == 1) {
+      if (inst.id == X86_INS_FADD && !isFADDP(inst))
+          break;
+
       cs_x86_op& Op = Detail.operands[0];
       if (Op.type == X86_OP_REG) {
         Detail.operands[1] = Detail.operands[0];
