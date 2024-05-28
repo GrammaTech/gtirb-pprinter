@@ -425,11 +425,9 @@ class WindowsBinaryPrinterTests_NoMock(BinaryPPrinterTest):
         #        The second operand ST(0) is implicit.
         code += b"\xDC\xF9\xD8\xF1\xD8\xF9\xDC\xF1\xDE\xF9\xDE\xF1"
 
-        block = add_code_block(bi, code)
+        add_code_block(bi, code)
 
         asm = run_asm_pprinter(ir)
-
-        print(asm)
 
         self.assertContains(asm_lines(asm), ["fadd ST(1),ST(0)"])
         self.assertContains(asm_lines(asm), ["fadd ST(0),ST(1)"])

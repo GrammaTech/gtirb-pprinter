@@ -371,12 +371,12 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
   // NOTE: Capstone does not have X86_INS_FADDP.
   // To distinguish FADDP from FADD, use the opcode byte.
   auto isFADDP = [](cs_insn& ins) -> bool {
-      if (ins.id == X86_INS_FADD) {
-        if (ins.size > 1) {
-          return (ins.bytes[0] == 0xDE);
-        }
+    if (ins.id == X86_INS_FADD) {
+      if (ins.size > 1) {
+        return (ins.bytes[0] == 0xDE);
       }
-      return false;
+    }
+    return false;
   };
 
   // TODO: These next two fixups of one-operand floating-point instructions need
@@ -393,7 +393,7 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
   case X86_INS_FMUL:
     if (Detail.op_count == 1) {
       if (isFADDP(inst))
-          break;
+        break;
 
       cs_x86_op& Op = Detail.operands[0];
       if (Op.type == X86_OP_REG) {
@@ -415,7 +415,7 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
   case X86_INS_FDIVRP:
     if (Detail.op_count == 1) {
       if (inst.id == X86_INS_FADD && !isFADDP(inst))
-          break;
+        break;
 
       cs_x86_op& Op = Detail.operands[0];
       if (Op.type == X86_OP_REG) {
