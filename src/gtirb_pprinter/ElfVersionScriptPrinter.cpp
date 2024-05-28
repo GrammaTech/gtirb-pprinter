@@ -80,7 +80,6 @@ bool printVersionScript(const gtirb::Context& Context,
     for (const gtirb::Symbol* Sym : GlobalSymbols) {
       VersionScript << "    " << Sym->getName() << ";\n";
     }
-    VersionScript << "\n  local:\n    *;\n";
     VersionScript << "}";
 
     bool First = true;
