@@ -14,6 +14,7 @@
 //===----------------------------------------------------------------------===//
 #include "FileUtils.hpp"
 #include "driver/Logger.h"
+#include <boost/filesystem/operations.hpp>
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpragmas"
@@ -138,7 +139,7 @@ void copyFile(const std::string& src, const std::string& dest) {
   LOG_INFO << "Saving file to " << dest << "\n";
   fs::path SrcPath(src);
   auto perms = fs::status(SrcPath).permissions();
-  fs::copy_file(src, dest, fs::copy_option::overwrite_if_exists);
+  fs::copy_file(src, dest, fs::copy_options::overwrite_existing);
   fs::permissions(DestPath, perms);
 }
 
