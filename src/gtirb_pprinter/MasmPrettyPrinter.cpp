@@ -372,9 +372,8 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
   // To distinguish FADDP from FADD, use the opcode byte.
   auto isFADDP = [](cs_insn& ins) -> bool {
     if (ins.id == X86_INS_FADD) {
-      if (ins.size > 1) {
-        return (ins.bytes[0] == 0xDE);
-      }
+      assert(ins.size > 1);
+      return (ins.bytes[0] == 0xDE);
     }
     return false;
   };
@@ -383,7 +382,7 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
   // much more consideration.
 
   //  Floating point one-operand operations with an implicit FIRST operand.
-  //   e.g  fmul st(1)  needs to be  fmul st(0),st(1)
+  //   e.g  fadd st(1)  needs to be  fadd st(0),st(1)
   switch (inst.id) {
   case X86_INS_FADD:
   case X86_INS_FDIV:
@@ -405,7 +404,7 @@ void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
   }
 
   // Floating point one-operand operations with an implicit SECOND operand.
-  //   e.g  fmulp st(2)  needs to be  fmulp st(2),st(0)
+  //   e.g  faddp st(2)  needs to be  faddp st(2),st(0)
   switch (inst.id) {
   case X86_INS_FADD: // FADDP
   case X86_INS_FMULP:
