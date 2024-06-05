@@ -12,8 +12,7 @@
   * Blacklist `_GLOBAL_OFFSET_TABLE_` symbol from dummy-so libraries.
   * Explicitly link `ld-linux*.so` if `-nodefaultlibs` is enabled.
   * Support GOT, PAGE and GOT, OFST symbolic expression attributes for split .got loads on MIPS.
-  * Populate non-local symbols under `global:` and add `local: *;` for local
-    symbols in version-script.
+  * Populate non-local symbols under `global:` in version-script.
   * Change version scripts that only use the module's symbol version
     definitions (not its needed symbols).
   * Create a different version script for dummy-so dependencies using the
