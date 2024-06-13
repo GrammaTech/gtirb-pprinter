@@ -328,7 +328,7 @@ conan-windows-debug-publish:
   - >-
     apt-get install -y
     libcapstone-dev${CAPSTONE_VERSION:+=$CAPSTONE_VERSION}
-    libgtirb-dev${GTIRB_VERSION:+=$GTIRB_VERSION}
+    libgtirb-dev${GTIRB_VERSION:+=$GTIRB_VERSION-$(lsb_release -sc)}
 
 .install-capstone:
   - DIST_NAME="$(lsb_release -sc)"
@@ -586,7 +586,7 @@ build-ubuntu20-packages:
     - !reference [.setup-apt]
     - >-
       apt-get download
-      $(apt-rdepends libgtirb-dev${GTIRB_VERSION:+=$GTIRB_VERSION} | grep -v "^ " | grep -E "gtirb")
+      $(apt-rdepends libgtirb-dev${GTIRB_VERSION:+=$GTIRB_VERSION-$(lsb_release -sc)} | grep -v "^ " | grep -E "gtirb")
       libcapstone-dev${CAPSTONE_VERSION:+=$CAPSTONE_VERSION}
     - dpkg-scanpackages . /dev/null > Packages
 
