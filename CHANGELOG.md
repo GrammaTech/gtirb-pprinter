@@ -1,4 +1,4 @@
-# 2.2.0 (Unreleased)
+# 2.2.0
 
   * Stop generating debian metapackages and packages with the version attached
     to the package name. Updates in the apt-repository now support multiple
