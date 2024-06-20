@@ -545,7 +545,7 @@ collectGlobalVisibleSymsExported(gtirb::Context& Ctx, gtirb::Module& Module) {
     }
 
     auto SymbolInfo = aux_data::getElfSymbolInfo(*Symbol);
-    if (SymbolInfo->Binding != "GLOBAL") {
+    if (SymbolInfo->Binding != "GLOBAL" && SymbolInfo->Binding != "WEAK") {
       continue;
     }
     if (SymbolInfo->Visibility == "HIDDEN") {
