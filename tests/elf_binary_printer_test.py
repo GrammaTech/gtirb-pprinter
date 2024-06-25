@@ -700,16 +700,20 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
         (section, section_bi) = gth.add_section(
             module, ".text", address=0x10000, flags=section_flags
         )
+        exported_symbols = [
+            ("_start", "GLOBAL"),
+            ("f2_symbol", "GLOBAL"),
+            ("f2_symbol_weak", "WEAK"),
+            ("f3_symbol", "GLOBAL"),
+        ]
         # Add global/weak exported symbols
-        for index, symbol_name in enumerate(
-            ["_start", "f2_symbol", "f2_weak_symbol", "f3_symbol"]
-        ):
+        for index, (symbol_name, binding) in enumerate(exported_symbols):
             block = gth.add_code_block(section_bi, code_bytes, {})
             symbol = gth.add_symbol(module, symbol_name, block)
             module.aux_data["elfSymbolInfo"].data[symbol.uuid] = (
                 0,
                 "FUNC",
-                "GLOBAL" if symbol_name != "f2_weak_symbol" else "WEAK",
+                binding,
                 "DEFAULT",
                 0,
             )
@@ -766,7 +770,7 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
                 dynsym.stdout,
                 ("FUNC", "GLOBAL", "DEFAULT", "_start"),
                 ("FUNC", "GLOBAL", "DEFAULT", "f2_symbol"),
-                ("FUNC", "WEAK", "DEFAULT", "f2_weak_symbol"),
+                ("FUNC", "WEAK", "DEFAULT", "f2_symbol_weak"),
                 ("FUNC", "GLOBAL", "DEFAULT", "f3_symbol"),
             )
             # The hidden global are not exported
