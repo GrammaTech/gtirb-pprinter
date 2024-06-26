@@ -304,7 +304,7 @@ getPrototypeTable(const gtirb::Module& M) {
 
 namespace gtirb_types {
 template <class T> T* nodeFromUUID(gtirb::Context& C, gtirb::UUID id) {
-  return dyn_cast_or_null<T>(gtirb::Node::getByUUID(C, id));
+  return gtirb::dyn_cast_or_null<T>(gtirb::Node::getByUUID(C, id));
 }
 
 TypePrinter::TypePrinter(const gtirb::Module& M, gtirb::Context& C)

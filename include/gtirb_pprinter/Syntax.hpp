@@ -18,6 +18,7 @@
 #include "Export.hpp"
 #include <optional>
 #include <string>
+#include <cstdint>
 
 namespace gtirb_pprint {
 
