@@ -1,5 +1,7 @@
 # 2.2.1 (Unreleased)
 
+  * Fix a bug that could cause `WEAK` symbols to be not exported
+
 # 2.2.0
 
   * Stop generating debian metapackages and packages with the version attached
