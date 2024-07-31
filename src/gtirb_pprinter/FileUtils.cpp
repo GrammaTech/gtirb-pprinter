@@ -139,7 +139,11 @@ void copyFile(const std::string& src, const std::string& dest) {
   LOG_INFO << "Saving file to " << dest << "\n";
   fs::path SrcPath(src);
   auto perms = fs::status(SrcPath).permissions();
+#if BOOST_VERSION >= 107400
   fs::copy_file(src, dest, fs::copy_options::overwrite_existing);
+#else
+  fs::copy_file(src, dest, fs::copy_option::overwrite_if_exists);
+#endif
   fs::permissions(DestPath, perms);
 }
 
