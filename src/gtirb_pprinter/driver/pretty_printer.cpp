@@ -87,6 +87,35 @@ getTemplateRules(const po::variables_map& vm, const std::string& name) {
   }
 };
 
+/**
+Get the name of the program interpreter
+*/
+static std::optional<std::string>
+getInterpreterName(const gtirb::Module& Module) {
+  for (auto& Section : Module.sections()) {
+    // TODO: to most accurately emulate runtime behavior, we should check the
+    // PT_INTERP program header rather than looking for a section by name.
+    // However, program headers are not preserved in the GTIRB.
+    if (Section.getName() == ".interp") {
+      std::string InterpPath;
+
+      for (auto& Interval : Section.byte_intervals()) {
+        for (auto Byte : Interval.bytes<uint8_t>()) {
+          if (Byte == '\0') {
+            return boost::filesystem::path(InterpPath).filename().string();
+          }
+          InterpPath += Byte;
+        }
+      }
+
+      LOG_WARNING
+          << "Interpreter path is not null-terminated within .interp section\n";
+      return boost::filesystem::path(InterpPath).filename().string();
+    }
+  }
+  return std::nullopt;
+}
+
 int main(int argc, char** argv) {
   gtirb_layout::registerAuxDataTypes();
   gtirb_pprint::registerAuxDataTypes();
@@ -473,6 +502,19 @@ int main(int argc, char** argv) {
 
   bool new_layout = false;
 
+  std::set<std::string> SkippedInterpreters;
+  if (Modules.size() > 1) {
+    // If printing multiple modules, collect interpreters to skip.
+    // Allow printing the interpreter if the user is only printing one module,
+    // because they explicitly asked for it.
+    for (auto& Mod : ir->modules()) {
+      auto Interp = getInterpreterName(Mod);
+      if (Interp.has_value()) {
+        SkippedInterpreters.insert(*Interp);
+      }
+    }
+  }
+
   for (auto& MP : Modules) {
     auto& M = *(MP.Module);
     // Layout IR in memory without overlap.
@@ -551,6 +593,13 @@ int main(int argc, char** argv) {
 
     const auto binaryPath = MP.BinaryName;
     if (binaryPath) {
+      // Suppress printing interpreters until we are able to do so correctly.
+      if (SkippedInterpreters.find(M.getName()) != SkippedInterpreters.end()) {
+        LOG_INFO << "Skipping binary-print for \"" << M.getName()
+                 << "\": is interpreter\n";
+        continue;
+      }
+
       if (!binaryPath->has_filename()) {
         LOG_ERROR << "The given path \"" << *binaryPath
                   << "\" has no filename.\n";

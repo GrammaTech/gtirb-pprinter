@@ -1,6 +1,7 @@
 # 2.2.1 (Unreleased)
 
   * Fix a bug that could cause `WEAK` symbols to be not exported
+  * Skip binary printing interpreters when printing multiple multiple modules
 
 # 2.2.0
 
