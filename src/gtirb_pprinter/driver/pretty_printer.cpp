@@ -596,7 +596,8 @@ int main(int argc, char** argv) {
       // Suppress printing interpreters until we are able to do so correctly.
       if (SkippedInterpreters.find(M.getName()) != SkippedInterpreters.end()) {
         LOG_INFO << "Skipping binary-print for \"" << M.getName()
-                 << "\": is interpreter\n";
+                 << "\": is interpreter. To print it, ensure it is the only "
+                    "selected module.\n";
         continue;
       }
 
