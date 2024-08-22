@@ -509,7 +509,7 @@ int main(int argc, char** argv) {
     // because they explicitly asked for it.
     for (auto& Mod : ir->modules()) {
       auto Interp = getInterpreterName(Mod);
-      if (Interp.has_value()) {
+      if (Interp) {
         SkippedInterpreters.insert(*Interp);
       }
     }
