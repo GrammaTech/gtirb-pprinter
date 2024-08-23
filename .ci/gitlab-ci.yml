@@ -542,7 +542,7 @@ test-make-install:
     - pip3 install --upgrade pip
     - pip3 install -r tests/requirements.txt $EXTRA_INDEX_URL
     - cp .ci/test-install.cpp test-install.cpp
-    - g++ test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs -lgtirb -lgtirb_layout
+    - g++ test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs -lgtirb -lgtirb_layout -DGTIRB_WRAP_UTILS_IN_NAMESPACE
     - python3 tests/hello_world.py
     - ./test-install hello.gtirb
     - python3 -m unittest discover tests "*_test.py"
@@ -601,7 +601,7 @@ build-ubuntu20-packages:
     - echo -e "\ndeb [trusted=yes] file:$(pwd)/apt-repo ./\n" >> /etc/apt/sources.list
     - 'TEST_PKG_NAME=$(dpkg --info apt-repo/libgtirb-pprinter-dev_*.deb | sed -n "s/Package: //p")'
     - apt-get update -y && apt-get install -y --allow-unauthenticated $TEST_PKG_NAME
-    - g++ .ci/test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs -lgtirb -lgtirb_layout
+    - g++ .ci/test-install.cpp -std=c++17 -o test-install -lgtirb_pprinter -lstdc++fs -lgtirb -lgtirb_layout -DGTIRB_WRAP_UTILS_IN_NAMESPACE
     - pip3 install --upgrade pip
     - pip3 install -r tests/requirements.txt $EXTRA_INDEX_URL
     - python3 tests/hello_world.py
