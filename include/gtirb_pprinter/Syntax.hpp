@@ -16,9 +16,9 @@
 #define GTIRB_PP_SYNTAX_H
 
 #include "Export.hpp"
+#include <cstdint>
 #include <optional>
 #include <string>
-#include <cstdint>
 
 namespace gtirb_pprint {
 
