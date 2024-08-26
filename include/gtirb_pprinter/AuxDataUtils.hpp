@@ -326,10 +326,14 @@ getElfSymbolTabIdxInfo(const gtirb::Module& M);
 template <typename Schema>
 const gtirb::CodeBlock* getCodeBlock(const gtirb::Context& Ctx,
                                      const gtirb::Module& Mod) {
+#ifdef GTIRB_WRAP_UTILS_IN_NAMESPACE
+  using gtirb::dyn_cast_or_null;
+#endif
+
   auto UUID = Mod.getAuxData<Schema>();
   if (UUID) {
     auto Nd = gtirb::Node::getByUUID(Ctx, *UUID);
-    if (const auto* CB = gtirb::dyn_cast_or_null<gtirb::CodeBlock>(Nd)) {
+    if (const auto* CB = dyn_cast_or_null<gtirb::CodeBlock>(Nd)) {
       return CB;
     }
   }

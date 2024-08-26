@@ -44,21 +44,33 @@ class PrettyPrinterBase;
 /// Utility functions for looking up nodes
 template <typename T>
 T* getByUUID(gtirb::Context& context, const gtirb::UUID& Uuid) {
-  return gtirb::dyn_cast_or_null<T>(gtirb::Node::getByUUID(context, Uuid));
+#ifdef GTIRB_WRAP_UTILS_IN_NAMESPACE
+  using gtirb::dyn_cast_or_null;
+#endif
+  return dyn_cast_or_null<T>(gtirb::Node::getByUUID(context, Uuid));
 }
 
 template <typename T>
 const T* getByUUID(const gtirb::Context& context, const gtirb::UUID& Uuid) {
-  return gtirb::dyn_cast_or_null<T>(gtirb::Node::getByUUID(context, Uuid));
+#ifdef GTIRB_WRAP_UTILS_IN_NAMESPACE
+  using gtirb::dyn_cast_or_null;
+#endif
+  return dyn_cast_or_null<T>(gtirb::Node::getByUUID(context, Uuid));
 }
 
 template <class T> T* nodeFromUUID(gtirb::Context& C, gtirb::UUID id) {
-  return gtirb::dyn_cast_or_null<T>(gtirb::Node::getByUUID(C, id));
+#ifdef GTIRB_WRAP_UTILS_IN_NAMESPACE
+  using gtirb::dyn_cast_or_null;
+#endif
+  return dyn_cast_or_null<T>(gtirb::Node::getByUUID(C, id));
 }
 
 template <class T>
 const T* nodeFromUUID(const gtirb::Context& C, gtirb::UUID id) {
-  return gtirb::dyn_cast_or_null<T>(gtirb::Node::getByUUID(C, id));
+#ifdef GTIRB_WRAP_UTILS_IN_NAMESPACE
+  using gtirb::dyn_cast_or_null;
+#endif
+  return dyn_cast_or_null<T>(gtirb::Node::getByUUID(C, id));
 }
 
 /// Whether a pretty printer should include debugging messages in it output.
