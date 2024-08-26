@@ -292,7 +292,7 @@ endif()
 # ---------------------------------------------------------------------------
 # gtirb
 # ---------------------------------------------------------------------------
-find_package(gtirb 2.1.1 REQUIRED)
+find_package(gtirb 2.2.0 REQUIRED)
 
 add_definitions(-DGTIRB_WRAP_UTILS_IN_NAMESPACE)
 
