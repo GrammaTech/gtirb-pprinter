@@ -149,3 +149,24 @@ class BlockAlignmentTest(PPrinterTest):
                 ".byte 0x3",
             ],
         )
+
+    def test_block_alignment_pe(self):
+        ir, m = create_test_module(
+            file_format=gtirb.Module.FileFormat.PE, isa=gtirb.Module.ISA.X64
+        )
+        _, bi1 = add_section(m, "_DATA")
+        data1 = add_data_block(bi1, b"\x00\x00\x00\x00")
+
+        m.aux_data["alignment"].data[data1] = 32
+
+        _, bi2 = add_section(m, "_RDATA")
+        add_data_block(bi2, b"\x01\x00\x00\x00")
+        data2 = add_data_block(bi2, b"\x02\x00\x00\x00")
+
+        m.aux_data["alignment"].data[data2] = 32
+
+        asm = run_asm_pprinter(ir)
+        print(asm)
+        self.assertContains(asm_lines(asm), ["ALIGN 16", "DB 4 DUP(0)"])
+        self.assertContains(asm_lines(asm), ["_RDATA SEGMENT ALIGN(32)"])
+        self.assertContains(asm_lines(asm), ["ALIGN 32", "BYTE 002H"])

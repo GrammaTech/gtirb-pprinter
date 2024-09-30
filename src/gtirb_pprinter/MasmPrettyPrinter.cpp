@@ -306,6 +306,32 @@ void MasmPrettyPrinter::printSectionHeaderDirective(
   Stream << Name << ' ' << syntax.section();
 }
 
+std::optional<uint64_t>
+MasmPrettyPrinter::adjustAlignment(const gtirb::DataBlock& Block,
+                                   const std::optional<uint64_t>& Align) {
+  // If the Block's Section is "_DATA", which is a predefined segment,
+  // follow the segment alignment because the segment properties cannot be
+  // changed.
+  // NOTE: This is acceptable as long as the data section remains unmodified.
+  // However, if blocks within the data section are rearranged after
+  // transforms, alignment issues may arise.
+  // For instance, a block that requires 32-byte alignment could end up
+  // being aligned to only 16-bytes.
+  const gtirb::ByteInterval* BI = Block.getByteInterval();
+  const gtirb::Section* Section = BI->getSection();
+  std::string SecName = syntax.formatSectionName(Section->getName());
+  if (SecName == "_DATA") {
+    if (auto SecAddr = Section->getAddress()) {
+      if (auto SecAlign = getAlignment(*SecAddr)) {
+        if (Align > SecAlign) {
+          return SecAlign;
+        }
+      }
+    }
+  }
+  return Align;
+}
+
 void MasmPrettyPrinter::printSectionProperties(std::ostream& os,
                                                const gtirb::Section& section) {
   // Skip printing section properties for predefined segments.
@@ -335,6 +361,38 @@ void MasmPrettyPrinter::printSectionProperties(std::ostream& os,
       os << " 'CODE'";
     if (Flags & IMAGE_SCN_CNT_INITIALIZED_DATA)
       os << " 'DATA'";
+  }
+
+  // If any alignment is required in this section (e.g., the Intel
+  // instruction `MOVAPS` requires aligned memory access),
+  // it must correspond to the SEGMENT ALIGN value.
+  // For any alignment larger than this, the ALIGN property must be updated
+  // accordingly.
+  // Determine the maximum required alignment and set it as the ALIGN value.
+  uint64_t MaxAlignment = 0;
+  for (const auto& Block : section.blocks()) {
+    if (const auto* DB = gtirb::dyn_cast<gtirb::DataBlock>(&Block)) {
+      if (auto Align = getAlignment(*DB)) {
+        if (Align > MaxAlignment) {
+          MaxAlignment = *Align;
+        }
+      }
+    }
+  }
+  // ALIGN must be a power of 2 from 1 to 8192.
+  auto isValid = [](uint64_t n) {
+    return n > 0 && n <= 8192 && (n & (n - 1)) == 0;
+  };
+  if (isValid(MaxAlignment)) {
+    // Get the section ALIGN value based on the section address.
+    // If it is less than MaxAlignment, explicitly add ALIGN property.
+    if (auto SecAddr = section.getAddress()) {
+      if (auto SecAlign = getAlignment(*SecAddr)) {
+        if (MaxAlignment > SecAlign) {
+          os << " ALIGN(" << MaxAlignment << ")";
+        }
+      }
+    }
   }
 };
 

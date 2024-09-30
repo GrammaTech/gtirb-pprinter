@@ -1559,7 +1559,15 @@ PrettyPrinterBase::getAlignment(const gtirb::CodeBlock& Block) {
 
 std::optional<uint64_t>
 PrettyPrinterBase::getAlignment(const gtirb::DataBlock& Block) {
-  return getAlignmentImpl(Block);
+  std::optional<uint64_t> Align = getAlignmentImpl(Block);
+  return adjustAlignment(Block, Align);
+}
+
+std::optional<uint64_t>
+PrettyPrinterBase::adjustAlignment(const gtirb::DataBlock& Block
+                                   [[maybe_unused]],
+                                   const std::optional<uint64_t>& Align) {
+  return Align;
 }
 
 void PrettyPrinterBase::printAlignment(std::ostream& OS, uint64_t Alignment) {

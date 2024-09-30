@@ -356,6 +356,9 @@ protected:
   virtual void printFooter(std::ostream& os) = 0;
   virtual std::optional<uint64_t> getAlignment(const gtirb::CodeBlock& Block);
   virtual std::optional<uint64_t> getAlignment(const gtirb::DataBlock& Block);
+  virtual std::optional<uint64_t>
+  adjustAlignment(const gtirb::DataBlock& Block,
+                  const std::optional<uint64_t>& Align);
   virtual void printAlignment(std::ostream& OS, uint64_t Alignment);
   virtual void printSection(std::ostream& os, const gtirb::Section& section);
   virtual void printSectionHeader(std::ostream& os,
