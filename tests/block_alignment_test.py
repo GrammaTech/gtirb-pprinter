@@ -166,7 +166,6 @@ class BlockAlignmentTest(PPrinterTest):
         m.aux_data["alignment"].data[data2] = 32
 
         asm = run_asm_pprinter(ir)
-        print(asm)
         self.assertContains(asm_lines(asm), ["ALIGN 16", "DB 4 DUP(0)"])
         self.assertContains(asm_lines(asm), ["_RDATA SEGMENT ALIGN(32)"])
         self.assertContains(asm_lines(asm), ["ALIGN 32", "BYTE 002H"])
