@@ -151,6 +151,19 @@ class BlockAlignmentTest(PPrinterTest):
         )
 
     def test_block_alignment_pe(self):
+        """
+        Test that ALIGNs are printed correctly for Masm:
+        ALIGN for individual block within a SEGMENT needs to match to the
+        SEGMENT's ALIGN property.
+        - The default ALIGN is 16. If there's any data block that requires
+          bigger alignment, the printer adds `ALIGN(N)` property to the
+          corresponding SEGMENT where N is the maximum alignemnt.
+        - The `_DATA` SEGMENT is an exception because it is one of the
+          predefined SEGMENTs, whose properties including `ALIGN` property
+          cannot be changed.
+          For any block in `_DATA` that requires alignment bigger than 16,
+          the printer adjusts its ALIGN to 16.
+        """
         ir, m = create_test_module(
             file_format=gtirb.Module.FileFormat.PE, isa=gtirb.Module.ISA.X64
         )

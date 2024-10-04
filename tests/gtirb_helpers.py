@@ -85,11 +85,11 @@ def add_standard_aux_data_tables(m: gtirb.Module) -> None:
     m.aux_data["SCCs"] = gtirb.AuxData(
         type_name="mapping<UUID,int64_t>", data=dict()
     )
+    m.aux_data["alignment"] = gtirb.AuxData(
+        type_name="mapping<UUID,uint64_t>", data=dict()
+    )
 
     if m.file_format == gtirb.Module.FileFormat.ELF:
-        m.aux_data["alignment"] = gtirb.AuxData(
-            type_name="mapping<UUID,uint64_t>", data=dict()
-        )
         m.aux_data["dynamicEntries"] = gtirb.AuxData(
             type_name="set<tuple<string,uint64_t>>", data=set()
         )
@@ -105,9 +105,6 @@ def add_standard_aux_data_tables(m: gtirb.Module) -> None:
         )
 
     elif m.file_format == gtirb.Module.FileFormat.PE:
-        m.aux_data["alignment"] = gtirb.AuxData(
-            type_name="mapping<UUID,uint64_t>", data=dict()
-        )
         m.aux_data["peExportEntries"] = gtirb.AuxData(
             type_name="sequence<tuple<uint64_t,int64_t,string>>", data=list()
         )

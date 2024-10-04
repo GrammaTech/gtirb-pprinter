@@ -159,9 +159,7 @@ protected:
   void printString(std::ostream& Stream, const gtirb::DataBlock& Block,
                    uint64_t Offset, bool NullTerminated = true) override;
 
-  std::optional<uint64_t>
-  adjustAlignment(const gtirb::DataBlock& Block,
-                  const std::optional<uint64_t>& Align) override;
+  std::optional<uint64_t> getAlignment(const gtirb::DataBlock& Block) override;
 
 private:
   gtirb::Addr BaseAddress;

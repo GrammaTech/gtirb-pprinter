@@ -307,8 +307,9 @@ void MasmPrettyPrinter::printSectionHeaderDirective(
 }
 
 std::optional<uint64_t>
-MasmPrettyPrinter::adjustAlignment(const gtirb::DataBlock& Block,
-                                   const std::optional<uint64_t>& Align) {
+MasmPrettyPrinter::getAlignment(const gtirb::DataBlock& Block) {
+  std::optional<uint64_t> Align = PrettyPrinterBase::getAlignment(Block);
+
   // If the Block's Section is "_DATA", which is a predefined segment,
   // follow the segment alignment because the segment properties cannot be
   // changed.
@@ -322,7 +323,7 @@ MasmPrettyPrinter::adjustAlignment(const gtirb::DataBlock& Block,
   std::string SecName = syntax.formatSectionName(Section->getName());
   if (SecName == "_DATA") {
     if (auto SecAddr = Section->getAddress()) {
-      if (auto SecAlign = getAlignment(*SecAddr)) {
+      if (auto SecAlign = PrettyPrinterBase::getAlignment(*SecAddr)) {
         if (Align > SecAlign) {
           return SecAlign;
         }
@@ -387,7 +388,7 @@ void MasmPrettyPrinter::printSectionProperties(std::ostream& os,
     // Get the section ALIGN value based on the section address.
     // If it is less than MaxAlignment, explicitly add ALIGN property.
     if (auto SecAddr = section.getAddress()) {
-      if (auto SecAlign = getAlignment(*SecAddr)) {
+      if (auto SecAlign = PrettyPrinterBase::getAlignment(*SecAddr)) {
         if (MaxAlignment > SecAlign) {
           os << " ALIGN(" << MaxAlignment << ")";
         }
