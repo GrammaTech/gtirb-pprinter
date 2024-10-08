@@ -158,21 +158,21 @@ class BlockAlignmentTest(PPrinterTest):
         - The default ALIGN is 16. If there's any data block that requires
           bigger alignment, the printer adds `ALIGN(N)` property to the
           corresponding SEGMENT where N is the maximum alignemnt.
-        - The `_DATA` SEGMENT is an exception because it is one of the
+        - The `.data` SEGMENT is an exception because it is one of the
           predefined SEGMENTs, whose properties including `ALIGN` property
           cannot be changed.
-          For any block in `_DATA` that requires alignment bigger than 16,
+          For any block in the segment that requires alignment bigger than 16,
           the printer adjusts its ALIGN to 16.
         """
         ir, m = create_test_module(
             file_format=gtirb.Module.FileFormat.PE, isa=gtirb.Module.ISA.X64
         )
-        _, bi1 = add_section(m, "_DATA")
+        _, bi1 = add_section(m, ".data")
         data1 = add_data_block(bi1, b"\x00\x00\x00\x00")
 
         m.aux_data["alignment"].data[data1] = 32
 
-        _, bi2 = add_section(m, "_RDATA")
+        _, bi2 = add_section(m, ".rdata")
         add_data_block(bi2, b"\x01\x00\x00\x00")
         data2 = add_data_block(bi2, b"\x02\x00\x00\x00")
 
