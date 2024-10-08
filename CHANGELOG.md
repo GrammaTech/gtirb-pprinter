@@ -5,7 +5,7 @@
   * Require gtirb >=2.2.0
   * Fix Masm pretty-printer so that ALIGN property can be added to SEGMENT
     when it includes any data blocks that require alignment.
-    For `_DATA` SEGMENT, which is a predefined SEGMENT, we do not change its
+    For `.data` SEGMENT, which is a predefined SEGMENT, we do not change its
     ALIGN property. Instead, it adjusts the ALIGN directives of any data
     blocks that have alignment value bigger than the SEGMENT alignment.
 
