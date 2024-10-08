@@ -310,9 +310,9 @@ std::optional<uint64_t>
 MasmPrettyPrinter::getAlignment(const gtirb::DataBlock& Block) {
   std::optional<uint64_t> Align = PrettyPrinterBase::getAlignment(Block);
 
-  // If the Block's Section is "_DATA", which is a predefined segment,
-  // follow the segment alignment because the segment properties cannot be
-  // changed.
+  // If the Block's Section is ".data" ("_DATA"), which is a predefined
+  // segment, follow the segment alignment because the segment properties
+  // cannot be changed.
   // NOTE: This is acceptable as long as the data section remains unmodified.
   // However, if blocks within the data section are rearranged after
   // transforms, alignment issues may arise.
@@ -320,8 +320,8 @@ MasmPrettyPrinter::getAlignment(const gtirb::DataBlock& Block) {
   // being aligned to only 16-bytes.
   const gtirb::ByteInterval* BI = Block.getByteInterval();
   const gtirb::Section* Section = BI->getSection();
-  std::string SecName = syntax.formatSectionName(Section->getName());
-  if (SecName == "_DATA") {
+  std::string SecName = Section->getName();
+  if (SecName == ".data") {
     if (auto SecAddr = Section->getAddress()) {
       if (auto SecAlign = PrettyPrinterBase::getAlignment(*SecAddr)) {
         if (Align > SecAlign) {
