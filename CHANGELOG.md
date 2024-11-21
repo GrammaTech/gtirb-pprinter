@@ -8,7 +8,7 @@
     For `.data` SEGMENT, which is a predefined SEGMENT, we do not change its
     ALIGN property. Instead, it adjusts the ALIGN directives of any data
     blocks that have alignment value bigger than the SEGMENT alignment.
-  * Allow `symbol_minus_symbol` for displacement in LEA indirect operand (X64)
+  * Allow `symbol_minus_symbol` for displacements in indirect operands (X64)
 
 # 2.2.0
 
