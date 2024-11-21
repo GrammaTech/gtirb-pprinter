@@ -136,9 +136,12 @@ void IntelPrettyPrinter::printOpIndirect(
   }
 
   if (const auto* SAC = std::get_if<gtirb::SymAddrConst>(symbolic)) {
-    os << '+';
+    if (!first)
+      os << '+';
     PrettyPrinterBase::printSymbolicExpression(os, SAC, false);
   } else if (const auto* SAA = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
+    if (!first)
+      os << '+';
     printSymbolicExpression(os, SAA, false);
   } else {
     printAddend(os, op.mem.disp, first);

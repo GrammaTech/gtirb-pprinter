@@ -158,9 +158,16 @@ void AttPrettyPrinter::printOpIndirect(
     os << getRegisterName(op.mem.segment) << ':';
   }
 
-  if (const auto* s = std::get_if<gtirb::SymAddrConst>(symbolic)) {
+  if (const auto* sac = std::get_if<gtirb::SymAddrConst>(symbolic)) {
     // Displacement is symbolic.
-    PrettyPrinterBase::printSymbolicExpression(os, s, false);
+    os << "(";
+    PrettyPrinterBase::printSymbolicExpression(os, sac, false);
+    os << ")";
+  } else if (const auto* saa = std::get_if<gtirb::SymAddrAddr>(symbolic)) {
+    // Displacement is symbolic.
+    os << "(";
+    PrettyPrinterBase::printSymbolicExpression(os, saa, false);
+    os << ")";
   } else {
     // Displacement is numeric.
     if (!has_segment && !has_base && !has_index) {
