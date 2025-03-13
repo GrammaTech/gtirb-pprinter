@@ -2,9 +2,6 @@ FROM docker.grammatech.com/rewriting/gtirb/static
 
 RUN apt-get -y update && \
     apt-get -y install \
-        libboost-system-dev \
-        libboost-filesystem-dev \
-        libboost-program-options-dev \
         gcc-arm-linux-gnueabihf
 
 # Install pip
