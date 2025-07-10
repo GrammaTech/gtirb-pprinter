@@ -455,9 +455,7 @@ static-drivers:
 
 generate-license:
   stage: xform
-  image: ${CI_REGISTRY_IMAGE}/static:$IMAGE_TAG
-  needs:
-    - build-ci-image-static
+  image: python:3.10-slim
   artifacts:
     expire_in: "1 days"
     paths:
