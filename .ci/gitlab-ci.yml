@@ -455,7 +455,7 @@ static-drivers:
 
 generate-license:
   stage: xform
-  image: python:3.10-slim
+  image: python:3.9-slim
   artifacts:
     expire_in: "1 days"
     paths:
