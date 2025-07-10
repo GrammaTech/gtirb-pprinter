@@ -453,6 +453,23 @@ static-drivers:
     # For verification purposes, print ldd of the driver here.
     - ldd bin/gtirb-pprinter
 
+generate-license:
+  stage: xform
+  artifacts:
+    expire_in: "1 days"
+    paths:
+      - license.txt
+  script:
+    - pip3 install --index-url=$EXTRA_INDEX_URL -r server/requirements-dev.txt
+    - >
+      python -m stifflm_license_manager generate
+      --licensed-to="GrammaTech CI"
+      --product-name "Dykondo"
+      --license-version 1
+      --expiration-duration 1
+      --sign "$CI_LICENSE_SIGNING_SERVER"
+      --feature "xform-server-all"
+      --out license.txt
 
 .xform: &xform
   stage: xform
@@ -466,6 +483,7 @@ static-drivers:
   allow_failure: true
   script:
     - curl http://gtirb-server:8000 --retry 30 --retry-connrefused --retry-delay 1
+    - curl -X POST -F file=@license.txt http://xform-server:8000/license/load
     - for binary in $XFORM_BINARIES ; do
         binary="build/$binary" ;
         curl -F transform=ddisasm -F binary=@$binary --output $binary.gtirb http://gtirb-server:8000/simple ;
@@ -483,6 +501,7 @@ xform-ubuntu20:
   needs:
     - job: build-ubuntu20-gcc
       artifacts: true
+    - generate-license
   variables:
     OS: ubuntu20
   before_script:
@@ -495,6 +514,7 @@ xform-ubuntu20-clang:
   needs:
     - job: build-ubuntu20-clang-debug
       artifacts: true
+    - generate-license
   variables:
     OS: ubuntu20
   before_script:
