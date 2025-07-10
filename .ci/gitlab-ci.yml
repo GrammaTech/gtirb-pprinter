@@ -455,12 +455,16 @@ static-drivers:
 
 generate-license:
   stage: xform
+  image: ${CI_REGISTRY_IMAGE}/static:$IMAGE_TAG
+  needs:
+    - build-ci-image-static
   artifacts:
     expire_in: "1 days"
     paths:
       - license.txt
   script:
-    - pip3 install --index-url=$EXTRA_INDEX_URL -r server/requirements-dev.txt
+    - pip3 install --upgrade pip
+    - pip3 install --index-url=$EXTRA_INDEX_URL stifflm-license-manager==0.2.0
     - >
       python -m stifflm_license_manager generate
       --licensed-to="GrammaTech CI"
