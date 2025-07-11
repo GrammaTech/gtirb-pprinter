@@ -462,14 +462,14 @@ generate-license:
       - license.txt
   script:
     - pip3 install --upgrade pip
-    - pip3 install --index-url=$EXTRA_INDEX_URL stifflm-license-manager==0.2.0
+    - pip3 install --index-url=$EXTRA_INDEX_URL stifflm-license-manager~=0.2.0
     - >
       python -m stifflm_license_manager generate
       --licensed-to="GrammaTech CI"
       --product-name "Dykondo"
       --license-version 1
       --expiration-duration 1
-      --sign "$CI_LICENSE_SIGNING_SERVER"
+      --sign "$GT_LICENSE_SIGNING_SERVER"
       --feature "xform-server-all"
       --out license.txt
 
