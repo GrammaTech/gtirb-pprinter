@@ -466,8 +466,6 @@ generate-license:
     - >
       python -m stifflm_license_manager generate
       --licensed-to="GrammaTech CI"
-      --product-name "Dykondo"
-      --license-version 1
       --expiration-duration 1
       --sign "$GT_LICENSE_SIGNING_SERVER"
       --feature "xform-server-all"
