@@ -22,6 +22,7 @@ class Arm32InstructionsTest(PPrinterTest):
             (Thumb, b"\x00\xf9\x0d\x8a", "vst1.8 { d8, d9 }, [r0]!"),
             (Thumb, b"\xfe\xde", "udf #254"),
             (Arm, b"\x01\x00\x9f\xe7", "ldr r0, [pc, r1]"),
+            (Thumb, b"\x12\xee\x10\x0b", "vmov.32 r0, d2[0]"),
         ]
 
         for insn_mode, insn_bytes, insn_str in instructions:

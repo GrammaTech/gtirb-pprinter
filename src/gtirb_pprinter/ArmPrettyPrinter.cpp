@@ -677,6 +677,10 @@ void ArmPrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
         os << "#" << op.shift.value;
     }
   }
+
+  if (op.vector_index != -1) {
+    os << "[" << (int)op.vector_index << "]";
+  }
 }
 
 std::string ArmPrettyPrinter::getRegisterName(unsigned int reg) const {
