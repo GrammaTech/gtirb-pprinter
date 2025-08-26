@@ -1,4 +1,7 @@
-# 2.2.2 (Unreleased)
+# 2.2.3 (Unreleased)
+
+# 2.2.2
+
   * Fix a bug that could cause `vector_index` not printed for ARM vector instructions.
 
 # 2.2.1
