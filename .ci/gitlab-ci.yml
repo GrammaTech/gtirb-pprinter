@@ -838,7 +838,10 @@ python-manylinux-2010-publish-internal:
         python3 delete_remote_packages.py $GL_PKG_API_TOKEN gtirb_pprinter-*.whl;
       fi
     - twine check gtirb_pprinter-*.whl
-    - twine upload --verbose --repository repypi gtirb_pprinter-*.whl --skip-existing
+    # As of 6.2.0, twine --skip-existing only works on PyPI. Simulate it here.
+    - if ! pip3 download --no-deps --index-url=$EXTRA_INDEX_URL "gtirb-pprinter==$NEW_VERSION"; then
+        twine upload --verbose --repository repypi gtirb_pprinter-*.whl;
+      fi
 
 python-manylinux-2010-publish-external:
   stage: deploy
