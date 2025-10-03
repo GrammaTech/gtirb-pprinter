@@ -37,32 +37,28 @@ stages:
 
 .build-ci-image: &build-ci-image
   stage: build-images
-  image:
-    name: gcr.io/kaniko-project/executor:debug
-    entrypoint: [""]
+  image: quay.io/buildah/stable
   script:
     # Configure authentication credentials for GitLab
+    - buildah login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    # Build our image (using a cache if available)
     - >
-      echo "{\"auths\":{
-        \"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}
-      }}" > /kaniko/.docker/config.json
-    # Run the kaniko executor, which will build our image (using a cache if available)
+      buildah build
+      -f "$CI_PROJECT_DIR/$DOCKERFILE_PATH"
+      --layers
+      --cache-from "$CI_REGISTRY_IMAGE$IMAGE_NAME/cache"
+      --cache-to "$CI_REGISTRY_IMAGE$IMAGE_NAME/cache"
+      --tag "$CI_REGISTRY_IMAGE$IMAGE_NAME:$IMAGE_TAG"
+      $EXTRA_ARGS
+      "$CI_PROJECT_DIR"
     # Push to our internal registry
+    - buildah push "$CI_REGISTRY_IMAGE$IMAGE_NAME:$IMAGE_TAG"
     # If we're on the master branch, also push the latest tag.
     - |
       if [ "$CI_COMMIT_BRANCH" = "$CI_DEFAULT_BRANCH" ]; then
-        export EXTRA_DEST="--destination=${CI_REGISTRY_IMAGE}${IMAGE_NAME}:latest"
+        buildah push "$CI_REGISTRY_IMAGE$IMAGE_NAME:$IMAGE_TAG" \
+            "$CI_REGISTRY_IMAGE$IMAGE_NAME:latest"
       fi
-    - >
-      /kaniko/executor
-      --snapshotMode=redo
-      --cache=true
-      --cache-repo=${CI_REGISTRY_IMAGE}${IMAGE_NAME}/cache
-      --context=$CI_PROJECT_DIR
-      --dockerfile=$CI_PROJECT_DIR/$DOCKERFILE_PATH
-      --destination=${CI_REGISTRY_IMAGE}${IMAGE_NAME}:$IMAGE_TAG
-      $EXTRA_DEST
-      $EXTRA_ARGS
 
 build-ci-image-ubuntu20:
   <<: *build-ci-image
