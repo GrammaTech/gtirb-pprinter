@@ -458,11 +458,32 @@ void Arm64PrettyPrinter::printOpImmediate(
          "printOpImmediate called without an immediate operand");
 
   if (const gtirb::SymAddrConst* s = this->getSymbolicImmediate(symbolic)) {
-    bool is_jump = cs_insn_group(this->csHandle, &inst, ARM64_GRP_JUMP);
-    if (!is_jump) {
-      os << ' ';
+    // Handle MOVZ/MOVK with absolute address group attributes (G0-G3).
+    // The #:abs_gN: prefix tells the assembler which 16-bit group of the
+    // symbol address to extract.  MOVK uses _nc (no-check) variants.
+    bool hasAbsGroup = s->Attributes.count(gtirb::SymAttribute::G0)
+                    || s->Attributes.count(gtirb::SymAttribute::G1)
+                    || s->Attributes.count(gtirb::SymAttribute::G2)
+                    || s->Attributes.count(gtirb::SymAttribute::G3);
+
+    if (hasAbsGroup) {
+      bool isMovk = (inst.id == ARM64_INS_MOVK);
+      if (s->Attributes.count(gtirb::SymAttribute::G0))
+        os << (isMovk ? "#:abs_g0_nc:" : "#:abs_g0:");
+      else if (s->Attributes.count(gtirb::SymAttribute::G1))
+        os << (isMovk ? "#:abs_g1_nc:" : "#:abs_g1:");
+      else if (s->Attributes.count(gtirb::SymAttribute::G2))
+        os << (isMovk ? "#:abs_g2_nc:" : "#:abs_g2:");
+      else // G3 is always the highest group, no _nc needed.
+        os << "#:abs_g3:";
+      this->printSymbolicExpression(os, s, true);
+    } else {
+      bool is_jump = cs_insn_group(this->csHandle, &inst, ARM64_GRP_JUMP);
+      if (!is_jump) {
+        os << ' ';
+      }
+      this->printSymbolicExpression(os, s, !is_jump);
     }
-    this->printSymbolicExpression(os, s, !is_jump);
   } else {
     os << "#" << op.imm;
     if (op.shift.type != ARM64_SFT_INVALID && op.shift.value != 0) {
