@@ -119,6 +119,35 @@ void Arm64PrettyPrinter::printInstruction(std::ostream& os,
     }
   }
 
+  // Capstone aliases MOVZ as "mov", but the GNU assembler requires "movz"
+  // when using :abs_gN: relocation modifiers. Detect the MOVZ encoding from
+  // raw instruction bytes and use the canonical mnemonic, but only when the
+  // instruction has a symbolic operand with abs_g attributes.
+  if (opcode.empty() && inst.size == 4) {
+    uint32_t Enc = static_cast<uint32_t>(inst.bytes[0])
+                   | (static_cast<uint32_t>(inst.bytes[1]) << 8)
+                   | (static_cast<uint32_t>(inst.bytes[2]) << 16)
+                   | (static_cast<uint32_t>(inst.bytes[3]) << 24);
+    bool IsMovzEncoding = ((Enc >> 23) & 0x3F) == 0x25
+                          && ((Enc >> 29) & 0x3) == 0x2;
+    if (IsMovzEncoding) {
+      const gtirb::SymbolicExpression* Symex =
+          block.getByteInterval()->getSymbolicExpression(
+              ea - *block.getByteInterval()->getAddress());
+      if (Symex != nullptr) {
+        const gtirb::SymAddrConst* Symaddr =
+            this->getSymbolicImmediate(Symex);
+        if (Symaddr != nullptr
+            && (Symaddr->Attributes.count(gtirb::SymAttribute::G0)
+                || Symaddr->Attributes.count(gtirb::SymAttribute::G1)
+                || Symaddr->Attributes.count(gtirb::SymAttribute::G2)
+                || Symaddr->Attributes.count(gtirb::SymAttribute::G3))) {
+          opcode = "movz";
+        }
+      }
+    }
+  }
+
   // end special cases
   ////////////////////////////////////////////////////////////////////
 
