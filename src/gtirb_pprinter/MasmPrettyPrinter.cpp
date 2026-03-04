@@ -190,7 +190,8 @@ void MasmPrettyPrinter::printExterns(std::ostream& os) {
     // indirect, or both, we will define both as extern conservatively.  This
     // should have no impact at runtime, and both with be defined in the
     // import library regardless.
-    os << masmSyntax.extrn() << " " << "__imp_" << Name << ":PROC\n";
+    os << masmSyntax.extrn() << " "
+       << "__imp_" << Name << ":PROC\n";
     os << masmSyntax.extrn() << " " << Name << ":PROC\n";
   }
 

@@ -141,7 +141,7 @@ protected:
   void printIntegralSymbol(std::ostream& os,
                            const gtirb::Symbol& symbol) override;
   void printUndefinedSymbol(std::ostream& /*os*/,
-                            const gtirb::Symbol& /*symbol*/) override {};
+                            const gtirb::Symbol& /*symbol*/) override{};
 
   void printSymbolicExpression(std::ostream& os,
                                const gtirb::SymAddrConst* sexpr,
