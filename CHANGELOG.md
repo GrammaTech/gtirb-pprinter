@@ -4,6 +4,10 @@
     %tlsgd, %tlsldm, %tprel_hi, %tprel_lo, %pcrel_hi `%pcrel_lo`) to be omitted.
   * Fix an issue where the first $zero operand was missing in MIPS DIV and DIVU
     instructions.
+  * Fix a bug that could cause GAS parsing errors when Intel-syntax operands
+    contain hex-like symbol names.
+  * Skip printing the index register when it is `RIZ` or `EIZ` in the AT&T, Intel,
+    and MASM printers.
 
 # 2.2.2
 
