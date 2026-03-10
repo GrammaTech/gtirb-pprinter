@@ -535,7 +535,7 @@ void PrettyPrinterBase::printBlockContents(std::ostream& os,
 
   gtirb::Offset blockOffset(x.getUUID(), offset);
   for (size_t i = 0; i < count; i++) {
-    fixupInstruction(insn[i]);
+    fixupInstruction(x, insn[i]);
     printInstruction(os, x, insn[i], blockOffset);
     blockOffset.Displacement += insn[i].size;
   }
@@ -665,7 +665,7 @@ void PrettyPrinterBase::printSymbolDefinition(std::ostream& os,
   os << getSymbolName(symbol) << ":\n";
 }
 
-void PrettyPrinterBase::fixupInstruction(cs_insn&) {}
+void PrettyPrinterBase::fixupInstruction(const gtirb::CodeBlock&, cs_insn&) {}
 
 // Helper for x86-specific fixups, called from Att, Intel, and Masm pretty
 // printers (Masm has additional fixups).

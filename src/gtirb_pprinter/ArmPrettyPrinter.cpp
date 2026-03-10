@@ -160,7 +160,7 @@ void ArmPrettyPrinter::printBlockContents(std::ostream& Os,
 
   gtirb::Offset BlockOffset(X.getUUID(), Offset);
   for (size_t I = 0; I < InsnCount; I++) {
-    fixupInstruction((&(*InsnPtr))[I]);
+    fixupInstruction(X, (&(*InsnPtr))[I]);
     printInstruction(Os, X, (&(*InsnPtr))[I], BlockOffset);
     BlockOffset.Displacement += (&(*InsnPtr))[I].size;
   }
@@ -247,8 +247,9 @@ static void rewriteMnemonic(cs_insn& inst, const char* str) {
   memcpy(inst.mnemonic, newMnemonic.c_str(), newMnemonicLen);
 }
 
-void ArmPrettyPrinter::fixupInstruction(cs_insn& inst) {
-  ElfPrettyPrinter::fixupInstruction(inst);
+void ArmPrettyPrinter::fixupInstruction(const gtirb::CodeBlock& block,
+                                        cs_insn& inst) {
+  PrettyPrinterBase::fixupInstruction(block, inst);
 
   cs_arm& Detail = inst.detail->arm;
 

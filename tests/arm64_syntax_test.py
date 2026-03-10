@@ -36,3 +36,47 @@ class Arm64InstructionsTest(PPrinterTest):
 
                 asm = run_asm_pprinter(ir)
                 self.assertIn(insn_str, asm)
+
+    def test_print_abs_group_symbolic_operands(self):
+        cases = [
+            (
+                b"\x00\x08\x80\xD2",
+                gtirb.symbolicexpression.SymbolicExpression.Attribute.G0,
+                "movz x0,#:abs_g0:my_sym",
+            ),
+            (
+                b"\x00\x00\xC0\xD2",
+                gtirb.symbolicexpression.SymbolicExpression.Attribute.G2,
+                "movz x0,#:abs_g2:my_sym",
+            ),
+            (
+                b"\x00\x00\x80\xF2",
+                gtirb.symbolicexpression.SymbolicExpression.Attribute.G1,
+                "movk x0,#:abs_g1_nc:my_sym",
+            ),
+            (
+                b"\x00\x00\x80\xF2",
+                gtirb.symbolicexpression.SymbolicExpression.Attribute.G3,
+                "movk x0,#:abs_g3:my_sym",
+            ),
+        ]
+
+        for insn_bytes, attr, expected in cases:
+            with self.subTest(expected=expected):
+                ir, m = create_test_module(
+                    file_format=gtirb.Module.FileFormat.ELF,
+                    isa=gtirb.Module.ISA.ARM64,
+                )
+                _, bi = add_text_section(m)
+
+                code = add_code_block(bi, insn_bytes)
+                sym = gtirb.symbol.Symbol("my_sym", payload=code, module=m)
+                sym_expr = gtirb.symbolicexpression.SymAddrConst(
+                    0,
+                    sym,
+                    attributes=[attr],
+                )
+                bi.symbolic_expressions[0] = sym_expr
+
+                asm = run_asm_pprinter(ir)
+                self.assertIn(expected, asm)
