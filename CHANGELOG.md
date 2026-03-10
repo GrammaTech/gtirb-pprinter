@@ -1,5 +1,6 @@
 # 2.2.3 (Unreleased)
 
+  * Fix ARM64 `MOVZ`/`MOVK` printing for `:abs_gN:` symbolic operands.
   * Fix a bug that could cause certain MIPS TLS relocation directives (e.g.,
     %tlsgd, %tlsldm, %tprel_hi, %tprel_lo, %pcrel_hi `%pcrel_lo`) to be omitted.
   * Fix an issue where the first $zero operand was missing in MIPS DIV and DIVU

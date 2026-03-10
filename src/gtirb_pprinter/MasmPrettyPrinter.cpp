@@ -406,7 +406,10 @@ void MasmPrettyPrinter::printSectionFooterDirective(
   Stream << Name << ' ' << masmSyntax.ends() << '\n';
 }
 
-void MasmPrettyPrinter::fixupInstruction(cs_insn& inst) {
+void MasmPrettyPrinter::fixupInstruction(const gtirb::CodeBlock& block,
+                                         cs_insn& inst) {
+  PrettyPrinterBase::fixupInstruction(block, inst);
+
   cs_x86& Detail = inst.detail->x86;
 
   // Change GAS-specific MOVABS opcode to equivalent MOV opcode.

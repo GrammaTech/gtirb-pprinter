@@ -35,7 +35,10 @@ AttPrettyPrinter::AttPrettyPrinter(gtirb::Context& context_,
   cs_option(this->csHandle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
 }
 
-void AttPrettyPrinter::fixupInstruction(cs_insn& Insn) {
+void AttPrettyPrinter::fixupInstruction(const gtirb::CodeBlock& block,
+                                        cs_insn& Insn) {
+  PrettyPrinterBase::fixupInstruction(block, Insn);
+
   cs_x86& Detail = Insn.detail->x86;
 
   switch (Insn.id) {

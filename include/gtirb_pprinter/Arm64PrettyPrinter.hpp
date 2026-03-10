@@ -40,6 +40,8 @@ public:
 
 protected:
   std::string getRegisterName(unsigned int reg) const override;
+  void fixupInstruction(const gtirb::CodeBlock& block,
+                        cs_insn& inst) override;
 
   void printInstruction(std::ostream& os, const gtirb::CodeBlock& block,
                         const cs_insn& inst,

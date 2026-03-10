@@ -196,8 +196,9 @@ void Mips32PrettyPrinter::printOperand(std::ostream& os,
   }
 }
 
-void Mips32PrettyPrinter::fixupInstruction(cs_insn& inst) {
-  ElfPrettyPrinter::fixupInstruction(inst);
+void Mips32PrettyPrinter::fixupInstruction(const gtirb::CodeBlock& block,
+                                           cs_insn& inst) {
+  PrettyPrinterBase::fixupInstruction(block, inst);
 
   switch (inst.id) {
   case MIPS_INS_DIV:
