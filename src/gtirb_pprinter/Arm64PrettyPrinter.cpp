@@ -13,6 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <cstring>
 #include <iostream>
 
 #include "Arm64PrettyPrinter.hpp"
@@ -66,6 +67,46 @@ void Arm64PrettyPrinter::printHeader(std::ostream& os) {
 
 std::string Arm64PrettyPrinter::getRegisterName(unsigned int reg) const {
   return reg == ARM64_REG_INVALID ? "" : cs_reg_name(this->csHandle, reg);
+}
+
+void Arm64PrettyPrinter::fixupInstruction(const gtirb::CodeBlock& block,
+                                          cs_insn& inst) {
+  PrettyPrinterBase::fixupInstruction(block, inst);
+
+  // Capstone aliases MOVZ as "mov", but the GNU assembler requires "movz"
+  // when using :abs_gN: relocation modifiers. Detect the MOVZ encoding from
+  // raw instruction bytes and use the canonical mnemonic, but only when the
+  // instruction has a symbolic operand with abs_g attributes.
+  if (inst.size != 4) {
+    return;
+  }
+
+  uint32_t Enc = static_cast<uint32_t>(inst.bytes[0])
+                 | (static_cast<uint32_t>(inst.bytes[1]) << 8)
+                 | (static_cast<uint32_t>(inst.bytes[2]) << 16)
+                 | (static_cast<uint32_t>(inst.bytes[3]) << 24);
+  bool IsMovzEncoding = ((Enc >> 23) & 0x3F) == 0x25
+                        && ((Enc >> 29) & 0x3) == 0x2;
+  if (!IsMovzEncoding) {
+    return;
+  }
+
+  gtirb::Addr ea(inst.address);
+  const gtirb::SymbolicExpression* Symex =
+      block.getByteInterval()->getSymbolicExpression(
+          ea - *block.getByteInterval()->getAddress());
+  if (Symex == nullptr) {
+    return;
+  }
+
+  const gtirb::SymAddrConst* Symaddr = this->getSymbolicImmediate(Symex);
+  if (Symaddr != nullptr
+      && (Symaddr->Attributes.count(gtirb::SymAttribute::G0)
+          || Symaddr->Attributes.count(gtirb::SymAttribute::G1)
+          || Symaddr->Attributes.count(gtirb::SymAttribute::G2)
+          || Symaddr->Attributes.count(gtirb::SymAttribute::G3))) {
+    std::memcpy(inst.mnemonic, "MOVZ", sizeof("MOVZ"));
+  }
 }
 
 void Arm64PrettyPrinter::printInstruction(std::ostream& os,
@@ -458,11 +499,32 @@ void Arm64PrettyPrinter::printOpImmediate(
          "printOpImmediate called without an immediate operand");
 
   if (const gtirb::SymAddrConst* s = this->getSymbolicImmediate(symbolic)) {
-    bool is_jump = cs_insn_group(this->csHandle, &inst, ARM64_GRP_JUMP);
-    if (!is_jump) {
-      os << ' ';
+    // Handle MOVZ/MOVK with absolute address group attributes (G0-G3).
+    // The #:abs_gN: prefix tells the assembler which 16-bit group of the
+    // symbol address to extract.  MOVK uses _nc (no-check) variants.
+    bool hasAbsGroup = s->Attributes.count(gtirb::SymAttribute::G0)
+                    || s->Attributes.count(gtirb::SymAttribute::G1)
+                    || s->Attributes.count(gtirb::SymAttribute::G2)
+                    || s->Attributes.count(gtirb::SymAttribute::G3);
+
+    if (hasAbsGroup) {
+      bool isMovk = (inst.id == ARM64_INS_MOVK);
+      if (s->Attributes.count(gtirb::SymAttribute::G0))
+        os << (isMovk ? "#:abs_g0_nc:" : "#:abs_g0:");
+      else if (s->Attributes.count(gtirb::SymAttribute::G1))
+        os << (isMovk ? "#:abs_g1_nc:" : "#:abs_g1:");
+      else if (s->Attributes.count(gtirb::SymAttribute::G2))
+        os << (isMovk ? "#:abs_g2_nc:" : "#:abs_g2:");
+      else // G3 is always the highest group, no _nc needed.
+        os << "#:abs_g3:";
+      this->printSymbolicExpression(os, s, true);
+    } else {
+      bool is_jump = cs_insn_group(this->csHandle, &inst, ARM64_GRP_JUMP);
+      if (!is_jump) {
+        os << ' ';
+      }
+      this->printSymbolicExpression(os, s, !is_jump);
     }
-    this->printSymbolicExpression(os, s, !is_jump);
   } else {
     os << "#" << op.imm;
     if (op.shift.type != ARM64_SFT_INVALID && op.shift.value != 0) {
