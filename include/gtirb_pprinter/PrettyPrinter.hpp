@@ -389,8 +389,7 @@ protected:
                                   uint64_t offset);
   virtual void printByte(std::ostream& os, std::byte byte) = 0;
 
-  virtual void fixupInstruction(const gtirb::CodeBlock& block,
-                                cs_insn& inst);
+  virtual void fixupInstruction(const gtirb::CodeBlock& block, cs_insn& inst);
 
   // x86-specific fixups helper.
   void x86FixupInstruction(cs_insn& inst);

@@ -34,8 +34,7 @@ public:
                       const ElfSyntax& syntax, const PrintingPolicy& policy);
 
 protected:
-  void fixupInstruction(const gtirb::CodeBlock& block,
-                        cs_insn& inst) override;
+  void fixupInstruction(const gtirb::CodeBlock& block, cs_insn& inst) override;
   void printHeader(std::ostream& os) override;
   void printOpRegdirect(std::ostream& os, const cs_insn& inst,
                         uint64_t index) override;

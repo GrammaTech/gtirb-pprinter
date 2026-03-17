@@ -102,8 +102,7 @@ protected:
   void printExterns(std::ostream& os);
 
   std::string getSymbolName(const gtirb::Symbol& Symbol) const override;
-  void fixupInstruction(const gtirb::CodeBlock& block,
-                        cs_insn& inst) override;
+  void fixupInstruction(const gtirb::CodeBlock& block, cs_insn& inst) override;
   void printHeader(std::ostream& os) override;
   void printFooter(std::ostream& os) override;
 

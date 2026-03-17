@@ -81,12 +81,12 @@ void Arm64PrettyPrinter::fixupInstruction(const gtirb::CodeBlock& block,
     return;
   }
 
-  uint32_t Enc = static_cast<uint32_t>(inst.bytes[0])
-                 | (static_cast<uint32_t>(inst.bytes[1]) << 8)
-                 | (static_cast<uint32_t>(inst.bytes[2]) << 16)
-                 | (static_cast<uint32_t>(inst.bytes[3]) << 24);
-  bool IsMovzEncoding = ((Enc >> 23) & 0x3F) == 0x25
-                        && ((Enc >> 29) & 0x3) == 0x2;
+  uint32_t Enc = static_cast<uint32_t>(inst.bytes[0]) |
+                 (static_cast<uint32_t>(inst.bytes[1]) << 8) |
+                 (static_cast<uint32_t>(inst.bytes[2]) << 16) |
+                 (static_cast<uint32_t>(inst.bytes[3]) << 24);
+  bool IsMovzEncoding =
+      ((Enc >> 23) & 0x3F) == 0x25 && ((Enc >> 29) & 0x3) == 0x2;
   if (!IsMovzEncoding) {
     return;
   }
@@ -100,11 +100,11 @@ void Arm64PrettyPrinter::fixupInstruction(const gtirb::CodeBlock& block,
   }
 
   const gtirb::SymAddrConst* Symaddr = this->getSymbolicImmediate(Symex);
-  if (Symaddr != nullptr
-      && (Symaddr->Attributes.count(gtirb::SymAttribute::G0)
-          || Symaddr->Attributes.count(gtirb::SymAttribute::G1)
-          || Symaddr->Attributes.count(gtirb::SymAttribute::G2)
-          || Symaddr->Attributes.count(gtirb::SymAttribute::G3))) {
+  if (Symaddr != nullptr &&
+      (Symaddr->Attributes.count(gtirb::SymAttribute::G0) ||
+       Symaddr->Attributes.count(gtirb::SymAttribute::G1) ||
+       Symaddr->Attributes.count(gtirb::SymAttribute::G2) ||
+       Symaddr->Attributes.count(gtirb::SymAttribute::G3))) {
     std::memcpy(inst.mnemonic, "MOVZ", sizeof("MOVZ"));
   }
 }
@@ -502,10 +502,10 @@ void Arm64PrettyPrinter::printOpImmediate(
     // Handle MOVZ/MOVK with absolute address group attributes (G0-G3).
     // The #:abs_gN: prefix tells the assembler which 16-bit group of the
     // symbol address to extract.  MOVK uses _nc (no-check) variants.
-    bool hasAbsGroup = s->Attributes.count(gtirb::SymAttribute::G0)
-                    || s->Attributes.count(gtirb::SymAttribute::G1)
-                    || s->Attributes.count(gtirb::SymAttribute::G2)
-                    || s->Attributes.count(gtirb::SymAttribute::G3);
+    bool hasAbsGroup = s->Attributes.count(gtirb::SymAttribute::G0) ||
+                       s->Attributes.count(gtirb::SymAttribute::G1) ||
+                       s->Attributes.count(gtirb::SymAttribute::G2) ||
+                       s->Attributes.count(gtirb::SymAttribute::G3);
 
     if (hasAbsGroup) {
       bool isMovk = (inst.id == ARM64_INS_MOVK);

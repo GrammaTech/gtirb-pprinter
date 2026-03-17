@@ -51,8 +51,7 @@ public:
 protected:
   const ArmSyntax& armSyntax;
 
-  void fixupInstruction(const gtirb::CodeBlock& block,
-                        cs_insn& inst) override;
+  void fixupInstruction(const gtirb::CodeBlock& block, cs_insn& inst) override;
   std::string getRegisterName(unsigned int reg) const override;
   void printHeader(std::ostream& os) override;
   void setDecodeMode(std::ostream& os, const gtirb::CodeBlock& x) override;
