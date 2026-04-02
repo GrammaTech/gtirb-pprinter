@@ -73,39 +73,30 @@ void Arm64PrettyPrinter::fixupInstruction(const gtirb::CodeBlock& block,
                                           cs_insn& inst) {
   PrettyPrinterBase::fixupInstruction(block, inst);
 
-  // Capstone aliases MOVZ as "mov", but the GNU assembler requires "movz"
-  // when using :abs_gN: relocation modifiers. Detect the MOVZ encoding from
-  // raw instruction bytes and use the canonical mnemonic, but only when the
-  // instruction has a symbolic operand with abs_g attributes.
-  if (inst.size != 4) {
-    return;
-  }
+  switch (inst.id) {
+  case ARM64_INS_MOV: {
+    // Capstone aliases MOVZ as "mov", but the GNU assembler requires "movz"
+    // when using :abs_gN: relocation modifiers. Detect the MOVZ encoding from
+    // raw instruction bytes and use the canonical mnemonic, but only when the
+    // instruction has a symbolic operand with abs_g attributes.
+    gtirb::Addr ea(inst.address);
+    const gtirb::SymbolicExpression* Symex =
+        block.getByteInterval()->getSymbolicExpression(
+            ea - *block.getByteInterval()->getAddress());
+    if (Symex == nullptr) {
+      break;
+    }
 
-  uint32_t Enc = static_cast<uint32_t>(inst.bytes[0]) |
-                 (static_cast<uint32_t>(inst.bytes[1]) << 8) |
-                 (static_cast<uint32_t>(inst.bytes[2]) << 16) |
-                 (static_cast<uint32_t>(inst.bytes[3]) << 24);
-  bool IsMovzEncoding =
-      ((Enc >> 23) & 0x3F) == 0x25 && ((Enc >> 29) & 0x3) == 0x2;
-  if (!IsMovzEncoding) {
-    return;
+    const gtirb::SymAddrConst* Symaddr = this->getSymbolicImmediate(Symex);
+    if (Symaddr != nullptr &&
+        (Symaddr->Attributes.count(gtirb::SymAttribute::G0) ||
+         Symaddr->Attributes.count(gtirb::SymAttribute::G1) ||
+         Symaddr->Attributes.count(gtirb::SymAttribute::G2) ||
+         Symaddr->Attributes.count(gtirb::SymAttribute::G3))) {
+      std::snprintf(inst.mnemonic, sizeof(inst.mnemonic), "MOVZ");
+    }
+    break;
   }
-
-  gtirb::Addr ea(inst.address);
-  const gtirb::SymbolicExpression* Symex =
-      block.getByteInterval()->getSymbolicExpression(
-          ea - *block.getByteInterval()->getAddress());
-  if (Symex == nullptr) {
-    return;
-  }
-
-  const gtirb::SymAddrConst* Symaddr = this->getSymbolicImmediate(Symex);
-  if (Symaddr != nullptr &&
-      (Symaddr->Attributes.count(gtirb::SymAttribute::G0) ||
-       Symaddr->Attributes.count(gtirb::SymAttribute::G1) ||
-       Symaddr->Attributes.count(gtirb::SymAttribute::G2) ||
-       Symaddr->Attributes.count(gtirb::SymAttribute::G3))) {
-    std::memcpy(inst.mnemonic, "MOVZ", sizeof("MOVZ"));
   }
 }
 
