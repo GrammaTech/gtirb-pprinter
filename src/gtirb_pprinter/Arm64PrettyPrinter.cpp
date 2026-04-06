@@ -76,9 +76,8 @@ void Arm64PrettyPrinter::fixupInstruction(const gtirb::CodeBlock& block,
   switch (inst.id) {
   case ARM64_INS_MOV: {
     // Capstone aliases MOVZ as "mov", but the GNU assembler requires "movz"
-    // when using :abs_gN: relocation modifiers. Detect the MOVZ encoding from
-    // raw instruction bytes and use the canonical mnemonic, but only when the
-    // instruction has a symbolic operand with abs_g attributes.
+    // when :abs_gN: relocation modifiers are used. If the instruction has a
+    // symbolic operand with abs_g attributes, rename the mnemonic to "movz".
     gtirb::Addr ea(inst.address);
     const gtirb::SymbolicExpression* Symex =
         block.getByteInterval()->getSymbolicExpression(
