@@ -1,7 +1,7 @@
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
   # These variables are used to pin versions on release branches.
-  GTIRB_VERSION: ""
+  GTIRB_VERSION: "2.3.1"
   CAPSTONE_VERSION: ""
   CONAN_VERSION: "1.59"
   # The following two variables are used by the package uploader.

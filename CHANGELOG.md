@@ -1,4 +1,4 @@
-# 2.2.3 (Unreleased)
+# 2.2.3
 
   * Fix ARM64 `MOVZ`/`MOVK` printing for `:abs_gN:` symbolic operands.
   * Fix a bug that could cause certain MIPS TLS relocation directives (e.g.,
