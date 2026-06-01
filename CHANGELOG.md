@@ -1,5 +1,8 @@
 # 2.2.4 (Unreleased)
 
+  * Fix ARM64 FMOV lane operand printing when Capstone does not provide
+    a vector arranagement specifier (vas).
+
 # 2.2.3
 
   * Fix ARM64 `MOVZ`/`MOVK` printing for `:abs_gN:` symbolic operands.

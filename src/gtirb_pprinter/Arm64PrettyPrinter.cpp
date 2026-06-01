@@ -395,7 +395,32 @@ void Arm64PrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
          "printOpRegdirect called without a register operand");
   os << getRegisterName(op.reg);
 
-  if (op.vas != ARM64_VAS_INVALID) {
+  if (op.vas == ARM64_VAS_INVALID and inst.id == ARM64_INS_FMOV and
+      op.vector_index != -1 and op.reg >= ARM64_REG_V0 and
+      op.reg <= ARM64_REG_V31) {
+    // Capstone does not always populate `vas` for FMOV lane forms such as:
+    //   fmov v0.d[1], x3
+    //   fmov v0.s[1], w3
+    //
+    // In these cases, the destination is still a V register and the lane
+    // index is available in `vector_index`, but the lane width (.d/.s) must
+    // be inferred from the source GPR width.
+    auto laneSuffix = [](const cs_insn& Inst, uint64_t Index) {
+      const cs_arm64_op& other_op = Inst.detail->arm64.operands[Index xor 1];
+      if (other_op.type == ARM64_OP_REG) {
+        if (other_op.reg >= ARM64_REG_X0 && other_op.reg <= ARM64_REG_X28)
+          return ".d";
+        else if (other_op.reg >= ARM64_REG_W0 && other_op.reg <= ARM64_REG_W30)
+          return ".s";
+      }
+      return "";
+    };
+    os << laneSuffix(inst, index);
+    if (!IsPrintingGroupedOperands) {
+      // Grouped operands print the index following the group.
+      os << "[" << op.vector_index << "]";
+    }
+  } else if (op.vas != ARM64_VAS_INVALID) {
     auto arm64Vas2String = [](arm64_vas vas) {
       switch (vas) {
       case ARM64_VAS_16B:

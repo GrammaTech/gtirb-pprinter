@@ -10,6 +10,7 @@ class Arm64InstructionsTest(PPrinterTest):
         Test printing various instructions
         """
         instructions = [
+            (b"\x60\x00\xaf\x9e", "fmov v0.d[1],x3"),
             (b"\x00\x08\x80\xD2", "mov x0,#64"),
             (b"\xE8\x0E\x04\x0E", "dup v8.2s,w23"),
             (b"\xC7\x04\x02\x4E", "dup v7.8h,v6.h[0]"),
