@@ -1,4 +1,6 @@
-# 2.2.4 (Unreleased)
+# 2.2.4
+
+  * Update GTIRB version to 2.3.2.
 
 # 2.2.3
 
