@@ -127,10 +127,10 @@ class FunctionTests(PPrinterTest):
         asm = run_asm_pprinter(ir)
         # there is a block outside the function
         self.assertContains(
-            asm_lines(asm), ["foo:", "retq", ".size foo, . - foo", "int $3"]
+            asm_lines(asm), ["foo:", "retq", ".size foo, . - foo", "int $0x3"]
         )
 
         asm = run_asm_pprinter(ir, ["--skip-function", "foo", "foo3"])
         # even if we skip foo and foo3, there code in between is left
         self.assertNotContains(asm_lines(asm), ["retq"])
-        self.assertContains(asm_lines(asm), ["int $3"])
+        self.assertContains(asm_lines(asm), ["int $0x3"])
