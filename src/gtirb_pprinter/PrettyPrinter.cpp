@@ -744,6 +744,13 @@ void PrettyPrinterBase::x86FixupInstruction(cs_insn& inst) {
     detail.operands[0].imm = N;
     detail.op_count = 1;
   }
+
+  // Capstone reports xabort's immediate operand size as 4 bytes (x86) or
+  // 8 bytes (x64) due to absolute address resolution, but the native encoding
+  // is 1 byte.
+  if (inst.id == X86_INS_XABORT) {
+    detail.operands[0].size = 1;
+  }
 }
 
 void PrettyPrinterBase::printPrototype(std::ostream& os,
@@ -1766,6 +1773,45 @@ DynMode PrettyPrinter::getDynMode(const gtirb::Module& Module) const {
   } else {
     return DYN_MODE_NONE;
   }
+}
+
+/**
+ * Formats a generic sign-extended immediate value into an unsigned hex string
+ * based on its target byte size, independent of the underlying CPU
+ * Architecture.
+ *
+ * @param raw_imm   The raw 64-bit signed immediate from Capstone (e.g.,op.imm)
+ * @param byte_size The actual width of the operand in bytes (1, 2, 4, or 8)
+ * @return          Formatted hex string (e.g., "0xFD")
+ */
+std::string PrettyPrinterBase::s_format_generic_immediate(int64_t raw_imm,
+                                                          size_t byte_size) {
+  uint64_t masked_imm = 0;
+
+  // Mask out the sign-extension bits depending on the target byte size
+  switch (byte_size) {
+  case 1: // 8-bit immediate (e.g., xabort $-3 or ARM `MOV R0, #-3`)
+    masked_imm = static_cast<uint8_t>(raw_imm);
+    break;
+  case 2: // 16-bit immediate
+    masked_imm = static_cast<uint16_t>(raw_imm);
+    break;
+  case 4: // 32-bit immediate
+    masked_imm = static_cast<uint32_t>(raw_imm);
+    break;
+  case 8: // 64-bit immediate
+    masked_imm = static_cast<uint64_t>(raw_imm);
+    break;
+  default:
+    // Fallback: don't mask if an unsupported/unspecified size is passed
+    masked_imm = static_cast<uint64_t>(raw_imm);
+    break;
+  }
+
+  // Generate the uppercase hexadecimal string
+  std::stringstream ss;
+  ss << "0x" << std::uppercase << std::hex << masked_imm;
+  return ss.str();
 }
 
 // This is to have a deterministic order in a set of gtirb::Symbol*:

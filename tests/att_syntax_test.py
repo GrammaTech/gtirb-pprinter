@@ -5,6 +5,16 @@ from pprinter_helpers import run_asm_pprinter, PPrinterTest
 
 
 class ATTInstructionsTest(PPrinterTest):
+    def _assert_att_insn(self, insn_bytes, insn_str):
+        ir, m = create_test_module(
+            file_format=gtirb.Module.FileFormat.ELF,
+            isa=gtirb.Module.ISA.X64,
+        )
+        s, bi = add_text_section(m)
+        add_code_block(bi, insn_bytes)
+        asm = run_asm_pprinter(ir, ["--syntax=att"])
+        self.assertIn(insn_str, asm)
+
     def test_avx512_att(self):
         """
         This test ensures that we print avx512 instructions correctly.
@@ -31,19 +41,7 @@ class ATTInstructionsTest(PPrinterTest):
         ]
 
         for insn_bytes, insn_str in instructions:
-            with self.subTest(instruction=insn_str):
-
-                ir, m = create_test_module(
-                    file_format=gtirb.Module.FileFormat.ELF,
-                    isa=gtirb.Module.ISA.X64,
-                )
-                s, bi = add_text_section(m)
-
-                add_code_block(bi, insn_bytes)
-
-                # specifically, ensure the `%cl` operand is printed
-                asm = run_asm_pprinter(ir, ["--syntax=att"])
-                self.assertIn(insn_str, asm)
+            self._assert_att_insn(insn_bytes, insn_str)
 
     def test_shift_att(self):
         """
@@ -62,16 +60,11 @@ class ATTInstructionsTest(PPrinterTest):
         ]
 
         for insn_bytes, insn_str in instructions:
-            with self.subTest(instruction=insn_str):
+            self._assert_att_insn(insn_bytes, insn_str)
 
-                ir, m = create_test_module(
-                    file_format=gtirb.Module.FileFormat.ELF,
-                    isa=gtirb.Module.ISA.X64,
-                )
-                s, bi = add_text_section(m)
-
-                add_code_block(bi, insn_bytes)
-
-                # specifically, ensure the `%cl` operand is printed
-                asm = run_asm_pprinter(ir, ["--syntax=att"])
-                self.assertIn(insn_str, asm)
+    def test_xabort_att(self):
+        """
+        Ensure xabort's 1-byte immediate operand is printed as unsigned hex
+        rather than a signed integer for newer assembler compatibility.
+        """
+        self._assert_att_insn(b"\xC6\xF8\xFF", "xabort $0xFF")

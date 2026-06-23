@@ -4,6 +4,9 @@
 
   * Update GTIRB version to 2.3.2.
 
+  * Override incorrect XABORT operand size to 1 byte and print unsigned hex
+    immediate for AT&T syntax.
+
 # 2.2.3
 
   * Fix ARM64 `MOVZ`/`MOVK` printing for `:abs_gN:` symbolic operands.

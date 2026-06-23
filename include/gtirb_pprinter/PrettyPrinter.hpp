@@ -584,6 +584,8 @@ protected:
   std::map<const gtirb::Symbol*, std::string> AmbiguousSymbols;
   std::string m_accum_comment;
   static std::string s_symaddr_0_warning(uint64_t symAddr);
+  static std::string s_format_generic_immediate(int64_t raw_imm,
+                                                size_t byte_size);
 };
 
 /// !brief Register AuxData types used by the pretty printer.
