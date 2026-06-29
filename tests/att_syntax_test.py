@@ -64,7 +64,7 @@ class ATTInstructionsTest(PPrinterTest):
 
     def test_xabort_att(self):
         """
-        Ensure xabort's 1-byte immediate operand is printed as unsigned hex
+        Ensure xabort's 1-byte immediate operand is printed as unsigned int
         rather than a signed integer for newer assembler compatibility.
         """
         self._assert_att_insn(b"\xC6\xF8\xFF", "xabort $255")

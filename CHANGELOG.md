@@ -4,7 +4,7 @@
 
   * Update GTIRB version to 2.3.2.
 
-  * Override incorrect XABORT operand size to 1 byte and print unsigned hex
+  * Override incorrect XABORT operand size to 1 byte and print unsigned
     immediate for AT&T syntax.
 
 # 2.2.3
