@@ -584,8 +584,18 @@ protected:
   std::map<const gtirb::Symbol*, std::string> AmbiguousSymbols;
   std::string m_accum_comment;
   static std::string s_symaddr_0_warning(uint64_t symAddr);
-  static std::string s_format_generic_immediate(int64_t raw_imm,
-                                                size_t byte_size);
+  /**
+   * Formats a sign-extended immediate value as an unsigned decimal string
+   * based on its actual byte size, independent of the underlying CPU
+   * Architecture.
+   *
+   * @param raw_imm   The raw 64-bit signed immediate from Capstone
+   * (e.g.,op.imm)
+   * @param byte_size The actual width of the operand in bytes (1, 2, 4, or 8)
+   * @return          Unsigned decimal string (e.g., -1 (1 byte)  -> "255")
+   */
+  static std::string s_format_unsigned_immediate(int64_t raw_imm,
+                                                 size_t byte_size);
 };
 
 /// !brief Register AuxData types used by the pretty printer.

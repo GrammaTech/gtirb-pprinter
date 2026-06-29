@@ -136,7 +136,7 @@ void AttPrettyPrinter::printOpImmediate(
     if (ReferencesCode) {
       Stream << std::setbase(16) << std::showbase;
     }
-    Stream << s_format_generic_immediate(Op.imm, Op.size);
+    Stream << s_format_unsigned_immediate(Op.imm, Op.size);
     Stream.flags(Flags);
   }
 }
