@@ -1,4 +1,4 @@
-# 2.2.5 (Unreleased)
+# 2.2.5
 
   * Override incorrect XABORT operand size to 1 byte and print unsigned
     immediate for AT&T syntax.
