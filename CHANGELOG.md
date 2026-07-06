@@ -1,11 +1,11 @@
 # 2.2.5 (Unreleased)
 
+  * Override incorrect XABORT operand size to 1 byte and print unsigned
+    immediate for AT&T syntax.
+
 # 2.2.4
 
   * Update GTIRB version to 2.3.2.
-
-  * Override incorrect XABORT operand size to 1 byte and print unsigned
-    immediate for AT&T syntax.
 
 # 2.2.3
 
