@@ -1,7 +1,9 @@
 # 2.2.4 (Unreleased)
 
-  * Fix ARM64 FMOV lane operand printing when Capstone does not provide
-    a vector arranagement specifier (vas).
+  * Fix incorrect ARM64 assembly output for instructions that reference a
+    single lane of a vector register (FMOV, MOV/UMOV, and DUP), where the
+    element-width suffix (e.g. `.d[1]`) was sometimes omitted, producing
+    assembly that failed to reassemble.
 
 # 2.2.3
 

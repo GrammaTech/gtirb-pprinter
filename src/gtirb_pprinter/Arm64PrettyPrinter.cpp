@@ -395,27 +395,68 @@ void Arm64PrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
          "printOpRegdirect called without a register operand");
   os << getRegisterName(op.reg);
 
-  if (op.vas == ARM64_VAS_INVALID && inst.id == ARM64_INS_FMOV &&
-      op.vector_index != -1 && op.reg >= ARM64_REG_V0 &&
-      op.reg <= ARM64_REG_V31) {
-    // Capstone does not always populate `vas` for FMOV lane forms such as:
-    //   fmov v0.d[1], x3
-    //   fmov v0.s[1], w3
-    //
-    // In these cases, the destination is still a V register and the lane
-    // index is available in `vector_index`, but the lane width (.d/.s) must
-    // be inferred from the source GPR width.
-    auto laneSuffix = [](const cs_insn& Inst, uint64_t Index) {
-      const cs_arm64_op& other_op = Inst.detail->arm64.operands[Index ^ 1];
-      if (other_op.type == ARM64_OP_REG) {
-        if (other_op.reg >= ARM64_REG_X0 && other_op.reg <= ARM64_REG_X28)
-          return ".d";
-        else if (other_op.reg >= ARM64_REG_W0 && other_op.reg <= ARM64_REG_W30)
-          return ".s";
+  // Capstone does not always populate `vas` for instructions that reference
+  // a single vector element (a "lane"), even though it always populates
+  // `vector_index` for them. This shows up, for example, with:
+  //   fmov v0.d[1], x3         (and the reverse: fmov x3, v0.d[1])
+  //   mov x0, v1.d[0]          (UMOV alias; only the lane-0 forms are hit)
+  //   mov w0, v1.s[0]          (UMOV alias; only the lane-0 forms are hit)
+  //   dup v0.2d, v1.d[1]       (DUP's source lane operand, any index)
+  //
+  // In all of these cases the operand is still a V register with a valid
+  // lane index, so GAS requires an explicit element-width suffix
+  // (e.g. `.d[1]`) even though Capstone hasn't told us what that width is.
+  // We recover it from a sibling operand:
+  //   - if the sibling is a GPR, its width implies the element size
+  //     (X -> .d, W -> .s), as with fmov/umov above; or
+  //   - if the sibling is itself a vector register with a known
+  //     arrangement (e.g. DUP's destination), that arrangement's element
+  //     size gives us the width.
+  if (op.vas == ARM64_VAS_INVALID && op.vector_index != -1 &&
+      op.reg >= ARM64_REG_V0 && op.reg <= ARM64_REG_V31) {
+    auto elementWidthOf = [](arm64_vas vas) {
+      switch (vas) {
+      case ARM64_VAS_16B:
+      case ARM64_VAS_8B:
+      case ARM64_VAS_4B:
+      case ARM64_VAS_1B:
+        return "b";
+      case ARM64_VAS_8H:
+      case ARM64_VAS_4H:
+      case ARM64_VAS_2H:
+      case ARM64_VAS_1H:
+        return "h";
+      case ARM64_VAS_4S:
+      case ARM64_VAS_2S:
+      case ARM64_VAS_1S:
+        return "s";
+      case ARM64_VAS_2D:
+      case ARM64_VAS_1D:
+        return "d";
+      case ARM64_VAS_1Q:
+        return "q";
+      default:
+        return "";
       }
-      return "";
     };
-    os << laneSuffix(inst, index);
+
+    const char* suffix = "";
+    if (inst.detail->arm64.op_count == 2) {
+      const cs_arm64_op& other = inst.detail->arm64.operands[index ^ 1];
+      if (other.type == ARM64_OP_REG) {
+        if (other.reg >= ARM64_REG_X0 && other.reg <= ARM64_REG_X28) {
+          suffix = "d";
+        } else if (other.reg >= ARM64_REG_W0 && other.reg <= ARM64_REG_W30) {
+          suffix = "s";
+        } else if (other.vas != ARM64_VAS_INVALID) {
+          suffix = elementWidthOf(other.vas);
+        }
+      }
+    }
+
+    if (suffix[0] != '\0') {
+      os << "." << suffix;
+    }
     if (!IsPrintingGroupedOperands) {
       // Grouped operands print the index following the group.
       os << "[" << op.vector_index << "]";
