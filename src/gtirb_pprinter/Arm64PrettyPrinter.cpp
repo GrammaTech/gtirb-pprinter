@@ -434,6 +434,11 @@ void Arm64PrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
       case ARM64_VAS_1D:
         return "d";
       case ARM64_VAS_1Q:
+        // No known capstone disassembly produces a 1Q arrangement together
+        // with a valid vector_index (lane-indexed operands top out at
+        // doubleword elements for DUP/UMOV/FMOV). If this fires, capstone
+        // has surprised us — investigate rather than just returning "q".
+        assert(!"printOpRegdirect: unexpected case");
         return "q";
       default:
         return "";
