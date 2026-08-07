@@ -20,6 +20,7 @@
 #include "AuxDataSchema.hpp"
 #include "AuxDataUtils.hpp"
 #include "StringUtils.hpp"
+#include "driver/Logger.h"
 
 #include <capstone/capstone.h>
 
@@ -436,10 +437,10 @@ void Arm64PrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
       case ARM64_VAS_1Q:
         // No known capstone disassembly produces a 1Q arrangement together
         // with a valid vector_index (lane-indexed operands top out at
-        // doubleword elements for DUP/UMOV/FMOV). If this fires, capstone
-        // has surprised us — investigate rather than just returning "q".
-        assert(!"printOpRegdirect: unexpected case");
-        return "q";
+        // doubleword elements for DUP/UMOV/FMOV).
+        // Let the caller decide how to log this - it has the
+        // operand/instruction context that we don't have here.
+        return "";
       default:
         return "";
       }
@@ -455,8 +456,27 @@ void Arm64PrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
           suffix = "s";
         } else if (other.vas != ARM64_VAS_INVALID) {
           suffix = elementWidthOf(other.vas);
+          if (suffix[0] == '\0') {
+            LOG_ERROR << "printOpRegdirect: could not infer lane width for "
+                      << getRegisterName(op.reg) << "[" << op.vector_index
+                      << "]; sibling register " << getRegisterName(other.reg)
+                      << " has an unhandled vector arrangement\n";
+          }
+        } else {
+          LOG_ERROR << "printOpRegdirect: could not infer lane width for "
+                    << getRegisterName(op.reg) << "[" << op.vector_index
+                    << "]; sibling register has no usable width/arrangement\n";
         }
+      } else {
+        LOG_ERROR << "printOpRegdirect: could not infer lane width for "
+                  << getRegisterName(op.reg) << "[" << op.vector_index
+                  << "]; sibling operand is not a register\n";
       }
+    } else {
+      LOG_ERROR << "printOpRegdirect: could not infer lane width for "
+                << getRegisterName(op.reg) << "[" << op.vector_index
+                << "]; unexpected operand count " << inst.detail->arm64.op_count
+                << "\n";
     }
 
     if (suffix[0] != '\0') {
