@@ -744,6 +744,13 @@ void PrettyPrinterBase::x86FixupInstruction(cs_insn& inst) {
     detail.operands[0].imm = N;
     detail.op_count = 1;
   }
+
+  // Capstone reports xabort's immediate operand size as 4 bytes (x86) or
+  // 8 bytes (x64) due to absolute address resolution, but the native encoding
+  // is 1 byte.
+  if (inst.id == X86_INS_XABORT) {
+    detail.operands[0].size = 1;
+  }
 }
 
 void PrettyPrinterBase::printPrototype(std::ostream& os,
@@ -1766,6 +1773,13 @@ DynMode PrettyPrinter::getDynMode(const gtirb::Module& Module) const {
   } else {
     return DYN_MODE_NONE;
   }
+}
+
+std::string PrettyPrinterBase::s_format_unsigned_immediate(int64_t raw_imm,
+                                                           size_t byte_size) {
+  uint64_t mask = static_cast<uint64_t>(-1) >> (64 - byte_size * 8);
+  uint64_t masked_imm = static_cast<uint64_t>(raw_imm) & mask;
+  return std::to_string(masked_imm);
 }
 
 // This is to have a deterministic order in a set of gtirb::Symbol*:

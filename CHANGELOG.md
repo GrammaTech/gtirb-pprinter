@@ -1,4 +1,13 @@
-# 2.2.4 (Unreleased)
+# 2.2.6 (Unreleased)
+
+# 2.2.5
+
+  * Override incorrect XABORT operand size to 1 byte and print unsigned
+    immediate for AT&T syntax.
+
+# 2.2.4
+
+  * Update GTIRB version to 2.3.2.
 
   * Fix incorrect ARM64 assembly output for instructions that reference a
     single lane of a vector register (FMOV, MOV/UMOV, and DUP), where the
