@@ -108,3 +108,80 @@ class IntelInstructionsTest(PPrinterTest):
                 add_code_block(bi, insn_bytes)
                 asm = run_asm_pprinter(ir, ["--syntax=intel"])
                 self.assertIn(insn_str, asm)
+
+    def test_k_instructions(self):
+        """
+        This test ensures that AVX-512 K-register operands are printed using
+        normal comma-separated syntax rather than the "{...}{...}{...}"
+        syntax produced for some instructions.
+        """
+        ir, m = create_test_module(
+            file_format=gtirb.Module.FileFormat.ELF, isa=gtirb.Module.ISA.X64
+        )
+        s, bi = add_text_section(m)
+
+        instructions = [
+            (b"\xc5\xed\x4a\xd9", "kaddb K3,K2,K1"),
+            (b"\xc5\xec\x4a\xd9", "kaddw K3,K2,K1"),
+            (b"\xc4\xe1\xed\x4a\xd9", "kaddd K3,K2,K1"),
+            (b"\xc4\xe1\xec\x4a\xd9", "kaddq K3,K2,K1"),
+            (b"\xc5\xed\x41\xd9", "kandb K3,K2,K1"),
+            (b"\xc5\xec\x41\xd9", "kandw K3,K2,K1"),
+            (b"\xc4\xe1\xed\x41\xd9", "kandd K3,K2,K1"),
+            (b"\xc4\xe1\xec\x41\xd9", "kandq K3,K2,K1"),
+            (b"\xc5\xed\x42\xd9", "kandnb K3,K2,K1"),
+            (b"\xc5\xec\x42\xd9", "kandnw K3,K2,K1"),
+            (b"\xc4\xe1\xed\x42\xd9", "kandnd K3,K2,K1"),
+            (b"\xc4\xe1\xec\x42\xd9", "kandnq K3,K2,K1"),
+            (b"\xc5\xf9\x90\xd1", "kmovb K2,K1"),
+            (b"\xc5\xf8\x90\xd1", "kmovw K2,K1"),
+            (b"\xc4\xe1\xf9\x90\xd1", "kmovd K2,K1"),
+            (b"\xc4\xe1\xf8\x90\xd1", "kmovq K2,K1"),
+            (b"\xc5\xf9\x44\xd1", "knotb K2,K1"),
+            (b"\xc5\xf8\x44\xd1", "knotw K2,K1"),
+            (b"\xc4\xe1\xf9\x44\xd1", "knotd K2,K1"),
+            (b"\xc4\xe1\xf8\x44\xd1", "knotq K2,K1"),
+            (b"\xc5\xed\x45\xd9", "korb K3,K2,K1"),
+            (b"\xc5\xec\x45\xd9", "korw K3,K2,K1"),
+            (b"\xc4\xe1\xed\x45\xd9", "kord K3,K2,K1"),
+            (b"\xc4\xe1\xec\x45\xd9", "korq K3,K2,K1"),
+            (b"\xc5\xf9\x98\xd1", "kortestb K2,K1"),
+            (b"\xc5\xf8\x98\xd1", "kortestw K2,K1"),
+            (b"\xc4\xe1\xf9\x98\xd1", "kortestd K2,K1"),
+            (b"\xc4\xe1\xf8\x98\xd1", "kortestq K2,K1"),
+            (b"\xc4\xe3\x79\x32\xd1\x01", "kshiftlb K2,K1,1"),
+            (b"\xc4\xe3\xf9\x32\xd1\x01", "kshiftlw K2,K1,1"),
+            (b"\xc4\xe3\x79\x33\xd1\x01", "kshiftld K2,K1,1"),
+            (b"\xc4\xe3\xf9\x33\xd1\x01", "kshiftlq K2,K1,1"),
+            (b"\xc4\xe3\x79\x30\xd1\x01", "kshiftrb K2,K1,1"),
+            (b"\xc4\xe3\xf9\x30\xd1\x01", "kshiftrw K2,K1,1"),
+            (b"\xc4\xe3\x79\x31\xd1\x01", "kshiftrd K2,K1,1"),
+            (b"\xc4\xe3\xf9\x31\xd1\x01", "kshiftrq K2,K1,1"),
+            (b"\xc5\xf9\x99\xd1", "ktestb K2,K1"),
+            (b"\xc5\xf8\x99\xd1", "ktestw K2,K1"),
+            (b"\xc4\xe1\xf9\x99\xd1", "ktestd K2,K1"),
+            (b"\xc4\xe1\xf8\x99\xd1", "ktestq K2,K1"),
+            (b"\xc5\xed\x4b\xd9", "kunpckbw K3,K2,K1"),
+            (b"\xc5\xec\x4b\xd9", "kunpckwd K3,K2,K1"),
+            (b"\xc4\xe1\xec\x4b\xd9", "kunpckdq K3,K2,K1"),
+            (b"\xc5\xed\x46\xd9", "kxnorb K3,K2,K1"),
+            (b"\xc5\xec\x46\xd9", "kxnorw K3,K2,K1"),
+            (b"\xc4\xe1\xed\x46\xd9", "kxnord K3,K2,K1"),
+            (b"\xc4\xe1\xec\x46\xd9", "kxnorq K3,K2,K1"),
+            (b"\xc5\xed\x47\xd9", "kxorb K3,K2,K1"),
+            (b"\xc5\xec\x47\xd9", "kxorw K3,K2,K1"),
+            (b"\xc4\xe1\xed\x47\xd9", "kxord K3,K2,K1"),
+            (b"\xc4\xe1\xec\x47\xd9", "kxorq K3,K2,K1"),
+        ]
+
+        for insn_bytes, insn_str in instructions:
+            with self.subTest(instruction=insn_str):
+
+                ir, m = create_test_module(
+                    file_format=gtirb.Module.FileFormat.ELF,
+                    isa=gtirb.Module.ISA.X64,
+                )
+                s, bi = add_text_section(m)
+                add_code_block(bi, insn_bytes)
+                asm = run_asm_pprinter(ir, ["--syntax=intel"])
+                self.assertIn(insn_str, asm)

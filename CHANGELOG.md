@@ -1,5 +1,7 @@
 # 2.2.6 (Unreleased)
 
+  * Fix `KANDB`/`KANDW`/`KANDD`/`KANDQ` printing to avoid operands between {]s.
+
 # 2.2.5
 
   * Override incorrect XABORT operand size to 1 byte and print unsigned
