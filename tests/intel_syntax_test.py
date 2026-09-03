@@ -172,6 +172,7 @@ class IntelInstructionsTest(PPrinterTest):
             (b"\xc5\xec\x47\xd9", "kxorw K3,K2,K1"),
             (b"\xc4\xe1\xed\x47\xd9", "kxord K3,K2,K1"),
             (b"\xc4\xe1\xec\x47\xd9", "kxorq K3,K2,K1"),
+            (b"\xc4\xe3\x79\x61\xc1\x08", "vpcmpestri XMM0,XMM1,8"),
         ]
 
         for insn_bytes, insn_str in instructions:

@@ -1,6 +1,6 @@
 # 2.2.6 (Unreleased)
 
-  * Fix `KANDB`/`KANDW`/`KANDD`/`KANDQ` printing to avoid operands between {]s.
+  * Fix `KANDB`/`KANDW`/`KANDD`/`KANDQ` printing to avoid operands between {}s.
 
 # 2.2.5
 
