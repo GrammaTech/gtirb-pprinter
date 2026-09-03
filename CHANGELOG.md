@@ -11,6 +11,11 @@
 
   * Update GTIRB version to 2.3.2.
 
+  * Fix incorrect ARM64 assembly output for instructions that reference a
+    single lane of a vector register (FMOV, MOV/UMOV, and DUP), where the
+    element-width suffix (e.g. `.d[1]`) was sometimes omitted, producing
+    assembly that failed to reassemble.
+
 # 2.2.3
 
   * Fix ARM64 `MOVZ`/`MOVK` printing for `:abs_gN:` symbolic operands.

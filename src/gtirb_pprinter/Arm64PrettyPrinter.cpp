@@ -20,6 +20,7 @@
 #include "AuxDataSchema.hpp"
 #include "AuxDataUtils.hpp"
 #include "StringUtils.hpp"
+#include "driver/Logger.h"
 
 #include <capstone/capstone.h>
 
@@ -395,7 +396,97 @@ void Arm64PrettyPrinter::printOpRegdirect(std::ostream& os, const cs_insn& inst,
          "printOpRegdirect called without a register operand");
   os << getRegisterName(op.reg);
 
-  if (op.vas != ARM64_VAS_INVALID) {
+  // Capstone does not always populate `vas` for instructions that reference
+  // a single vector element (a "lane"), even though it always populates
+  // `vector_index` for them. This shows up, for example, with:
+  //   fmov v0.d[1], x3         (and the reverse: fmov x3, v0.d[1])
+  //   mov x0, v1.d[0]          (UMOV alias; only the lane-0 forms are hit)
+  //   mov w0, v1.s[0]          (UMOV alias; only the lane-0 forms are hit)
+  //   dup v0.2d, v1.d[1]       (DUP's source lane operand, any index)
+  //
+  // In all of these cases the operand is still a V register with a valid
+  // lane index, so GAS requires an explicit element-width suffix
+  // (e.g. `.d[1]`) even though Capstone hasn't told us what that width is.
+  // We recover it from a sibling operand:
+  //   - if the sibling is a GPR, its width implies the element size
+  //     (X -> .d, W -> .s), as with fmov/umov above; or
+  //   - if the sibling is itself a vector register with a known
+  //     arrangement (e.g. DUP's destination), that arrangement's element
+  //     size gives us the width.
+  if (op.vas == ARM64_VAS_INVALID && op.vector_index != -1 &&
+      op.reg >= ARM64_REG_V0 && op.reg <= ARM64_REG_V31) {
+    auto elementWidthOf = [](arm64_vas vas) {
+      switch (vas) {
+      case ARM64_VAS_16B:
+      case ARM64_VAS_8B:
+      case ARM64_VAS_4B:
+      case ARM64_VAS_1B:
+        return "b";
+      case ARM64_VAS_8H:
+      case ARM64_VAS_4H:
+      case ARM64_VAS_2H:
+      case ARM64_VAS_1H:
+        return "h";
+      case ARM64_VAS_4S:
+      case ARM64_VAS_2S:
+      case ARM64_VAS_1S:
+        return "s";
+      case ARM64_VAS_2D:
+      case ARM64_VAS_1D:
+        return "d";
+      case ARM64_VAS_1Q:
+        // No known capstone disassembly produces a 1Q arrangement together
+        // with a valid vector_index (lane-indexed operands top out at
+        // doubleword elements for DUP/UMOV/FMOV).
+        // Let the caller decide how to log this - it has the
+        // operand/instruction context that we don't have here.
+        return "";
+      default:
+        return "";
+      }
+    };
+
+    const char* suffix = "";
+    if (inst.detail->arm64.op_count == 2) {
+      const cs_arm64_op& other = inst.detail->arm64.operands[index ^ 1];
+      if (other.type == ARM64_OP_REG) {
+        if (other.reg >= ARM64_REG_X0 && other.reg <= ARM64_REG_X28) {
+          suffix = "d";
+        } else if (other.reg >= ARM64_REG_W0 && other.reg <= ARM64_REG_W30) {
+          suffix = "s";
+        } else if (other.vas != ARM64_VAS_INVALID) {
+          suffix = elementWidthOf(other.vas);
+          if (suffix[0] == '\0') {
+            LOG_ERROR << "printOpRegdirect: could not infer lane width for "
+                      << getRegisterName(op.reg) << "[" << op.vector_index
+                      << "]; sibling register " << getRegisterName(other.reg)
+                      << " has an unhandled vector arrangement\n";
+          }
+        } else {
+          LOG_ERROR << "printOpRegdirect: could not infer lane width for "
+                    << getRegisterName(op.reg) << "[" << op.vector_index
+                    << "]; sibling register has no usable width/arrangement\n";
+        }
+      } else {
+        LOG_ERROR << "printOpRegdirect: could not infer lane width for "
+                  << getRegisterName(op.reg) << "[" << op.vector_index
+                  << "]; sibling operand is not a register\n";
+      }
+    } else {
+      LOG_ERROR << "printOpRegdirect: could not infer lane width for "
+                << getRegisterName(op.reg) << "[" << op.vector_index
+                << "]; unexpected operand count " << inst.detail->arm64.op_count
+                << "\n";
+    }
+
+    if (suffix[0] != '\0') {
+      os << "." << suffix;
+    }
+    if (!IsPrintingGroupedOperands) {
+      // Grouped operands print the index following the group.
+      os << "[" << op.vector_index << "]";
+    }
+  } else if (op.vas != ARM64_VAS_INVALID) {
     auto arm64Vas2String = [](arm64_vas vas) {
       switch (vas) {
       case ARM64_VAS_16B:
