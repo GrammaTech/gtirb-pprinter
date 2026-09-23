@@ -1,6 +1,10 @@
 # 2.2.6 (Unreleased)
 
   * Fix `KANDB`/`KANDW`/`KANDD`/`KANDQ` printing to avoid operands between {}s.
+  * Fix ELF binary printing emitting a `.interp` section with duplicate
+    entries. The `dynamic` and `complete` policies no longer print `.interp`;
+    the original interpreter is passed to the linker with `--dynamic-linker`
+    instead, unless one is already given in the compiler arguments.
 
 # 2.2.5
 

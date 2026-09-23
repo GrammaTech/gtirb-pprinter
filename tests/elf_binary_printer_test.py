@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import re
 import subprocess
 import typing
 import unittest
@@ -669,6 +670,174 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
         for subtest in subtests:
             with self.subTest(subtest=subtest):
                 self.subtest_dynamic_entries(*subtest)
+
+    CUSTOM_INTERP = "/opt/custom/lib/ld-custom.so.1"
+
+    def build_interp_ir(
+        self,
+        interp: typing.Optional[bytes],
+        binary_type: typing.Sequence[str] = ("DYN", "PIE"),
+        dynamic: bool = True,
+    ) -> gtirb.IR:
+        """
+        Build a basic IR, optionally with a .interp section holding `interp`
+        (None: no .interp section; b"": a .interp with no bytes).
+
+        With `dynamic`, a .dynamic section is added so that the pretty-printer
+        selects the complete (dynamic) policy rather than the static one.
+        """
+        ir, module, _ = self.build_basic_ir()
+        module.aux_data["binaryType"].data = list(binary_type)
+        if dynamic:
+            gth.add_section(module, ".dynamic")
+        if interp is not None:
+            _, interp_bi = gth.add_section(module, ".interp")
+            if interp:
+                gth.add_data_block(interp_bi, interp, {})
+        return ir
+
+    def assert_interpreter(self, path: Path, interp: str):
+        """
+        Assert that the binary requests `interp` and that its .interp section
+        holds exactly one string (i.e., no duplicate interpreter entries).
+        """
+        headers = self.readelf(path, "--program-headers", "--wide").stdout
+        self.assertIn(f"Requesting program interpreter: {interp}]", headers)
+        strings = self.readelf(path, "--string-dump=.interp").stdout
+        self.assertEqual(
+            re.findall(r"^\s*\[\s*[0-9a-f]+\]\s+(.*)$", strings, re.M),
+            [interp],
+        )
+
+    def test_dynamic_linker(self):
+        """
+        Test that the interpreter from .interp is passed with --dynamic-linker
+        and ends up as the only interpreter entry in the output.
+        """
+        # A non-default path, so the test cannot pass by accident when the
+        # toolchain's default interpreter is used.
+        ir = self.build_interp_ir(self.CUSTOM_INTERP.encode() + b"\x00")
+
+        with self.binary_print(ir) as result:
+            self.assertIn(
+                f"--dynamic-linker={self.CUSTOM_INTERP}",
+                result.completed_process.stdout,
+            )
+            self.assertNotIn(".interp", result.completed_process.stderr)
+            self.assert_interpreter(result.path, self.CUSTOM_INTERP)
+
+    def test_dynamic_linker_absent(self):
+        """
+        Test that no --dynamic-linker is passed without a .interp section.
+        """
+        ir = self.build_interp_ir(None)
+        with self.binary_print(ir) as result:
+            self.assertNotIn(
+                "--dynamic-linker", result.completed_process.stdout
+            )
+
+    def test_dynamic_linker_static(self):
+        """
+        Test that no --dynamic-linker is passed for statically linked output,
+        where the linker does not generate .interp.
+        """
+        ir = self.build_interp_ir(
+            self.CUSTOM_INTERP.encode() + b"\x00",
+            binary_type=["EXEC"],
+            dynamic=False,
+        )
+        with self.binary_print(ir) as result:
+            self.assertNotIn(
+                "--dynamic-linker", result.completed_process.stdout
+            )
+            self.assertNotIn(".interp", result.completed_process.stderr)
+
+    def test_interp_not_printed(self):
+        """
+        Test that .interp is skipped in the assembly by the dynamic and
+        complete policies, and printed again with --keep-section .interp.
+        """
+        ir = self.build_interp_ir(self.CUSTOM_INTERP.encode() + b"\x00")
+
+        for args in ([], ["--policy", "dynamic"], ["--policy", "complete"]):
+            with self.subTest(args=args):
+                asm = run_asm_pprinter(ir, args)
+                self.assertNotIn(".interp", asm)
+                self.assertNotIn(self.CUSTOM_INTERP, asm)
+
+        asm = run_asm_pprinter(ir, ["--keep-section", ".interp"])
+        self.assertIn(".interp", asm)
+
+    def test_dynamic_linker_malformed(self):
+        """
+        Test that a malformed .interp produces a warning, and that we fall
+        back to the raw bytes when the path is not NUL-terminated.
+        """
+        cases = (
+            # (section contents, expected interpreter, expected warning)
+            (b"\x00", None, "the interpreter path is empty"),
+            (
+                self.CUSTOM_INTERP.encode(),
+                self.CUSTOM_INTERP,
+                "the interpreter path is not NUL-terminated",
+            ),
+            (b"", None, "it has no initialized bytes"),
+        )
+        for contents, expected, warning in cases:
+            with self.subTest(contents=contents):
+                ir = self.build_interp_ir(contents)
+                with self.binary_print(ir) as result:
+                    stdout = result.completed_process.stdout
+                    self.assertIn(warning, result.completed_process.stderr)
+                    if expected:
+                        self.assertIn(f"--dynamic-linker={expected}", stdout)
+                        self.assert_interpreter(result.path, expected)
+                    else:
+                        self.assertNotIn("--dynamic-linker", stdout)
+
+    def test_dynamic_linker_shared(self):
+        """
+        Test that a shared object with .interp produces a warning.
+        """
+        ir = self.build_interp_ir(
+            self.CUSTOM_INTERP.encode() + b"\x00",
+            binary_type=["DYN", "SHARED"],
+        )
+        with self.binary_print(ir) as result:
+            self.assertIn(
+                "Shared object has a .interp section",
+                result.completed_process.stderr,
+            )
+            self.assertIn(
+                f"--dynamic-linker={self.CUSTOM_INTERP}",
+                result.completed_process.stdout,
+            )
+
+    def test_dynamic_linker_keep_section(self):
+        """
+        Test that keeping .interp produces a warning about duplicates.
+        """
+        ir = self.build_interp_ir(self.CUSTOM_INTERP.encode() + b"\x00")
+        with self.binary_print(ir, "--keep-section", ".interp") as result:
+            self.assertIn(
+                "The .interp section will be printed",
+                result.completed_process.stderr,
+            )
+
+    def test_dynamic_linker_user_override(self):
+        """
+        Test that a dynamic linker given in --compiler-args takes precedence
+        and that we do not add a second one.
+        """
+        user_interp = "/user/lib/ld-user.so.1"
+        ir = self.build_interp_ir(self.CUSTOM_INTERP.encode() + b"\x00")
+        with self.binary_print(
+            ir, f"--compiler-args=-Wl,--dynamic-linker={user_interp}"
+        ) as result:
+            stdout = result.completed_process.stdout
+            self.assertIn(f"--dynamic-linker={user_interp}", stdout)
+            self.assertNotIn(f"--dynamic-linker={self.CUSTOM_INTERP}", stdout)
+            self.assert_interpreter(result.path, user_interp)
 
     def test_export_dynamic(self):
         """

@@ -539,8 +539,8 @@ const PrintingPolicy& ElfPrettyPrinterFactory::defaultPrintingPolicy(
 
 ElfPrettyPrinterFactory::ElfPrettyPrinterFactory() {
   std::unordered_set<std::string> dynamicSkipSections = {
-      ".comment", ".eh_frame_hdr", ".eh_frame", ".fini",    ".got",
-      ".got.plt", ".init",         ".rela.dyn", ".rela.plt"};
+      ".comment", ".eh_frame_hdr", ".eh_frame", ".fini",     ".got",
+      ".got.plt", ".init",         ".rela.dyn", ".rela.plt", ".interp"};
   dynamicSkipSections.insert(PLTSections.begin(), PLTSections.end());
 
   registerNamedPolicy(
@@ -583,8 +583,8 @@ ElfPrettyPrinterFactory::ElfPrettyPrinterFactory() {
                       });
 
   std::unordered_set<std::string> completeSkipSections = {
-      ".eh_frame_hdr", ".eh_frame", ".got",
-      ".got.plt",      ".rela.dyn", ".rela.plt"};
+      ".eh_frame_hdr", ".eh_frame", ".got",   ".got.plt",
+      ".rela.dyn",     ".rela.plt", ".interp"};
   completeSkipSections.insert(PLTSections.begin(), PLTSections.end());
 
   registerNamedPolicy(
