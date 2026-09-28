@@ -783,6 +783,22 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
                 ("FUNC", "GLOBAL", "HIDDEN", "f5_symbol"),
             )
 
+    def test_skip_dynamic_section(self):
+        """
+        Test skipping .dynamic section
+        """
+        ir, module, _ = self.build_basic_ir()
+
+        gth.add_section(module, ".dynamic")
+
+        asm = run_asm_pprinter(ir)
+
+        self.assertNotRegex(
+            asm,
+            r"\.dynamic",
+            msg="The .dynamic section should not be printed out",
+        )
+
     def subtest_elf_stack_properties(self, stack_size: int, stack_exec: bool):
         """
         Test generating `-Wl,-z,stack-size` and `-z,-execstack`
