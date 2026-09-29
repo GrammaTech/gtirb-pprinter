@@ -1,6 +1,8 @@
 # 2.2.6 (Unreleased)
 
   * Fix `KANDB`/`KANDW`/`KANDD`/`KANDQ` printing to avoid operands between {}s.
+  * Print `.cfi_startproc simple` for `.cfi_startproc` entries in the
+    `cfiDirectives` AuxData table that have a single operand equal to 1.
 
 # 2.2.5
 
