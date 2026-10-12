@@ -1231,9 +1231,25 @@ void PrettyPrinterBase::printCFIDirectives(std::ostream& os,
   if (auto CfiDirectives = aux_data::getCFIDirectives(offset, module)) {
     for (auto& CfiDirective : *CfiDirectives) {
       std::string Directive = CfiDirective.Directive;
+      const std::vector<int64_t>& Operands = CfiDirective.Operands;
 
       if (Directive == ".cfi_startproc") {
         CFIStartProc = programCounter;
+        // `.cfi_startproc` takes no numeric operands in assembly. An operand
+        // of 1 encodes the `simple` argument, which tells the assembler not
+        // to emit the target's default initial CFI instructions.
+        // This is used when the directive list already includes them (e.g.,
+        // when they were recovered from the CIE of the original binary).
+        os << Directive;
+        if (Operands.size() == 1 && Operands[0] == 1) {
+          os << " simple";
+        } else if (!Operands.empty() &&
+                   !(Operands.size() == 1 && Operands[0] == 0)) {
+          std::cerr << "WARNING: Ignoring unexpected operands of "
+                       "`.cfi_startproc' directive.\n";
+        }
+        os << std::endl;
+        continue;
       } else if (!CFIStartProc) {
         std::cerr << "WARNING: Missing `.cfi_startproc', omitting `"
                   << Directive << "' directive.\n";
@@ -1241,7 +1257,6 @@ void PrettyPrinterBase::printCFIDirectives(std::ostream& os,
       }
 
       os << Directive << " ";
-      const std::vector<int64_t>& Operands = CfiDirective.Operands;
       for (auto It = Operands.begin(); It != Operands.end(); It++) {
         if (It != Operands.begin())
           os << ", ";
