@@ -27,6 +27,7 @@ from typing import (
 )
 
 import gtirb
+import gtirb_test_helpers as gth
 
 TESTS_DIR = os.path.abspath(os.path.dirname(__file__))
 _FAKEBIN_DIR = os.path.join(TESTS_DIR, "fakebin")
@@ -113,6 +114,32 @@ def can_mock_binaries() -> bool:
     Determines if the binary pretty printer mock tests work on this platform.
     """
     return os.name == "posix"
+
+
+X64_INTERP = b"/lib64/ld-linux-x86-64.so.2\x00"
+
+
+def add_interp_section(
+    module: gtirb.Module,
+    contents: Optional[bytes] = X64_INTERP,
+    address: Optional[int] = None,
+) -> Tuple[gtirb.Section, gtirb.ByteInterval]:
+    """
+    Add an allocated PROGBITS .interp section, as ddisasm produces it.
+
+    The binary printer reproduces .interp as it is in the GTIRB, so a
+    dynamically linked executable that is meant to run needs one.
+    If `contents` is None, the section is left empty.
+    """
+    section, bi = gth.add_section(module, ".interp", address=address)
+    SHT_PROGBITS, SHF_ALLOC = 1, 2
+    module.aux_data["sectionProperties"].data[section.uuid] = (
+        SHT_PROGBITS,
+        SHF_ALLOC,
+    )
+    if contents is not None:
+        gth.add_data_block(bi, contents, {})
+    return section, bi
 
 
 def run_asm_pprinter(ir: gtirb.IR, args: Iterable[str] = ()) -> str:

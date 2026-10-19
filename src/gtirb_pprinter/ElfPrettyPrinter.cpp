@@ -86,6 +86,16 @@ namespace gtirb_pprint {
 static const std::unordered_set<std::string> PLTSections = {".plt", ".plt.sec",
                                                             ".plt.got"};
 
+bool linkerGeneratesInterp(const gtirb::Module& Module) {
+  // Same test as ElfPrettyPrinterFactory::isStaticBinary.
+  if (Module.findSections(".dynamic").empty()) {
+    return false;
+  }
+  const auto BinaryType = aux_data::getBinaryType(Module);
+  return std::find(BinaryType.begin(), BinaryType.end(), "SHARED") ==
+         BinaryType.end();
+}
+
 ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
                                    const gtirb::Module& module_,
                                    const ElfSyntax& syntax_,
@@ -95,6 +105,11 @@ ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
 
   skipVersionSymbols();
   computeFunctionAliases();
+
+  // ElfBinaryPrinter passes .interp to the linker instead.
+  if (linkerGeneratesInterp(module)) {
+    policy.skipSections.insert(".interp");
+  }
 }
 
 void ElfPrettyPrinter::skipVersionSymbols() {
@@ -539,8 +554,8 @@ const PrintingPolicy& ElfPrettyPrinterFactory::defaultPrintingPolicy(
 
 ElfPrettyPrinterFactory::ElfPrettyPrinterFactory() {
   std::unordered_set<std::string> dynamicSkipSections = {
-      ".comment", ".eh_frame_hdr", ".eh_frame", ".fini",     ".got",
-      ".got.plt", ".init",         ".rela.dyn", ".rela.plt", ".interp"};
+      ".comment", ".eh_frame_hdr", ".eh_frame", ".fini",    ".got",
+      ".got.plt", ".init",         ".rela.dyn", ".rela.plt"};
   dynamicSkipSections.insert(PLTSections.begin(), PLTSections.end());
 
   registerNamedPolicy(
@@ -583,8 +598,8 @@ ElfPrettyPrinterFactory::ElfPrettyPrinterFactory() {
                       });
 
   std::unordered_set<std::string> completeSkipSections = {
-      ".eh_frame_hdr", ".eh_frame", ".got",   ".got.plt",
-      ".rela.dyn",     ".rela.plt", ".interp"};
+      ".eh_frame_hdr", ".eh_frame", ".got",
+      ".got.plt",      ".rela.dyn", ".rela.plt"};
   completeSkipSections.insert(PLTSections.begin(), PLTSections.end());
 
   registerNamedPolicy(

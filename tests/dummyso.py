@@ -1,5 +1,6 @@
 import gtirb
 import gtirb_test_helpers as gth
+from pprinter_helpers import add_interp_section
 
 # This file provides a constructor for building the dummyso gtirb test IR.
 # What we're testing here is gtirb-pprinter's ability to synthesize fake
@@ -23,6 +24,7 @@ def build_gtirb():
         gtirb.Module.ISA.X64,
     )
     gth.add_section(module, ".dynamic")
+    add_interp_section(module)
     (text_section, text_bi) = gth.add_text_section(module)
     proxy_a = gth.add_proxy_block(module)
     symbol_a = gth.add_symbol(module, "a", proxy_a)
@@ -106,6 +108,7 @@ def build_copy_relocated_gtirb() -> gtirb.IR:
         gtirb.Module.ISA.X64,
     )
     gth.add_section(module, ".dynamic")
+    add_interp_section(module)
     (text_section, text_bi) = gth.add_text_section(module)
 
     _, data = gth.add_data_section(module)
@@ -186,6 +189,7 @@ def build_tls_gtirb() -> gtirb.IR:
         gtirb.Module.ISA.X64,
     )
     gth.add_section(module, ".dynamic")
+    add_interp_section(module)
     (text_section, text_bi) = gth.add_text_section(module)
 
     _, got = gth.add_section(module, ".got")
@@ -279,6 +283,7 @@ def build_plt_sec_gtirb() -> gtirb.IR:
         gtirb.Module.ISA.X64,
     )
     gth.add_section(module, ".dynamic")
+    add_interp_section(module)
     plt_section, plt = gth.add_section(module, ".plt.sec")
 
     plt_code_block_a = gth.add_code_block(plt, b"\x00\x00\x00\x00")
@@ -363,6 +368,7 @@ def build_versioned_syms_gtirb() -> gtirb.IR:
         gtirb.Module.ISA.X64,
     )
     gth.add_section(module, ".dynamic")
+    add_interp_section(module)
     (text_section, text_bi) = gth.add_text_section(module)
 
     proxy_a = gth.add_proxy_block(module)
@@ -436,6 +442,7 @@ def build_weak_versioned_sym_gtirb() -> gtirb.IR:
     (text_section, text_bi) = gth.add_text_section(module)
 
     gth.add_section(module, ".dynamic")
+    add_interp_section(module)
 
     proxy_a = gth.add_proxy_block(module)
     symbol_a = gth.add_symbol(module, "a", proxy_a)

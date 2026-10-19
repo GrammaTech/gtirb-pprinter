@@ -27,9 +27,11 @@
 #include <boost/filesystem.hpp>
 #include <fstream>
 #include <iostream>
+#include <iterator>
 #include <optional>
 #include <regex>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace gtirb_bprint {
@@ -566,126 +568,107 @@ collectGlobalVisibleSymsExported(gtirb::Context& Ctx, gtirb::Module& Module) {
   return ExportedSymbols;
 }
 
-/// Return the interpreter path stored in the module's .interp section.
-static std::optional<std::string>
-getDynamicLinker(const gtirb::Module& Module) {
-  auto Sections = Module.findSections(".interp");
-  auto It = Sections.begin();
-  if (It == Sections.end()) {
-    return std::nullopt;
-  }
-  if (std::next(It) != Sections.end()) {
-    LOG_WARNING << "Module has more than one .interp section; using the "
-                   "first one.\n";
-  }
+/**
+True if the policy, including --keep-section/--skip-section, skips .interp.
 
-  for (const auto& BI : It->byte_intervals()) {
-    auto Bytes = BI.rawBytes<const uint8_t>();
-    auto Size = BI.getInitializedSize();
-    if (!Bytes || Size == 0) {
-      continue;
-    }
-
-    const char* Begin = reinterpret_cast<const char*>(Bytes);
-    const char* End = Begin + Size;
-    const char* Nul = std::find(Begin, End, '\0');
-
-    if (Nul == Begin) {
-      LOG_WARNING << "Malformed .interp section: the interpreter path is "
-                     "empty. The linker's default interpreter will be used.\n";
-      return std::nullopt;
-    }
-    if (Nul == End) {
-      std::string Path(Begin, End);
-      LOG_WARNING << "Malformed .interp section: the interpreter path is not "
-                     "NUL-terminated. Using \""
-                  << Path << "\".\n";
-      return Path;
-    }
-    return std::string(Begin, Nul);
-  }
-
-  LOG_WARNING << "Malformed .interp section: it has no initialized bytes. "
-                 "The linker's default interpreter will be used.\n";
-  return std::nullopt;
-}
-
-/// True if Args already choose a dynamic linker (e.g. from --compiler-args or
-/// the printing policy), in which case we must not add our own.
-static bool hasDynamicLinkerArg(const std::vector<std::string>& Args) {
-  for (size_t I = 0; I < Args.size(); ++I) {
-    const std::string& Arg = Args[I];
-    if (Arg.find("dynamic-linker") != std::string::npos) {
-      return true;
-    }
-    // -I<path> is ld's short spelling of --dynamic-linker.
-    if (Arg.rfind("-Wl,-I", 0) == 0) {
-      return true;
-    }
-    if (Arg == "-Xlinker" && I + 1 < Args.size() &&
-        Args[I + 1].rfind("-I", 0) == 0) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/// True if the link is static, so the linker will not create .interp.
-static bool isStaticLink(const std::vector<std::string>& Args) {
-  return std::any_of(Args.begin(), Args.end(), [](const std::string& Arg) {
-    return Arg == "-static" || Arg == "-static-pie";
-  });
-}
-
-/// True if the .interp section will be printed in the assembly, taking the
-/// selected policy and --keep-section/--skip-section/--keep-all-sections into
-/// account.
-static bool willPrintInterp(const gtirb_pprint::PrettyPrinter& Printer,
+Unlike PrettyPrinterBase::shouldSkip, this ignores whether the section has
+blocks or is printed at all.
+*/
+static bool isInterpSkipped(const gtirb_pprint::PrettyPrinter& Printer,
                             const gtirb::Module& Module) {
   std::unordered_set<std::string> SkipSections =
       Printer.getPolicy(Module).skipSections;
   Printer.sectionPolicy().apply(SkipSections);
-  return SkipSections.count(".interp") == 0;
+  return SkipSections.count(".interp") != 0;
 }
 
-/// Pass the original interpreter to the linker, which then generates .interp
-/// (and PT_INTERP) itself. This must run after all other arguments have been
-/// collected so that a dynamic linker chosen by the user always wins.
-static void addDynamicLinkerArgs(const gtirb_pprint::PrettyPrinter& Printer,
-                                 const gtirb::Module& Module,
-                                 gtirb_pprint::DynMode DM,
-                                 std::vector<std::string>& Args) {
-  if (Module.findSections(".interp").empty() || isStaticLink(Args)) {
-    return;
-  }
-  if (willPrintInterp(Printer, Module)) {
-    LOG_WARNING << "The .interp section will be printed (for example because "
-                   "of --keep-section .interp), but the linker also generates "
-                   ".interp. The output may contain duplicate interpreter "
-                   "entries.\n";
-  }
+/**
+Concatenate the contents of all .interp sections in address order.
 
-  if (hasDynamicLinkerArg(Args)) {
-    // Respect the user's choice; the linker generates .interp from it.
-    return;
+Gaps between byte intervals are skipped and overlaps are kept, with a warning.
+*/
+static std::string getInterpBytes(const gtirb::Module& Module) {
+  std::string Bytes;
+  size_t NumSections = 0;
+  for (const auto& Section : Module.sections()) {
+    if (Section.getName() != ".interp") {
+      continue;
+    }
+    ++NumSections;
+    std::optional<gtirb::Addr> End;
+    for (const auto& BI : Section.byte_intervals()) { // Ordered by address.
+      auto Start = BI.getAddress();
+      if (End && Start && *Start != *End) {
+        LOG_WARNING << (*Start > *End ? "Gap" : "Overlap")
+                    << " between .interp byte intervals at " << *Start << ".\n";
+      }
+      auto Contents = BI.bytes<const char>();
+      Bytes.append(Contents.begin(), Contents.end());
+      End = Start ? std::optional(*Start + BI.getSize()) : std::nullopt;
+    }
   }
-
-  auto Interpreter = getDynamicLinker(Module);
-  if (!Interpreter) {
-    return;
+  if (NumSections > 1) {
+    LOG_WARNING << "Module has " << NumSections
+                << " .interp sections; treating them as one section with "
+                   "their contents concatenated.\n";
   }
+  return Bytes;
+}
 
-  if (DM == gtirb_pprint::DYN_MODE_SHARED) {
-    LOG_WARNING << "Shared object has a .interp section (" << *Interpreter
-                << "). Whether the linker emits PT_INTERP for -shared output "
-                   "depends on the linker and its version; check the "
-                   "rewritten binary.\n";
+/**
+Build the --dynamic-linker argument for the given .interp contents.
+
+Arguments are C strings, so only the path up to the first NUL is passed, and
+the linker NUL-terminates it.
+*/
+static std::string getDynamicLinkerArg(const std::string& Bytes) {
+  size_t Nul = Bytes.find('\0');
+  std::string Path = Bytes.substr(0, Nul);
+
+  if (Bytes.empty()) {
+    LOG_WARNING << "The .interp section is empty, which cannot be passed to "
+                   "the linker; the binary's .interp will hold a single "
+                   "NUL instead.\n";
+  } else if (Nul == std::string::npos) {
+    LOG_WARNING << ".interp is not NUL-terminated; the binary's .interp will "
+                   "be.\n";
+  } else if (Bytes.size() > Nul + 1) {
+    LOG_WARNING << Bytes.size() - Nul - 1
+                << " bytes of .interp after the interpreter path \"" << Path
+                << "\" cannot be passed to the linker and will be dropped.\n";
   }
+  if (Path.empty()) {
+    LOG_WARNING << "The interpreter path in .interp is empty. GNU ld "
+                   "reproduces it, but lld omits .interp and gold rejects "
+                   "the argument.\n";
+  }
+  return "--dynamic-linker=" + Path;
+}
 
-  // -Xlinker rather than -Wl, so that a comma in the path is not treated as
-  // an argument separator. Works with both gcc and clang.
-  Args.push_back("-Xlinker");
-  Args.push_back("--dynamic-linker=" + *Interpreter);
+/**
+Build the linker arguments that reproduce the GTIRB's .interp.
+
+Where the linker generates .interp, it is not printed: we pass its path with
+--dynamic-linker, or --no-dynamic-linker if the GTIRB has none. Elsewhere,
+.interp is printed as is.
+*/
+static std::vector<std::string>
+getInterpreterArgs(const gtirb_pprint::PrettyPrinter& Printer,
+                   const gtirb::Module& Module) {
+  if (!gtirb_pprint::linkerGeneratesInterp(Module)) {
+    // .interp is printed as is, so no linker argument is needed.
+    return {};
+  }
+  if (isInterpSkipped(Printer, Module)) {
+    // Use the linker's default.
+    return {};
+  }
+  if (Module.findSections(".interp").empty()) {
+    // A static PIE: link it as gcc -static-pie does.
+    return {"-Xlinker", "--no-dynamic-linker"};
+  }
+  // -Xlinker, unlike -Wl, does not split the path at commas.
+  return {"-Xlinker", getDynamicLinkerArg(getInterpBytes(Module))};
 }
 
 std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
@@ -699,6 +682,9 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
   std::transform(asmPaths.begin(), asmPaths.end(), std::back_inserter(args),
                  [](const TempFile& TF) { return TF.fileName(); });
   args.emplace_back("-Wl,--no-as-needed");
+  // First, so that user and policy arguments can override it.
+  auto InterpreterArgs = getInterpreterArgs(Printer, module);
+  args.insert(args.end(), InterpreterArgs.begin(), InterpreterArgs.end());
   args.insert(args.end(), ExtraCompileArgs.begin(), ExtraCompileArgs.end());
   args.insert(args.end(), libArgs.begin(), libArgs.end());
 
@@ -738,11 +724,6 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
   const auto& Policy = Printer.getPolicy(module);
   args.insert(args.end(), Policy.compilerArguments.begin(),
               Policy.compilerArguments.end());
-
-  // Must come last: it inspects every argument above (user-supplied
-  // --compiler-args and policy arguments) to decide whether to add
-  // --dynamic-linker.
-  addDynamicLinkerArgs(Printer, module, DM, args);
 
   if (debug) {
     std::cout << "Compiler arguments: ";
