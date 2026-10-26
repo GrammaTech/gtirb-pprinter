@@ -35,6 +35,8 @@ set(${PROJECT_NAME}_SRC
     BinaryPrinter.cpp
     ElfBinaryPrinter.cpp
     ElfPrettyPrinter.cpp
+    ElfUtils.cpp
+    ElfUtils.hpp
     ElfVersionScriptPrinter.cpp
     FileUtils.cpp
     Fixup.cpp

@@ -19,6 +19,7 @@
 #include "AuxDataSchema.hpp"
 #include "AuxDataUtils.hpp"
 #include "ElfPrettyPrinter.hpp"
+#include "ElfUtils.hpp"
 #include "ElfVersionScriptPrinter.hpp"
 #include "FileUtils.hpp"
 #include "Mips32PrettyPrinter.hpp"
@@ -569,10 +570,8 @@ collectGlobalVisibleSymsExported(gtirb::Context& Ctx, gtirb::Module& Module) {
 }
 
 /**
-True if the policy, including --keep-section/--skip-section, skips .interp.
-
-Unlike PrettyPrinterBase::shouldSkip, this ignores whether the section has
-blocks or is printed at all.
+True if the policy says to let the linker pick the interpreter, false if the
+binary should reproduce the GTIRB's .interp.
 */
 static bool isInterpSkipped(const gtirb_pprint::PrettyPrinter& Printer,
                             const gtirb::Module& Module) {
@@ -588,17 +587,31 @@ Concatenate the contents of all .interp sections in address order.
 Gaps between byte intervals are skipped and overlaps are kept, with a warning.
 */
 static std::string getInterpBytes(const gtirb::Module& Module) {
-  std::string Bytes;
-  size_t NumSections = 0;
+  // Module.sections() is ordered by address; findSections() is not.
+  std::vector<const gtirb::Section*> Sections;
+  size_t NumIntervals = 0;
   for (const auto& Section : Module.sections()) {
-    if (Section.getName() != ".interp") {
-      continue;
+    if (Section.getName() == ".interp") {
+      Sections.push_back(&Section);
+      NumIntervals += std::distance(Section.byte_intervals().begin(),
+                                    Section.byte_intervals().end());
     }
-    ++NumSections;
+  }
+  if (Sections.size() > 1) {
+    LOG_WARNING << "Module has " << Sections.size()
+                << " .interp sections; treating them as one section with "
+                   "their contents concatenated.\n";
+  }
+
+  std::string Bytes;
+  for (const gtirb::Section* Section : Sections) {
     std::optional<gtirb::Addr> End;
-    for (const auto& BI : Section.byte_intervals()) { // Ordered by address.
+    for (const auto& BI : Section->byte_intervals()) { // Ordered by address.
       auto Start = BI.getAddress();
-      if (End && Start && *Start != *End) {
+      if (!Start && BI.getSize() > 0 && NumIntervals > 1) {
+        LOG_WARNING << "A .interp byte interval has no address, so its "
+                       "position in the interpreter path is unknown.\n";
+      } else if (End && Start && *Start != *End) {
         LOG_WARNING << (*Start > *End ? "Gap" : "Overlap")
                     << " between .interp byte intervals at " << *Start << ".\n";
       }
@@ -606,11 +619,6 @@ static std::string getInterpBytes(const gtirb::Module& Module) {
       Bytes.append(Contents.begin(), Contents.end());
       End = Start ? std::optional(*Start + BI.getSize()) : std::nullopt;
     }
-  }
-  if (NumSections > 1) {
-    LOG_WARNING << "Module has " << NumSections
-                << " .interp sections; treating them as one section with "
-                   "their contents concatenated.\n";
   }
   return Bytes;
 }
@@ -638,9 +646,8 @@ static std::string getDynamicLinkerArg(const std::string& Bytes) {
                 << "\" cannot be passed to the linker and will be dropped.\n";
   }
   if (Path.empty()) {
-    LOG_WARNING << "The interpreter path in .interp is empty. GNU ld "
-                   "reproduces it, but lld omits .interp and gold rejects "
-                   "the argument.\n";
+    LOG_WARNING << "The interpreter path in .interp is empty; the binary's "
+                   ".interp will be linker-dependent.\n";
   }
   return "--dynamic-linker=" + Path;
 }
@@ -664,7 +671,6 @@ getInterpreterArgs(const gtirb_pprint::PrettyPrinter& Printer,
     return {};
   }
   if (Module.findSections(".interp").empty()) {
-    // A static PIE: link it as gcc -static-pie does.
     return {"-Xlinker", "--no-dynamic-linker"};
   }
   // -Xlinker, unlike -Wl, does not split the path at commas.
@@ -682,7 +688,8 @@ std::vector<std::string> ElfBinaryPrinter::buildCompilerArgs(
   std::transform(asmPaths.begin(), asmPaths.end(), std::back_inserter(args),
                  [](const TempFile& TF) { return TF.fileName(); });
   args.emplace_back("-Wl,--no-as-needed");
-  // First, so that user and policy arguments can override it.
+  // Put the interpreter arguments before --compiler-args and the policy's
+  // compiler arguments, so that those can override them.
   auto InterpreterArgs = getInterpreterArgs(Printer, module);
   args.insert(args.end(), InterpreterArgs.begin(), InterpreterArgs.end());
   args.insert(args.end(), ExtraCompileArgs.begin(), ExtraCompileArgs.end());

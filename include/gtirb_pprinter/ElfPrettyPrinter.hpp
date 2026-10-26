@@ -182,12 +182,6 @@ public:
 };
 
 /**
-True if the linker generates .interp for the module: it is an executable with
-a .dynamic section, including a static PIE.
-*/
-bool linkerGeneratesInterp(const gtirb::Module& Module);
-
-/**
 Symbol is attached to the .plt, which can happen if the symbol has an address
 in the ELF metadata. This seems to occur sometimes.
 

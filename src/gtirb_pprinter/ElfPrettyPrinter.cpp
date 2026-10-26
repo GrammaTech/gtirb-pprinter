@@ -14,6 +14,7 @@
 //===----------------------------------------------------------------------===//
 #include "ElfPrettyPrinter.hpp"
 #include "AuxDataUtils.hpp"
+#include "ElfUtils.hpp"
 #include "driver/Logger.h"
 
 #include "AuxDataSchema.hpp"
@@ -85,16 +86,6 @@
 namespace gtirb_pprint {
 static const std::unordered_set<std::string> PLTSections = {".plt", ".plt.sec",
                                                             ".plt.got"};
-
-bool linkerGeneratesInterp(const gtirb::Module& Module) {
-  // Same test as ElfPrettyPrinterFactory::isStaticBinary.
-  if (Module.findSections(".dynamic").empty()) {
-    return false;
-  }
-  const auto BinaryType = aux_data::getBinaryType(Module);
-  return std::find(BinaryType.begin(), BinaryType.end(), "SHARED") ==
-         BinaryType.end();
-}
 
 ElfPrettyPrinter::ElfPrettyPrinter(gtirb::Context& context_,
                                    const gtirb::Module& module_,
@@ -543,7 +534,7 @@ const gtirb::Symbol* ElfPrettyPrinter::getBestSymbol(
 
 bool ElfPrettyPrinterFactory::isStaticBinary(
     const gtirb::Module& Module) const {
-  return Module.findSections(".dynamic").empty();
+  return !isDynamicallyLinked(Module);
 }
 
 const PrintingPolicy& ElfPrettyPrinterFactory::defaultPrintingPolicy(

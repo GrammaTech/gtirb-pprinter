@@ -3,14 +3,11 @@
   * Fix `KANDB`/`KANDW`/`KANDD`/`KANDQ` printing to avoid operands between {}s.
   * Print `.cfi_startproc simple` for `.cfi_startproc` entries in the
     `cfiDirectives` AuxData table that have a single operand equal to 1.
-  * Fix ELF binary printing so that the binary's `.interp` reflects the
-    GTIRB's: for dynamically linked executables, `.interp` is no longer
-    printed and its interpreter is passed to the linker with
-    `--dynamic-linker` (`--no-dynamic-linker` if the GTIRB has no `.interp`),
-    ahead of `--compiler-args` so users can override it. Shared objects and
-    static binaries print `.interp` as is. `--skip-section .interp` gives the
-    linker's default instead. Warnings are emitted for `.interp` contents that
-    cannot be reproduced exactly.
+  * ELF binaries no longer get the linker's default interpreter appended to
+    their `.interp` section, and a dynamic linker passed with
+    `--compiler-args` now takes effect.
+  * ELF executables without a `.interp` section, such as static PIEs, no
+    longer gain one.
 
 # 2.2.5
 
