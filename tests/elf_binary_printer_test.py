@@ -1065,6 +1065,42 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
                 ("FUNC", "GLOBAL", "HIDDEN", "f5_symbol"),
             )
 
+    def test_skip_dynamic_section(self):
+        """
+        Test that the a non-empty .dynamic section is skipped.
+        """
+        ir, module, _ = self.build_basic_ir()
+
+        # Mimic layout redirecting _DYNAMIC to a zero-sized block.
+        _, bi = gth.add_section(module, ".dynamic")
+        block = gtirb.DataBlock(offset=0, size=0, byte_interval=bi)
+        gtirb.Symbol(name="_DYNAMIC", payload=block, module=module)
+
+        section_re = r"(?m)^\s*\.section\s+\.dynamic\b"
+        label_re = r"(?m)^_DYNAMIC:"
+
+        # Sanity check: when .dynamic is kept, the section and label are
+        # printed, so the assertions below are meaningful.
+        asm = run_asm_pprinter(ir, ["--keep-section", ".dynamic"])
+        self.assertRegex(asm, section_re)
+        self.assertRegex(asm, label_re)
+
+        for policy in ("dynamic", "complete"):
+            with self.subTest(policy=policy):
+                asm = run_asm_pprinter(ir, ["--policy", policy])
+                self.assertNotRegex(
+                    asm,
+                    section_re,
+                    msg=f"The .dynamic section should not be printed "
+                    f"under the {policy} policy",
+                )
+                self.assertNotRegex(
+                    asm,
+                    label_re,
+                    msg=f"_DYNAMIC should not be printed "
+                    f"under the {policy} policy",
+                )
+
     def subtest_elf_stack_properties(self, stack_size: int, stack_exec: bool):
         """
         Test generating `-Wl,-z,stack-size` and `-z,-execstack`
