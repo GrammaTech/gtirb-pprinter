@@ -324,6 +324,31 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
             ("FUNC", "GLOBAL", "DEFAULT", "foo_no_ver"),
         )
 
+    def test_default_version_no_symver(self):
+        """
+        A default-version definition is versioned by the version script
+        alone: no .symver, and .symtab keeps the plain name.
+        """
+        ir, module, bi = self.build_basic_ir()
+        foo = gth.add_symbol(module, "foo", gth.add_code_block(bi, b"\xC3"))
+        gth.add_elf_symbol_info(module, foo, 1, "FUNC")
+        module.aux_data["elfSymbolVersions"] = gtirb.AuxData(
+            type_name=(
+                "tuple<mapping<uint16_t,tuple<sequence<string>,uint16_t>>,"
+                "mapping<string,mapping<uint16_t,string>>,"
+                "mapping<UUID,tuple<uint16_t,bool>>>"
+            ),
+            data=({1: (["VERS_1"], 0)}, {}, {foo.uuid: (1, False)}),
+        )
+
+        self.assertNotIn(".symver", run_asm_pprinter(ir))
+
+        with self.binary_print(ir, "--shared") as result:
+            syms = self.readelf(result.path, "--syms", "-W").stdout
+        dynsym, symtab = syms.split("Symbol table '.symtab'", 1)
+        self.assertIn("foo@@VERS_1", dynsym)
+        self.assertRegex(symtab, r"\sfoo\n")
+
     def test_base_version(self):
         """
         Make sure that base version is not printed out
