@@ -75,6 +75,8 @@ bool isLd(std::string Library) {
 // by ddisasm.
 bool isBlackListed(std::string sym) {
   static std::vector<std::string> blackList = {"",
+                                               "__ehdr_start",
+                                               "_DYNAMIC",
                                                "_GLOBAL_OFFSET_TABLE_",
                                                "__rela_iplt_start",
                                                "__rela_iplt_end",

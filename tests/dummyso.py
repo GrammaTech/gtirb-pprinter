@@ -494,3 +494,36 @@ def build_weak_versioned_sym_gtirb() -> gtirb.IR:
     )
 
     return ir
+
+
+def build_linker_defined_syms_gtirb() -> gtirb.IR:
+    """
+    Build an IR that references the linker-defined symbols _DYNAMIC and
+    __ehdr_start.
+    """
+    (ir, module) = gth.create_test_module(
+        gtirb.Module.FileFormat.ELF,
+        gtirb.Module.ISA.X64,
+    )
+    dynamic_address = 0x1000
+    _, dynamic_bi = gth.add_section(module, ".dynamic", dynamic_address)
+    gth.add_data_block(dynamic_bi, b"\x00")
+    (_, data_bi) = gth.add_data_section(module)
+
+    for name, address, type in (
+        ("_DYNAMIC", dynamic_address, "OBJECT"),
+        ("__ehdr_start", 0, "NOTYPE"),
+    ):
+        # This mimics how ddisasm creates the symbols
+        symbol = gth.add_symbol(module, name)
+        copy_symbol = gth.add_symbol(module, name + "_copy")
+        copy_symbol.value = address
+        gth.add_elf_symbol_info(module, copy_symbol, 0, type, "LOCAL")
+        module.aux_data["symbolForwarding"].data[copy_symbol] = symbol
+        gth.add_data_block(
+            data_bi, b"\x00" * 8, {0: gtirb.SymAddrConst(0, symbol)}
+        )
+
+    module.aux_data["libraries"].data.append("libmya.so")
+
+    return ir

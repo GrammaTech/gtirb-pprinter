@@ -227,6 +227,26 @@ class ElfBinaryPrinterTests(BinaryPPrinterTest):
                 ("FUNC", "WEAK", "DEFAULT", "a@LIBA_1.0"),
             )
 
+    def test_dummyso_linker_defined_syms(self):
+        """
+        Test printing a GTIRB with --dummy-so where _DYNAMIC and __ehdr_start
+        are left for the linker to define, as ddisasm does.
+        """
+        ir = dummyso.build_linker_defined_syms_gtirb()
+        with self.binary_print(ir, "--dummy-so", "yes") as result:
+            self.assert_libs_in_ldd(result.path, ["libmya.so"])
+
+            # Both symbols must be the local definitions, not imports.
+            symtab = self.readelf(result.path, "--syms").stdout
+            self.assert_readelf_syms(
+                symtab,
+                ("OBJECT", "LOCAL", "DEFAULT", "_DYNAMIC"),
+                ("NOTYPE", "LOCAL", "DEFAULT", "__ehdr_start"),
+            )
+            dynsyms = self.readelf(result.path, "--dyn-syms").stdout
+            self.assertNotIn("_DYNAMIC", dynsyms)
+            self.assertNotIn("__ehdr_start", dynsyms)
+
     def test_dummyso_no_libs(self):
         """
         Test printing a GTIRB that has no libraries with --dummy-so=yes
