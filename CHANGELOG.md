@@ -14,6 +14,8 @@
     `--compiler-args` now takes effect.
   * ELF executables without a `.interp` section, such as static PIEs, no
     longer gain one.
+  * Skip `__ehdr_start` and `_DYNAMIC` when generating the dummy-so, to avoid
+    incorrect symbols being linked.
 
 # 2.2.5
 
