@@ -149,12 +149,6 @@ protected:
   void printSymbolType(std::ostream& os, std::string& Name,
                        const aux_data::ElfSymbolInfo& SymbolInfo);
 
-  /** True if the symbol's version is fully determined by the linker version
-   * script, so no .symver directive should be printed for it. */
-  bool isVersionAssignedByVersionScript(
-      const gtirb::Symbol& Sym, const std::string& Name,
-      const aux_data::ElfSymbolInfo& SymbolInfo) const;
-
   /** Print .size directives for OBJECT and TLS symbols. */
   void printSymbolSize(std::ostream& os, std::string& Name,
                        const aux_data::ElfSymbolInfo& SymbolInfo);

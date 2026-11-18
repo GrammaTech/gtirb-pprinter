@@ -215,29 +215,6 @@ void ElfPrettyPrinter::printByte(std::ostream& os, std::byte byte) {
 
 void ElfPrettyPrinter::printFooter(std::ostream& /* os */){};
 
-bool ElfPrettyPrinter::isVersionAssignedByVersionScript(
-    const gtirb::Symbol& Sym, const std::string& Name,
-    const aux_data::ElfSymbolInfo& SymbolInfo) const {
-  // The version script lists non-LOCAL symbols under their default version,
-  // so .symver is only needed for hidden versions and disambiguated names.
-  // LOCAL symbols are not in the version script; disambiguated names
-  // differ from the name the version script uses.
-  if (SymbolInfo.Binding == "LOCAL" || Name != Sym.getName()) {
-    return false;
-  }
-  // Only versions defined by this module are in the version script.
-  // The base version is skipped by the version script.
-  auto VersionInfo = aux_data::getSymbolVersionInfo(Sym);
-  const auto* Internal =
-      std::get_if<aux_data::InternalSymbolVersion>(&VersionInfo);
-  if (!Internal || aux_data::isBaseVersion(Internal->Flags)) {
-    return false;
-  }
-  // Return true if the version is the default one (@@), not hidden (@)
-  const std::string& Suffix = Internal->VersionSuffix;
-  return Suffix.size() > 2 && Suffix.compare(0, 2, "@@") == 0;
-}
-
 void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
                                          const gtirb::Symbol& sym) {
   if (auto SymbolInfo = aux_data::getElfSymbolInfo(sym)) {
@@ -260,9 +237,6 @@ void ElfPrettyPrinter::printSymbolHeader(std::ostream& os,
       if (policy.IgnoreSymbolVersions) {
         LOG_WARNING << "Ignored symbol version for " << Name << *Version
                     << "\n";
-      } else if (isVersionAssignedByVersionScript(sym, Name, *SymbolInfo)) {
-        // Versioned by the version script; .symver would rename the
-        // symbol in .symtab to Name@@VER.
       } else {
         os << elfSyntax.symVer() << ' ' << Name << "," << sym.getName();
         // If there is no disambiguation we rename the symbol rather
